@@ -1,14 +1,2 @@
-[build]
-builder = "nixpacks"
-
-[deploy]
-startCommand = "uvicorn backend.main:app --host 0.0.0.0 --port $PORT"
-restartPolicyType = "always"
-
-[[services]]
-name = "web"
-command = "uvicorn backend.main:app --host 0.0.0.0 --port $PORT"
-
-[[services]]
-name = "bot"
-command = "python bot_runner.py"
+# This file is intentionally minimal for Railway deployment
+# Railway will auto-detect Python and install requirements.txt
