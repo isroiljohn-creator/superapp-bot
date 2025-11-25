@@ -303,18 +303,24 @@ async def admin_stats(current_user: dict = Depends(get_current_user), db: AsyncS
         "premium_users": premium.scalar()
     }
 
-# === Static Files ===
+# === Static Files (Optional - only if frontend is built) ===
 
-app.mount("/assets", StaticFiles(directory="frontend/dist/assets"), name="assets")
-
-@app.get("/{full_path:path}")
-async def serve_spa(full_path: str):
-    """Serve React SPA"""
-    if full_path.startswith("api/") or full_path.startswith("auth/") or full_path.startswith("user/") or full_path.startswith("ai/") or full_path.startswith("premium/") or full_path.startswith("referral/") or full_path.startswith("analytics/") or full_path.startswith("admin/"):
-        raise HTTPException(status_code=404, detail="API endpoint not found")
+if os.path.exists("frontend/dist"):
+    app.mount("/assets", StaticFiles(directory="frontend/dist/assets"), name="assets")
     
-    file_path = f"frontend/dist/{full_path}"
-    if os.path.exists(file_path) and os.path.isfile(file_path):
-        return FileResponse(file_path)
-    
-    return FileResponse("frontend/dist/index.html")
+    @app.get("/{full_path:path}")
+    async def serve_spa(full_path: str):
+        """Serve React SPA"""
+        if full_path.startswith("api/") or full_path.startswith("auth/") or full_path.startswith("user/") or full_path.startswith("ai/") or full_path.startswith("premium/") or full_path.startswith("referral/") or full_path.startswith("analytics/") or full_path.startswith("admin/"):
+            raise HTTPException(status_code=404, detail="API endpoint not found")
+        
+        file_path = f"frontend/dist/{full_path}"
+        if os.path.exists(file_path) and os.path.isfile(file_path):
+            return FileResponse(file_path)
+        
+        return FileResponse("frontend/dist/index.html")
+else:
+    @app.get("/")
+    async def root():
+        """API is running"""
+        return {"status": "YASHA API is running", "message": "Frontend not built - API only mode"}
