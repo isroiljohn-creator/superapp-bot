@@ -1,0 +1,10 @@
+*.pyc
+__pycache__/
+*.log
+.env
+yasha.db
+node_modules/
+frontend/dist/
+.DS_Store
+ngrok.log
+tunnel.log

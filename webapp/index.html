@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="uz">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fitness Bot Dashboard</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            background-color: var(--tg-theme-bg-color, #f3f4f6);
+            color: var(--tg-theme-text-color, #1f2937);
+        }
+
+        .card {
+            background-color: var(--tg-theme-secondary-bg-color, #ffffff);
+        }
+    </style>
+</head>
+
+<body class="p-4">
+
+    <div id="loading" class="text-center mt-10">
+        <p class="text-lg animate-pulse">Yuklanmoqda...</p>
+    </div>
+
+    <!-- ADMIN DASHBOARD -->
+    <div id="admin-dashboard" class="hidden space-y-6">
+        <h1 class="text-2xl font-bold mb-4">📊 Admin Dashboard</h1>
+
+        <!-- Summary Cards -->
+        <div class="grid grid-cols-2 gap-4" id="admin-summary">
+            <!-- Filled by JS -->
+        </div>
+
+        <!-- Charts -->
+        <div class="card p-4 rounded-lg shadow">
+            <h2 class="font-semibold mb-2">Foydalanuvchilar Maqsadi</h2>
+            <canvas id="goalChart"></canvas>
+        </div>
+
+        <!-- User List -->
+        <div class="card p-4 rounded-lg shadow overflow-x-auto">
+            <h2 class="font-semibold mb-2">👥 Foydalanuvchilar</h2>
+            <table class="w-full text-sm text-left">
+                <thead class="border-b">
+                    <tr>
+                        <th class="py-2">ID</th>
+                        <th>Ism</th>
+                        <th>Maqsad</th>
+                        <th>Premium</th>
+                    </tr>
+                </thead>
+                <tbody id="user-table-body"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- USER DASHBOARD -->
+    <div id="user-dashboard" class="hidden space-y-6">
+        <!-- Header -->
+        <div class="flex justify-between items-center">
+            <div>
+                <h1 class="text-xl font-bold" id="user-greeting">Salom!</h1>
+                <p class="text-sm opacity-75" id="user-goal">Maqsadingiz: ...</p>
+            </div>
+            <div id="user-premium-badge"
+                class="hidden bg-yellow-400 text-yellow-900 text-xs font-bold px-2 py-1 rounded-full">
+                PREMIUM
+            </div>
+        </div>
+
+        <!-- Cards -->
+        <div class="grid grid-cols-2 gap-3">
+            <div class="card p-3 rounded-xl shadow text-center">
+                <p class="text-xs opacity-70">Bugungi holat</p>
+                <p class="font-bold text-lg" id="card-status">❌</p>
+            </div>
+            <div class="card p-3 rounded-xl shadow text-center">
+                <p class="text-xs opacity-70">Vazn</p>
+                <p class="font-bold text-lg" id="card-weight">-- kg</p>
+            </div>
+            <div class="card p-3 rounded-xl shadow text-center">
+                <p class="text-xs opacity-70">Ballar</p>
+                <p class="font-bold text-lg text-blue-500" id="card-points">0</p>
+            </div>
+            <div class="card p-3 rounded-xl shadow text-center">
+                <p class="text-xs opacity-70">Suv</p>
+                <p class="font-bold text-lg text-blue-400" id="card-water">0%</p>
+            </div>
+        </div>
+
+        <!-- Tasks -->
+        <div class="card p-4 rounded-xl shadow">
+            <h2 class="font-bold mb-3">✅ Bugungi vazifalar</h2>
+            <ul class="space-y-2 text-sm" id="tasks-list">
+                <li class="flex items-center gap-2">
+                    <span id="task-workout-icon">⬜</span> Mashqni bajarish
+                </li>
+                <li class="flex items-center gap-2">
+                    <span id="task-water-icon">⬜</span> 2 litr suv ichish
+                </li>
+            </ul>
+        </div>
+
+        <!-- Weight Chart -->
+        <div class="card p-4 rounded-xl shadow">
+            <h2 class="font-bold mb-2">📉 Vazn tarixi</h2>
+            <canvas id="weightChart"></canvas>
+        </div>
+
+        <!-- Referral -->
+        <div class="card p-4 rounded-xl shadow bg-gradient-to-r from-blue-500 to-indigo-600 text-white">
+            <h2 class="font-bold mb-1">🔗 Do‘stlarni taklif qiling</h2>
+            <p class="text-xs mb-3 opacity-90">5 ta do‘st = 7 kun Premium!</p>
+            <div class="bg-white/20 p-2 rounded text-center text-xs font-mono break-all" id="ref-link">
+                ...
+            </div>
+            <p class="text-center mt-2 text-sm">Sizning referallaringiz: <span id="ref-count" class="font-bold">0</span>
+            </p>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = "https://launch-research-whole-outlet.trycloudflare.com/api"; // Auto-updated
+        const tg = window.Telegram.WebApp;
+        tg.expand();
+
+        async function init() {
+            try {
+                const initData = tg.initData;
+                if (!initData) {
+                    // Mock for testing in browser if needed, or show error
+                    // alert("Please open in Telegram");
+                    // return;
+                }
+
+                // Auth
+                const authRes = await fetch(`${API_URL}/auth`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ initData })
+                });
+
+                if (!authRes.ok) throw new Error("Auth failed");
+                const authData = await authRes.json();
+
+                document.getElementById("loading").classList.add("hidden");
+
+                if (authData.role === "admin") {
+                    loadAdminDashboard(initData);
+                } else {
+                    loadUserDashboard(initData);
+                }
+
+            } catch (e) {
+                document.getElementById("loading").innerText = "Xatolik: " + e.message;
+            }
+        }
+
+        async function loadAdminDashboard(initData) {
+            document.getElementById("admin-dashboard").classList.remove("hidden");
+
+            // Summary
+            const summaryRes = await fetch(`${API_URL}/admin/summary`, { headers: { "initData": initData } });
+            const summary = await summaryRes.json();
+
+            const summaryDiv = document.getElementById("admin-summary");
+            summaryDiv.innerHTML = `
+                <div class="card p-3 rounded shadow">
+                    <p class="text-xs text-gray-500">Jami</p>
+                    <p class="text-xl font-bold">${summary.total}</p>
+                </div>
+                <div class="card p-3 rounded shadow">
+                    <p class="text-xs text-gray-500">Faol</p>
+                    <p class="text-xl font-bold text-green-600">${summary.active}</p>
+                </div>
+                <div class="card p-3 rounded shadow">
+                    <p class="text-xs text-gray-500">Premium</p>
+                    <p class="text-xl font-bold text-yellow-600">${summary.premium}</p>
+                </div>
+                <div class="card p-3 rounded shadow">
+                    <p class="text-xs text-gray-500">Erkak/Ayol</p>
+                    <p class="text-sm font-bold">${summary.gender.Erkak || 0} / ${summary.gender.Ayol || 0}</p>
+                </div>
+            `;
+
+            // Goal Chart
+            const ctx = document.getElementById('goalChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(summary.goal),
+                    datasets: [{
+                        data: Object.values(summary.goal),
+                        backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444']
+                    }]
+                }
+            });
+
+            // Users Table
+            const usersRes = await fetch(`${API_URL}/admin/users`, { headers: { "initData": initData } });
+            const users = await usersRes.json();
+            const tbody = document.getElementById("user-table-body");
+            users.forEach(u => {
+                tbody.innerHTML += `
+                    <tr class="border-b last:border-0">
+                        <td class="py-2 text-xs text-gray-500">${u.id}</td>
+                        <td class="font-medium">${u.name}</td>
+                        <td class="text-xs">${u.goal || '-'}</td>
+                        <td class="text-xs">${u.is_premium ? '✅' : '-'}</td>
+                    </tr>
+                `;
+            });
+        }
+
+        async function loadUserDashboard(initData) {
+            document.getElementById("user-dashboard").classList.remove("hidden");
+
+            const overviewRes = await fetch(`${API_URL}/user/overview`, { headers: { "initData": initData } });
+            const data = await overviewRes.json();
+
+            // Header
+            document.getElementById("user-greeting").innerText = `Salom, ${data.name}!`;
+            document.getElementById("user-goal").innerText = `Maqsadingiz: ${data.goal || 'Belgilanmagan'}`;
+            if (data.is_premium) document.getElementById("user-premium-badge").classList.remove("hidden");
+
+            // Cards
+            document.getElementById("card-weight").innerText = `${data.current_weight || '--'} kg`;
+            document.getElementById("card-points").innerText = data.points;
+            document.getElementById("card-status").innerText = data.today_workout_done ? "✅" : "❌";
+            document.getElementById("card-water").innerText = data.today_water_done ? "✅" : "❌";
+
+            // Tasks Icons
+            document.getElementById("task-workout-icon").innerText = data.today_workout_done ? "✅" : "⬜";
+            document.getElementById("task-water-icon").innerText = data.today_water_done ? "✅" : "⬜";
+
+            // Referral
+            document.getElementById("ref-link").innerText = `t.me/bot?start=${data.referral_code}`;
+            document.getElementById("ref-count").innerText = data.referral_count;
+
+            // Weight Chart
+            const historyRes = await fetch(`${API_URL}/user/weight-history`, { headers: { "initData": initData } });
+            const history = await historyRes.json();
+
+            if (history.data.length > 0) {
+                const ctx = document.getElementById('weightChart').getContext('2d');
+                new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: history.labels,
+                        datasets: [{
+                            label: 'Vazn (kg)',
+                            data: history.data,
+                            borderColor: '#3b82f6',
+                            tension: 0.3
+                        }]
+                    }
+                });
+            } else {
+                document.getElementById("weightChart").parentElement.innerHTML += "<p class='text-xs text-center text-gray-500'>Ma'lumot yo'q</p>";
+            }
+        }
+
+        init();
+    </script>
+</body>
+
+</html>
