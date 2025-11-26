@@ -109,6 +109,11 @@ class Database:
                 pass
 
             try:
+                cursor.execute("ALTER TABLE users ADD COLUMN language TEXT DEFAULT 'uz'")
+            except sqlite3.OperationalError:
+                pass
+
+            try:
                 cursor.execute("ALTER TABLE orders ADD COLUMN days INTEGER")
             except sqlite3.OperationalError:
                 pass
