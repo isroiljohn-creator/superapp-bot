@@ -111,8 +111,12 @@ def register_handlers(bot):
         if message.from_user.id != ADMIN_ID:
             return
         
-        msg = bot.send_message(message.chat.id, "Xabarni yuboring (matn, rasm, video, ovozli xabar):", reply_markup=types.ForceReply())
-        bot.register_next_step_handler(msg, process_broadcast, bot, "all")
+        print(f"DEBUG: Admin broadcast started by {message.from_user.id}")
+        try:
+            msg = bot.send_message(message.chat.id, "Xabarni yuboring (matn, rasm, video, ovozli xabar):", reply_markup=types.ForceReply())
+            bot.register_next_step_handler(msg, process_broadcast, bot, "all")
+        except Exception as e:
+            bot.send_message(message.chat.id, f"❌ Xatolik: {e}")
 
     @bot.message_handler(func=lambda message: "Segment xabar" in message.text)
     def admin_segment_start(message):
@@ -168,41 +172,58 @@ def register_handlers(bot):
         bot.register_next_step_handler(msg, process_broadcast, bot, segment)
 
 def process_broadcast(message, bot, segment):
-    users = []
-    if segment == "all":
-        users = db.get_active_users()
-    else:
-        key, value = segment[0], segment[1]
-        if key == "gender":
-            users = db.get_users_by_segment(gender=value)
-        elif key == "goal":
-            # Simple fuzzy match for goal
-            users = db.get_users_by_segment(goal=value)
-        elif key == "premium":
-            is_prem = (value == "True")
-            users = db.get_users_by_segment(is_premium=is_prem)
-    
-    count = 0
-    blocked = 0
-    
-    status_msg = bot.send_message(message.chat.id, f"🚀 Xabar yuborish boshlandi... (Jami: {len(users)})")
-    
-    for i, user in enumerate(users):
-        try:
-            bot.copy_message(user[0], message.chat.id, message.message_id)
-            count += 1
-        except Exception as e:
-            # If blocked, mark inactive
-            if "forbidden" in str(e).lower() or "blocked" in str(e).lower():
-                db.set_user_active(user[0], False)
-                blocked += 1
-            # print(f"Failed to send to {user[0]}: {e}")
+    try:
+        # Check if user cancelled
+        if message.text and message.text.startswith("/"):
+            bot.send_message(message.chat.id, "❌ Bekor qilindi.")
+            return
+
+        users = []
+        if segment == "all":
+            users = db.get_active_users()
+        else:
+            key, value = segment[0], segment[1]
+            if key == "gender":
+                users = db.get_users_by_segment(gender=value)
+            elif key == "goal":
+                # Simple fuzzy match for goal
+                users = db.get_users_by_segment(goal=value)
+            elif key == "premium":
+                is_prem = (value == "True")
+                users = db.get_users_by_segment(is_premium=is_prem)
         
-        # Update status every 20 users
-        if i % 20 == 0:
+        if not users:
+            bot.send_message(message.chat.id, "❌ Foydalanuvchilar topilmadi.")
+            return
+
+        count = 0
+        blocked = 0
+        
+        status_msg = bot.send_message(message.chat.id, f"🚀 Xabar yuborish boshlandi... (Jami: {len(users)})")
+        
+        for i, user in enumerate(users):
             try:
-                bot.edit_message_text(f"🚀 Yuborilmoqda... {i}/{len(users)}", message.chat.id, status_msg.message_id)
-            except:
-                pass
-    
-    bot.send_message(message.chat.id, f"✅ Xabar yuborish yakunlandi.\n\n✅ Muvaffaqiyatli: {count}\n🚫 Bloklaganlar: {blocked}")
+                bot.copy_message(user[0], message.chat.id, message.message_id)
+                count += 1
+            except Exception as e:
+                # If blocked, mark inactive
+                if "forbidden" in str(e).lower() or "blocked" in str(e).lower():
+                    db.set_user_active(user[0], False)
+                    blocked += 1
+                # print(f"Failed to send to {user[0]}: {e}")
+            
+            # Update status every 20 users
+            if i % 20 == 0:
+                try:
+                    bot.edit_message_text(f"🚀 Yuborilmoqda... {i}/{len(users)}", message.chat.id, status_msg.message_id)
+                except:
+                    pass
+        
+        bot.send_message(message.chat.id, f"✅ Xabar yuborish yakunlandi.\n\n✅ Muvaffaqiyatli: {count}\n🚫 Bloklaganlar: {blocked}")
+        
+    except Exception as e:
+        print(f"Error in process_broadcast: {e}")
+        try:
+            bot.send_message(message.chat.id, f"❌ Xabar yuborishda xatolik: {e}")
+        except:
+            pass
