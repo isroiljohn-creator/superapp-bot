@@ -1,6 +1,7 @@
 from datetime import datetime
 from telebot import types
 from core.db import db
+from bot.keyboards import gamification_keyboard
 
 def handle_tasks(message, bot):
     user_id = message.from_user.id

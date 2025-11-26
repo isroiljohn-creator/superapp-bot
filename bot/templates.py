@@ -30,25 +30,22 @@ def get_meal_templates():
         {"id": "meal_2500", "name": "💪 Mushak oshirish (2500 kcal)", "emoji": "💪"}
     ]
 
-from bot.languages import get_text
-
 def show_workout_template_menu(message, bot):
     """Show workout template selection menu"""
     user_id = message.from_user.id
-    lang = db.get_language(user_id)
     is_premium = db.is_premium(user_id)
     
     text = (
-        f"{get_text('btn_workout', lang)}\n\n"
-        f"{get_text('choose_plan_type', lang)}\n\n"
+        "📋 **Mashq rejalari**\n\n"
+        "Quyidagi shablon rejalardan birini tanlang:\n\n"
     )
     
     if not is_premium:
-        text += "💡 *Premium needed for AI*" # Should localize this too
+        text += "💡 *Individual AI reja uchun Premium obuna kerak*"
     
     markup = types.InlineKeyboardMarkup()
     
-    # Add template options (Names are hardcoded for now, but could be localized)
+    # Add template options
     for template in get_workout_templates():
         markup.add(types.InlineKeyboardButton(
             template["name"],
@@ -58,13 +55,13 @@ def show_workout_template_menu(message, bot):
     # Add AI option for premium users
     if is_premium:
         markup.add(types.InlineKeyboardButton(
-            "🤖 AI Plan", # Localize
+            "🤖 Individual AI reja",
             callback_data="workout_ai"
         ))
     else:
         # Upsell premium
         markup.add(types.InlineKeyboardButton(
-            f"💎 {get_text('premium_title', lang)}",
+            "💎 Individual AI reja (Premium)",
             callback_data="upgrade_premium"
         ))
     
@@ -73,16 +70,15 @@ def show_workout_template_menu(message, bot):
 def show_meal_template_menu(message, bot):
     """Show meal template selection menu"""
     user_id = message.from_user.id
-    lang = db.get_language(user_id)
     is_premium = db.is_premium(user_id)
     
     text = (
-        f"{get_text('btn_meal', lang)}\n\n"
-        f"{get_text('choose_plan_type', lang)}\n\n"
+        "🍽 **Ovqatlanish rejalari**\n\n"
+        "Quyidagi shablon rejalardan birini tanlang:\n\n"
     )
     
     if not is_premium:
-        text += "💡 *Premium needed for AI*"
+        text += "💡 *Individual AI reja uchun Premium obuna kerak*"
     
     markup = types.InlineKeyboardMarkup()
     
@@ -96,13 +92,13 @@ def show_meal_template_menu(message, bot):
     # Add AI option for premium users
     if is_premium:
         markup.add(types.InlineKeyboardButton(
-            "🤖 AI Plan",
+            "🤖 Individual AI reja",
             callback_data="meal_ai"
         ))
     else:
         # Upsell premium
         markup.add(types.InlineKeyboardButton(
-            f"💎 {get_text('premium_title', lang)}",
+            "💎 Individual AI reja (Premium)",
             callback_data="upgrade_premium"
         ))
     

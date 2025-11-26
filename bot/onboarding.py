@@ -5,18 +5,17 @@ from bot.keyboards import (
     phone_request_keyboard, gender_keyboard, goal_keyboard, 
     allergy_keyboard, main_menu_keyboard
 )
-from bot.languages import get_text
 
 # States
-STATE_LANGUAGE = 0
-STATE_PHONE = 8 # Added missing state
-STATE_NAME = 1
-STATE_AGE = 2
-STATE_GENDER = 3
-STATE_HEIGHT = 4
-STATE_WEIGHT = 5
-STATE_GOAL = 6
-STATE_ALLERGY = 7
+STATE_NONE = 0
+STATE_PHONE = 1
+STATE_NAME = 2
+STATE_AGE = 3
+STATE_GENDER = 4
+STATE_HEIGHT = 5
+STATE_WEIGHT = 6
+STATE_GOAL = 7
+STATE_ALLERGY = 8
 
 class OnboardingManager:
     def __init__(self):
@@ -24,7 +23,7 @@ class OnboardingManager:
         self.user_data = {}
 
     def get_state(self, user_id):
-        return self.user_states.get(user_id)
+        return self.user_states.get(user_id, STATE_NONE)
 
     def set_state(self, user_id, state):
         self.user_states[user_id] = state
@@ -46,7 +45,20 @@ class OnboardingManager:
 manager = OnboardingManager()
 
 def start_onboarding(message, bot):
+    """Step 0: Check if user exists, if not request phone number FIRST"""
     user_id = message.from_user.id
+    
+    # Check if user already exists in database
+    existing_user = db.get_user(user_id)
+    if existing_user:
+        bot.send_message(
+            user_id, 
+            "Asosiy menyuga qaytdingiz, pastdagi tugmalar orqali keyingi qadamni tanlang👇🏻", 
+            reply_markup=main_menu_keyboard()
+        )
+        return
+    
+    # Handle start parameters
     args = message.text.split()
     referrer_id = None
     if len(args) > 1:
@@ -163,78 +175,120 @@ def process_gender(call, bot):
 
 def process_height(message, bot):
     user_id = message.from_user.id
-    lang = db.get_language(user_id)
-    try:
-        height = int(message.text)
-    except ValueError:
-        bot.send_message(user_id, get_text("error_number", lang))
+    
+    if manager.get_state(user_id) != STATE_HEIGHT:
         return
-
+    
+    if not message.text.isdigit():
+        bot.send_message(user_id, "Iltimos, bo'yingizni raqamda kiriting (sm):")
+        return
+    
+    height = int(message.text)
+    if height < 50 or height > 250:
+        bot.send_message(user_id, "Bo'yingizni to'g'ri kiriting (50-250 sm):")
+        return
+    
     manager.update_data(user_id, 'height', height)
     manager.set_state(user_id, STATE_WEIGHT)
-    bot.send_message(user_id, get_text("enter_weight", lang))
+    
+    bot.send_message(user_id, "Vazningizni kiriting (kg):")
 
 def process_weight(message, bot):
     user_id = message.from_user.id
-    lang = db.get_language(user_id)
+    
+    if manager.get_state(user_id) != STATE_WEIGHT:
+        return
+    
     try:
         weight = float(message.text)
+        if weight < 20 or weight > 300:
+            raise ValueError
     except ValueError:
-        bot.send_message(user_id, get_text("error_number", lang))
+        bot.send_message(user_id, "Vazningizni to'g'ri kiriting (20-300 kg):")
         return
-
+    
     manager.update_data(user_id, 'weight', weight)
     manager.set_state(user_id, STATE_GOAL)
     
-    markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
-    markup.add(get_text("goal_weight_loss", lang), get_text("goal_mass_gain", lang))
-    markup.add(get_text("goal_health", lang))
-    
-    bot.send_message(user_id, get_text("enter_goal", lang), reply_markup=markup)
+    bot.send_message(user_id, "Maqsadingizni tanlang:", reply_markup=goal_keyboard())
 
-def process_goal(message, bot):
-    user_id = message.from_user.id
-    goal = message.text
-    lang = db.get_language(user_id)
+def process_goal(call, bot):
+    user_id = call.from_user.id
     
+    if manager.get_state(user_id) != STATE_GOAL:
+        try:
+            bot.answer_callback_query(call.id, "Eski tugma.")
+        except:
+            pass
+        return
+    
+    goal = call.data
     manager.update_data(user_id, 'goal', goal)
     manager.set_state(user_id, STATE_ALLERGY)
     
-    markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
-    markup.add(get_text("no", lang), get_text("yes", lang))
-    
-    bot.send_message(user_id, get_text("allergy_question", lang), reply_markup=markup)
+    try:
+        bot.answer_callback_query(call.id)
+    except:
+        pass
+        
+    bot.send_message(user_id, "Allergiyangiz bormi?", reply_markup=allergy_keyboard())
 
-def process_allergy(message, bot):
-    user_id = message.from_user.id
-    text = message.text
-    lang = db.get_language(user_id)
+def process_allergy(call, bot):
+    user_id = call.from_user.id
     
-    if text == get_text("yes", lang):
-        # Ask for details
-        msg = bot.send_message(user_id, get_text("enter_allergy", lang), reply_markup=types.ReplyKeyboardRemove())
+    if manager.get_state(user_id) != STATE_ALLERGY:
+        try:
+            bot.answer_callback_query(call.id, "Eski tugma.")
+        except:
+            pass
+        return
+    
+    allergy_choice = call.data
+    
+    try:
+        bot.answer_callback_query(call.id)
+    except:
+        pass
+    
+    if allergy_choice == "allergy_yes":
+        # Ask for allergy details
+        manager.set_state(user_id, STATE_NONE)  # Temporarily exit FSM for text input
+        msg = bot.send_message(
+            user_id,
+            "📝 Qanday mahsulotlarga allergiyangiz bor?\n\n"
+            "Masalan: yong'oq, sut, tuxum, gluten, dengiz mahsulotlari",
+            reply_markup=types.ReplyKeyboardRemove()
+        )
         bot.register_next_step_handler(msg, process_allergy_details, bot)
     else:
-        # No allergy, finish
-        manager.update_data(user_id, 'allergies', "Yo'q")
-        finish_onboarding(message, bot)
+        # No allergy
+        manager.update_data(user_id, 'allergies', None)
+        finish_onboarding(user_id, message=call.message, bot=bot)
 
 def process_allergy_details(message, bot):
+    """Process allergy details text input"""
     user_id = message.from_user.id
-    allergies = message.text
-    manager.update_data(user_id, 'allergies', allergies)
-    finish_onboarding(message, bot)
-
-def finish_onboarding(message, bot):
-    user_id = message.from_user.id
-    data = manager.get_data(user_id)
-    lang = db.get_language(user_id)
+    allergy_details = message.text.strip()
     
-    # Save to DB
-    # Note: add_user was called in process_language, so we update here
+    manager.update_data(user_id, 'allergies', allergy_details)
+    
+    # Finish Onboarding
+    finish_onboarding(user_id, message=message, bot=bot)
+
+def finish_onboarding(user_id, message, bot):
+    data = manager.get_data(user_id)
+    referrer_id = data.get('referrer_id')
+    
+    # Add user to database
+    db.add_user(
+        telegram_id=user_id,
+        username=message.chat.username or f"user_{user_id}",
+        phone=data.get('phone')
+    )
+    
+    # Update profile
     db.update_user_profile(
-        user_id,
-        full_name=data.get('first_name'),
+        user_id=user_id,
         age=data.get('age'),
         gender=data.get('gender'),
         height=data.get('height'),
@@ -243,6 +297,20 @@ def finish_onboarding(message, bot):
         allergies=data.get('allergies')
     )
     
+    # Handle referral rewards
+    if referrer_id:
+        db.add_points(referrer_id, 5)
+        try:
+            bot.send_message(
+                referrer_id,
+                f"🎉 Yangi do'st ro'yxatdan o'tdi! +5 ball olasiz.\n"
+                f"Jami ballar: {db.get_user(referrer_id)['points']}"
+            )
+        except:
+            pass
+    
+    # Clear state
+    manager.clear_user(user_id)
     
     # Send welcome message
     bot.send_message(
