@@ -1,50 +1,54 @@
 from telebot import types
 from core.db import db
 from bot.keyboards import main_menu_keyboard, gender_keyboard, goal_keyboard, allergy_keyboard
-
-import traceback
+from bot.languages import get_text
 
 def handle_profile(message, bot):
-    """Show user profile with edit options"""
     try:
         user_id = message.from_user.id
-        print(f"DEBUG: handle_profile called for user {user_id}")
-        
-        # Test message to confirm handler reached
-        # bot.send_message(user_id, "DEBUG: Profil yuklanmoqda...") 
+        print(f"DEBUG: Handling profile for {user_id}")
         
         user = db.get_user(user_id)
-        
         if not user:
-            bot.send_message(user_id, "Siz hali ro'yxatdan o'tmagansiz. /start ni bosing.")
+            print(f"DEBUG: User {user_id} not found in DB")
+            bot.send_message(message.chat.id, "❌ Profil topilmadi. Iltimos /start ni bosing.")
             return
 
-        # Format profile text
+        lang = db.get_language(user_id)
+        
+        # Format data
+        full_name = user.get('full_name', 'Noma’lum')
+        age = user.get('age', 'N/A')
+        gender_raw = user.get('gender', 'male')
+        gender = get_text("male", lang) if gender_raw == 'male' else get_text("female", lang)
+        height = user.get('height', 'N/A')
+        weight = user.get('weight', 'N/A')
+        
+        # Goal translation
+        goal_raw = user.get('goal', '')
+        if "Ozish" in goal_raw: goal = get_text("goal_weight_loss", lang)
+        elif "Massa" in goal_raw: goal = get_text("goal_mass_gain", lang)
+        elif "Sog'liq" in goal_raw: goal = get_text("goal_health", lang)
+        else: goal = goal_raw
+        
+        allergies = user.get('allergies', get_text("no", lang))
+        
+        is_premium = db.is_premium(user_id)
+        status = f"✨ {get_text('premium', lang)}" if is_premium else f"👤 {get_text('free', lang)}"
+        
+        # Profile Text
         text = (
-            f"👤 Sizning Profilingiz\n\n"
-            f"Ism: {user.get('full_name', 'Noma’lum')}\n"
-            f"Yosh: {user.get('age', '-')} yosh\n"
-            f"Jins: {user.get('gender', '-')}\n"
-            f"Bo'y: {user.get('height', '-')} sm\n"
-            f"Vazn: {user.get('weight', '-')} kg\n"
-            f"Maqsad: {user.get('goal', '-')}\n"
-            f"Allergiya: {user.get('allergies') or 'Yo‘q'}\n\n"
-            f"⚙️ Qaysi qismni o'zgartirmoqchisiz?"
+            f"{get_text('profile_title', lang)}\n\n"
+            f"👤 {get_text('name', lang)}: {full_name}\n"
+            f"🎂 {get_text('age', lang)}: {age}\n"
+            f"🚻 {get_text('gender', lang)}: {gender}\n"
+            f"📏 {get_text('height', lang)}: {height} sm\n"
+            f"⚖️ {get_text('weight', lang)}: {weight} kg\n"
+            f"🎯 {get_text('goal', lang)}: {goal}\n"
+            f"🚫 {get_text('allergies', lang)}: {allergies}\n\n"
+            f"💎 {get_text('status', lang)}: {status}"
         )
         
-        # Create inline keyboard for editing
-        markup = types.InlineKeyboardMarkup(row_width=2)
-        buttons = [
-            types.InlineKeyboardButton("Ism", callback_data="edit_full_name"),
-            types.InlineKeyboardButton("Yosh", callback_data="edit_age"),
-            types.InlineKeyboardButton("Jins", callback_data="edit_gender"),
-            types.InlineKeyboardButton("Bo'y", callback_data="edit_height"),
-            types.InlineKeyboardButton("Vazn", callback_data="edit_weight"),
-            types.InlineKeyboardButton("Maqsad", callback_data="edit_goal"),
-            types.InlineKeyboardButton("Allergiya", callback_data="edit_allergies"),
-            types.InlineKeyboardButton("⬅️ Orqaga", callback_data="back_to_main")
-        ]
-        markup.add(*buttons)
         
         bot.send_message(user_id, text, reply_markup=markup)
         
