@@ -1,7 +1,20 @@
 from bot import onboarding, menu, gamification, admin, feedback, premium, profile, templates
 
 def register_all_handlers(bot):
-    # Register all module handlers FIRST
+    # EMERGENCY PROFILE HANDLER - High Priority
+    @bot.message_handler(func=lambda message: "Profil" in message.text)
+    def emergency_profile_handler(message):
+        print(f"DEBUG: EMERGENCY PROFILE HANDLER triggered by {message.from_user.id}")
+        from bot.profile import handle_profile
+        handle_profile(message, bot)
+
+    @bot.message_handler(commands=['profile_debug'])
+    def debug_profile_command(message):
+        print(f"DEBUG: /profile_debug triggered")
+        from bot.profile import handle_profile
+        handle_profile(message, bot)
+
+    # Register all module handlers
     onboarding.register_handlers(bot)
     menu.register_handlers(bot)
     gamification.register_handlers(bot)
