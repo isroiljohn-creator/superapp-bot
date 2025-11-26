@@ -27,8 +27,15 @@ def register_all_handlers(bot):
     # General utility handlers
     @bot.message_handler(commands=['start'])
     def handle_start(message):
+        print(f"DEBUG: /start command received from {message.from_user.id}")
         # Always start with onboarding (which now asks for language first)
-        onboarding.start_onboarding(message, bot)
+        try:
+            onboarding.start_onboarding(message, bot)
+        except Exception as e:
+            print(f"ERROR in handle_start: {e}")
+            import traceback
+            traceback.print_exc()
+            bot.reply_to(message, "❌ Xatolik yuz berdi. Iltimos qaytadan urinib ko'ring.")
 
     @bot.message_handler(commands=['language', 'lang'])
     def handle_language(message):
