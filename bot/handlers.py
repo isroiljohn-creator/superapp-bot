@@ -16,7 +16,7 @@ def register_all_handlers(bot):
 
     # Register all module handlers
     onboarding.register_handlers(bot)
-    menu.register_handlers(bot)
+    menu.register_menu_handlers(bot)
     gamification.register_handlers(bot)
     admin.register_handlers(bot)
     feedback.register_handlers(bot)
