@@ -1,4 +1,4 @@
-from bot import onboarding, menu, gamification, admin, feedback, premium, profile
+from bot import onboarding, menu, gamification, admin, feedback, premium, profile, templates
 
 def register_all_handlers(bot):
     @bot.message_handler(commands=['ping'])
@@ -21,3 +21,4 @@ def register_all_handlers(bot):
     feedback.register_handlers(bot) # Implicitly handled via menu but good for future expansion if needed
     premium.register_handlers(bot)
     profile.register_handlers(bot)
+    templates.register_handlers(bot)  # NEW: Template plan handlers
