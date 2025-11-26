@@ -129,6 +129,35 @@ def register_handlers(bot):
         
         bot.send_message(message.chat.id, "Segmentni tanlang:", reply_markup=markup)
 
+    @bot.message_handler(func=lambda message: message.reply_to_message and message.from_user.id == ADMIN_ID)
+    def admin_reply_to_user(message):
+        """Handle admin replying to a user's feedback"""
+        try:
+            original_text = message.reply_to_message.text or message.reply_to_message.caption
+            if not original_text:
+                return
+            
+            # Extract User ID from the original message text
+            # Format expected: "👤 Foydalanuvchi: Name (ID: 12345)"
+            import re
+            match = re.search(r"\(ID: (\d+)\)", original_text)
+            
+            if match:
+                user_id = int(match.group(1))
+                reply_text = message.text or "Rasm/Video"
+                
+                # Send to user
+                try:
+                    bot.copy_message(user_id, message.chat.id, message.message_id)
+                    bot.reply_to(message, f"✅ Xabar foydalanuvchiga (ID: {user_id}) yuborildi.")
+                except Exception as e:
+                    bot.reply_to(message, f"❌ Yuborishda xatolik: {e}")
+            else:
+                bot.reply_to(message, "⚠️ Foydalanuvchi ID si topilmadi. Xabar formatini tekshiring.")
+                
+        except Exception as e:
+            print(f"Error in admin reply: {e}")
+
     @bot.callback_query_handler(func=lambda call: call.data.startswith("seg_"))
     def admin_segment_select(call):
         if call.from_user.id != ADMIN_ID:
