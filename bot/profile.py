@@ -21,7 +21,7 @@ def handle_profile(message, bot):
 
         # Format profile text
         text = (
-            f"👤 **Sizning Profilingiz**\n\n"
+            f"👤 Sizning Profilingiz\n\n"
             f"Ism: {user.get('full_name', 'Noma’lum')}\n"
             f"Yosh: {user.get('age', '-')} yosh\n"
             f"Jins: {user.get('gender', '-')}\n"
@@ -29,7 +29,7 @@ def handle_profile(message, bot):
             f"Vazn: {user.get('weight', '-')} kg\n"
             f"Maqsad: {user.get('goal', '-')}\n"
             f"Allergiya: {user.get('allergies') or 'Yo‘q'}\n\n"
-            f"⚙️ **Qaysi qismni o'zgartirmoqchisiz?**"
+            f"⚙️ Qaysi qismni o'zgartirmoqchisiz?"
         )
         
         # Create inline keyboard for editing
@@ -46,7 +46,7 @@ def handle_profile(message, bot):
         ]
         markup.add(*buttons)
         
-        bot.send_message(user_id, text, reply_markup=markup, parse_mode="Markdown")
+        bot.send_message(user_id, text, reply_markup=markup)
         
     except Exception as e:
         error_msg = f"❌ Profil xatolik berdi:\n\n{str(e)}\n\n{traceback.format_exc()}"
