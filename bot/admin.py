@@ -59,25 +59,38 @@ def register_handlers(bot):
             print(f"DEBUG: Unauthorized admin access attempt by {message.from_user.id}")
             return
         
-        # Get last 20 users (assuming ID order roughly correlates with time)
-        # We need a method in DB for this, or just use get_all_users and slice
-        # Since get_all_users returns (id, name), we might need more info.
-        # Let's use get_active_users for now or add a specific DB method if needed.
-        # For MVP, we'll just list active users.
-        users = db.get_active_users() # Returns list of (id, name)
-        
-        # Sort by ID desc to get newest first
-        users.sort(key=lambda x: x[0], reverse=True)
-        recent_users = users[:20]
-        
-        text = "👥 **Oxirgi 20 ta foydalanuvchi:**\n\n"
-        for uid, name in recent_users:
-            user_data = db.get_user(uid)
-            is_prem = "💎" if db.is_premium(uid) else ""
-            phone = user_data.get('phone', 'N/A')
-            text += f"🆔 `{uid}` | {name} | 📱 {phone} | {user_data.get('goal', 'N/A')} {is_prem}\n"
+        try:
+            # Get last 20 users (assuming ID order roughly correlates with time)
+            users = db.get_active_users() # Returns list of (id, name)
             
-        bot.send_message(message.chat.id, text, parse_mode="Markdown")
+            if not users:
+                bot.send_message(message.chat.id, "👥 Foydalanuvchilar topilmadi.")
+                return
+
+            # Sort by ID desc to get newest first
+            users.sort(key=lambda x: x[0], reverse=True)
+            recent_users = users[:20]
+            
+            text = "👥 Oxirgi 20 ta foydalanuvchi:\n\n"
+            for uid, name in recent_users:
+                user_data = db.get_user(uid)
+                if not user_data:
+                    continue
+                    
+                is_prem = "💎" if db.is_premium(uid) else ""
+                phone = user_data.get('phone', 'N/A')
+                goal = user_data.get('goal', 'N/A')
+                
+                # Clean name to avoid issues
+                clean_name = name if name else "Noma'lum"
+                
+                text += f"🆔 {uid} | {clean_name} | 📱 {phone} | {goal} {is_prem}\n"
+                
+            bot.send_message(message.chat.id, text)
+            
+        except Exception as e:
+            print(f"Error in admin_user_list: {e}")
+            bot.send_message(message.chat.id, f"❌ Xatolik: {e}")
 
     @bot.message_handler(func=lambda message: "Premium foydalanuvchilar" in message.text)
     def admin_premium_list(message):
