@@ -43,13 +43,12 @@ def register_handlers(bot):
         from bot.keyboards import goal_keyboard
         bot.send_message(call.from_user.id, "Yangi maqsadingizni tanlang:", reply_markup=goal_keyboard())
         
-    @bot.callback_query_handler(func=lambda call: call.data in ['weight_loss', 'mass_gain', 'health'])
+    @bot.callback_query_handler(func=lambda call: call.data.startswith('goal_'))
     def save_new_goal(call):
-        # Check if this is a profile update (not onboarding)
-        # We can check if user exists and is not in onboarding state
-        # For simplicity, we'll update DB directly
+        # Extract goal from callback data (e.g., "goal_weight_loss" -> "goal_weight_loss")
         user_id = call.from_user.id
-        db.update_user_profile(user_id, goal=call.data)
+        goal = call.data  # Keep the full callback data
+        db.update_user_profile(user_id, goal=goal)
         bot.answer_callback_query(call.id, "Maqsad yangilandi! ✅")
         bot.send_message(user_id, "✅ Maqsadingiz muvaffaqiyatli o'zgartirildi.")
         handle_profile(call.message, bot)
