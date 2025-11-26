@@ -245,25 +245,31 @@ Foydalanuvchiga uy sharoitida bajariladigan 4 kunlik mashq rejasi tuzing.
 
 def ai_generate_menu(user_profile):
     """Generates a weekly meal plan using Gemini or fallback."""
+    
+    # Build allergy warning if present
+    allergy_text = user_profile.get('allergies')
+    allergy_section = ""
+    if allergy_text and allergy_text.lower() not in ['yo\'q', 'no', 'none', 'yoq']:
+        allergy_section = f"\n\n⚠️ ⚠️ ⚠️ JUDA MUHIM ⚠️ ⚠️ ⚠️\nFoydalanuvchida {allergy_text} ga ALLERGIYA BOR!\nTavsiya qilingan ovqatlarda BU MAHSULOTLAR BO'LMASLIGI KERAK!\nAlternativ mahsulotlar tavsiya qiling.\n"
+    
     prompt = f"""
-Siz Telegram uchun ovqatlanish bo‘yicha qisqa, silliq, o‘qilishi oson matn yozadigan dietologsiz.
+Siz Telegram uchun ovqatlanish bo'yicha qisqa, silliq, o'qilishi oson matn yozadigan dietologsiz.
 
 Foydalanuvchi profili:
 Yosh: {user_profile.get('age')}
 Jins: {user_profile.get('gender')}
-Bo‘y: {user_profile.get('height')}
+Bo'y: {user_profile.get('height')}
 Vazn: {user_profile.get('weight')}
-Maqsad: {user_profile.get('goal')}
-Allergiya: {user_profile.get('allergy')}
+Maqsad: {user_profile.get('goal')}{allergy_section}
 
 🎯 Vazifa:
-Foydalanuvchiga 7 kunlik ovqatlanish rejasi tuzing. Juda uzun bo‘lmasin — odam Telegramda o‘rtacha 700–900 belgi o‘qiydi.
+Foydalanuvchiga 7 kunlik ovqatlanish rejasi tuzing. Juda uzun bo'lmasin — odam Telegramda o'rtacha 700–900 belgi o'qiydi.
 
 📌 MUHIM FORMAT TALABLARI:
 - Hech qanday HTML (<p>, <br>, <ul>, <li>) ishlatma.
 - Faqat matn + <b>qalin</b> joylar.
 - Emojilarni kam ishlat — faqat kun nomlarida yoki sarlavhalarda.
-- Har kun quyidagicha bo‘lsin:
+- Har kun quyidagicha bo'lsin:
 
 <b>1-kun</b>
 - Nonushta: ...
@@ -271,15 +277,15 @@ Foydalanuvchiga 7 kunlik ovqatlanish rejasi tuzing. Juda uzun bo‘lmasin — od
 - Kechki: ...
 - Snack: ...
 
-- 7 kunda ham struktura bir xil bo‘lsin.
+- 7 kunda ham struktura bir xil bo'lsin.
 - Oxirida alohida blokda:
 
-<b>Xarid ro‘yxati</b>
+<b>Xarid ro'yxati</b>
 - ...
 
 🧩 Matn juda uzun chiqmasin. Maksimal 1500 belgi.
 
-📢 Javob faqat matn ko‘rinishida bo‘lsin, HTML teglarsiz!
+📢 Javob faqat matn ko'rinishida bo'lsin, HTML teglarsiz!
 """
 
     response_text = call_gemini(prompt)

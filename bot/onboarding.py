@@ -243,16 +243,37 @@ def process_allergy(call, bot):
             pass
         return
     
-    allergy = call.data
-    manager.update_data(user_id, 'allergies', allergy)
+    allergy_choice = call.data
     
     try:
         bot.answer_callback_query(call.id)
     except:
         pass
     
+    if allergy_choice == "allergy_yes":
+        # Ask for allergy details
+        manager.set_state(user_id, STATE_NONE)  # Temporarily exit FSM for text input
+        msg = bot.send_message(
+            user_id,
+            "📝 Qanday mahsulotlarga allergiyangiz bor?\n\n"
+            "Masalan: yong'oq, sut, tuxum, gluten, dengiz mahsulotlari",
+            reply_markup=types.ReplyKeyboardRemove()
+        )
+        bot.register_next_step_handler(msg, process_allergy_details, bot)
+    else:
+        # No allergy
+        manager.update_data(user_id, 'allergies', None)
+        finish_onboarding(user_id, message=call.message, bot=bot)
+
+def process_allergy_details(message, bot):
+    """Process allergy details text input"""
+    user_id = message.from_user.id
+    allergy_details = message.text.strip()
+    
+    manager.update_data(user_id, 'allergies', allergy_details)
+    
     # Finish Onboarding
-    finish_onboarding(user_id, message=call.message, bot=bot)
+    finish_onboarding(user_id, message=message, bot=bot)
 
 def finish_onboarding(user_id, message, bot):
     data = manager.get_data(user_id)
