@@ -8,6 +8,15 @@ load_dotenv()
 # Use SQLite for local development, but structure for Postgres
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite+aiosqlite:///./fitness_bot.db")
 
+# Fix driver for async
+if DATABASE_URL.startswith("sqlite://") and "aiosqlite" not in DATABASE_URL:
+    DATABASE_URL = DATABASE_URL.replace("sqlite://", "sqlite+aiosqlite://")
+
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql+asyncpg://")
+elif DATABASE_URL.startswith("postgresql://") and "asyncpg" not in DATABASE_URL:
+    DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://")
+
 engine = create_async_engine(
     DATABASE_URL,
     echo=False,
