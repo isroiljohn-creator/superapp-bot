@@ -17,6 +17,8 @@ if DATABASE_URL.startswith("postgres://"):
 elif DATABASE_URL.startswith("postgresql://") and "asyncpg" not in DATABASE_URL:
     DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://")
 
+print(f"🔌 Database URL: {DATABASE_URL}")
+
 engine = create_async_engine(
     DATABASE_URL,
     echo=False,
