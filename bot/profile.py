@@ -2,43 +2,59 @@ from telebot import types
 from core.db import db
 from bot.keyboards import main_menu_keyboard, gender_keyboard, goal_keyboard, allergy_keyboard
 
+import traceback
+
 def handle_profile(message, bot):
     """Show user profile with edit options"""
-    user_id = message.from_user.id
-    user = db.get_user(user_id)
-    
-    if not user:
-        bot.send_message(user_id, "Siz hali ro'yxatdan o'tmagansiz. /start ni bosing.")
-        return
+    try:
+        user_id = message.from_user.id
+        print(f"DEBUG: handle_profile called for user {user_id}")
+        
+        # Test message to confirm handler reached
+        # bot.send_message(user_id, "DEBUG: Profil yuklanmoqda...") 
+        
+        user = db.get_user(user_id)
+        
+        if not user:
+            bot.send_message(user_id, "Siz hali ro'yxatdan o'tmagansiz. /start ni bosing.")
+            return
 
-    # Format profile text
-    text = (
-        f"👤 **Sizning Profilingiz**\n\n"
-        f"Ism: {user.get('full_name', 'Noma’lum')}\n"
-        f"Yosh: {user.get('age', '-')} yosh\n"
-        f"Jins: {user.get('gender', '-')}\n"
-        f"Bo'y: {user.get('height', '-')} sm\n"
-        f"Vazn: {user.get('weight', '-')} kg\n"
-        f"Maqsad: {user.get('goal', '-')}\n"
-        f"Allergiya: {user.get('allergies') or 'Yo‘q'}\n\n"
-        f"⚙️ **Qaysi qismni o'zgartirmoqchisiz?**"
-    )
-    
-    # Create inline keyboard for editing
-    markup = types.InlineKeyboardMarkup(row_width=2)
-    buttons = [
-        types.InlineKeyboardButton("Ism", callback_data="edit_full_name"),
-        types.InlineKeyboardButton("Yosh", callback_data="edit_age"),
-        types.InlineKeyboardButton("Jins", callback_data="edit_gender"),
-        types.InlineKeyboardButton("Bo'y", callback_data="edit_height"),
-        types.InlineKeyboardButton("Vazn", callback_data="edit_weight"),
-        types.InlineKeyboardButton("Maqsad", callback_data="edit_goal"),
-        types.InlineKeyboardButton("Allergiya", callback_data="edit_allergies"),
-        types.InlineKeyboardButton("⬅️ Orqaga", callback_data="back_to_main")
-    ]
-    markup.add(*buttons)
-    
-    bot.send_message(user_id, text, reply_markup=markup, parse_mode="Markdown")
+        # Format profile text
+        text = (
+            f"👤 **Sizning Profilingiz**\n\n"
+            f"Ism: {user.get('full_name', 'Noma’lum')}\n"
+            f"Yosh: {user.get('age', '-')} yosh\n"
+            f"Jins: {user.get('gender', '-')}\n"
+            f"Bo'y: {user.get('height', '-')} sm\n"
+            f"Vazn: {user.get('weight', '-')} kg\n"
+            f"Maqsad: {user.get('goal', '-')}\n"
+            f"Allergiya: {user.get('allergies') or 'Yo‘q'}\n\n"
+            f"⚙️ **Qaysi qismni o'zgartirmoqchisiz?**"
+        )
+        
+        # Create inline keyboard for editing
+        markup = types.InlineKeyboardMarkup(row_width=2)
+        buttons = [
+            types.InlineKeyboardButton("Ism", callback_data="edit_full_name"),
+            types.InlineKeyboardButton("Yosh", callback_data="edit_age"),
+            types.InlineKeyboardButton("Jins", callback_data="edit_gender"),
+            types.InlineKeyboardButton("Bo'y", callback_data="edit_height"),
+            types.InlineKeyboardButton("Vazn", callback_data="edit_weight"),
+            types.InlineKeyboardButton("Maqsad", callback_data="edit_goal"),
+            types.InlineKeyboardButton("Allergiya", callback_data="edit_allergies"),
+            types.InlineKeyboardButton("⬅️ Orqaga", callback_data="back_to_main")
+        ]
+        markup.add(*buttons)
+        
+        bot.send_message(user_id, text, reply_markup=markup, parse_mode="Markdown")
+        
+    except Exception as e:
+        error_msg = f"❌ Profil xatolik berdi:\n\n{str(e)}\n\n{traceback.format_exc()}"
+        print(error_msg)
+        try:
+            bot.send_message(message.from_user.id, error_msg[:4000]) # Telegram limit
+        except:
+            pass
 
 def register_handlers(bot):
     """Register profile related handlers"""
