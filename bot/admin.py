@@ -20,9 +20,13 @@ def register_handlers(bot):
             types.KeyboardButton("📨 Umumiy xabar"),
             types.KeyboardButton("🎯 Segment xabar"),
             types.KeyboardButton("💎 Premium foydalanuvchilar"),
-            types.KeyboardButton("🏷 Referallar")
+            types.KeyboardButton("🏷 Referallar"),
+            types.KeyboardButton("💳 Obunalar")
         )
         bot.send_message(message.chat.id, "👨‍💼 **Admin Panel**", reply_markup=markup, parse_mode="Markdown")
+        
+    # Register sub handlers
+    register_subscription_handlers(bot)
 
     @bot.message_handler(func=lambda message: "Statistika" in message.text and message.from_user.id == ADMIN_ID)
     def admin_stats(message):

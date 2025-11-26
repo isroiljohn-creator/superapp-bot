@@ -341,6 +341,14 @@ class Database:
         except ValueError:
             return False
 
+    def remove_premium(self, user_id):
+        with self.lock:
+            conn = self.get_connection()
+            cursor = conn.cursor()
+            cursor.execute("UPDATE users SET is_premium = 0, premium_until = NULL WHERE telegram_id = ?", (user_id,))
+            conn.commit()
+            conn.close()
+
     def add_feedback(self, user_id, message):
         with self.lock:
             conn = self.get_connection()
