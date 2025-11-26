@@ -45,6 +45,7 @@ class OnboardingManager:
 manager = OnboardingManager()
 
 def start_onboarding(message, bot):
+    user_id = message.from_user.id
     args = message.text.split()
     referrer_id = None
     if len(args) > 1:
