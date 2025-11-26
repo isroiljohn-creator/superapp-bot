@@ -30,7 +30,8 @@ def register_handlers(bot):
     def menu_feedback(message):
         handle_feedback_start(message, bot)
 
-    @bot.message_handler(func=lambda message: message.text == "👤 Profil")
+    @bot.message_handler(func=lambda message: "Profil" in message.text)
     def menu_profile(message):
+        print(f"DEBUG: Menu Profile button clicked by {message.from_user.id}")
         from bot.profile import handle_profile
         handle_profile(message, bot)
