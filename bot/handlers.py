@@ -76,7 +76,7 @@ def register_all_handlers(bot):
 
     @bot.message_handler(commands=['version'])
     def handle_version(message):
-        bot.reply_to(message, "🤖 Bot Version: v2.6 - Multi-language Support")
+        bot.reply_to(message, "🤖 Bot Version: v2.7 - Fixed Imports & Keyboards")
 
     # Debug callback LAST (as fallback)
     @bot.callback_query_handler(func=lambda call: True)
