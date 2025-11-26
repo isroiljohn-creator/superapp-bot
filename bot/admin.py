@@ -244,3 +244,83 @@ def process_broadcast(message, bot, segment):
             bot.send_message(message.chat.id, f"❌ Xabar yuborishda xatolik: {e}")
         except:
             pass
+
+# === Subscription Management ===
+
+def register_subscription_handlers(bot):
+    @bot.message_handler(func=lambda message: "Obunalar" in message.text and message.from_user.id == ADMIN_ID)
+    def admin_subs_start(message):
+        msg = bot.send_message(message.chat.id, "Foydalanuvchi ID raqamini yuboring:", reply_markup=types.ForceReply())
+        bot.register_next_step_handler(msg, process_subs_user_id, bot)
+
+    def process_subs_user_id(message, bot):
+        try:
+            if not message.text.isdigit():
+                bot.send_message(message.chat.id, "❌ ID raqam bo'lishi kerak.")
+                return
+            
+            target_id = int(message.text)
+            user = db.get_user(target_id)
+            
+            if not user:
+                bot.send_message(message.chat.id, f"❌ Foydalanuvchi topilmadi: {target_id}")
+                return
+            
+            is_prem = db.is_premium(target_id)
+            status = "✅ Premium" if is_prem else "❌ Oddiy"
+            until = user.get('premium_until', 'Yo‘q')
+            
+            text = (
+                f"👤 **Foydalanuvchi:** {user.get('full_name', 'Noma’lum')}\n"
+                f"🆔 ID: `{target_id}`\n"
+                f"💎 Status: {status}\n"
+                f"📅 Tugash: {until}\n\n"
+                "Amalni tanlang:"
+            )
+            
+            markup = types.InlineKeyboardMarkup()
+            markup.add(types.InlineKeyboardButton("➕ Obuna qo'shish", callback_data=f"sub_add_{target_id}"))
+            markup.add(types.InlineKeyboardButton("➖ Obunani o'chirish", callback_data=f"sub_remove_{target_id}"))
+            
+            bot.send_message(message.chat.id, text, reply_markup=markup, parse_mode="Markdown")
+            
+        except Exception as e:
+            bot.send_message(message.chat.id, f"❌ Xatolik: {e}")
+
+    @bot.callback_query_handler(func=lambda call: call.data.startswith("sub_"))
+    def handle_sub_action(call):
+        if call.from_user.id != ADMIN_ID:
+            return
+            
+        action, target_id = call.data.split("_")[1], int(call.data.split("_")[2])
+        
+        if action == "remove":
+            db.remove_premium(target_id)
+            bot.edit_message_text(
+                f"✅ Foydalanuvchi ({target_id}) dan Premium olib tashlandi.",
+                call.message.chat.id,
+                call.message.message_id
+            )
+            try:
+                bot.send_message(target_id, "❌ Sizning Premium obunangiz admin tomonidan bekor qilindi.")
+            except:
+                pass
+                
+        elif action == "add":
+            msg = bot.send_message(call.message.chat.id, f"Necha kun qo'shmoqchisiz? (masalan: 30)", reply_markup=types.ForceReply())
+            bot.register_next_step_handler(msg, process_subs_days, bot, target_id)
+
+    def process_subs_days(message, bot, target_id):
+        try:
+            days = int(message.text)
+            db.set_premium(target_id, days)
+            
+            bot.send_message(message.chat.id, f"✅ Foydalanuvchi ({target_id}) ga {days} kun Premium qo'shildi.")
+            
+            try:
+                bot.send_message(target_id, f"🎉 Tabriklaymiz! Admin sizga {days} kunlik Premium obuna sovg'a qildi!")
+            except:
+                pass
+                
+        except ValueError:
+            bot.send_message(message.chat.id, "❌ Son kiritishingiz kerak.")
