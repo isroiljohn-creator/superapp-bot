@@ -13,6 +13,7 @@ interface User {
     is_premium: boolean
     points: number
     referral_code: string
+    premium_until?: string
 }
 
 interface UserState {

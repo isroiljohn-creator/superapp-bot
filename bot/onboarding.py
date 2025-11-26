@@ -6,8 +6,43 @@ from bot.keyboards import (
     allergy_keyboard, main_menu_keyboard
 )
 
-# Temporary storage for onboarding data
-onboarding_data = {}
+# States
+STATE_NONE = 0
+STATE_PHONE = 1
+STATE_NAME = 2
+STATE_AGE = 3
+STATE_GENDER = 4
+STATE_HEIGHT = 5
+STATE_WEIGHT = 6
+STATE_GOAL = 7
+STATE_ALLERGY = 8
+
+class OnboardingManager:
+    def __init__(self):
+        self.user_states = {}
+        self.user_data = {}
+
+    def get_state(self, user_id):
+        return self.user_states.get(user_id, STATE_NONE)
+
+    def set_state(self, user_id, state):
+        self.user_states[user_id] = state
+
+    def update_data(self, user_id, key, value):
+        if user_id not in self.user_data:
+            self.user_data[user_id] = {}
+        self.user_data[user_id][key] = value
+
+    def get_data(self, user_id):
+        return self.user_data.get(user_id, {})
+
+    def clear_user(self, user_id):
+        if user_id in self.user_states:
+            del self.user_states[user_id]
+        if user_id in self.user_data:
+            del self.user_data[user_id]
+
+manager = OnboardingManager()
 
 def start_onboarding(message, bot):
     """Step 0: Check if user exists, if not request phone number FIRST"""
@@ -23,21 +58,29 @@ def start_onboarding(message, bot):
         )
         return
     
-    # Handle referral code
+    # Handle start parameters
     args = message.text.split()
     referrer_id = None
     if len(args) > 1:
         code = args[1]
+        
+        # Handle premium shortcut
+        if code == 'premium':
+            from bot.premium import handle_premium_menu
+            handle_premium_menu(message, bot)
+            return
+            
         referrer_id = get_referrer_id_from_code(code)
         
         # Prevent self-referral
         if referrer_id == user_id:
             referrer_id = None
     
-    # Initialize onboarding data
-    onboarding_data[user_id] = {'referrer_id': referrer_id}
+    # Initialize onboarding
+    manager.clear_user(user_id)
+    manager.set_state(user_id, STATE_PHONE)
+    manager.update_data(user_id, 'referrer_id', referrer_id)
     
-    # Request phone number (CRITICAL FIRST STEP)
     bot.send_message(
         user_id,
         "🎉 Assalomu alaykum! YASHA botiga xush kelibsiz.\n\n"
@@ -46,11 +89,12 @@ def start_onboarding(message, bot):
     )
 
 def process_phone(message, bot):
-    """Step 1: Process phone number from contact"""
     user_id = message.from_user.id
     
+    if manager.get_state(user_id) != STATE_PHONE:
+        return
+
     if not message.contact:
-        # User sent text instead of contact
         bot.send_message(
             user_id,
             "❌ Iltimos, telefon raqamingizni kontakt sifatida yuboring 👇\n\n"
@@ -59,125 +103,100 @@ def process_phone(message, bot):
         )
         return
     
-    # Save phone number
     phone = message.contact.phone_number
-    onboarding_data[user_id]['phone'] = phone
+    manager.update_data(user_id, 'phone', phone)
+    manager.set_state(user_id, STATE_NAME)
     
-    # Proceed to name
-    msg = bot.send_message(
+    bot.send_message(
         user_id, 
         f"✅ Rahmat! Telefon raqamingiz saqlandi.\n\n"
         f"Endi ismingizni kiriting:",
         reply_markup=types.ReplyKeyboardRemove()
     )
-    bot.register_next_step_handler(msg, process_name, bot)
 
 def process_name(message, bot):
-    """Step 2: Process name"""
     user_id = message.from_user.id
     
-    # Block if user somehow got here without phone
-    if user_id not in onboarding_data or 'phone' not in onboarding_data[user_id]:
-        bot.send_message(
-            user_id,
-            "Davom etish uchun telefon raqamingizni yuboring 👇",
-            reply_markup=phone_request_keyboard()
-        )
+    if manager.get_state(user_id) != STATE_NAME:
         return
     
     name = message.text.strip()
-    onboarding_data[user_id]['name'] = name
+    manager.update_data(user_id, 'name', name)
+    manager.set_state(user_id, STATE_AGE)
     
-    msg = bot.send_message(user_id, f"Rahmat, {name}! Yoshingiz nechida? (faqat raqam)")
-    bot.register_next_step_handler(msg, process_age, bot)
+    bot.send_message(user_id, f"Rahmat, {name}! Yoshingiz nechida? (faqat raqam)")
 
 def process_age(message, bot):
-    """Step 3: Process age"""
     user_id = message.from_user.id
     
-    # Block if user somehow got here without phone
-    if user_id not in onboarding_data or 'phone' not in onboarding_data[user_id]:
-        bot.send_message(
-            user_id,
-            "Davom etish uchun telefon raqamingizni yuboring 👇",
-            reply_markup=phone_request_keyboard()
-        )
+    if manager.get_state(user_id) != STATE_AGE:
         return
     
     if not message.text.isdigit():
-        msg = bot.send_message(user_id, "Iltimos, yoshingizni raqamda kiriting:")
-        bot.register_next_step_handler(msg, process_age, bot)
+        bot.send_message(user_id, "Iltimos, yoshingizni raqamda kiriting:")
         return
     
     age = int(message.text)
     if age < 10 or age > 120:
-        msg = bot.send_message(user_id, "Yoshingizni to'g'ri kiriting (10-120 oralig'ida):")
-        bot.register_next_step_handler(msg, process_age, bot)
+        bot.send_message(user_id, "Yoshingizni to'g'ri kiriting (10-120 oralig'ida):")
         return
     
-    onboarding_data[user_id]['age'] = age
+    manager.update_data(user_id, 'age', age)
+    manager.set_state(user_id, STATE_GENDER)
+    
     bot.send_message(user_id, "Jinsingizni tanlang:", reply_markup=gender_keyboard())
 
-def process_gender(message, bot):
-    """Step 4: Process gender (inline callback)"""
-    user_id = message.from_user.id
-    gender = message.data
+def process_gender(call, bot):
+    user_id = call.from_user.id
+    print(f"DEBUG: process_gender called for {user_id}, state: {manager.get_state(user_id)}")
     
-    # Block if user somehow got here without phone
-    if user_id not in onboarding_data or 'phone' not in onboarding_data[user_id]:
-        bot.send_message(
-            user_id,
-            "Davom etish uchun telefon raqamingizni yuboring 👇",
-            reply_markup=phone_request_keyboard()
-        )
+    if manager.get_state(user_id) != STATE_GENDER:
+        try:
+            bot.answer_callback_query(call.id, "Eski tugma.")
+        except:
+            pass
         return
     
-    onboarding_data[user_id]['gender'] = gender
-    bot.answer_callback_query(message.id)
+    gender = call.data
+    manager.update_data(user_id, 'gender', gender)
+    manager.set_state(user_id, STATE_HEIGHT)
+    print(f"DEBUG: State updated to STATE_HEIGHT for {user_id}")
     
+    try:
+        bot.answer_callback_query(call.id)
+    except Exception as e:
+        print(f"DEBUG: Error answering callback: {e}")
+        
     msg = bot.send_message(user_id, "Bo'yingizni kiriting (sm):")
-    bot.register_next_step_handler(msg, process_height, bot)
+    # Explicitly register next step handler as a backup for FSM
+    # bot.register_next_step_handler(msg, process_height, bot) 
+    # Actually, FSM should handle this via the generic handler in register_handlers
+    # But let's make sure the generic handler is catching it.
 
 def process_height(message, bot):
-    """Step 5: Process height"""
     user_id = message.from_user.id
     
-    # Block if user somehow got here without phone
-    if user_id not in onboarding_data or 'phone' not in onboarding_data[user_id]:
-        bot.send_message(
-            user_id,
-            "Davom etish uchun telefon raqamingizni yuboring 👇",
-            reply_markup=phone_request_keyboard()
-        )
+    if manager.get_state(user_id) != STATE_HEIGHT:
         return
     
     if not message.text.isdigit():
-        msg = bot.send_message(user_id, "Iltimos, bo'yingizni raqamda kiriting (sm):")
-        bot.register_next_step_handler(msg, process_height, bot)
+        bot.send_message(user_id, "Iltimos, bo'yingizni raqamda kiriting (sm):")
         return
     
     height = int(message.text)
     if height < 50 or height > 250:
-        msg = bot.send_message(user_id, "Bo'yingizni to'g'ri kiriting (50-250 sm):")
-        bot.register_next_step_handler(msg, process_height, bot)
+        bot.send_message(user_id, "Bo'yingizni to'g'ri kiriting (50-250 sm):")
         return
     
-    onboarding_data[user_id]['height'] = height
+    manager.update_data(user_id, 'height', height)
+    manager.set_state(user_id, STATE_WEIGHT)
     
-    msg = bot.send_message(user_id, "Vazningizni kiriting (kg):")
-    bot.register_next_step_handler(msg, process_weight, bot)
+    bot.send_message(user_id, "Vazningizni kiriting (kg):")
 
 def process_weight(message, bot):
-    """Step 6: Process weight"""
     user_id = message.from_user.id
     
-    # Block if user somehow got here without phone
-    if user_id not in onboarding_data or 'phone' not in onboarding_data[user_id]:
-        bot.send_message(
-            user_id,
-            "Davom etish uchun telefon raqamingizni yuboring 👇",
-            reply_markup=phone_request_keyboard()
-        )
+    if manager.get_state(user_id) != STATE_WEIGHT:
         return
     
     try:
@@ -185,58 +204,65 @@ def process_weight(message, bot):
         if weight < 20 or weight > 300:
             raise ValueError
     except ValueError:
-        msg = bot.send_message(user_id, "Vazningizni to'g'ri kiriting (20-300 kg):")
-        bot.register_next_step_handler(msg, process_weight, bot)
+        bot.send_message(user_id, "Vazningizni to'g'ri kiriting (20-300 kg):")
         return
     
-    onboarding_data[user_id]['weight'] = weight
+    manager.update_data(user_id, 'weight', weight)
+    manager.set_state(user_id, STATE_GOAL)
+    
     bot.send_message(user_id, "Maqsadingizni tanlang:", reply_markup=goal_keyboard())
 
-def process_goal(message, bot):
-    """Step 7: Process goal (inline callback)"""
-    user_id = message.from_user.id
-    goal = message.data
+def process_goal(call, bot):
+    user_id = call.from_user.id
     
-    # Block if user somehow got here without phone
-    if user_id not in onboarding_data or 'phone' not in onboarding_data[user_id]:
-        bot.send_message(
-            user_id,
-            "Davom etish uchun telefon raqamingizni yuboring 👇",
-            reply_markup=phone_request_keyboard()
-        )
+    if manager.get_state(user_id) != STATE_GOAL:
+        try:
+            bot.answer_callback_query(call.id, "Eski tugma.")
+        except:
+            pass
         return
     
-    onboarding_data[user_id]['goal'] = goal
-    bot.answer_callback_query(message.id)
+    goal = call.data
+    manager.update_data(user_id, 'goal', goal)
+    manager.set_state(user_id, STATE_ALLERGY)
     
+    try:
+        bot.answer_callback_query(call.id)
+    except:
+        pass
+        
     bot.send_message(user_id, "Allergiyangiz bormi?", reply_markup=allergy_keyboard())
 
-def process_allergy(message, bot):
-    """Step 8: Process allergy (inline callback) and finish onboarding"""
-    user_id = message.from_user.id
-    allergy = message.data
+def process_allergy(call, bot):
+    user_id = call.from_user.id
     
-    # Block if user somehow got here without phone
-    if user_id not in onboarding_data or 'phone' not in onboarding_data[user_id]:
-        bot.send_message(
-            user_id,
-            "Davom etish uchun telefon raqamingizni yuboring 👇",
-            reply_markup=phone_request_keyboard()
-        )
+    if manager.get_state(user_id) != STATE_ALLERGY:
+        try:
+            bot.answer_callback_query(call.id, "Eski tugma.")
+        except:
+            pass
         return
     
-    onboarding_data[user_id]['allergies'] = allergy
-    bot.answer_callback_query(message.id)
+    allergy = call.data
+    manager.update_data(user_id, 'allergies', allergy)
     
-    # Save to database
-    data = onboarding_data[user_id]
+    try:
+        bot.answer_callback_query(call.id)
+    except:
+        pass
+    
+    # Finish Onboarding
+    finish_onboarding(user_id, message=call.message, bot=bot)
+
+def finish_onboarding(user_id, message, bot):
+    data = manager.get_data(user_id)
     referrer_id = data.get('referrer_id')
     
-    # Add user to database (phone is required!)
+    # Add user to database
     db.add_user(
         telegram_id=user_id,
-        username=message.from_user.username or f"user_{user_id}",
-        phone=data['phone']
+        username=message.chat.username or f"user_{user_id}",
+        phone=data.get('phone')
     )
     
     # Update profile
@@ -262,10 +288,10 @@ def process_allergy(message, bot):
         except:
             pass
     
-    # Clean up onboarding data
-    del onboarding_data[user_id]
+    # Clear state
+    manager.clear_user(user_id)
     
-    # Send welcome message with main menu
+    # Send welcome message
     bot.send_message(
         user_id,
         f"✅ Ro'yxatdan o'tdingiz!\n\n"
@@ -281,23 +307,90 @@ def register_handlers(bot):
     
     @bot.message_handler(content_types=['contact'])
     def handle_contact(message):
-        """Handle phone number contact"""
         process_phone(message, bot)
-    
-    @bot.callback_query_handler(func=lambda call: call.data in ['male', 'female'])
-    def handle_gender(call):
-        # Only process if user is in onboarding and has phone
-        if call.from_user.id in onboarding_data and 'phone' in onboarding_data[call.from_user.id]:
-            process_gender(call, bot)
-    
-    @bot.callback_query_handler(func=lambda call: call.data in ['weight_loss', 'mass_gain', 'health'])
-    def handle_goal(call):
-        # Only process if user is in onboarding and has phone
-        if call.from_user.id in onboarding_data and 'phone' in onboarding_data[call.from_user.id]:
-            process_goal(call, bot)
-    
-    @bot.callback_query_handler(func=lambda call: call.data in ['yes_allergy', 'no_allergy'])
-    def handle_allergy(call):
-        # Only process if user is in onboarding and has phone
-        if call.from_user.id in onboarding_data and 'phone' in onboarding_data[call.from_user.id]:
-            process_allergy(call, bot)
+        
+    @bot.message_handler(func=lambda m: manager.get_state(m.from_user.id) == STATE_NAME)
+    def handle_name_step(message):
+        process_name(message, bot)
+
+    @bot.message_handler(func=lambda m: manager.get_state(m.from_user.id) == STATE_AGE)
+    def handle_age_step(message):
+        process_age(message, bot)
+        
+    @bot.callback_query_handler(func=lambda call: call.data.startswith('gender_'))
+    def handle_gender_step(call):
+        try:
+            # Extract actual gender value (male/female) from gender_male/gender_female
+            gender_val = call.data.split('_')[1]
+            
+            # Answer callback immediately to stop loading animation
+            bot.answer_callback_query(call.id)
+            
+            # Update state and data
+            user_id = call.from_user.id
+            manager.update_data(user_id, 'gender', gender_val)
+            manager.set_state(user_id, STATE_HEIGHT)
+            
+            # Send next step message
+            msg = bot.send_message(user_id, "Bo'yingizni kiriting (sm):")
+            
+            # Explicitly register next step just in case FSM generic handler misses it
+            # (Though generic handler should catch it if state is set correctly)
+            # bot.register_next_step_handler(msg, process_height, bot)
+            
+        except Exception as e:
+            print(f"ERROR in handle_gender_step: {e}")
+            try:
+                bot.answer_callback_query(call.id, "Xatolik yuz berdi. Qaytadan urining.")
+            except:
+                pass
+
+    @bot.message_handler(func=lambda m: manager.get_state(m.from_user.id) == STATE_HEIGHT)
+    def handle_height_step(message):
+        process_height(message, bot)
+
+    @bot.message_handler(func=lambda m: manager.get_state(m.from_user.id) == STATE_WEIGHT)
+    def handle_weight_step(message):
+        process_weight(message, bot)
+
+    @bot.callback_query_handler(func=lambda call: call.data.startswith('goal_'))
+    def handle_goal_step(call):
+        try:
+            # Extract goal value (weight_loss/muscle_gain/health)
+            goal_val = call.data.split('_', 1)[1] # Split only on first underscore
+            
+            bot.answer_callback_query(call.id)
+            
+            user_id = call.from_user.id
+            manager.update_data(user_id, 'goal', goal_val)
+            manager.set_state(user_id, STATE_ALLERGY)
+            
+            bot.send_message(user_id, "Allergiyangiz bormi?", reply_markup=allergy_keyboard())
+            
+        except Exception as e:
+            print(f"ERROR in handle_goal_step: {e}")
+            try:
+                bot.answer_callback_query(call.id, "Xatolik yuz berdi.")
+            except:
+                pass
+
+    @bot.callback_query_handler(func=lambda call: call.data.startswith('allergy_'))
+    def handle_allergy_step(call):
+        try:
+            # Extract allergy value (yes/no)
+            allergy_val = call.data.split('_')[1]
+            
+            bot.answer_callback_query(call.id)
+            
+            user_id = call.from_user.id
+            manager.update_data(user_id, 'allergies', allergy_val)
+            
+            # Finish Onboarding
+            finish_onboarding(user_id, message=call.message, bot=bot)
+            
+        except Exception as e:
+            print(f"ERROR in handle_allergy_step: {e}")
+            try:
+                bot.answer_callback_query(call.id, "Xatolik yuz berdi.")
+            except:
+                pass

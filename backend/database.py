@@ -2,7 +2,7 @@ from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker, declarative_base
 import os
 
-DATABASE_URL = "sqlite+aiosqlite:///./yasha.db"
+DATABASE_URL = "sqlite+aiosqlite:///./fitness_bot.db"
 # For Postgres later:
 # DATABASE_URL = os.getenv("DATABASE_URL", "postgresql+asyncpg://user:password@localhost/dbname")
 

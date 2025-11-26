@@ -28,14 +28,20 @@ def verify_token(token: str):
 
 async def get_current_user(authorization: Optional[str] = Header(None)):
     if not authorization:
+        print("❌ Auth Failed: No Authorization header")
         raise HTTPException(status_code=401, detail="Authorization header required")
     
     try:
         scheme, token = authorization.split()
         if scheme.lower() != "bearer":
+            print(f"❌ Auth Failed: Invalid scheme {scheme}")
             raise HTTPException(status_code=401, detail="Invalid authentication scheme")
         
         payload = verify_token(token)
         return payload
     except ValueError:
+        print("❌ Auth Failed: ValueError splitting header")
         raise HTTPException(status_code=401, detail="Invalid authorization header")
+    except Exception as e:
+        print(f"❌ Auth Failed: {e}")
+        raise e

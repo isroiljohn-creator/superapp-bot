@@ -85,7 +85,21 @@ export default function Profile() {
                     <p className="text-sm text-gray-300 mb-4">
                         Barcha AI funksiyalar, cheksiz mashq va ovqat rejalari, kengaytirilgan statistika.
                     </p>
-                    <button className="w-full py-3 bg-[#C8FF00] text-black rounded-xl font-bold">
+                    <button
+                        onClick={() => {
+                            // Navigate to internal premium page
+                            window.location.hash = '#premium' // Using hash based routing or state change
+                            // Since we use state-based routing in App.tsx, we can't easily switch tab from here without context.
+                            // But wait, App.tsx passes activeTab. 
+                            // Actually, let's just use a custom event or reload for now, OR better:
+                            // The userStore doesn't control navigation.
+                            // Let's use a simple hack: dispatch a custom event that App.tsx listens to, or just reload with a query param?
+                            // No, let's just fix App.tsx to expose a navigation method or use a global event.
+                            // For now, let's try to dispatch a custom event 'navigate-to-premium'
+                            window.dispatchEvent(new CustomEvent('navigate-to-premium'))
+                        }}
+                        className="w-full py-3 bg-[#C8FF00] text-black rounded-xl font-bold"
+                    >
                         Premium Sotib Olish
                     </button>
                 </div>

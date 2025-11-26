@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 ADMIN_ID = int(os.getenv("ADMIN_ID", 0))
+print(f"DEBUG: Loaded ADMIN_ID: {ADMIN_ID}")
 
 def register_handlers(bot):
     @bot.message_handler(commands=['admin'])
@@ -23,28 +24,39 @@ def register_handlers(bot):
         )
         bot.send_message(message.chat.id, "👨‍💼 **Admin Panel**", reply_markup=markup, parse_mode="Markdown")
 
-    @bot.message_handler(func=lambda message: message.text == "📊 Statistika")
+    @bot.message_handler(func=lambda message: "Statistika" in message.text and message.from_user.id == ADMIN_ID)
     def admin_stats(message):
-        if message.from_user.id != ADMIN_ID:
-            return
+        try:
+            stats = db.get_stats()
             
-        stats = db.get_stats()
-        text = (
-            f"📊 **Statistika**\n\n"
-            f"👥 Jami foydalanuvchilar: {stats['total']}\n"
-            f"✅ Faol foydalanuvchilar: {stats['active']}\n"
-            f"💎 Premium foydalanuvchilar: {stats['premium']}\n\n"
-            f"👨 Erkaklar: {stats['gender'].get('Erkak', 0)}\n"
-            f"👩 Ayollar: {stats['gender'].get('Ayol', 0)}\n\n"
-            f"⚖️ Ozish: {stats['goal'].get('Ozish', 0)}\n"
-            f"💪 Massa: {stats['goal'].get('Massa olish', 0)}\n"
-            f"❤️ Sog‘liq: {stats['goal'].get('Sog‘liqni tiklash', 0)}"
-        )
-        bot.send_message(message.chat.id, text)
+            # Safe retrieval with defaults
+            total = stats.get('total', 0)
+            active = stats.get('active', 0)
+            premium = stats.get('premium', 0)
+            gender_stats = stats.get('gender', {})
+            goal_stats = stats.get('goal', {})
+            
+            text = (
+                f"📊 **Statistika**\n\n"
+                f"👥 Jami foydalanuvchilar: {total}\n"
+                f"✅ Faol foydalanuvchilar: {active}\n"
+                f"💎 Premium foydalanuvchilar: {premium}\n\n"
+                f"👨 Erkaklar: {gender_stats.get('male', 0) + gender_stats.get('Erkak', 0)}\n"
+                f"👩 Ayollar: {gender_stats.get('female', 0) + gender_stats.get('Ayol', 0)}\n\n"
+                f"⚖️ Ozish: {goal_stats.get('weight_loss', 0) + goal_stats.get('Ozish', 0)}\n"
+                f"💪 Massa: {goal_stats.get('mass_gain', 0) + goal_stats.get('Massa olish', 0)}\n"
+                f"❤️ Sog‘liq: {goal_stats.get('health', 0) + goal_stats.get('Sog‘liqni tiklash', 0)}"
+            )
+            bot.send_message(message.chat.id, text, parse_mode="Markdown")
+            
+        except Exception as e:
+            print(f"ERROR in admin_stats: {e}")
+            bot.send_message(message.chat.id, f"❌ Xatolik: {str(e)}")
 
-    @bot.message_handler(func=lambda message: message.text == "👥 Foydalanuvchilar ro‘yxati")
+    @bot.message_handler(func=lambda message: "Foydalanuvchilar ro‘yxati" in message.text)
     def admin_user_list(message):
         if message.from_user.id != ADMIN_ID:
+            print(f"DEBUG: Unauthorized admin access attempt by {message.from_user.id}")
             return
         
         # Get last 20 users (assuming ID order roughly correlates with time)
@@ -67,7 +79,7 @@ def register_handlers(bot):
             
         bot.send_message(message.chat.id, text, parse_mode="Markdown")
 
-    @bot.message_handler(func=lambda message: message.text == "💎 Premium foydalanuvchilar")
+    @bot.message_handler(func=lambda message: "Premium foydalanuvchilar" in message.text)
     def admin_premium_list(message):
         if message.from_user.id != ADMIN_ID:
             return
@@ -81,7 +93,7 @@ def register_handlers(bot):
             
         bot.send_message(message.chat.id, text, parse_mode="Markdown")
 
-    @bot.message_handler(func=lambda message: message.text == "🏷 Referallar")
+    @bot.message_handler(func=lambda message: "Referallar" in message.text)
     def admin_referrals(message):
         if message.from_user.id != ADMIN_ID:
             return
@@ -94,7 +106,7 @@ def register_handlers(bot):
             
         bot.send_message(message.chat.id, text, parse_mode="Markdown")
 
-    @bot.message_handler(func=lambda message: message.text == "📨 Umumiy xabar")
+    @bot.message_handler(func=lambda message: "Umumiy xabar" in message.text)
     def admin_broadcast_start(message):
         if message.from_user.id != ADMIN_ID:
             return
@@ -102,7 +114,7 @@ def register_handlers(bot):
         msg = bot.send_message(message.chat.id, "Xabarni yuboring (matn, rasm, video, ovozli xabar):", reply_markup=types.ForceReply())
         bot.register_next_step_handler(msg, process_broadcast, bot, "all")
 
-    @bot.message_handler(func=lambda message: message.text == "🎯 Segment xabar")
+    @bot.message_handler(func=lambda message: "Segment xabar" in message.text)
     def admin_segment_start(message):
         if message.from_user.id != ADMIN_ID:
             return

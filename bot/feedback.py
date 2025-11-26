@@ -29,17 +29,27 @@ def process_feedback(message, bot):
     
     # Forward to Admin
     if ADMIN_ID:
+        print(f"DEBUG: Attempting to forward feedback to ADMIN_ID: {ADMIN_ID}")
         user = db.get_user(user_id)
-        user_name = user['name'] if user else "Unknown"
+        user_name = user.get('full_name') or user.get('username') or "Unknown"
+        
+        import html
+        safe_name = html.escape(str(user_name))
+        safe_text = html.escape(str(text))
+        
         admin_msg = (
-            f"🆕 **Yangi feedback keldi!**\n"
-            f"👤 Foydalanuvchi: {user_name} (ID: {user_id})\n"
-            f"📝 Matn:\n{text}"
+            f"🆕 <b>Yangi feedback keldi!</b>\n"
+            f"👤 Foydalanuvchi: {safe_name} (ID: {user_id})\n"
+            f"📝 Matn:\n{safe_text}"
         )
         try:
-            bot.send_message(ADMIN_ID, admin_msg, parse_mode="Markdown")
+            bot.send_message(ADMIN_ID, admin_msg, parse_mode="HTML")
+            print("DEBUG: Feedback forwarded successfully.")
         except Exception as e:
             print(f"Failed to forward feedback to admin: {e}")
+            bot.send_message(user_id, f"DEBUG: Admin send error: {e}") # Temporary for user to see
+    else:
+        print("DEBUG: ADMIN_ID is not set or 0.")
 
 def register_handlers(bot):
     pass # Implicitly handled via menu

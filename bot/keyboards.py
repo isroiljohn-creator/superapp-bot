@@ -35,9 +35,6 @@ def main_menu_keyboard():
     # However, to open WebApp easily, we can use a ReplyButton with web_app.
     markup = ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
     
-    # WebApp Button
-    web_app_info = WebAppInfo("https://parallel-inns-foo-kenny.trycloudflare.com")
-    
     markup.add(
         KeyboardButton("Mening rejam 📅"),
         KeyboardButton("Menyu 🍏")

@@ -12,7 +12,9 @@ def handle_workout_plan(message, bot):
     msg = bot.send_message(user_id, "⏳ Siz uchun maxsus mashqlar rejasi tuzilmoqda... Biroz kuting.")
     
     # Generate plan
+    print(f"DEBUG: Generating workout plan for user {user_id}...")
     plan = ai_generate_workout(user)
+    print(f"DEBUG: Plan generated. Length: {len(plan) if plan else 0}")
     
     bot.delete_message(user_id, msg.message_id)
     

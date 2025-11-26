@@ -26,12 +26,13 @@ class Database:
                     telegram_id INTEGER UNIQUE,
                     username TEXT,
                     full_name TEXT,
-                    phone TEXT NOT NULL,
+                    phone TEXT,
                     referral_code TEXT UNIQUE,
                     age INTEGER,
                     gender TEXT,
                     height INTEGER,
                     weight REAL,
+                    target_weight REAL,
                     goal TEXT,
                     activity_level TEXT,
                     allergies TEXT,
@@ -40,7 +41,7 @@ class Database:
                     is_active INTEGER DEFAULT 1,
                     is_premium INTEGER DEFAULT 0,
                     premium_until TEXT,
-                    referred_by INTEGER,
+                    referrer_id INTEGER,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             """)
@@ -109,6 +110,11 @@ class Database:
 
             try:
                 cursor.execute("ALTER TABLE orders ADD COLUMN days INTEGER")
+            except sqlite3.OperationalError:
+                pass
+
+            try:
+                cursor.execute("ALTER TABLE users ADD COLUMN updated_at TIMESTAMP")
             except sqlite3.OperationalError:
                 pass
 
@@ -197,14 +203,16 @@ class Database:
             cursor = conn.cursor()
             ref_code = referral_code if referral_code else f"r{telegram_id}"
             try:
+                print(f"DEBUG: Attempting to add user {telegram_id}")
                 cursor.execute(
                     "INSERT OR IGNORE INTO users (telegram_id, username, phone, referral_code) VALUES (?, ?, ?, ?)",
                     (telegram_id, username, phone, ref_code)
                 )
                 conn.commit()
+                print(f"DEBUG: User {telegram_id} added/ignored successfully.")
                 return True
             except Exception as e:
-                print(f"Error adding user: {e}")
+                print(f"ERROR adding user {telegram_id}: {e}")
                 return False
             finally:
                 conn.close()
@@ -218,8 +226,9 @@ class Database:
                 values = list(kwargs.values())
                 values.append(user_id)
                 
+                # FIX: Use telegram_id instead of id
                 cursor.execute(f"""
-                    UPDATE users SET {set_clause} WHERE id = ?
+                    UPDATE users SET {set_clause} WHERE telegram_id = ?
                 """, values)
                 conn.commit()
             except Exception as e:
@@ -231,7 +240,8 @@ class Database:
         with self.lock:
             conn = self.get_connection()
             cursor = conn.cursor()
-            cursor.execute("SELECT * FROM users WHERE id = ?", (user_id,))
+            # FIX: Use telegram_id instead of id
+            cursor.execute("SELECT * FROM users WHERE telegram_id = ?", (user_id,))
             user = cursor.fetchone()
             conn.close()
             
@@ -299,7 +309,7 @@ class Database:
             cursor = conn.cursor()
             
             # Get current premium status
-            cursor.execute("SELECT is_premium_until FROM users WHERE id = ?", (user_id,))
+            cursor.execute("SELECT premium_until FROM users WHERE telegram_id = ?", (user_id,))
             result = cursor.fetchone()
             current_until = result[0] if result else None
             
@@ -316,17 +326,17 @@ class Database:
             else:
                 new_until = now + timedelta(days=days)
             
-            cursor.execute("UPDATE users SET is_premium_until = ? WHERE id = ?", (new_until.isoformat(), user_id))
+            cursor.execute("UPDATE users SET premium_until = ?, is_premium = 1 WHERE telegram_id = ?", (new_until.isoformat(), user_id))
             conn.commit()
             conn.close()
 
     def is_premium(self, user_id):
         user = self.get_user(user_id)
-        if not user or not user.get('is_premium_until'):
+        if not user or not user.get('premium_until'):
             return False
         
         try:
-            until = datetime.fromisoformat(user['is_premium_until'])
+            until = datetime.fromisoformat(user['premium_until'])
             return until > datetime.now()
         except ValueError:
             return False
@@ -375,7 +385,7 @@ class Database:
         with self.lock:
             conn = self.get_connection()
             cursor = conn.cursor()
-            cursor.execute("SELECT id, name FROM users")
+            cursor.execute("SELECT telegram_id, full_name FROM users")
             users = cursor.fetchall()
             conn.close()
             return users
@@ -384,7 +394,7 @@ class Database:
         with self.lock:
             conn = self.get_connection()
             cursor = conn.cursor()
-            cursor.execute("SELECT id, name FROM users WHERE active = 1")
+            cursor.execute("SELECT telegram_id, full_name FROM users WHERE active = 1")
             users = cursor.fetchall()
             conn.close()
             return users
@@ -393,7 +403,7 @@ class Database:
         with self.lock:
             conn = self.get_connection()
             cursor = conn.cursor()
-            query = "SELECT id, name FROM users WHERE active = 1"
+            query = "SELECT telegram_id, full_name FROM users WHERE active = 1"
             params = []
             if gender:
                 query += " AND gender = ?"
@@ -420,7 +430,7 @@ class Database:
                     # Check premium status
                     # This is inefficient for large DBs but fine for MVP
                     # Better to do in SQL but requires parsing ISO string
-                    cursor.execute("SELECT is_premium_until FROM users WHERE id = ?", (u[0],))
+                    cursor.execute("SELECT premium_until FROM users WHERE telegram_id = ?", (u[0],))
                     res = cursor.fetchone()
                     until = res[0]
                     is_prem = False
@@ -442,7 +452,7 @@ class Database:
         with self.lock:
             conn = self.get_connection()
             cursor = conn.cursor()
-            cursor.execute("SELECT name, points FROM users ORDER BY points DESC LIMIT ?", (limit,))
+            cursor.execute("SELECT full_name, points FROM users ORDER BY points DESC LIMIT ?", (limit,))
             users = cursor.fetchall()
             conn.close()
             return users
@@ -465,7 +475,7 @@ class Database:
             
             results = []
             for ref_id, count in top_referrers:
-                cursor.execute("SELECT name FROM users WHERE id = ?", (ref_id,))
+                cursor.execute("SELECT full_name FROM users WHERE id = ?", (ref_id,))
                 res = cursor.fetchone()
                 name = res[0] if res else "Noma'lum"
                 results.append({"name": name, "id": ref_id, "count": count})
@@ -516,7 +526,7 @@ class Database:
             goal_stats = dict(cursor.fetchall())
             
             # Premium count
-            cursor.execute("SELECT COUNT(*) FROM users WHERE is_premium_until > ?", (datetime.now().isoformat(),))
+            cursor.execute("SELECT COUNT(*) FROM users WHERE premium_until > ?", (datetime.now().isoformat(),))
             premium_users = cursor.fetchone()[0]
             
             conn.close()

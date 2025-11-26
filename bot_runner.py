@@ -33,6 +33,24 @@ def main():
     
     # Start Polling
     print("🤖 Bot ishlamoqda...")
+
+    # Set Chat Menu Button (Mini App)
+    webapp_url = os.getenv("WEBAPP_URL")
+    if webapp_url:
+        try:
+            bot.set_chat_menu_button(
+                menu_button=telebot.types.MenuButtonWebApp(
+                    type="web_app", 
+                    text="📱 Ilova", 
+                    web_app=telebot.types.WebAppInfo(url=webapp_url)
+                )
+            )
+            print(f"✅ Menu tugmasi o'rnatildi: {webapp_url}")
+        except Exception as e:
+            print(f"⚠️ Menu tugmasini o'rnatishda xatolik: {e}")
+    else:
+        print("⚠️ WEBAPP_URL topilmadi. Mini App tugmasi o'rnatilmadi.")
+
     try:
         bot.infinity_polling()
     except Exception as e:

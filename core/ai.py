@@ -11,9 +11,13 @@ model = None
 if GEMINI_API_KEY:
     try:
         genai.configure(api_key=GEMINI_API_KEY)
-        model = genai.GenerativeModel('gemini-2.5-flash')
+        # Using 1.5 Flash as requested (fastest and most cost-effective)
+        model = genai.GenerativeModel('gemini-1.5-flash')
+        print("DEBUG: Gemini AI initialized successfully.")
     except Exception as e:
         print(f"Error initializing Gemini: {e}")
+else:
+    print("DEBUG: GEMINI_API_KEY not found in environment variables.")
 
 def get_offline_workout(user_profile):
     goal = user_profile.get('goal', 'Sog‘liq')
@@ -147,16 +151,30 @@ def get_offline_menu(user_profile):
 """
 
 def call_gemini(prompt):
-    """Sends prompt to Gemini and returns text."""
-    if not model:
+    """Sends prompt to Gemini with fallback."""
+    if not GEMINI_API_KEY:
+        print("DEBUG: No API Key")
         return None
+
+    models_to_try = [
+        'gemini-2.5-flash-preview-09-2025',
+        'gemini-2.5-flash-lite',
+        'gemini-2.0-flash-exp', 
+        'gemini-1.5-flash'
+    ]
     
-    try:
-        response = model.generate_content(prompt)
-        if response.text:
-            return response.text
-    except Exception as e:
-        print(f"Gemini API Error: {e}")
+    for model_name in models_to_try:
+        try:
+            print(f"DEBUG: Trying model {model_name}...")
+            genai.configure(api_key=GEMINI_API_KEY)
+            model = genai.GenerativeModel(model_name)
+            response = model.generate_content(prompt)
+            if response.text:
+                print(f"DEBUG: Success with {model_name}")
+                return response.text
+        except Exception as e:
+            print(f"DEBUG: Failed with {model_name}: {e}")
+            
     return None
 
 def format_ai_text(raw_text, title):
@@ -171,8 +189,8 @@ def format_ai_text(raw_text, title):
     text = text.replace("<script>", "").replace("</script>", "")
     
     # Limit length (soft limit)
-    if len(text) > 1500:
-        text = text[:1500] + "..."
+    if len(text) > 2000:
+        text = text[:2000] + "..."
         
     # Add Title
     formatted = f"🍽 <b>{title}</b>\n\n{text.strip()}"
@@ -200,18 +218,18 @@ Foydalanuvchiga uy sharoitida bajariladigan 4 kunlik mashq rejasi tuzing.
 - Har bir kun quyidagicha struktura bo‘lsin:
 
 <b>1-kun: Ko‘krak & Triceps</b>  
-• Mashq 1 — takrorlar  
-• Mashq 2 — takrorlar  
-• Mashq 3 — takrorlar  
+- Mashq 1 — takrorlar  
+- Mashq 2 — takrorlar  
+- Mashq 3 — takrorlar  
 
 <b>2-kun: Oyoq & Yelka</b>  
-• ...
+- ...
 
 <b>3-kun: Dam olish</b>  
-• Qisqa maslahat yozing (1–2 jumla)
+- Qisqa maslahat yozing (1–2 jumla)
 
 <b>4-kun: Orqa & Core</b>  
-• ... 
+- ... 
 
 🧩 Matn juda uzun chiqmasin. Maksimal 1500 belgi.
 🧩 Har bir mashq sodda va uyda qilinadigan bo‘lsin.
@@ -219,9 +237,10 @@ Foydalanuvchiga uy sharoitida bajariladigan 4 kunlik mashq rejasi tuzing.
 """
     
     response_text = call_gemini(prompt)
-    if response_text:
+    if response_text and len(response_text) > 50: # Ensure meaningful response
         return format_ai_text(response_text, "Sizning mashg‘ulot rejangiz")
         
+    print(f"DEBUG: AI failed or returned empty. Using fallback for user {user_profile.get('name')}")
     return get_offline_workout(user_profile)
 
 def ai_generate_menu(user_profile):
@@ -247,16 +266,16 @@ Foydalanuvchiga 7 kunlik ovqatlanish rejasi tuzing. Juda uzun bo‘lmasin — od
 - Har kun quyidagicha bo‘lsin:
 
 <b>1-kun</b>
-• Nonushta: ...
-• Tushlik: ...
-• Kechki: ...
-• Snack: ...
+- Nonushta: ...
+- Tushlik: ...
+- Kechki: ...
+- Snack: ...
 
 - 7 kunda ham struktura bir xil bo‘lsin.
 - Oxirida alohida blokda:
 
 <b>Xarid ro‘yxati</b>
-• ...
+- ...
 
 🧩 Matn juda uzun chiqmasin. Maksimal 1500 belgi.
 
@@ -264,9 +283,10 @@ Foydalanuvchiga 7 kunlik ovqatlanish rejasi tuzing. Juda uzun bo‘lmasin — od
 """
 
     response_text = call_gemini(prompt)
-    if response_text:
+    if response_text and len(response_text) > 50:
         return format_ai_text(response_text, "Sizning ovqatlanish rejangiz")
 
+    print(f"DEBUG: AI failed or returned empty. Using fallback for user {user_profile.get('name')}")
     return get_offline_menu(user_profile)
 
 def ai_answer_question(question):
