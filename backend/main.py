@@ -63,6 +63,16 @@ class BroadcastRequest(BaseModel):
 async def startup_event():
     await init_db()
     print("✅ Database initialized")
+    print(f"📂 Current Directory: {os.getcwd()}")
+    print(f"📂 Files in root: {os.listdir('.')}")
+    if os.path.exists("frontend"):
+        print(f"📂 Files in frontend: {os.listdir('frontend')}")
+        if os.path.exists("frontend/dist"):
+            print(f"📂 Files in frontend/dist: {os.listdir('frontend/dist')}")
+        else:
+            print("❌ frontend/dist NOT FOUND")
+    else:
+        print("❌ frontend folder NOT FOUND")
 
 # === API Router ===
 from backend.app.api.v1.api import api_router
