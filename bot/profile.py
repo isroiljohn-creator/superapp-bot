@@ -12,8 +12,8 @@ def handle_profile(message, bot):
     text = (
         f"👤 **Sizning Profilingiz**\n\n"
         f"🆔 ID: `{user.get('telegram_id')}`\n"
-        f"👤 Ism: {user.get('full_name', 'Noma\'lum')}\n"
-        f"📱 Telefon: {user.get('phone', 'Yo\'q')}\n"
+        f"👤 Ism: {user.get('full_name', 'Noma’lum')}\n"
+        f"📱 Telefon: {user.get('phone', 'Yo’q')}\n"
         f"🎂 Yosh: {user.get('age', '-')}\n"
         f"📏 Bo'y: {user.get('height', '-')} sm\n"
         f"⚖️ Vazn: {user.get('weight', '-')} kg\n"
