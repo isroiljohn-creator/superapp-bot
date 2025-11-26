@@ -3,9 +3,13 @@ from core.db import db
 
 def handle_profile(message, bot):
     user_id = message.from_user.id
+    print(f"DEBUG: handle_profile called for user {user_id}")
     user = db.get_user(user_id)
     
+    print(f"DEBUG: User data: {user}")
+    
     if not user:
+        print(f"DEBUG: User {user_id} not found in database")
         bot.send_message(user_id, "Siz hali ro'yxatdan o'tmagansiz. /start ni bosing.")
         return
 
@@ -26,6 +30,7 @@ def handle_profile(message, bot):
     markup.add(types.InlineKeyboardButton("✏️ Vaznni o'zgartirish", callback_data="edit_weight"))
     markup.add(types.InlineKeyboardButton("✏️ Maqsadni o'zgartirish", callback_data="edit_goal"))
     
+    print(f"DEBUG: Sending profile message to {user_id}")
     bot.send_message(user_id, text, reply_markup=markup, parse_mode="Markdown")
 
 def register_handlers(bot):
