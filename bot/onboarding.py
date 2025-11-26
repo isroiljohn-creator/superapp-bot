@@ -398,20 +398,13 @@ def register_handlers(bot):
     @bot.callback_query_handler(func=lambda call: call.data.startswith('allergy_'))
     def handle_allergy_step(call):
         try:
-            # Extract allergy value (yes/no)
-            allergy_val = call.data.split('_')[1]
-            
             bot.answer_callback_query(call.id)
-            
-            user_id = call.from_user.id
-            manager.update_data(user_id, 'allergies', allergy_val)
-            
-            # Finish Onboarding
-            finish_onboarding(user_id, message=call.message, bot=bot)
-            
+            # Call the actual process_allergy function that handles the logic
+            process_allergy(call, bot)
         except Exception as e:
             print(f"ERROR in handle_allergy_step: {e}")
             try:
                 bot.answer_callback_query(call.id, "Xatolik yuz berdi.")
             except:
                 pass
+
