@@ -30,10 +30,14 @@ def allergy_keyboard():
     return markup
 
 def main_menu_keyboard():
+    import os
     # Using Inline Keyboard as requested for "inline keyboards everywhere"
     # But for main menu, ReplyKeyboard is often better for persistence.
     # However, to open WebApp easily, we can use a ReplyButton with web_app.
     markup = ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
+    
+    # Get webapp URL from environment
+    webapp_url = os.getenv("WEBAPP_URL", "https://yasha-uz-production.up.railway.app")
     
     markup.add(
         KeyboardButton("Mening rejam 📅"),
@@ -46,6 +50,9 @@ def main_menu_keyboard():
     markup.add(
         KeyboardButton("💎 Premium"),
         KeyboardButton("📞 Qayta aloqa")
+    )
+    markup.add(
+        KeyboardButton("📱 Mini App", web_app=WebAppInfo(url=webapp_url))
     )
     markup.add(KeyboardButton("🔗 Referal"))
     return markup
