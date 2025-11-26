@@ -80,19 +80,19 @@ app.include_router(api_router, prefix="/api/v1")
 
 # === Static Files (Optional - only if frontend is built) ===
 
-if os.path.exists("frontend/dist"):
-    app.mount("/assets", StaticFiles(directory="frontend/dist/assets"), name="assets")
+# Mount static files if they exist
+dist_path = "frontend/dist"
+assets_path = "frontend/dist/assets"
+
+if os.path.exists(dist_path):
+    if os.path.exists(assets_path):
+        app.mount("/assets", StaticFiles(directory=assets_path), name="assets")
     
     @app.get("/{full_path:path}")
-    async def serve_spa(full_path: str):
-        """Serve React SPA"""
-        if full_path.startswith("api/") or full_path.startswith("auth/") or full_path.startswith("user/") or full_path.startswith("ai/") or full_path.startswith("pay/") or full_path.startswith("premium/") or full_path.startswith("referral/") or full_path.startswith("analytics/") or full_path.startswith("admin/"):
-            raise HTTPException(status_code=404, detail="API endpoint not found")
-        
-        file_path = f"frontend/dist/{full_path}"
+    async def serve_frontend(full_path: str):
+        file_path = os.path.join(dist_path, full_path)
         if os.path.exists(file_path) and os.path.isfile(file_path):
             return FileResponse(file_path)
-        
         return FileResponse("frontend/dist/index.html")
 else:
     @app.get("/")
