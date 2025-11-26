@@ -33,7 +33,7 @@ def main_menu_keyboard():
     markup = ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
     
     markup.add(
-        KeyboardButton("Mening rejam 📅"),
+        KeyboardButton("Mashqlar 🏋️"),
         KeyboardButton("Menyu 🍏")
     )
     markup.add(

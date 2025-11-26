@@ -6,7 +6,7 @@ from bot.feedback import handle_feedback_start
 from bot.premium import handle_premium_menu
 
 def register_handlers(bot):
-    @bot.message_handler(func=lambda message: message.text == "Mening rejam 📅")
+    @bot.message_handler(func=lambda message: message.text == "Mashqlar 🏋️")
     def menu_workout(message):
         handle_workout_plan(message, bot)
 
