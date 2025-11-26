@@ -9,13 +9,14 @@ from bot.languages import get_text
 
 # States
 STATE_LANGUAGE = 0
+STATE_PHONE = 8 # Added missing state
 STATE_NAME = 1
 STATE_AGE = 2
 STATE_GENDER = 3
 STATE_HEIGHT = 4
 STATE_WEIGHT = 5
 STATE_GOAL = 6
-STATE_ALLERGY = 7 # Corrected based on sequential numbering
+STATE_ALLERGY = 7
 
 class OnboardingManager:
     def __init__(self):
