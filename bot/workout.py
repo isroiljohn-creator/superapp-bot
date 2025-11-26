@@ -27,9 +27,10 @@ def handle_meal_plan(message, bot):
     from bot.templates import show_meal_template_menu
     show_meal_template_menu(message, bot)
 
-def generate_ai_workout(message, bot):
+def generate_ai_workout(message, bot, user_id=None):
     """Generate AI workout plan (for premium users)"""
-    user_id = message.from_user.id
+    if user_id is None:
+        user_id = message.from_user.id
     user = db.get_user(user_id)
     
     if not user:
@@ -73,9 +74,10 @@ def generate_ai_workout(message, bot):
         except Exception:
             bot.send_message(user_id, full_text)
 
-def generate_ai_meal(message, bot):
+def generate_ai_meal(message, bot, user_id=None):
     """Generate AI meal plan (for premium users)"""
-    user_id = message.from_user.id
+    if user_id is None:
+        user_id = message.from_user.id
     user = db.get_user(user_id)
     
     if not user:

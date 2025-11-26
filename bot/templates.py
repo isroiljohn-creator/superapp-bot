@@ -159,7 +159,7 @@ def register_handlers(bot):
         bot.delete_message(call.message.chat.id, call.message.message_id)
         from bot.premium import handle_premium_menu
         print(f"DEBUG: Redirecting to premium menu")
-        handle_premium_menu(call.message, bot)
+        handle_premium_menu(call.message, bot, user_id=call.from_user.id)
     
     @bot.callback_query_handler(func=lambda call: call.data == "workout_ai")
     def handle_workout_ai_request(call):
@@ -169,7 +169,7 @@ def register_handlers(bot):
         # Import here to avoid circular dependency
         from bot.workout import generate_ai_workout
         print(f"DEBUG: Generating AI workout")
-        generate_ai_workout(call.message, bot)
+        generate_ai_workout(call.message, bot, user_id=call.from_user.id)
     
     @bot.callback_query_handler(func=lambda call: call.data == "meal_ai")
     def handle_meal_ai_request(call):
@@ -178,5 +178,5 @@ def register_handlers(bot):
         bot.delete_message(call.message.chat.id, call.message.message_id)
         from bot.workout import generate_ai_meal
         print(f"DEBUG: Generating AI meal")
-        generate_ai_meal(call.message, bot)
+        generate_ai_meal(call.message, bot, user_id=call.from_user.id)
 

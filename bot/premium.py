@@ -16,8 +16,9 @@ PAYMENT_CARDS = {
     "uzum": "4400 0000 0000 0000 (Uzum)"
 }
 
-def handle_premium_menu(message, bot):
-    user_id = message.from_user.id
+def handle_premium_menu(message, bot, user_id=None):
+    if user_id is None:
+        user_id = message.from_user.id
     user = db.get_user(user_id)
     
     if not user:
