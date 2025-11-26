@@ -25,6 +25,22 @@ def register_all_handlers(bot):
     templates.register_handlers(bot)
     
     # General utility handlers
+    @bot.message_handler(commands=['start'])
+    def handle_start(message):
+        # Always start with onboarding (which now asks for language first)
+        onboarding.start_onboarding(message, bot)
+
+    @bot.message_handler(commands=['language', 'lang'])
+    def handle_language(message):
+        user_id = message.from_user.id
+        # Reset to language selection state
+        onboarding.manager.set_state(user_id, onboarding.STATE_LANGUAGE)
+        
+        markup = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
+        markup.add("🇺🇿 O'zbekcha", "🇷🇺 Русский", "🇬🇧 English")
+        
+        bot.send_message(user_id, "🇺🇿 Tilni tanlang / 🇷🇺 Выберите язык / 🇬🇧 Select language", reply_markup=markup)
+
     @bot.message_handler(commands=['ping'])
     def handle_ping(message):
         bot.reply_to(message, "Pong! 🏓 Bot ishlamoqda.")
@@ -48,11 +64,12 @@ def register_all_handlers(bot):
         except Exception as e:
             print(f"Error clearing step handler: {e}")
             
-        bot.reply_to(message, "🔄 Holat to'liq tozalandi (Step Handlers + State). /start ni bosing.")
+        # Restart onboarding
+        onboarding.start_onboarding(message, bot)
 
     @bot.message_handler(commands=['version'])
     def handle_version(message):
-        bot.reply_to(message, "🤖 Bot Version: v2.5 - DEBUG MODE\n\nAgar bu xabarni ko'rayotgan bo'lsangiz, demak bot yangilangan!")
+        bot.reply_to(message, "🤖 Bot Version: v2.6 - Multi-language Support")
 
     # Debug callback LAST (as fallback)
     @bot.callback_query_handler(func=lambda call: True)
@@ -63,8 +80,14 @@ def register_all_handlers(bot):
     # Debug message handler (catch-all for debugging)
     @bot.message_handler(func=lambda m: True)
     def debug_message(message):
+        # Ignore if it matches any known button text in any language
+        # This is expensive but safe for now
+        # Actually, if we are here, it means no other handler caught it.
+        # But we have localized handlers in menu.py that check for specific texts.
+        # If we are here, it's truly unhandled.
+        
         print(f"DEBUG: Unhandled message: {message.text} from {message.from_user.id}")
         # Only reply if it looks like a command or button press failed
         if message.text.startswith("/") or message.text in ["👤 Profil", "Profil"]:
-             bot.reply_to(message, f"⚠️ DEBUG: Men '{message.text}' xabarini oldim, lekin unga javob beradigan handler topilmadi.\n\nIltimos /reset ni bosing.")
+             bot.reply_to(message, f"⚠️ DEBUG: Men '{message.text}' xabarini oldim, lekin unga javob beradigan handler topilmadi.\n\nIltimos /start ni bosing.")
 
