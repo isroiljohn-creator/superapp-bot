@@ -1,102 +1,111 @@
-import { useState } from 'react'
 import { useUserStore } from '../store/userStore'
-import api from '../api/client'
-import { Check, Loader2, Shield } from 'lucide-react'
 
 export default function Premium() {
-    const { user, setUser } = useUserStore()
-    const [loading, setLoading] = useState(false)
+    const { user } = useUserStore()
 
-    const handlePurchase = async (packageId: string) => {
-        setLoading(true)
-        try {
-            await api.post('/pay/mock', { package: packageId })
-
-            // Refresh user profile
-            const res = await api.get('/user/profile')
-            setUser(res.data)
-
-            alert('Premium muvaffaqiyatli faollashtirildi! 🎉')
-        } catch (error) {
-            console.error(error)
-            alert('Xatolik yuz berdi.')
-        } finally {
-            setLoading(false)
-        }
+    const handlePurchasePremium = () => {
+        // Redirect to Telegram bot for premium purchase
+        window.location.href = 'https://t.me/Yasha_UzBot?start=premium'
     }
 
     if (user?.is_premium) {
         return (
-            <div className="min-h-screen bg-black text-white p-6 flex flex-col items-center justify-center text-center">
-                <div className="w-24 h-24 bg-[#C8FF00]/20 rounded-full flex items-center justify-center mb-6">
-                    <Shield className="text-[#C8FF00] w-12 h-12" />
+            <div className="flex flex-col items-center justify-center min-h-[80vh] p-6">
+                <div className="text-center mb-8">
+                    <div className="text-6xl mb-4">💎</div>
+                    <h1 className="text-3xl font-bold mb-2">Premium Aktiv!</h1>
+                    <p className="text-gray-400">
+                        Sizning obunangiz {new Date(user.premium_until || '').toLocaleDateString()} gacha amal qiladi.
+                    </p>
                 </div>
-                <h1 className="text-3xl font-bold mb-2">Premium Aktiv!</h1>
-                <p className="text-gray-400 mb-8">
-                    Sizning obunangiz {new Date(user.premium_until || '').toLocaleDateString()} gacha amal qiladi.
-                </p>
-                <button
-                    onClick={() => window.history.back()}
-                    className="w-full py-4 bg-[#1A1A1A] text-white rounded-xl font-bold"
-                >
-                    Orqaga
-                </button>
+
+                <div className="grid grid-cols-2 gap-4 w-full max-w-md">
+                    <div className="bg-zinc-800 p-4 rounded-lg text-center">
+                        <div className="text-3xl mb-2">🤖</div>
+                        <p className="text-sm font-semibold">AI Rejalar</p>
+                    </div>
+                    <div className="bg-zinc-800 p-4 rounded-lg text-center">
+                        <div className="text-3xl mb-2">📊</div>
+                        <p className="text-sm font-semibold">Tahlil</p>
+                    </div>
+                    <div className="bg-zinc-800 p-4 rounded-lg text-center">
+                        <div className="text-3xl mb-2">🍽</div>
+                        <p className="text-sm font-semibold">Allergiya yo'q</p>
+                    </div>
+                    <div className="bg-zinc-800 p-4 rounded-lg text-center">
+                        <div className="text-3xl mb-2">💪</div>
+                        <p className="text-sm font-semibold">Individual</p>
+                    </div>
+                </div>
             </div>
         )
     }
 
     return (
-        <div className="min-h-screen bg-black text-white p-6 pb-24">
-            <h1 className="text-3xl font-bold mb-2">Premium Olish</h1>
-            <p className="text-gray-400 mb-8">Barcha imkoniyatlardan cheklovsiz foydalaning.</p>
+        <div className="flex flex-col items-center justify-center min-h-[80vh] p-6">
+            <div className="text-center mb-8">
+                <div className="text-6xl mb-4">💎</div>
+                <h1 className="text-3xl font-bold mb-2">Premium Olish</h1>
+                <p className="text-gray-400">Individual AI rejalar va ko'proq imkoniyatlar</p>
+            </div>
 
-            <div className="space-y-4">
-                {/* 1 Month Plan */}
-                <div className="bg-[#1A1A1A] rounded-2xl p-6 border border-gray-800 relative overflow-hidden">
-                    <div className="relative z-10">
-                        <h3 className="text-xl font-bold mb-1">1 Oy</h3>
-                        <p className="text-2xl font-bold text-[#C8FF00] mb-4">49 000 so'm</p>
-                        <ul className="space-y-2 mb-6 text-sm text-gray-300">
-                            <li className="flex gap-2"><Check size={16} className="text-[#C8FF00]" /> Cheksiz AI Rejalar</li>
-                            <li className="flex gap-2"><Check size={16} className="text-[#C8FF00]" /> Kengaytirilgan Statistika</li>
-                            <li className="flex gap-2"><Check size={16} className="text-[#C8FF00]" /> Reklamasiz</li>
-                        </ul>
-                        <button
-                            onClick={() => handlePurchase('premium_30')}
-                            disabled={loading}
-                            className="w-full py-3 bg-white text-black rounded-xl font-bold hover:bg-gray-200 transition-colors"
-                        >
-                            {loading ? <Loader2 className="animate-spin mx-auto" /> : 'Sotib Olish'}
-                        </button>
+            {/* Features */}
+            <div className="grid grid-cols-2 gap-4 w-full max-w-md mb-8">
+                <div className="bg-zinc-800 p-4 rounded-lg text-center">
+                    <div className="text-3xl mb-2">🤖</div>
+                    <p className="text-sm font-semibold">AI Individual Rejalar</p>
+                </div>
+                <div className="bg-zinc-800 p-4 rounded-lg text-center">
+                    <div className="text-3xl mb-2">🍽</div>
+                    <p className="text-sm font-semibold">Allergiyaga mos</p>
+                </div>
+                <div className="bg-zinc-800 p-4 rounded-lg text-center">
+                    <div className="text-3xl mb-2">📊</div>
+                    <p className="text-sm font-semibold">Tahlil va Statistika</p>
+                </div>
+                <div className="bg-zinc-800 p-4 rounded-lg text-center">
+                    <div className="text-3xl mb-2">💪</div>
+                    <p className="text-sm font-semibold">Shaxsiy Yondashuv</p>
+                </div>
+            </div>
+
+            {/* Pricing */}
+            <div className="w-full max-w-md space-y-4 mb-8">
+                <div className="bg-gradient-to-r from-[#C8FF00]/20 to-transparent p-6 rounded-lg border border-[#C8FF00]/30">
+                    <div className="flex justify-between items-center">
+                        <div>
+                            <h3 className="text-xl font-bold">1 oy</h3>
+                            <p className="text-gray-400 text-sm">Barcha imkoniyatlar</p>
+                        </div>
+                        <div className="text-2xl font-bold text-[#C8FF00]">49 000 so'm</div>
                     </div>
                 </div>
 
-                {/* 3 Month Plan */}
-                <div className="bg-gradient-to-br from-[#C8FF00]/20 to-[#1A1A1A] rounded-2xl p-6 border border-[#C8FF00]/50 relative overflow-hidden">
-                    <div className="absolute top-0 right-0 bg-[#C8FF00] text-black text-xs font-bold px-3 py-1 rounded-bl-xl">
-                        ENG FOYDALI
+                <div className="bg-gradient-to-r from-[#C8FF00]/30 to-transparent p-6 rounded-lg border-2 border-[#C8FF00]">
+                    <div className="absolute -top-3 left-4 bg-[#C8FF00] text-black px-3 py-1 rounded-full text-xs font-bold">
+                        MASHHUR
                     </div>
-                    <div className="relative z-10">
-                        <h3 className="text-xl font-bold mb-1">3 Oy</h3>
-                        <p className="text-2xl font-bold text-[#C8FF00] mb-4">119 000 so'm</p>
-                        <ul className="space-y-2 mb-6 text-sm text-gray-300">
-                            <li className="flex gap-2"><Check size={16} className="text-[#C8FF00]" /> Barcha 1 oylik imkoniyatlar</li>
-                            <li className="flex gap-2"><Check size={16} className="text-[#C8FF00]" /> 20% Chegirma</li>
-                            <li className="flex gap-2"><Check size={16} className="text-[#C8FF00]" /> Ustuvor qo'llab-quvvatlash</li>
-                        </ul>
-                        <button
-                            onClick={() => handlePurchase('premium_90')}
-                            disabled={loading}
-                            className="w-full py-3 bg-[#C8FF00] text-black rounded-xl font-bold hover:bg-[#b3e600] transition-colors"
-                        >
-                            {loading ? <Loader2 className="animate-spin mx-auto" /> : 'Sotib Olish'}
-                        </button>
+                    <div className="flex justify-between items-center">
+                        <div>
+                            <h3 className="text-xl font-bold">3 oy</h3>
+                            <p className="text-gray-400 text-sm">23% tejang</p>
+                        </div>
+                        <div className="text-2xl font-bold text-[#C8FF00]">119 000 so'm</div>
                     </div>
                 </div>
             </div>
 
-            <p className="text-center text-xs text-gray-500 mt-8">
-                To'lov xavfsiz amalga oshiriladi (Test rejimi).
+            {/* Purchase Button */}
+            <button
+                onClick={handlePurchasePremium}
+                className="w-full max-w-md bg-[#C8FF00] text-black font-bold py-4 px-8 rounded-lg hover:bg-[#D4FF33] transition-all transform hover:scale-105"
+            >
+                💳 Premium Sotib Olish
+            </button>
+
+            {/* Redirect note */}
+            <p className="text-gray-500 text-sm mt-4 text-center max-w-md">
+                📱 Siz botga yo'naltirilasiz. U yerda to'lovni amalga oshiring.
             </p>
         </div>
     )
