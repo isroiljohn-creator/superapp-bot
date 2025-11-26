@@ -96,33 +96,10 @@ def register_handlers(bot):
 
     @bot.pre_checkout_query_handler(func=lambda query: True)
     def checkout(pre_checkout_query):
-        bot.answer_pre_checkout_query(pre_checkout_query.id, ok=True)
+        process_pre_checkout_query(pre_checkout_query, bot)
 
     @bot.message_handler(content_types=['successful_payment'])
     def got_payment(message):
-        user_id = message.from_user.id
-        payment = message.successful_payment
-        payload = payment.invoice_payload # e.g., premium_30
-        
-        days = int(payload.split("_")[1])
-        amount = payment.total_amount / 100 # Convert back to UZS
-        currency = payment.currency
-        
-        # Create order record
-        order_id = f"pay_{payment.provider_payment_charge_id}"
-        db.create_order(order_id, user_id, days, amount, currency)
-        db.update_order_status(order_id, 'paid')
-        
-        # Activate Premium
-        db.set_premium(user_id, days)
-        
-        bot.send_message(user_id, f"✅ **To'lov muvaffaqiyatli amalga oshirildi!**\n\nSizga {days} kunlik Premium obuna faollashtirildi. 🎉\nBarcha imkoniyatlardan foydalanishingiz mumkin!", parse_mode="Markdown")
-        
-        # Notify Admin
-        if ADMIN_ID:
-            try:
-                bot.send_message(ADMIN_ID, f"💰 **Yangi To'lov!**\nUser: {message.from_user.first_name} (ID: {user_id})\nSumma: {amount} {currency}\nTarif: {days} kun")
-            except Exception:
                 pass
 
     @bot.callback_query_handler(func=lambda call: call.data == "back_premium")

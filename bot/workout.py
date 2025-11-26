@@ -59,55 +59,27 @@ def generate_ai_workout(message, bot, user_id=None):
     header = "🏋️‍♂️ **Sizning Individual Mashq Rejangiz:**\n\n"
     full_text = header + plan
     
-    if len(full_text) > 4000:
-        # Split into chunks
-        chunks = [full_text[i:i+4000] for i in range(0, len(full_text), 4000)]
-        for chunk in chunks:
-            try:
-                bot.send_message(user_id, chunk, parse_mode="HTML")
-            except Exception:
-                # Fallback to plain text if HTML fails
-                bot.send_message(user_id, chunk)
-    else:
-        try:
-            bot.send_message(user_id, full_text, parse_mode="HTML")
-        except Exception:
-            bot.send_message(user_id, full_text)
-
-def generate_ai_meal(message, bot, user_id=None):
-    """Generate AI meal plan (for premium users)"""
     if user_id is None:
         user_id = message.from_user.id
-    user = db.get_user(user_id)
+        
+    lang = db.get_language(user_id)
     
-    if not user:
-        bot.send_message(user_id, "Iltimos, avval /start ni bosing.")
-        return
-    
-    # Check premium status
     if not db.is_premium(user_id):
-        bot.send_message(
-            user_id,
-            "⚠️ Individual AI reja faqat Premium foydalanuvchilar uchun mavjud.\n\n"
-            "💎 Premium obuna sotib oling va sizga maxsus reja tayyorlanadi!",
-            parse_mode="Markdown"
-        )
+        # Free user -> Template
+        plan = get_template_workout(user_id, lang) # Need to update templates to support lang
+        bot.send_message(user_id, plan)
         return
 
-    msg = bot.send_message(user_id, "⏳ Siz uchun maxsus ovqatlanish rejasi tuzilmoqda... Biroz kuting.")
+    # Premium -> AI
+    msg = bot.send_message(user_id, get_text("generating_plan", lang))
     
-    # Generate plan
-    plan = ai_generate_menu(user)
+    user_data = db.get_user(user_id)
+    # Pass language to AI
+    plan = ai_generate_workout(user_data, lang=lang) 
     
-    bot.delete_message(user_id, msg.message_id)
-    
-    header = "🍏 <b>Sizning Individual Ovqatlanish Rejangiz:</b>\n\n"
-    full_text = header + plan
-    
-    if len(full_text) > 4000:
-        chunks = [full_text[i:i+4000] for i in range(0, len(full_text), 4000)]
-        for chunk in chunks:
-            try:
+    bot.edit_message_text(plan, user_id, msg.message_id) # Removed parse_mode="Markdown"
+
+def generate_ai_meal(message, bot, user_id=None):
                 bot.send_message(user_id, chunk,parse_mode="HTML")
             except Exception:
                 bot.send_message(user_id, chunk)
