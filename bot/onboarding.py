@@ -109,7 +109,7 @@ def process_phone(message, bot):
     
     bot.send_message(
         user_id, 
-        f"✅ Rahmat! Telefon raqamingiz saqlandi.\n\n"
+        f"✅ Rahmat!\n\n"
         f"Endi ismingizni kiriting:",
         reply_markup=types.ReplyKeyboardRemove()
     )
@@ -231,7 +231,7 @@ def process_goal(call, bot):
     except:
         pass
         
-    bot.send_message(user_id, "Allergiyangiz bormi?", reply_markup=allergy_keyboard())
+    bot.send_message(user_id, "Hastaligingiz yoki allergiyangiz mavjudmi?", reply_markup=allergy_keyboard())
 
 def process_allergy(call, bot):
     user_id = call.from_user.id
@@ -255,7 +255,7 @@ def process_allergy(call, bot):
         manager.set_state(user_id, STATE_NONE)  # Temporarily exit FSM for text input
         msg = bot.send_message(
             user_id,
-            "📝 Qanday mahsulotlarga allergiyangiz bor?\n\n"
+            "📝 Qanday hastalik yoki nima mahsulotlarga allergiyangiz bor?\n\n"
             "Masalan: yong'oq, sut, tuxum, gluten, dengiz mahsulotlari",
             reply_markup=types.ReplyKeyboardRemove()
         )
@@ -386,7 +386,7 @@ def register_handlers(bot):
             manager.update_data(user_id, 'goal', goal_val)
             manager.set_state(user_id, STATE_ALLERGY)
             
-            bot.send_message(user_id, "Allergiyangiz bormi?", reply_markup=allergy_keyboard())
+            bot.send_message(user_id, "Qandaydir hastalik yoki biro mahsulotga allergiyangiz bormi?", reply_markup=allergy_keyboard())
             
         except Exception as e:
             print(f"ERROR in handle_goal_step: {e}")
