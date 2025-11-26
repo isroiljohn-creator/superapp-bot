@@ -37,9 +37,18 @@ def register_all_handlers(bot):
     def handle_reset(message):
         """Force reset user state"""
         user_id = message.from_user.id
+        chat_id = message.chat.id
+        
         # Clear onboarding state
         onboarding.manager.clear_user(user_id)
-        bot.reply_to(message, "🔄 Holat tozalandi. /start ni bosing.")
+        
+        # Clear Telebot next step handlers (CRITICAL FIX)
+        try:
+            bot.clear_step_handler_by_chat_id(chat_id)
+        except Exception as e:
+            print(f"Error clearing step handler: {e}")
+            
+        bot.reply_to(message, "🔄 Holat to'liq tozalandi (Step Handlers + State). /start ni bosing.")
 
     @bot.message_handler(commands=['version'])
     def handle_version(message):
