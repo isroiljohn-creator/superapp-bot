@@ -97,5 +97,5 @@ def handle_food_photo(message, bot, onboarding_manager):
         
     except Exception as e:
         print(f"ERROR in handle_food_photo: {e}")
-        bot.edit_message_text("❌ Xatolik yuz berdi.", user_id, status_msg.message_id)
+        bot.edit_message_text(f"❌ Xatolik yuz berdi: {str(e)}", user_id, status_msg.message_id)
         onboarding_manager.set_state(user_id, 0)

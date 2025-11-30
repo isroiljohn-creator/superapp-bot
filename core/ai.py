@@ -313,7 +313,7 @@ def analyze_food_image(image_data):
     """
     if not GEMINI_API_KEY:
         print("DEBUG: No API key for vision")
-        return None
+        return '{"error": "GEMINI_API_KEY topilmadi. Admin bilan bog\'laning."}'
 
     prompt = """
     You are an expert food recognition and calorie estimation model.
