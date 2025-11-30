@@ -178,11 +178,6 @@ def call_gemini(prompt):
             
     return None
 
-def format_ai_text(raw_text, title):
-    """Cleans and formats AI output."""
-    if not raw_text:
-        return ""
-    
     # Clean up Markdown
     text = raw_text.replace("**", "").replace("##", "").replace("#", "")
     

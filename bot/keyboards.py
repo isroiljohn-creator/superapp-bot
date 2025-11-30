@@ -45,9 +45,9 @@ def main_menu_keyboard():
     
     markup.add(KeyboardButton("Mening Rejam 📅"))
     markup.add(KeyboardButton("Kunlik odatlar 💧"), KeyboardButton("Shaxsiy Murabbiy 🤖"))
-    markup.add(KeyboardButton("Chellenjlar ⚔️"), KeyboardButton("Yasha Ball ⭐️"))
-    markup.add(KeyboardButton("Profil 👤"), KeyboardButton("Premium 💎"))
-    markup.add(KeyboardButton("Qayta Aloqa 📞"))
+    markup.add(KeyboardButton("🍽 Kaloriya skaneri"), KeyboardButton("Chellenjlar ⚔️"))
+    markup.add(KeyboardButton("Yasha Ball ⭐️"), KeyboardButton("Profil 👤"))
+    markup.add(KeyboardButton("Premium 💎"), KeyboardButton("Qayta Aloqa 📞"))
     
     return markup
 

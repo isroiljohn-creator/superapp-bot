@@ -141,6 +141,16 @@ class Database:
             except sqlite3.OperationalError:
                 pass
 
+            # Calorie Scanner Limits
+            try:
+                cursor.execute("ALTER TABLE users ADD COLUMN calorie_last_use_date TEXT")
+            except sqlite3.OperationalError:
+                pass
+            try:
+                cursor.execute("ALTER TABLE users ADD COLUMN calorie_daily_uses INTEGER DEFAULT 0")
+            except sqlite3.OperationalError:
+                pass
+
             # Calorie Logs
             cursor.execute("""
             CREATE TABLE IF NOT EXISTS calorie_logs (

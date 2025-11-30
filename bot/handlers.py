@@ -1,7 +1,7 @@
 from bot import onboarding, menu, gamification, admin, feedback, premium, profile, templates
 from bot.calories import handle_calorie_button, handle_food_photo, STATE_CALORIE_PHOTO
 from bot.keyboards import main_menu_keyboard
-from bot import trackers, ai_features, challenges
+from bot import trackers, ai_features, challenges, calorie_scanner
 
 def register_all_handlers(bot):
     # Calorie Handlers
@@ -104,6 +104,25 @@ def register_all_handlers(bot):
         elif action == 'complete': 
             challenges.complete_challenge(call, bot, 10)
         bot.answer_callback_query(call.id)
+
+    # --- Calorie Scanner Handlers ---
+    @bot.message_handler(func=lambda message: "Kaloriya skaneri" in message.text)
+    def menu_calorie_scanner(message):
+        calorie_scanner.show_calorie_menu(message, bot)
+
+    @bot.callback_query_handler(func=lambda call: call.data.startswith('calorie_mode_'))
+    def calorie_mode_handler(call):
+        calorie_scanner.calorie_mode_callback(call, bot)
+
+    @bot.message_handler(content_types=['photo'])
+    def photo_handler_new(message):
+        state = onboarding.manager.get_state(message.from_user.id)
+        if state == calorie_scanner.STATE_CALORIE_PHOTO:
+            calorie_scanner.handle_calorie_photo(message, bot)
+
+    @bot.message_handler(func=lambda message: onboarding.manager.get_state(message.from_user.id) == calorie_scanner.STATE_CALORIE_TEXT)
+    def text_calorie_handler(message):
+        calorie_scanner.handle_calorie_text(message, bot)
 
     # General utility handlers
     @bot.message_handler(commands=['menu'])
