@@ -421,7 +421,7 @@ def register_handlers(bot):
             manager.update_data(user_id, 'goal', goal_val)
             manager.set_state(user_id, STATE_ALLERGY)
             
-            bot.send_message(user_id, "Qandaydir hastalik yoki biro mahsulotga allergiyangiz bormi?", reply_markup=allergy_keyboard())
+            bot.send_message(user_id, "Qandaydir hastalik yoki biror mahsulotga allergiyangiz bormi?", reply_markup=allergy_keyboard())
             
         except Exception as e:
             print(f"ERROR in handle_goal_step: {e}")
