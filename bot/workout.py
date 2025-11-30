@@ -1,6 +1,7 @@
 from core.db import db
 from core.ai import ai_generate_workout, ai_generate_menu
 from bot.keyboards import plan_inline_keyboard
+from bot.premium import require_premium
 
 def handle_plan_menu(message, bot):
     bot.send_message(
@@ -36,6 +37,7 @@ def handle_meal_plan(message, bot):
     from bot.templates import show_meal_template_menu
     show_meal_template_menu(message, bot)
 
+@require_premium
 def generate_ai_workout(message, bot, user_id=None):
     """Generate AI workout plan (for premium users)"""
     if user_id is None:
@@ -44,16 +46,6 @@ def generate_ai_workout(message, bot, user_id=None):
     
     if not user:
         bot.send_message(user_id, "Iltimos, avval /start ni bosing.")
-        return
-    
-    # Check premium status
-    if not db.is_premium(user_id):
-        bot.send_message(
-            user_id,
-            "⚠️ Individual AI reja faqat Premium foydalanuvchilar uchun mavjud.\n\n"
-            "💎 Premium obuna sotib oling va sizga maxsus reja tayyorlanadi!",
-            parse_mode="Markdown"
-        )
         return
 
     msg = bot.send_message(user_id, "⏳ Siz uchun maxsus mashqlar rejasi tuzilmoqda... Biroz kuting.")
@@ -83,6 +75,9 @@ def generate_ai_workout(message, bot, user_id=None):
         except Exception:
             bot.send_message(user_id, full_text)
 
+from bot.premium import require_premium
+
+@require_premium
 def generate_ai_meal(message, bot, user_id=None):
     """Generate AI meal plan (for premium users)"""
     if user_id is None:
@@ -92,9 +87,6 @@ def generate_ai_meal(message, bot, user_id=None):
     if not user:
         bot.send_message(user_id, "Iltimos, avval /start ni bosing.")
         return
-    
-    user_id = message.from_user.id
-    user = db.get_user(user_id)
     
     bot.send_message(user_id, "🤖 **AI Ovqatlanish rejasi tuzilmoqda...**\n\nIltimos, biroz kuting ⏳", parse_mode="Markdown")
     

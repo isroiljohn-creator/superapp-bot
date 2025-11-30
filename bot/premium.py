@@ -185,7 +185,10 @@ def register_handlers(bot):
 def require_premium(func):
     """Decorator to restrict handlers to premium users only"""
     def wrapper(message, bot, *args, **kwargs):
-        user_id = message.from_user.id
+        user_id = kwargs.get('user_id')
+        if user_id is None:
+            user_id = message.from_user.id
+            
         if not db.is_premium(user_id):
             # Upsell message
             text = (
