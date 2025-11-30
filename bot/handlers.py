@@ -191,11 +191,14 @@ def register_all_handlers(bot):
     # Challenge Callbacks
     @bot.callback_query_handler(func=lambda call: call.data.startswith('challenge_'))
     def challenge_callback(call):
-        action = call.data.split('_')[1]
+        action = call.data.replace('challenge_', '')
         if action == 'daily': challenges.handle_daily_challenge(call, bot)
         elif action == 'leaderboard': challenges.show_leaderboard(call, bot)
         elif action == 'complete': 
             challenges.complete_challenge(call, bot, 10)
+        elif action == 'weekly': challenges.handle_weekly_challenge(call.message, bot)
+        elif action == 'monthly': challenges.handle_monthly_challenge(call.message, bot)
+        elif action == 'friends': challenges.handle_friends_challenge(call.message, bot)
         bot.answer_callback_query(call.id)
 
     # Calorie Callbacks
@@ -206,6 +209,76 @@ def register_all_handlers(bot):
     @bot.message_handler(func=lambda message: onboarding.manager.get_state(message.from_user.id) == calorie_scanner.STATE_CALORIE_TEXT)
     def text_calorie_handler(message):
         calorie_scanner.handle_calorie_text(message, bot)
+
+    # --- Inline Menu Callbacks ---
+
+    # Plan Callbacks
+    @bot.callback_query_handler(func=lambda call: call.data.startswith('plan_'))
+    def plan_callback(call):
+        action = call.data.replace('plan_', '')
+        if action == 'ai_workout': workout.generate_ai_workout(call.message, bot, user_id=call.from_user.id)
+        elif action == 'ai_meal': workout.generate_ai_meal(call.message, bot, user_id=call.from_user.id)
+        elif action == 'calorie_scan': calorie_scanner.show_calorie_menu(call.message, bot)
+        bot.answer_callback_query(call.id)
+
+    # Habits Callbacks
+    @bot.callback_query_handler(func=lambda call: call.data.startswith('habit_'))
+    def habit_callback(call):
+        action = call.data.replace('habit_', '')
+        if action == 'water': trackers.handle_water_tracker(call.message, bot, user_id=call.from_user.id)
+        elif action == 'sleep': trackers.handle_sleep_tracker(call.message, bot, user_id=call.from_user.id)
+        elif action == 'mood': trackers.handle_mood_tracker(call.message, bot, user_id=call.from_user.id)
+        elif action == 'steps': 
+            bot.answer_callback_query(call.id, "Tez kunda...")
+            bot.send_message(call.from_user.id, "🚶 **Qadamlar**\n\nTez kunda avtomatik hisoblash qo'shiladi!", parse_mode="Markdown")
+        elif action == 'stats': trackers.handle_habits_stats(call.message, bot, user_id=call.from_user.id)
+        bot.answer_callback_query(call.id)
+
+    # AI Callbacks
+    @bot.callback_query_handler(func=lambda call: call.data.startswith('ai_'))
+    def ai_callback(call):
+        action = call.data.replace('ai_', '')
+        # Handle ai_tool_ prefix from old callbacks if any, but we renamed to ai_
+        if action == 'qa': ai_features.handle_ai_qa(call.message, bot)
+        elif action == 'meal': workout.generate_ai_meal(call.message, bot, user_id=call.from_user.id)
+        elif action == 'workout': workout.generate_ai_workout(call.message, bot, user_id=call.from_user.id)
+        elif action == 'recipe': ai_features.handle_recipe_gen(call.message, bot)
+        elif action == 'shopping': ai_features.handle_shopping_list(call.message, bot, user_id=call.from_user.id)
+        bot.answer_callback_query(call.id)
+
+    # Points Callbacks
+    @bot.callback_query_handler(func=lambda call: call.data.startswith('points_'))
+    def points_callback(call):
+        action = call.data.replace('points_', '')
+        if action == 'balance': gamification.handle_my_points(call.message, bot)
+        elif action == 'rewards': gamification.handle_rewards(call.message, bot)
+        elif action == 'rules': gamification.handle_rules(call.message, bot)
+        bot.answer_callback_query(call.id)
+
+    # Challenges Callbacks (Merged with existing if needed, but existing uses challenge_ prefix too)
+    # Existing handler handles: daily, leaderboard, complete.
+    # We added: weekly, monthly, friends, leaderboard.
+    # Let's update the existing handler or add new logic.
+    # Existing handler is at line 192. I will replace it or merge.
+    # I'll replace the existing challenge callback handler to include new menu items.
+
+    # Profile Callbacks
+    @bot.callback_query_handler(func=lambda call: call.data.startswith('profile_'))
+    def profile_callback(call):
+        action = call.data.replace('profile_', '')
+        if action == 'edit': profile.handle_edit_profile_command(call.message, bot)
+        elif action == 'stats': profile.handle_profile_stats(call.message, bot)
+        elif action == 'change_goal': profile.handle_change_goal_command(call.message, bot)
+        bot.answer_callback_query(call.id)
+
+    # Premium Callbacks
+    @bot.callback_query_handler(func=lambda call: call.data.startswith('premium_'))
+    def premium_callback(call):
+        action = call.data.replace('premium_', '')
+        if action == 'buy': premium.handle_premium_buy(call.message, bot)
+        elif action == 'info': premium.handle_premium_info(call.message, bot)
+        elif action == 'coins': gamification.handle_points_menu(call.message, bot)
+        bot.answer_callback_query(call.id)
 
     # General utility handlers
     @bot.message_handler(commands=['menu'])

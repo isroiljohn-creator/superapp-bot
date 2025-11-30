@@ -4,7 +4,7 @@ from bot.keyboards import main_menu_keyboard, gender_keyboard, goal_keyboard, al
 
 import traceback
 
-from bot.keyboards import profile_menu_keyboard
+from bot.keyboards import profile_inline_keyboard
 
 def handle_profile(message, bot, user_id=None):
     """Show user profile with sub-menu"""
@@ -37,7 +37,7 @@ def handle_profile(message, bot, user_id=None):
             f"👇 Quyidagi menyudan tanlang:"
         )
         
-        bot.send_message(user_id, text, reply_markup=profile_menu_keyboard(), parse_mode="Markdown")
+        bot.send_message(user_id, text, reply_markup=profile_inline_keyboard(), parse_mode="Markdown")
         
     except Exception as e:
         print(f"Profile Error: {e}")

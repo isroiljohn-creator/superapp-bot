@@ -2,8 +2,9 @@ from telebot import types
 from core.db import db
 
 # --- Water Tracker ---
-def handle_water_tracker(message, bot):
-    user_id = message.from_user.id
+def handle_water_tracker(message, bot, user_id=None):
+    if user_id is None:
+        user_id = message.from_user.id
     markup = types.InlineKeyboardMarkup()
     markup.add(types.InlineKeyboardButton("💧 250ml ichdim (+1 coin)", callback_data="track_water_250"))
     
@@ -31,8 +32,9 @@ def process_water_callback(call, bot):
     )
 
 # --- Sleep Tracker ---
-def handle_sleep_tracker(message, bot):
-    user_id = message.from_user.id
+def handle_sleep_tracker(message, bot, user_id=None):
+    if user_id is None:
+        user_id = message.from_user.id
     markup = types.InlineKeyboardMarkup()
     markup.add(
         types.InlineKeyboardButton("😴 < 6 soat", callback_data="track_sleep_bad"),
@@ -68,8 +70,9 @@ def process_sleep_callback(call, bot):
     )
 
 # --- Mood Tracker ---
-def handle_mood_tracker(message, bot):
-    user_id = message.from_user.id
+def handle_mood_tracker(message, bot, user_id=None):
+    if user_id is None:
+        user_id = message.from_user.id
     markup = types.InlineKeyboardMarkup()
     markup.add(
         types.InlineKeyboardButton("😞 Yomon", callback_data="track_mood_bad"),
@@ -98,18 +101,19 @@ def process_mood_callback(call, bot):
     )
 
 # --- Main Habits Menu ---
-from bot.keyboards import habits_menu_keyboard
+from bot.keyboards import habits_inline_keyboard
 
 def handle_habits_menu(message, bot):
     bot.send_message(
         message.chat.id,
         "🔁 **Odatlar**\n\nQaysi odatni kiritmoqchisiz?",
-        reply_markup=habits_menu_keyboard(),
+        reply_markup=habits_inline_keyboard(),
         parse_mode="Markdown"
     )
 
-def handle_habits_stats(message, bot):
-    user_id = message.from_user.id
+def handle_habits_stats(message, bot, user_id=None):
+    if user_id is None:
+        user_id = message.from_user.id
     user = db.get_user(user_id)
     
     text = (

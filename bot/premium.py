@@ -3,7 +3,7 @@ import time
 import os
 from telebot import types
 from core.db import db
-from bot.keyboards import premium_menu_keyboard
+from bot.keyboards import premium_inline_keyboard
 
 def handle_premium_menu(message, bot, user_id=None):
     if user_id is None:
@@ -40,7 +40,7 @@ def handle_premium_menu(message, bot, user_id=None):
         "• Chellenjlarda 2x ball\n"
     )
     
-    markup = premium_menu_keyboard()
+    markup = premium_inline_keyboard()
     # If trial active, maybe show "Buy to extend"
     # If expired, show "Buy"
     

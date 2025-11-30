@@ -1,13 +1,13 @@
 from telebot import types
 from core.db import db
 
-from bot.keyboards import challenges_menu_keyboard
+from bot.keyboards import challenges_inline_keyboard
 
 def handle_challenges_menu(message, bot):
     bot.send_message(
         message.chat.id,
         "🔥 **Chellenjlar**\n\nQatnashing va yuting!",
-        reply_markup=challenges_menu_keyboard(),
+        reply_markup=challenges_inline_keyboard(),
         parse_mode="Markdown"
     )
 

@@ -50,68 +50,72 @@ def main_menu_keyboard():
     
     return markup
 
-def plan_menu_keyboard():
-    markup = ReplyKeyboardMarkup(resize_keyboard=True, row_width=1)
+def plan_inline_keyboard():
+    markup = InlineKeyboardMarkup(row_width=1)
     markup.add(
-        KeyboardButton("🤖 AI mashg‘ulot rejasi"),
-        KeyboardButton("🥦 AI ovqatlanish rejasi"),
-        KeyboardButton("🍽 Kaloriya tahlili (premium)"),
-        KeyboardButton("⬅️ Asosiy menyu")
+        InlineKeyboardButton("🤖 AI mashg‘ulot rejasi", callback_data="plan_ai_workout"),
+        InlineKeyboardButton("🥦 AI ovqatlanish rejasi", callback_data="plan_ai_meal"),
+        InlineKeyboardButton("🍽 Kaloriya tahlili (premium)", callback_data="plan_calorie_scan")
     )
     return markup
 
-def habits_menu_keyboard():
-    markup = ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
+def habits_inline_keyboard():
+    markup = InlineKeyboardMarkup(row_width=2)
     markup.add(
-        KeyboardButton("💧 Suv ichish"), KeyboardButton("😴 Uyqu"),
-        KeyboardButton("🙂 Kayfiyat"), KeyboardButton("🚶 Qadamlar"),
-        KeyboardButton("📊 Odatlar statistikasi"), KeyboardButton("⬅️ Asosiy menyu")
+        InlineKeyboardButton("💧 Suv ichish", callback_data="habit_water"),
+        InlineKeyboardButton("😴 Uyqu", callback_data="habit_sleep"),
+        InlineKeyboardButton("🙂 Kayfiyat", callback_data="habit_mood"),
+        InlineKeyboardButton("🚶 Qadamlar", callback_data="habit_steps"),
+        InlineKeyboardButton("📊 Odatlar statistikasi", callback_data="habit_stats")
     )
     return markup
 
-def ai_menu_keyboard():
-    markup = ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
+def ai_inline_keyboard():
+    markup = InlineKeyboardMarkup(row_width=2)
     markup.add(
-        KeyboardButton("❓ AI savol-javob"), KeyboardButton("🥦 AI menyu"),
-        KeyboardButton("🏋️ AI mashq rejasi"), KeyboardButton("🍳 AI retsept"),
-        KeyboardButton("🛒 AI shopping list"), KeyboardButton("⬅️ Asosiy menyu")
+        InlineKeyboardButton("❓ AI savol-javob", callback_data="ai_qa"),
+        InlineKeyboardButton("🥦 AI menyu", callback_data="ai_meal"),
+        InlineKeyboardButton("🏋️ AI mashq rejasi", callback_data="ai_workout"),
+        InlineKeyboardButton("🍳 AI retsept", callback_data="ai_recipe"),
+        InlineKeyboardButton("🛒 AI shopping list", callback_data="ai_shopping")
     )
     return markup
 
-def points_menu_keyboard():
-    markup = ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
+def points_inline_keyboard():
+    markup = InlineKeyboardMarkup(row_width=2)
     markup.add(
-        KeyboardButton("📊 Ballarim"), KeyboardButton("🎁 Mukofotlar"),
-        KeyboardButton("📜 Qoidalar"), KeyboardButton("⬅️ Premium menyu")
+        InlineKeyboardButton("📊 Ballarim", callback_data="points_balance"),
+        InlineKeyboardButton("🎁 Mukofotlar", callback_data="points_rewards"),
+        InlineKeyboardButton("📜 Qoidalar", callback_data="points_rules"),
+        InlineKeyboardButton("⬅️ Premium menyu", callback_data="back_premium")
     )
     return markup
 
-def challenges_menu_keyboard():
-    markup = ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
+def challenges_inline_keyboard():
+    markup = InlineKeyboardMarkup(row_width=2)
     markup.add(
-        KeyboardButton("📆 Haftalik challenge"), KeyboardButton("🗓 Oylik challenge"),
-        KeyboardButton("👥 Do‘stlar challenge"), KeyboardButton("🏆 Leaderboard"),
-        KeyboardButton("⬅️ Asosiy menyu")
+        InlineKeyboardButton("📆 Haftalik challenge", callback_data="challenge_weekly"),
+        InlineKeyboardButton("🗓 Oylik challenge", callback_data="challenge_monthly"),
+        InlineKeyboardButton("👥 Do‘stlar challenge", callback_data="challenge_friends"),
+        InlineKeyboardButton("🏆 Leaderboard", callback_data="challenge_leaderboard")
     )
     return markup
 
-def profile_menu_keyboard():
-    markup = ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
+def profile_inline_keyboard():
+    markup = InlineKeyboardMarkup(row_width=2)
     markup.add(
-        KeyboardButton("✏️ Ma’lumotlarni tahrirlash"),
-        KeyboardButton("📊 Sog‘liq statistikasi"),
-        KeyboardButton("🎯 Maqsadni o‘zgartirish"),
-        KeyboardButton("⬅️ Asosiy menyu")
+        InlineKeyboardButton("✏️ Ma’lumotlarni tahrirlash", callback_data="profile_edit"),
+        InlineKeyboardButton("📊 Sog‘liq statistikasi", callback_data="profile_stats"),
+        InlineKeyboardButton("🎯 Maqsadni o‘zgartirish", callback_data="profile_change_goal")
     )
     return markup
 
-def premium_menu_keyboard():
-    markup = ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
+def premium_inline_keyboard():
+    markup = InlineKeyboardMarkup(row_width=2)
     markup.add(
-        KeyboardButton("💳 Premium sotib olish"),
-        KeyboardButton("ℹ️ Tariflar"),
-        KeyboardButton("🟡 Yasha Coin"),
-        KeyboardButton("⬅️ Asosiy menyu")
+        InlineKeyboardButton("💳 Premium sotib olish", callback_data="premium_buy"),
+        InlineKeyboardButton("ℹ️ Tariflar", callback_data="premium_info"),
+        InlineKeyboardButton("🟡 Yasha Coin", callback_data="premium_coins")
     )
     return markup
 

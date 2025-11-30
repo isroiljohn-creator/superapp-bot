@@ -1,7 +1,7 @@
 from datetime import datetime
 from telebot import types
 from core.db import db
-from bot.keyboards import gamification_keyboard, points_menu_keyboard
+from bot.keyboards import gamification_keyboard, points_inline_keyboard
 
 def handle_points_menu(message, bot):
     user_id = message.from_user.id
@@ -17,7 +17,7 @@ def handle_points_menu(message, bot):
         "• Chellenjlar → +50 coingacha"
     )
     
-    bot.send_message(message.chat.id, text, reply_markup=points_menu_keyboard(), parse_mode="Markdown")
+    bot.send_message(message.chat.id, text, reply_markup=points_inline_keyboard(), parse_mode="Markdown")
 
 def handle_my_points(message, bot):
     user_id = message.from_user.id

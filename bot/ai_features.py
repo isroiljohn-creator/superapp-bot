@@ -3,13 +3,13 @@ from core.ai import call_gemini, format_gemini_text
 from core.db import db
 from bot.premium import require_premium
 
-from bot.keyboards import ai_menu_keyboard
+from bot.keyboards import ai_inline_keyboard
 
 def handle_ai_tools_menu(message, bot):
     bot.send_message(
         message.chat.id,
         "🎯 **Shaxsiy Murabbiy**\n\nQanday yordam bera olaman?",
-        reply_markup=ai_menu_keyboard(),
+        reply_markup=ai_inline_keyboard(),
         parse_mode="Markdown"
     )
 
@@ -45,8 +45,9 @@ def process_ai_qa(message, bot):
         bot.send_message(user_id, "❌ Xatolik yuz berdi.")
 
 @require_premium
-def handle_shopping_list(message, bot):
-    user_id = message.from_user.id
+def handle_shopping_list(message, bot, user_id=None):
+    if user_id is None:
+        user_id = message.from_user.id
     user = db.get_user(user_id)
     
     status_msg = bot.send_message(user_id, "⏳ **AI xaridlar ro'yxatini tuzmoqda...**", parse_mode="Markdown")
@@ -112,8 +113,9 @@ def process_recipe_input(message, bot):
         bot.edit_message_text("❌ AI band. Keyinroq urining.", message.chat.id, status_msg.message_id)
 
 @require_premium
-def handle_weekly_report(message, bot):
-    user_id = message.from_user.id
+def handle_weekly_report(message, bot, user_id=None):
+    if user_id is None:
+        user_id = message.from_user.id
     user = db.get_user(user_id)
     
     status_msg = bot.send_message(user_id, "⏳ **Haftalik hisobot tayyorlanmoqda...**", parse_mode="Markdown")
