@@ -123,6 +123,24 @@ class Database:
             except sqlite3.OperationalError:
                 pass
 
+            # Phase 2 Columns
+            try:
+                cursor.execute("ALTER TABLE users ADD COLUMN yasha_points INTEGER DEFAULT 0")
+            except sqlite3.OperationalError:
+                pass
+            try:
+                cursor.execute("ALTER TABLE users ADD COLUMN streak_water INTEGER DEFAULT 0")
+            except sqlite3.OperationalError:
+                pass
+            try:
+                cursor.execute("ALTER TABLE users ADD COLUMN streak_sleep INTEGER DEFAULT 0")
+            except sqlite3.OperationalError:
+                pass
+            try:
+                cursor.execute("ALTER TABLE users ADD COLUMN streak_mood INTEGER DEFAULT 0")
+            except sqlite3.OperationalError:
+                pass
+
             # Calorie Logs
             cursor.execute("""
             CREATE TABLE IF NOT EXISTS calorie_logs (

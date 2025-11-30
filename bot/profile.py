@@ -58,6 +58,22 @@ def handle_profile(message, bot):
         except:
             pass
 
+def handle_edit_profile_menu(call, bot):
+    markup = types.InlineKeyboardMarkup(row_width=2)
+    markup.add(
+        types.InlineKeyboardButton("Ism", callback_data="edit_field_full_name"),
+        types.InlineKeyboardButton("Yosh", callback_data="edit_field_age"),
+        types.InlineKeyboardButton("Jins", callback_data="edit_field_gender"),
+        types.InlineKeyboardButton("Bo'y", callback_data="edit_field_height"),
+        types.InlineKeyboardButton("Vazn", callback_data="edit_field_weight"),
+        types.InlineKeyboardButton("Faollik", callback_data="edit_field_activity"),
+        types.InlineKeyboardButton("Maqsad", callback_data="edit_field_goal"),
+        types.InlineKeyboardButton("Allergiya", callback_data="edit_field_allergies")
+    )
+    markup.add(types.InlineKeyboardButton("🔙 Orqaga", callback_data="back_to_profile"))
+    
+    bot.edit_message_text("Nimani o'zgartirmoqchisiz?", call.message.chat.id, call.message.message_id, reply_markup=markup)
+
 def register_handlers(bot):
     """Register profile related handlers"""
     
@@ -70,9 +86,30 @@ def register_handlers(bot):
         bot.delete_message(call.message.chat.id, call.message.message_id)
         bot.send_message(call.from_user.id, "Asosiy menyu", reply_markup=main_menu_keyboard())
 
-    @bot.callback_query_handler(func=lambda call: call.data.startswith("edit_"))
+    @bot.callback_query_handler(func=lambda call: call.data == "edit_profile_menu")
+    def callback_edit_menu(call):
+        handle_edit_profile_menu(call, bot)
+
+    @bot.callback_query_handler(func=lambda call: call.data == "back_to_profile")
+    def callback_back_profile(call):
+        # Re-render profile
+        # user = db.get_user(call.from_user.id) # Not directly used here, handle_profile fetches it
+        bot.delete_message(call.message.chat.id, call.message.message_id)
+        # Trigger profile command logic manually or send new message
+        # For now just delete and say "Profilga qaytdingiz"
+        bot.answer_callback_query(call.id, "Profilga qaytdingiz")
+        # Re-call handle_profile to show the main profile view
+        handle_profile(call.message, bot)
+
+    @bot.callback_query_handler(func=lambda call: call.data == "refresh_profile")
+    def refresh_profile_callback(call):
+        bot.answer_callback_query(call.id, "Ma'lumotlar yangilanmoqda...")
+        bot.delete_message(call.message.chat.id, call.message.message_id)
+        handle_profile(call.message, bot)
+
+    @bot.callback_query_handler(func=lambda call: call.data.startswith("edit_field_"))
     def handle_edit_callback(call):
-        field = call.data.replace("edit_", "")
+        field = call.data.replace("edit_field_", "")
         user_id = call.from_user.id
         
         bot.answer_callback_query(call.id)

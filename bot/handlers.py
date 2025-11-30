@@ -1,6 +1,7 @@
 from bot import onboarding, menu, gamification, admin, feedback, premium, profile, templates
 from bot.calories import handle_calorie_button, handle_food_photo, STATE_CALORIE_PHOTO
 from bot.keyboards import main_menu_keyboard
+from bot import trackers, ai_features, challenges
 
 def register_all_handlers(bot):
     # Calorie Handlers
@@ -37,6 +38,73 @@ def register_all_handlers(bot):
     profile.register_handlers(bot)
     templates.register_handlers(bot)
     
+    # --- Phase 2 Handlers ---
+    
+    @bot.message_handler(func=lambda message: "Mening Rejam" in message.text)
+    def menu_plan(message):
+        # Route to existing workout/meal plan logic or a new plan overview
+        from bot.workout import handle_workout_plan
+        handle_workout_plan(message, bot)
+
+    @bot.message_handler(func=lambda message: "Odatlar" in message.text)
+    def menu_habits(message):
+        trackers.handle_habits_menu(message, bot)
+
+    @bot.message_handler(func=lambda message: "Shaxsiy Murabbiy" in message.text)
+    def menu_ai(message):
+        ai_features.handle_ai_tools_menu(message, bot)
+
+    @bot.message_handler(func=lambda message: "Chellenjlar" in message.text)
+    def menu_challenges(message):
+        challenges.handle_challenges_menu(message, bot)
+
+    @bot.message_handler(func=lambda message: "Yasha Ball" in message.text)
+    def menu_points(message):
+        # Simple points display for now
+        from core.db import db
+        user = db.get_user(message.from_user.id)
+        points = user.get('yasha_points', 0)
+        bot.send_message(message.chat.id, f"⭐️ **Sizning Yasha Ballaringiz:** {points}\n\nBallarni chellenjlar va odatlar orqali ko'paytiring!", parse_mode="Markdown")
+
+    @bot.message_handler(func=lambda message: "Qayta Aloqa" in message.text)
+    def menu_feedback_new(message):
+        feedback.handle_feedback_start(message, bot)
+
+    # --- Tracker Callbacks ---
+    @bot.callback_query_handler(func=lambda call: call.data.startswith('menu_habit_'))
+    def tracker_menu_callback(call):
+        habit = call.data.split('_')[2]
+        if habit == 'water': trackers.handle_water_tracker(call.message, bot)
+        elif habit == 'sleep': trackers.handle_sleep_tracker(call.message, bot)
+        elif habit == 'mood': trackers.handle_mood_tracker(call.message, bot)
+        bot.answer_callback_query(call.id)
+
+    @bot.callback_query_handler(func=lambda call: call.data.startswith('track_'))
+    def tracker_action_callback(call):
+        type = call.data.split('_')[1]
+        if type == 'water': trackers.process_water_callback(call, bot)
+        elif type == 'sleep': trackers.process_sleep_callback(call, bot)
+        elif type == 'mood': trackers.process_mood_callback(call, bot)
+
+    # --- AI Tool Callbacks ---
+    @bot.callback_query_handler(func=lambda call: call.data.startswith('ai_tool_'))
+    def ai_tool_callback(call):
+        tool = call.data.split('_')[2]
+        if tool == 'shopping': ai_features.handle_shopping_list(call.message, bot)
+        elif tool == 'recipe': ai_features.handle_recipe_gen(call.message, bot)
+        elif tool == 'report': ai_features.handle_weekly_report(call.message, bot)
+        bot.answer_callback_query(call.id)
+
+    # --- Challenge Callbacks ---
+    @bot.callback_query_handler(func=lambda call: call.data.startswith('challenge_'))
+    def challenge_callback(call):
+        action = call.data.split('_')[1]
+        if action == 'daily': challenges.handle_daily_challenge(call, bot)
+        elif action == 'leaderboard': challenges.show_leaderboard(call, bot)
+        elif action == 'complete': 
+            challenges.complete_challenge(call, bot, 10)
+        bot.answer_callback_query(call.id)
+
     # General utility handlers
     @bot.message_handler(commands=['menu'])
     def handle_menu_command(message):
