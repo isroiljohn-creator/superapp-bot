@@ -1,5 +1,5 @@
 from telebot import types
-from core.ai import call_gemini, format_ai_text
+from core.ai import call_gemini, format_gemini_text
 from core.db import db
 
 def handle_ai_tools_menu(message, bot):
@@ -43,7 +43,7 @@ def handle_shopping_list(message, bot):
     
     response = call_gemini(prompt)
     if response:
-        bot.edit_message_text(format_ai_text(response, "Xaridlar Ro'yxati"), user_id, status_msg.message_id, parse_mode="HTML")
+        bot.edit_message_text(format_gemini_text(response, "Xaridlar Ro'yxati"), user_id, status_msg.message_id, parse_mode="HTML")
     else:
         bot.edit_message_text("❌ AI band. Keyinroq urining.", user_id, status_msg.message_id)
 
@@ -77,7 +77,7 @@ def process_recipe_input(message, bot):
     
     response = call_gemini(prompt)
     if response:
-        bot.edit_message_text(format_ai_text(response, "AI Retsept"), message.chat.id, status_msg.message_id, parse_mode="HTML")
+        bot.edit_message_text(format_gemini_text(response, "AI Retsept"), message.chat.id, status_msg.message_id, parse_mode="HTML")
     else:
         bot.edit_message_text("❌ AI band. Keyinroq urining.", message.chat.id, status_msg.message_id)
 
@@ -110,6 +110,6 @@ def handle_weekly_report(message, bot):
     
     response = call_gemini(prompt)
     if response:
-        bot.edit_message_text(format_ai_text(response, "Haftalik Hisobot"), user_id, status_msg.message_id, parse_mode="HTML")
+        bot.edit_message_text(format_gemini_text(response, "Haftalik Hisobot"), user_id, status_msg.message_id, parse_mode="HTML")
     else:
         bot.edit_message_text("❌ AI band. Keyinroq urining.", user_id, status_msg.message_id)

@@ -392,7 +392,7 @@ def analyze_food_text(text):
         print(f"Gemini Text Error: {e}")
         return None
 
-def format_ai_text(raw_text, title):
+def format_gemini_text(raw_text, title):
     """Cleans and formats AI output."""
     if not raw_text:
         return ""
