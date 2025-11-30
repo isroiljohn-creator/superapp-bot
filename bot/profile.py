@@ -6,27 +6,34 @@ import traceback
 
 from bot.keyboards import profile_menu_keyboard
 
-def handle_profile(message, bot):
+def handle_profile(message, bot, user_id=None):
     """Show user profile with sub-menu"""
     try:
-        user_id = message.from_user.id
+        if user_id is None:
+            user_id = message.from_user.id
+            
         user = db.get_user(user_id)
         
         if not user:
             bot.send_message(user_id, "Siz hali ro'yxatdan o'tmagansiz. /start ni bosing.")
             return
 
+        # Helper to escape Markdown special characters
+        def esc(text):
+            if not text: return "-"
+            return str(text).replace("_", "\\_").replace("*", "\\*").replace("`", "\\`").replace("[", "\\[")
+
         # Format profile text
         text = (
             f"👤 **Sizning Profilingiz**\n\n"
-            f"Ism: {user.get('full_name', 'Noma’lum')}\n"
-            f"Yosh: {user.get('age', '-')} yosh\n"
-            f"Jins: {user.get('gender', '-')}\n"
-            f"Bo'y: {user.get('height', '-')} sm\n"
-            f"Vazn: {user.get('weight', '-')} kg\n"
-            f"Faollik: {user.get('activity_level', 'Belgilanmagan')}\n"
-            f"Maqsad: {user.get('goal', '-')}\n"
-            f"Allergiya: {user.get('allergies') or 'Yo‘q'}\n\n"
+            f"Ism: {esc(user.get('full_name', 'Noma’lum'))}\n"
+            f"Yosh: {esc(user.get('age', '-'))} yosh\n"
+            f"Jins: {esc(user.get('gender', '-'))}\n"
+            f"Bo'y: {esc(user.get('height', '-'))} sm\n"
+            f"Vazn: {esc(user.get('weight', '-'))} kg\n"
+            f"Faollik: {esc(user.get('activity_level', 'Belgilanmagan'))}\n"
+            f"Maqsad: {esc(user.get('goal', '-'))}\n"
+            f"Allergiya: {esc(user.get('allergies') or 'Yo‘q')}\n\n"
             f"👇 Quyidagi menyudan tanlang:"
         )
         
@@ -35,7 +42,7 @@ def handle_profile(message, bot):
     except Exception as e:
         print(f"Profile Error: {e}")
         traceback.print_exc()
-        bot.send_message(message.chat.id, "❌ Profilni yuklashda xatolik yuz berdi. Iltimos, /start ni bosib qayta ro'yxatdan o'ting yoki admin bilan bog'laning.")
+        bot.send_message(message.chat.id, f"❌ Profilni yuklashda xatolik: {str(e)}")
 
 def handle_edit_profile_command(message, bot):
     """Show inline menu for editing fields"""
@@ -104,13 +111,13 @@ def register_handlers(bot):
         # For now just delete and say "Profilga qaytdingiz"
         bot.answer_callback_query(call.id, "Profilga qaytdingiz")
         # Re-call handle_profile to show the main profile view
-        handle_profile(call.message, bot)
+        handle_profile(call.message, bot, user_id=call.from_user.id)
 
     @bot.callback_query_handler(func=lambda call: call.data == "refresh_profile")
     def refresh_profile_callback(call):
         bot.answer_callback_query(call.id, "Ma'lumotlar yangilanmoqda...")
         bot.delete_message(call.message.chat.id, call.message.message_id)
-        handle_profile(call.message, bot)
+        handle_profile(call.message, bot, user_id=call.from_user.id)
 
     @bot.callback_query_handler(func=lambda call: call.data.startswith("edit_field_"))
     def handle_edit_callback(call):
@@ -164,7 +171,7 @@ def register_handlers(bot):
         db.update_user_profile(user_id, gender=new_gender)
         bot.answer_callback_query(call.id, "Jins yangilandi ✅")
         bot.delete_message(call.message.chat.id, call.message.message_id)
-        handle_profile(call.message, bot)
+        handle_profile(call.message, bot, user_id=user_id)
 
     @bot.callback_query_handler(func=lambda call: call.data.startswith("goal_"))
     def process_goal_edit(call):
@@ -179,7 +186,7 @@ def register_handlers(bot):
         db.update_user_profile(user_id, goal=new_goal)
         bot.answer_callback_query(call.id, "Maqsad yangilandi ✅")
         bot.delete_message(call.message.chat.id, call.message.message_id)
-        handle_profile(call.message, bot)
+        handle_profile(call.message, bot, user_id=user_id)
 
     @bot.callback_query_handler(func=lambda call: call.data.startswith("activity_"))
     def process_activity_edit(call):
@@ -189,7 +196,7 @@ def register_handlers(bot):
         db.update_user_profile(user_id, activity_level=new_activity)
         bot.answer_callback_query(call.id, "Faollik darajasi yangilandi ✅")
         bot.delete_message(call.message.chat.id, call.message.message_id)
-        handle_profile(call.message, bot)
+        handle_profile(call.message, bot, user_id=user_id)
 
 def process_edit_input(message, bot, field):
     """Process text input for profile editing"""
@@ -225,7 +232,7 @@ def process_edit_input(message, bot, field):
         db.update_user_profile(user_id, **kwargs)
         
         bot.send_message(user_id, f"{field.capitalize()} yangilandi ✅")
-        handle_profile(message, bot)
+        handle_profile(message, bot, user_id=user_id)
         
     except Exception as e:
         print(f"Error updating profile: {e}")
