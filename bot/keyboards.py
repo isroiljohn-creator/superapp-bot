@@ -111,9 +111,11 @@ def profile_inline_keyboard():
     return markup
 
 def premium_inline_keyboard():
-    markup = InlineKeyboardMarkup(row_width=2)
-    markup.add(
-        InlineKeyboardButton("💳 Premium sotib olish", callback_data="premium_buy"),
+    markup = InlineKeyboardMarkup()
+    # Big button for Buy Premium
+    markup.row(InlineKeyboardButton("💳 Premium sotib olish", callback_data="premium_buy"))
+    # Two buttons in one row: Tariffs and Yasha Coin
+    markup.row(
         InlineKeyboardButton("ℹ️ Tariflar", callback_data="premium_info"),
         InlineKeyboardButton("🟡 Yasha Coin", callback_data="premium_coins")
     )
