@@ -2,19 +2,31 @@ from telebot import types
 from core.ai import call_gemini, format_gemini_text
 from core.db import db
 
+from bot.keyboards import ai_menu_keyboard
+
 def handle_ai_tools_menu(message, bot):
-    markup = types.InlineKeyboardMarkup(row_width=1)
-    markup.add(
-        types.InlineKeyboardButton("🛒 Xaridlar ro'yxati (AI)", callback_data="ai_tool_shopping"),
-        types.InlineKeyboardButton("🍳 Retsept yaratish (AI)", callback_data="ai_tool_recipe"),
-        types.InlineKeyboardButton("📊 Haftalik hisobot (AI)", callback_data="ai_tool_report")
-    )
     bot.send_message(
         message.chat.id,
-        "🤖 **Shaxsiy Murabbiy (AI Tools)**\n\nQaysi yordamchi kerak?",
-        reply_markup=markup,
+        "🎯 **Shaxsiy Murabbiy**\n\nQanday yordam bera olaman?",
+        reply_markup=ai_menu_keyboard(),
         parse_mode="Markdown"
     )
+
+def handle_ai_qa(message, bot):
+    msg = bot.send_message(message.chat.id, "❓ **Savolingizni yozing:**", reply_markup=types.ForceReply())
+    bot.register_next_step_handler(msg, process_ai_qa, bot)
+
+def process_ai_qa(message, bot):
+    question = message.text
+    status_msg = bot.send_message(message.chat.id, "⏳ **O'ylayapman...**", parse_mode="Markdown")
+    
+    prompt = f"Siz fitnes murabbiyisiz. Savolga qisqa va aniq javob bering (o'zbek tilida): {question}"
+    response = call_gemini(prompt)
+    
+    if response:
+        bot.edit_message_text(format_gemini_text(response, "Savolga Javob"), message.chat.id, status_msg.message_id, parse_mode="HTML")
+    else:
+        bot.edit_message_text("❌ AI band. Keyinroq urining.", message.chat.id, status_msg.message_id)
 
 def handle_shopping_list(message, bot):
     user_id = message.from_user.id

@@ -3,18 +3,7 @@ import time
 import os
 from telebot import types
 from core.db import db
-from bot.keyboards import main_menu_keyboard
-from dotenv import load_dotenv
-
-load_dotenv()
-ADMIN_ID = int(os.getenv("ADMIN_ID", 0))
-
-# Payment details (Mock)
-PAYMENT_CARDS = {
-    "click": "8600 0000 0000 0000 (Click)",
-    "payme": "9860 0000 0000 0000 (Payme)",
-    "uzum": "4400 0000 0000 0000 (Uzum)"
-}
+from bot.keyboards import premium_menu_keyboard
 
 def handle_premium_menu(message, bot, user_id=None):
     if user_id is None:
@@ -38,19 +27,42 @@ def handle_premium_menu(message, bot, user_id=None):
         f"💰 Ballaringiz: **{points}**\n"
         f"🌟 Premium holati: {premium_status}\n"
         f"📅 Premium tugash sanasi: {until_date}\n\n"
-        "💎 **Premium tariflar:**\n"
-        "• 1 oy: 49 000 so'm\n"
-        "• 3 oy: 119 000 so'm\n\n"
-        "⚠️ **Diqqat**: Premium obuna to'lovdan keyin avtomatik faollashadi.\n\n"
-        "👇 Obuna sotib olish uchun pastdagi tugmalardan birini tanlang:"
+        "Premium imkoniyatlari:\n"
+        "• Cheksiz AI maslahatlari\n"
+        "• Foto orqali kaloriya aniqlash\n"
+        "• Chellenjlarda 2x ball\n"
     )
     
+    bot.send_message(user_id, text, reply_markup=premium_menu_keyboard(), parse_mode="Markdown")
+
+def handle_premium_info(message, bot):
+    text = (
+        "ℹ️ **Tariflar va Narxlar**\n\n"
+        "• 1 oy: 49 000 so'm\n"
+        "• 3 oy: 119 000 so'm (20% chegirma)\n\n"
+        "To'lov turlari: Click, Payme, Uzum."
+    )
+    bot.send_message(message.chat.id, text, parse_mode="Markdown")
+
+def handle_premium_buy(message, bot):
     markup = types.InlineKeyboardMarkup()
-    # Removed free redemption option - only paid options now
     markup.add(types.InlineKeyboardButton("💳 1 oy — 49 000 so'm", callback_data="select_30"))
     markup.add(types.InlineKeyboardButton("💳 3 oy — 119 000 so'm", callback_data="select_90"))
     
-    bot.send_message(user_id, text, reply_markup=markup, parse_mode="Markdown")
+    bot.send_message(message.chat.id, "👇 **Tarifni tanlang:**", reply_markup=markup, parse_mode="Markdown")
+from dotenv import load_dotenv
+
+load_dotenv()
+ADMIN_ID = int(os.getenv("ADMIN_ID", 0))
+
+# Payment details (Mock)
+PAYMENT_CARDS = {
+    "click": "8600 0000 0000 0000 (Click)",
+    "payme": "9860 0000 0000 0000 (Payme)",
+    "uzum": "4400 0000 0000 0000 (Uzum)"
+}
+
+
 
 def register_handlers(bot):
     # Free redemption option removed - premium now requires payment only

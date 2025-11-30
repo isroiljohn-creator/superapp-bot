@@ -1,5 +1,14 @@
 from core.db import db
 from core.ai import ai_generate_workout, ai_generate_menu
+from bot.keyboards import plan_menu_keyboard
+
+def handle_plan_menu(message, bot):
+    bot.send_message(
+        message.chat.id,
+        "🏋️ **Mening Rejam**\n\nQaysi reja kerak?",
+        reply_markup=plan_menu_keyboard(),
+        parse_mode="Markdown"
+    )
 
 def handle_workout_plan(message, bot):
     """Entry point for workout plans - show template menu"""

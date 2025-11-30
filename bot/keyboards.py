@@ -43,12 +43,75 @@ def allergy_keyboard():
 def main_menu_keyboard():
     markup = ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
     
-    markup.add(KeyboardButton("Mening Rejam 📅"))
-    markup.add(KeyboardButton("Kunlik odatlar 💧"), KeyboardButton("Shaxsiy Murabbiy 🤖"))
-    markup.add(KeyboardButton("🍽 Kaloriya skaneri"), KeyboardButton("Chellenjlar ⚔️"))
-    markup.add(KeyboardButton("Yasha Ball ⭐️"), KeyboardButton("Profil 👤"))
-    markup.add(KeyboardButton("Premium 💎"), KeyboardButton("Qayta Aloqa 📞"))
+    markup.add(KeyboardButton("🏋️ Mening Rejam"), KeyboardButton("🔁 Odatlar"))
+    markup.add(KeyboardButton("🎯 Shaxsiy Murabbiy"), KeyboardButton("🟡 Yasha Ball"))
+    markup.add(KeyboardButton("🔥 Chellenjlar"), KeyboardButton("👤 Profil"))
+    markup.add(KeyboardButton("💎 Premium"), KeyboardButton("📩 Qayta aloqa"))
     
+    return markup
+
+def plan_menu_keyboard():
+    markup = ReplyKeyboardMarkup(resize_keyboard=True, row_width=1)
+    markup.add(
+        KeyboardButton("🤖 AI mashg‘ulot rejasi"),
+        KeyboardButton("🥦 AI ovqatlanish rejasi"),
+        KeyboardButton("🍽 Kaloriya tahlili (premium)"),
+        KeyboardButton("⬅️ Asosiy menyu")
+    )
+    return markup
+
+def habits_menu_keyboard():
+    markup = ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
+    markup.add(
+        KeyboardButton("💧 Suv ichish"), KeyboardButton("😴 Uyqu"),
+        KeyboardButton("🙂 Kayfiyat"), KeyboardButton("🚶 Qadamlar"),
+        KeyboardButton("📊 Odatlar statistikasi"), KeyboardButton("⬅️ Asosiy menyu")
+    )
+    return markup
+
+def ai_menu_keyboard():
+    markup = ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
+    markup.add(
+        KeyboardButton("❓ AI savol-javob"), KeyboardButton("🥦 AI menyu"),
+        KeyboardButton("🏋️ AI mashq rejasi"), KeyboardButton("🍳 AI retsept"),
+        KeyboardButton("🛒 AI shopping list"), KeyboardButton("⬅️ Asosiy menyu")
+    )
+    return markup
+
+def points_menu_keyboard():
+    markup = ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
+    markup.add(
+        KeyboardButton("📊 Ballarim"), KeyboardButton("🎁 Mukofotlar"),
+        KeyboardButton("📜 Qoidalar"), KeyboardButton("⬅️ Asosiy menyu")
+    )
+    return markup
+
+def challenges_menu_keyboard():
+    markup = ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
+    markup.add(
+        KeyboardButton("📆 Haftalik challenge"), KeyboardButton("🗓 Oylik challenge"),
+        KeyboardButton("👥 Do‘stlar challenge"), KeyboardButton("🏆 Leaderboard"),
+        KeyboardButton("⬅️ Asosiy menyu")
+    )
+    return markup
+
+def profile_menu_keyboard():
+    markup = ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
+    markup.add(
+        KeyboardButton("✏️ Ma’lumotlarni tahrirlash"),
+        KeyboardButton("📊 Sog‘liq statistikasi"),
+        KeyboardButton("🎯 Maqsadni o‘zgartirish"),
+        KeyboardButton("⬅️ Asosiy menyu")
+    )
+    return markup
+
+def premium_menu_keyboard():
+    markup = ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
+    markup.add(
+        KeyboardButton("💳 Premium sotib olish"),
+        KeyboardButton("ℹ️ Tariflar"),
+        KeyboardButton("⬅️ Asosiy menyu")
+    )
     return markup
 
 def gamification_keyboard():

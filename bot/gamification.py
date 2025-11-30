@@ -1,7 +1,51 @@
 from datetime import datetime
 from telebot import types
 from core.db import db
-from bot.keyboards import gamification_keyboard
+from bot.keyboards import gamification_keyboard, points_menu_keyboard
+
+def handle_points_menu(message, bot):
+    user_id = message.from_user.id
+    user = db.get_user(user_id)
+    points = user.get('yasha_points', 0)
+    
+    text = (
+        f"🟡 **Yasha Ball**\n\n"
+        f"Sizning balingiz: **{points}** ⭐️\n\n"
+        "Ballarni qanday ishlash mumkin?\n"
+        "• Odatlar (suv, uyqu) → +1-5 ball\n"
+        "• Do'stlarni taklif qilish → +10 ball\n"
+        "• Chellenjlar → +50 ballgacha"
+    )
+    
+    bot.send_message(message.chat.id, text, reply_markup=points_menu_keyboard(), parse_mode="Markdown")
+
+def handle_my_points(message, bot):
+    user_id = message.from_user.id
+    user = db.get_user(user_id)
+    points = user.get('yasha_points', 0)
+    text = f"📊 **Sizning Ballaringiz:** {points}\n\nDavom eting! 🚀"
+    bot.send_message(message.chat.id, text, parse_mode="Markdown")
+
+def handle_rewards(message, bot):
+    text = (
+        "🎁 **Mukofotlar**\n\n"
+        "• 100 ball = 1 hafta Premium\n"
+        "• 500 ball = 1 oy Premium\n"
+        "• 1000 ball = Yasha Merch (futbolka/kepka)\n\n"
+        "Tez kunda almashish imkoniyati qo'shiladi! ⏳"
+    )
+    bot.send_message(message.chat.id, text, parse_mode="Markdown")
+
+def handle_rules(message, bot):
+    text = (
+        "📜 **Qoidalar**\n\n"
+        "1. Har kuni odatlarni belgilang.\n"
+        "2. Yolg'on ma'lumot kiritmang.\n"
+        "3. Do'stlaringizni taklif qiling.\n"
+        "4. Chellenjlarda faol qatnashing.\n\n"
+        "Halollik - eng muhim qoida! 🤝"
+    )
+    bot.send_message(message.chat.id, text, parse_mode="Markdown")
 
 def handle_tasks(message, bot):
     user_id = message.from_user.id

@@ -1,19 +1,56 @@
 from telebot import types
 from core.db import db
 
+from bot.keyboards import challenges_menu_keyboard
+
 def handle_challenges_menu(message, bot):
-    markup = types.InlineKeyboardMarkup(row_width=1)
-    markup.add(
-        types.InlineKeyboardButton("🔥 Kunlik Chellenj", callback_data="challenge_daily"),
-        types.InlineKeyboardButton("📅 Haftalik Chellenj", callback_data="challenge_weekly"),
-        types.InlineKeyboardButton("🏆 Reyting (Leaderboard)", callback_data="challenge_leaderboard")
-    )
     bot.send_message(
         message.chat.id,
-        "⚔️ **Chellenjlar va Musobaqalar**\n\nO'zingizni sinab ko'ring va ballar yig'ing!",
-        reply_markup=markup,
+        "🔥 **Chellenjlar**\n\nQatnashing va yuting!",
+        reply_markup=challenges_menu_keyboard(),
         parse_mode="Markdown"
     )
+
+def handle_weekly_challenge(message, bot):
+    text = (
+        "📆 **Haftalik Chellenj**\n\n"
+        "Vazifa: 5 kun davomida barcha odatlarni (suv, uyqu) to'liq bajarish.\n"
+        "Mukofot: +50 ball\n\n"
+        "Boshlash uchun shunchaki odatlarni belgilab boring!"
+    )
+    bot.send_message(message.chat.id, text, parse_mode="Markdown")
+
+def handle_monthly_challenge(message, bot):
+    text = (
+        "🗓 **Oylik Chellenj**\n\n"
+        "Vazifa: 30 kun davomida 100,000 qadam yurish.\n"
+        "Mukofot: +200 ball va 'Yasha Walker' nishoni.\n\n"
+        "Hozircha qadamlar hisobi qo'lda kiritiladi."
+    )
+    bot.send_message(message.chat.id, text, parse_mode="Markdown")
+
+def handle_friends_challenge(message, bot):
+    text = (
+        "👥 **Do'stlar Chellenji**\n\n"
+        "Tez kunda: Do'stingizni taklif qiling va kim ko'p ball yig'ishini sinang!\n"
+        "Hozircha do'stlaringizga botni ulashing."
+    )
+    bot.send_message(message.chat.id, text, parse_mode="Markdown")
+
+def show_leaderboard_message(message, bot):
+    conn = db.get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT full_name, yasha_points FROM users ORDER BY yasha_points DESC LIMIT 10")
+    leaders = cursor.fetchall()
+    conn.close()
+    
+    text = "🏆 **O'zbekiston Reytingi (TOP 10)**\n\n"
+    for i, (name, points) in enumerate(leaders, 1):
+        medal = "🥇" if i==1 else "🥈" if i==2 else "🥉" if i==3 else f"{i}."
+        clean_name = name if name else "Foydalanuvchi"
+        text += f"{medal} {clean_name} — {points or 0} ball\n"
+        
+    bot.send_message(message.chat.id, text, parse_mode="Markdown")
 
 def handle_daily_challenge(call, bot):
     # Static challenge for MVP

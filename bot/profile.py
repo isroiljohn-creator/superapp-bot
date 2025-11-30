@@ -4,15 +4,12 @@ from bot.keyboards import main_menu_keyboard, gender_keyboard, goal_keyboard, al
 
 import traceback
 
+from bot.keyboards import profile_menu_keyboard
+
 def handle_profile(message, bot):
-    """Show user profile with edit options"""
+    """Show user profile with sub-menu"""
     try:
         user_id = message.from_user.id
-        print(f"DEBUG: handle_profile called for user {user_id}")
-        
-        # Test message to confirm handler reached
-        # bot.send_message(user_id, "DEBUG: Profil yuklanmoqda...") 
-        
         user = db.get_user(user_id)
         
         if not user:
@@ -21,7 +18,7 @@ def handle_profile(message, bot):
 
         # Format profile text
         text = (
-            f"👤 Sizning Profilingiz\n\n"
+            f"👤 **Sizning Profilingiz**\n\n"
             f"Ism: {user.get('full_name', 'Noma’lum')}\n"
             f"Yosh: {user.get('age', '-')} yosh\n"
             f"Jins: {user.get('gender', '-')}\n"
@@ -30,35 +27,17 @@ def handle_profile(message, bot):
             f"Faollik: {user.get('activity_level', 'Belgilanmagan')}\n"
             f"Maqsad: {user.get('goal', '-')}\n"
             f"Allergiya: {user.get('allergies') or 'Yo‘q'}\n\n"
-            f"⚙️ Qaysi qismni o'zgartirmoqchisiz?"
+            f"👇 Quyidagi menyudan tanlang:"
         )
         
-        # Create inline keyboard for editing
-        markup = types.InlineKeyboardMarkup(row_width=2)
-        buttons = [
-            types.InlineKeyboardButton("Ism", callback_data="edit_full_name"),
-            types.InlineKeyboardButton("Yosh", callback_data="edit_age"),
-            types.InlineKeyboardButton("Jins", callback_data="edit_gender"),
-            types.InlineKeyboardButton("Bo'y", callback_data="edit_height"),
-            types.InlineKeyboardButton("Vazn", callback_data="edit_weight"),
-            types.InlineKeyboardButton("Faollik", callback_data="edit_activity"),
-            types.InlineKeyboardButton("Maqsad", callback_data="edit_goal"),
-            types.InlineKeyboardButton("Allergiya", callback_data="edit_allergies"),
-            types.InlineKeyboardButton("⬅️ Orqaga", callback_data="back_to_main")
-        ]
-        markup.add(*buttons)
-        
-        bot.send_message(user_id, text, reply_markup=markup)
+        bot.send_message(user_id, text, reply_markup=profile_menu_keyboard(), parse_mode="Markdown")
         
     except Exception as e:
-        error_msg = f"❌ Profil xatolik berdi:\n\n{str(e)}\n\n{traceback.format_exc()}"
-        print(error_msg)
-        try:
-            bot.send_message(message.from_user.id, error_msg[:4000]) # Telegram limit
-        except:
-            pass
+        print(f"Profile Error: {e}")
+        bot.send_message(message.chat.id, "❌ Profilni yuklashda xatolik.")
 
-def handle_edit_profile_menu(call, bot):
+def handle_edit_profile_command(message, bot):
+    """Show inline menu for editing fields"""
     markup = types.InlineKeyboardMarkup(row_width=2)
     markup.add(
         types.InlineKeyboardButton("Ism", callback_data="edit_field_full_name"),
@@ -70,9 +49,34 @@ def handle_edit_profile_menu(call, bot):
         types.InlineKeyboardButton("Maqsad", callback_data="edit_field_goal"),
         types.InlineKeyboardButton("Allergiya", callback_data="edit_field_allergies")
     )
-    markup.add(types.InlineKeyboardButton("🔙 Orqaga", callback_data="back_to_profile"))
-    
-    bot.edit_message_text("Nimani o'zgartirmoqchisiz?", call.message.chat.id, call.message.message_id, reply_markup=markup)
+    bot.send_message(message.chat.id, "✏️ **Nimani o'zgartirmoqchisiz?**", reply_markup=markup, parse_mode="Markdown")
+
+def handle_profile_stats(message, bot):
+    user_id = message.from_user.id
+    user = db.get_user(user_id)
+    # Simple stats for now
+    text = (
+        "📊 **Sog'liq Statistikasi**\n\n"
+        f"BMI (Tana Massasi Indeksi): {calculate_bmi(user.get('weight'), user.get('height'))}\n"
+        f"Suv Streaki: {user.get('streak_water', 0)} kun\n"
+        f"Yasha Ball: {user.get('yasha_points', 0)}"
+    )
+    bot.send_message(message.chat.id, text, parse_mode="Markdown")
+
+def calculate_bmi(weight, height):
+    try:
+        if not weight or not height: return "-"
+        h_m = height / 100
+        bmi = weight / (h_m * h_m)
+        return f"{bmi:.1f}"
+    except:
+        return "-"
+
+def handle_change_goal_command(message, bot):
+    bot.send_message(message.chat.id, "🎯 **Yangi maqsadni tanlang:**", reply_markup=goal_keyboard())
+
+# Keep existing handle_edit_profile_menu for callback compatibility if needed, or remove if unused.
+# But handle_edit_profile_command replaces the entry point.
 
 def register_handlers(bot):
     """Register profile related handlers"""

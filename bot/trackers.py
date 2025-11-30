@@ -98,16 +98,24 @@ def process_mood_callback(call, bot):
     )
 
 # --- Main Habits Menu ---
+from bot.keyboards import habits_menu_keyboard
+
 def handle_habits_menu(message, bot):
-    markup = types.InlineKeyboardMarkup(row_width=1)
-    markup.add(
-        types.InlineKeyboardButton("💧 Suvni belgilash", callback_data="menu_habit_water"),
-        types.InlineKeyboardButton("🌙 Uyquni kiritish", callback_data="menu_habit_sleep"),
-        types.InlineKeyboardButton("🧠 Kayfiyatni belgilash", callback_data="menu_habit_mood")
-    )
     bot.send_message(
         message.chat.id,
-        "📋 **Odatlar va Trackerlar**\n\nNimani qayd qilmoqchisiz?",
-        reply_markup=markup,
+        "🔁 **Odatlar**\n\nQaysi odatni kiritmoqchisiz?",
+        reply_markup=habits_menu_keyboard(),
         parse_mode="Markdown"
     )
+
+def handle_habits_stats(message, bot):
+    user_id = message.from_user.id
+    user = db.get_user(user_id)
+    
+    text = (
+        "📊 **Odatlar Statistikasi**\n\n"
+        f"💧 Suv streaki: {user.get('streak_water', 0)} kun\n"
+        f"😴 Uyqu streaki: {user.get('streak_sleep', 0)} kun\n"
+        f"🧠 Kayfiyat streaki: {user.get('streak_mood', 0)} kun\n"
+    )
+    bot.send_message(message.chat.id, text, parse_mode="Markdown")
