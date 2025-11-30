@@ -303,40 +303,11 @@ def ai_answer_question(question):
 
 def analyze_food_image(image_data):
     """
-    Analyzes food image using Gemini Vision and returns JSON with calorie info.
-    image_data: bytes of the image
+    Analyzes food image using Gemini Vision.
+    Returns structured text in Uzbek.
     """
     if not GEMINI_API_KEY:
-        print("DEBUG: No API key for vision")
-        return '{"error": "GEMINI_API_KEY topilmadi. Admin bilan bog\'laning."}'
-
-    prompt = """
-    You are an expert food recognition and calorie estimation model.
-    Your job is to:
-    1. Identify all foods in this image.
-    2. Estimate grams for each item.
-    3. Calculate calories per item.
-    4. Calculate total calories.
-
-    You must return the result STRICTLY in this JSON format:
-
-    {
-      "items": [
-        {"name": "food name", "grams": 0, "calories": 0}
-      ],
-      "total_calories": 0
-    }
-
-    If the image is unclear or contains no food, return:
-    {"error": "Image unclear or no food detected"}
-    """
-
-    # Try vision capable models
-    models_to_try = [
-        'gemini-2.5-flash',
-        'gemini-2.0-flash-exp',
-        'gemini-1.5-flash'
-    ]
+        return None
 
     import PIL.Image
     import io
@@ -347,25 +318,86 @@ def analyze_food_image(image_data):
         print(f"DEBUG: Image open error: {e}")
         return None
 
+    models_to_try = ['gemini-2.5-flash', 'gemini-1.5-flash']
+    
+    prompt = """
+    The photo shows a meal.
+    You must estimate:
+    - dish name / main components
+    - approximate portion size
+    - total kcal
+    - protein / fat / carbs
+    
+    Respond in short Uzbek text, max ~800 characters, formatted like:
+    🍽 <b>Kaloriya baholash</b>
+
+    Ovqat: ...
+    Porsiya: ...
+
+    Taxminiy kaloriya: ... kcal
+    – Oqsil: ... g
+    – Yog‘: ... g
+    – Uglevod: ... g
+
+    Bu taxminiy hisob, lekin kunlik nazorat uchun yetarli. 🙂
+    """
+
     for model_name in models_to_try:
         try:
-            print(f"DEBUG: Trying vision with {model_name}...")
             genai.configure(api_key=GEMINI_API_KEY)
             model = genai.GenerativeModel(model_name)
-            
             response = model.generate_content([prompt, image])
-            
             if response.text:
-                # Clean up json block if present
-                text = response.text.strip()
-                if text.startswith("```json"):
-                    text = text.replace("```json", "").replace("```", "")
-                elif text.startswith("```"):
-                    text = text.replace("```", "")
-                
-                return text.strip()
-                
+                return response.text
         except Exception as e:
-            print(f"DEBUG: Failed with {model_name}: {e}")
+            print(f"DEBUG: Vision failed with {model_name}: {e}")
             
     return None
+
+def analyze_food_text(text):
+    """
+    Analyzes food text description using Gemini.
+    Returns structured text in Uzbek.
+    """
+    if not GEMINI_API_KEY:
+        return None
+
+    try:
+        model = genai.GenerativeModel('gemini-2.5-flash')
+        
+        prompt = f"""
+        Foydalanuvchi yedi: "{text}"
+        
+        Vazifa:
+        - Ovqat tarkibi va porsiyasini tahlil qiling.
+        - Umumiy kaloriya va BJU (Oqsil, Yog', Uglevod) ni hisoblang.
+        
+        Javob formati (O'zbek tilida):
+        🍽 <b>Kaloriya baholash</b>
+
+        Ovqat: ...
+        Porsiya: ...
+
+        Taxminiy kaloriya: ... kcal
+        – Oqsil: ... g
+        – Yog‘: ... g
+        – Uglevod: ... g
+
+        Bu taxminiy hisob, lekin kunlik nazorat uchun yetarli. 🙂
+        """
+        
+        response = model.generate_content(prompt)
+        return response.text
+    except Exception as e:
+        print(f"Gemini Text Error: {e}")
+        return None
+
+def format_ai_text(raw_text, title):
+    """Cleans and formats AI output."""
+    if not raw_text:
+        return ""
+    
+    # Clean up Markdown
+    text = raw_text.replace("**", "").replace("##", "").replace("#", "")
+    
+    return f"<b>{title}</b>\n\n{text}"
