@@ -9,7 +9,11 @@ def send_daily_reminders(bot):
     for user in users:
         try:
             user_id = user[0]
-            name = user[1]
+            full_name = user[1]
+            username = user[2]
+            
+            name = full_name if full_name else (username if username else "Aziz foydalanuvchi")
+            
             msg = f"☀️ Salom {name}! Bugun suv ichdingizmi va mashqlarni qildingizmi? 💧💪\n\n/start tugmasini bosib vazifalarni tekshiring!"
             bot.send_message(user_id, msg)
             count += 1

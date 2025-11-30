@@ -157,6 +157,7 @@ def call_gemini(prompt):
         return None
 
     models_to_try = [
+        'gemini-2.5-flash',
         'gemini-2.5-flash-preview-09-2025',
         'gemini-2.5-flash-lite',
         'gemini-2.0-flash-exp', 
@@ -207,6 +208,7 @@ Jins: {user_profile.get('gender')}
 Maqsad: {user_profile.get('goal')}
 Bo‘y: {user_profile.get('height')}
 Vazn: {user_profile.get('weight')}
+Faollik darajasi: {user_profile.get('activity_level', 'Belgilanmagan')}
 
 🎯 Vazifa:
 Foydalanuvchiga uy sharoitida bajariladigan 4 kunlik mashq rejasi tuzing.
@@ -260,6 +262,7 @@ Yosh: {user_profile.get('age')}
 Jins: {user_profile.get('gender')}
 Bo'y: {user_profile.get('height')}
 Vazn: {user_profile.get('weight')}
+Faollik darajasi: {user_profile.get('activity_level', 'Belgilanmagan')}
 Maqsad: {user_profile.get('goal')}{allergy_section}
 
 🎯 Vazifa:
@@ -302,3 +305,72 @@ def ai_answer_question(question):
         return format_ai_text(response_text, "Savolingizga javob")
             
     return "⚠️ AI hozircha band. Iltimos, keyinroq urinib ko‘ring."
+
+def analyze_food_image(image_data):
+    """
+    Analyzes food image using Gemini Vision and returns JSON with calorie info.
+    image_data: bytes of the image
+    """
+    if not GEMINI_API_KEY:
+        print("DEBUG: No API key for vision")
+        return None
+
+    prompt = """
+    You are an expert food recognition and calorie estimation model.
+    Your job is to:
+    1. Identify all foods in this image.
+    2. Estimate grams for each item.
+    3. Calculate calories per item.
+    4. Calculate total calories.
+
+    You must return the result STRICTLY in this JSON format:
+
+    {
+      "items": [
+        {"name": "food name", "grams": 0, "calories": 0}
+      ],
+      "total_calories": 0
+    }
+
+    If the image is unclear or contains no food, return:
+    {"error": "Image unclear or no food detected"}
+    """
+
+    # Try vision capable models
+    models_to_try = [
+        'gemini-2.5-flash',
+        'gemini-2.0-flash-exp',
+        'gemini-1.5-flash'
+    ]
+
+    import PIL.Image
+    import io
+
+    try:
+        image = PIL.Image.open(io.BytesIO(image_data))
+    except Exception as e:
+        print(f"DEBUG: Image open error: {e}")
+        return None
+
+    for model_name in models_to_try:
+        try:
+            print(f"DEBUG: Trying vision with {model_name}...")
+            genai.configure(api_key=GEMINI_API_KEY)
+            model = genai.GenerativeModel(model_name)
+            
+            response = model.generate_content([prompt, image])
+            
+            if response.text:
+                # Clean up json block if present
+                text = response.text.strip()
+                if text.startswith("```json"):
+                    text = text.replace("```json", "").replace("```", "")
+                elif text.startswith("```"):
+                    text = text.replace("```", "")
+                
+                return text.strip()
+                
+        except Exception as e:
+            print(f"DEBUG: Failed with {model_name}: {e}")
+            
+    return None

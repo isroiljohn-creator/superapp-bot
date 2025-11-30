@@ -1,9 +1,22 @@
 from bot import onboarding, menu, gamification, admin, feedback, premium, profile, templates
+from bot.calories import handle_calorie_button, handle_food_photo, STATE_CALORIE_PHOTO
+from bot.keyboards import main_menu_keyboard
 
 def register_all_handlers(bot):
+    # Calorie Handlers
+    @bot.message_handler(func=lambda message: message.text == "📸 Kaloriyani aniqlash")
+    def calorie_handler(message):
+        handle_calorie_button(message, bot, onboarding.manager)
+
+    @bot.message_handler(content_types=['photo'])
+    def photo_handler(message):
+        if onboarding.manager.get_state(message.from_user.id) == STATE_CALORIE_PHOTO:
+            handle_food_photo(message, bot, onboarding.manager)
+
     # EMERGENCY PROFILE HANDLER - High Priority
-    @bot.message_handler(func=lambda message: "Profil" in message.text)
-    def emergency_profile_handler(message):
+            
+    @bot.message_handler(func=lambda message: message.text == "👤 Profil")
+    def profile_handler(message):
         print(f"DEBUG: EMERGENCY PROFILE HANDLER triggered by {message.from_user.id}")
         from bot.profile import handle_profile
         handle_profile(message, bot)
@@ -25,6 +38,10 @@ def register_all_handlers(bot):
     templates.register_handlers(bot)
     
     # General utility handlers
+    @bot.message_handler(commands=['menu'])
+    def handle_menu_command(message):
+        bot.send_message(message.chat.id, "Asosiy menyu:", reply_markup=main_menu_keyboard())
+
     @bot.message_handler(commands=['ping'])
     def handle_ping(message):
         bot.reply_to(message, "Pong! 🏓 Bot ishlamoqda.")

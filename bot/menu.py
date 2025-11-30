@@ -10,6 +10,10 @@ def register_handlers(bot):
     def menu_workout(message):
         handle_workout_plan(message, bot)
 
+    @bot.message_handler(commands=['menu'])
+    def handle_menu_command(message):
+        bot.send_message(message.chat.id, "Asosiy menyu:", reply_markup=main_menu_keyboard())
+
     @bot.message_handler(func=lambda message: message.text == "Menyu 🍏")
     def menu_meal(message):
         handle_meal_plan(message, bot)

@@ -49,7 +49,13 @@ def register_handlers(bot):
                 f"👩 Ayollar: {gender_stats.get('female', 0) + gender_stats.get('Ayol', 0)}\n\n"
                 f"⚖️ Ozish: {goal_stats.get('weight_loss', 0) + goal_stats.get('Ozish', 0)}\n"
                 f"💪 Massa: {goal_stats.get('mass_gain', 0) + goal_stats.get('Massa olish', 0)}\n"
-                f"❤️ Sog‘liq: {goal_stats.get('health', 0) + goal_stats.get('Sog‘liqni tiklash', 0)}"
+                f"❤️ Sog‘liq: {goal_stats.get('health', 0) + goal_stats.get('Sog‘liqni tiklash', 0)}\n\n"
+                f"🏃 Faollik:\n"
+                f"- Kam harakat: {stats.get('activity', {}).get('sedentary', 0)}\n"
+                f"- Yengil: {stats.get('activity', {}).get('light', 0)}\n"
+                f"- O'rtacha: {stats.get('activity', {}).get('moderate', 0)}\n"
+                f"- Faol: {stats.get('activity', {}).get('active', 0)}\n"
+                f"- Atlet: {stats.get('activity', {}).get('athlete', 0)}"
             )
             bot.send_message(message.chat.id, text, parse_mode="Markdown")
             
@@ -147,6 +153,9 @@ def register_handlers(bot):
         markup.add(types.InlineKeyboardButton("💪 Massa", callback_data="seg_goal_Massa"))
         markup.add(types.InlineKeyboardButton("💎 Premium", callback_data="seg_premium_True"))
         markup.add(types.InlineKeyboardButton("👤 Oddiy", callback_data="seg_premium_False"))
+        markup.add(types.InlineKeyboardButton("🪑 Kam harakat", callback_data="seg_activity_sedentary"))
+        markup.add(types.InlineKeyboardButton("🏃 O'rtacha", callback_data="seg_activity_moderate"))
+        markup.add(types.InlineKeyboardButton("🔥 Atlet", callback_data="seg_activity_athlete"))
         
         bot.send_message(message.chat.id, "Segmentni tanlang:", reply_markup=markup)
 
@@ -208,6 +217,8 @@ def process_broadcast(message, bot, segment):
             elif key == "premium":
                 is_prem = (value == "True")
                 users = db.get_users_by_segment(is_premium=is_prem)
+            elif key == "activity":
+                users = db.get_users_by_segment(activity_level=value)
         
         if not users:
             bot.send_message(message.chat.id, "❌ Foydalanuvchilar topilmadi.")

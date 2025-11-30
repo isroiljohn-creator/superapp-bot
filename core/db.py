@@ -117,6 +117,22 @@ class Database:
                 cursor.execute("ALTER TABLE users ADD COLUMN updated_at TIMESTAMP")
             except sqlite3.OperationalError:
                 pass
+                
+            try:
+                cursor.execute("ALTER TABLE users ADD COLUMN activity_level TEXT")
+            except sqlite3.OperationalError:
+                pass
+
+            # Calorie Logs
+            cursor.execute("""
+            CREATE TABLE IF NOT EXISTS calorie_logs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER,
+                total_kcal INTEGER,
+                json_data TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+            """)
 
             # Workout Cache
             cursor.execute("""
@@ -402,12 +418,12 @@ class Database:
         with self.lock:
             conn = self.get_connection()
             cursor = conn.cursor()
-            cursor.execute("SELECT telegram_id, full_name FROM users WHERE active = 1")
+            cursor.execute("SELECT telegram_id, full_name, username FROM users WHERE active = 1")
             users = cursor.fetchall()
             conn.close()
             return users
 
-    def get_users_by_segment(self, gender=None, goal=None, age_min=None, age_max=None, is_premium=None):
+    def get_users_by_segment(self, gender=None, goal=None, activity_level=None, age_min=None, age_max=None, is_premium=None):
         with self.lock:
             conn = self.get_connection()
             cursor = conn.cursor()
@@ -419,6 +435,9 @@ class Database:
             if goal:
                 query += " AND goal LIKE ?"
                 params.append(f"%{goal}%")
+            if activity_level:
+                query += " AND activity_level = ?"
+                params.append(activity_level)
             if age_min is not None:
                 query += " AND age >= ?"
                 params.append(age_min)
@@ -533,6 +552,9 @@ class Database:
             cursor.execute("SELECT goal, COUNT(*) FROM users GROUP BY goal")
             goal_stats = dict(cursor.fetchall())
             
+            cursor.execute("SELECT activity_level, COUNT(*) FROM users GROUP BY activity_level")
+            activity_stats = dict(cursor.fetchall())
+            
             # Premium count
             cursor.execute("SELECT COUNT(*) FROM users WHERE premium_until > ?", (datetime.now().isoformat(),))
             premium_users = cursor.fetchone()[0]
@@ -543,6 +565,7 @@ class Database:
                 "active": active_users,
                 "gender": gender_stats,
                 "goal": goal_stats,
+                "activity": activity_stats,
                 "premium": premium_users
             }
 

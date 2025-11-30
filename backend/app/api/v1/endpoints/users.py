@@ -30,6 +30,7 @@ class UserProfileUpdate(BaseModel):
     weight: Optional[float] = None
     target_weight: Optional[float] = None
     goal: Optional[str] = None
+    activity_level: Optional[str] = None
     allergies: Optional[str] = None
 
 @router.get("/profile")
@@ -43,6 +44,7 @@ async def get_profile(current_user: User = Depends(get_current_user)):
         "weight": current_user.weight,
         "target_weight": current_user.target_weight,
         "goal": current_user.goal,
+        "activity_level": current_user.activity_level,
         "allergies": current_user.allergies,
         "is_premium": current_user.is_premium,
         "premium_until": current_user.premium_until,

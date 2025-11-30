@@ -1,6 +1,6 @@
 from telebot import types
 from core.db import db
-from bot.keyboards import main_menu_keyboard, gender_keyboard, goal_keyboard, allergy_keyboard
+from bot.keyboards import main_menu_keyboard, gender_keyboard, goal_keyboard, allergy_keyboard, activity_level_keyboard
 
 import traceback
 
@@ -27,6 +27,7 @@ def handle_profile(message, bot):
             f"Jins: {user.get('gender', '-')}\n"
             f"Bo'y: {user.get('height', '-')} sm\n"
             f"Vazn: {user.get('weight', '-')} kg\n"
+            f"Faollik: {user.get('activity_level', 'Belgilanmagan')}\n"
             f"Maqsad: {user.get('goal', '-')}\n"
             f"Allergiya: {user.get('allergies') or 'Yo‘q'}\n\n"
             f"⚙️ Qaysi qismni o'zgartirmoqchisiz?"
@@ -40,6 +41,7 @@ def handle_profile(message, bot):
             types.InlineKeyboardButton("Jins", callback_data="edit_gender"),
             types.InlineKeyboardButton("Bo'y", callback_data="edit_height"),
             types.InlineKeyboardButton("Vazn", callback_data="edit_weight"),
+            types.InlineKeyboardButton("Faollik", callback_data="edit_activity"),
             types.InlineKeyboardButton("Maqsad", callback_data="edit_goal"),
             types.InlineKeyboardButton("Allergiya", callback_data="edit_allergies"),
             types.InlineKeyboardButton("⬅️ Orqaga", callback_data="back_to_main")
@@ -93,6 +95,8 @@ def register_handlers(bot):
             bot.send_message(user_id, prompt, reply_markup=gender_keyboard())
         elif field == "goal":
             bot.send_message(user_id, prompt, reply_markup=goal_keyboard())
+        elif field == "activity":
+            bot.send_message(user_id, "Yangi faollik darajasini tanlang:", reply_markup=activity_level_keyboard())
         elif field == "allergies":
              # For allergies, we can use text input or the simple Yes/No keyboard.
              # Given the requirement "Yangi ... kiriting", text is more flexible for editing details.
@@ -132,6 +136,16 @@ def register_handlers(bot):
              
         db.update_user_profile(user_id, goal=new_goal)
         bot.answer_callback_query(call.id, "Maqsad yangilandi ✅")
+        bot.delete_message(call.message.chat.id, call.message.message_id)
+        handle_profile(call.message, bot)
+
+    @bot.callback_query_handler(func=lambda call: call.data.startswith("activity_"))
+    def process_activity_edit(call):
+        user_id = call.from_user.id
+        new_activity = call.data.replace("activity_", "")
+        
+        db.update_user_profile(user_id, activity_level=new_activity)
+        bot.answer_callback_query(call.id, "Faollik darajasi yangilandi ✅")
         bot.delete_message(call.message.chat.id, call.message.message_id)
         handle_profile(call.message, bot)
 

@@ -3,7 +3,7 @@ from core.db import db
 from core.utils import generate_referral_code, get_referrer_id_from_code
 from bot.keyboards import (
     phone_request_keyboard, gender_keyboard, goal_keyboard, 
-    allergy_keyboard, main_menu_keyboard
+    allergy_keyboard, main_menu_keyboard, activity_level_keyboard
 )
 
 # States
@@ -14,6 +14,7 @@ STATE_AGE = 3
 STATE_GENDER = 4
 STATE_HEIGHT = 5
 STATE_WEIGHT = 6
+STATE_ACTIVITY = 9 # New state
 STATE_GOAL = 7
 STATE_ALLERGY = 8
 
@@ -208,8 +209,29 @@ def process_weight(message, bot):
         return
     
     manager.update_data(user_id, 'weight', weight)
+    manager.set_state(user_id, STATE_ACTIVITY)
+    
+    bot.send_message(user_id, "Jismoniy faollik darajangizni tanlang:", reply_markup=activity_level_keyboard())
+
+def process_activity(call, bot):
+    user_id = call.from_user.id
+    
+    if manager.get_state(user_id) != STATE_ACTIVITY:
+        try:
+            bot.answer_callback_query(call.id, "Eski tugma.")
+        except:
+            pass
+        return
+    
+    activity = call.data.replace("activity_", "")
+    manager.update_data(user_id, 'activity_level', activity)
     manager.set_state(user_id, STATE_GOAL)
     
+    try:
+        bot.answer_callback_query(call.id)
+    except:
+        pass
+        
     bot.send_message(user_id, "Maqsadingizni tanlang:", reply_markup=goal_keyboard())
 
 def process_goal(call, bot):
@@ -293,6 +315,7 @@ def finish_onboarding(user_id, message, bot):
         gender=data.get('gender'),
         height=data.get('height'),
         weight=data.get('weight'),
+        activity_level=data.get('activity_level'),
         goal=data.get('goal'),
         allergies=data.get('allergies')
     )
@@ -373,6 +396,18 @@ def register_handlers(bot):
     @bot.message_handler(func=lambda m: manager.get_state(m.from_user.id) == STATE_WEIGHT)
     def handle_weight_step(message):
         process_weight(message, bot)
+
+    @bot.callback_query_handler(func=lambda call: call.data.startswith('activity_'))
+    def handle_activity_step(call):
+        try:
+            bot.answer_callback_query(call.id)
+            process_activity(call, bot)
+        except Exception as e:
+            print(f"ERROR in handle_activity_step: {e}")
+            try:
+                bot.answer_callback_query(call.id, "Xatolik yuz berdi.")
+            except:
+                pass
 
     @bot.callback_query_handler(func=lambda call: call.data.startswith('goal_'))
     def handle_goal_step(call):

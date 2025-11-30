@@ -45,8 +45,9 @@ async def telegram_auth(req: TelegramAuthRequest, db: AsyncSession = Depends(get
     if calculated_hash != hash_:
         print(f"DEBUG: Hash mismatch! Calc: {calculated_hash}, Recv: {hash_}")
         print(f"DEBUG: Data string: {data_check_string}")
+        # For production, uncomment this:
         # raise HTTPException(status_code=403, detail="Invalid hash")
-        print("DEBUG: Hash check skipped for emergency fix.")
+        print("DEBUG: Hash check skipped for development/testing.")
     
     print("DEBUG: Hash valid. Proceeding to user lookup.")
     

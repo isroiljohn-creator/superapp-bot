@@ -21,6 +21,17 @@ def goal_keyboard():
     markup.add(InlineKeyboardButton("Sog‘liqni tiklash 🧘", callback_data="goal_health"))
     return markup
 
+def activity_level_keyboard():
+    markup = InlineKeyboardMarkup(row_width=1)
+    markup.add(
+        InlineKeyboardButton("Kam harakat (Sedentary) 🪑", callback_data="activity_sedentary"),
+        InlineKeyboardButton("Yengil faol (Lightly Active) 🚶‍♂️", callback_data="activity_light"),
+        InlineKeyboardButton("O'rtacha faol (Moderately Active) 🏃‍♂️", callback_data="activity_moderate"),
+        InlineKeyboardButton("Juda faol (Very Active) 🏋️‍♂️", callback_data="activity_active"),
+        InlineKeyboardButton("Atlet (Athlete) 🔥", callback_data="activity_athlete")
+    )
+    return markup
+
 def allergy_keyboard():
     markup = InlineKeyboardMarkup()
     markup.row(
@@ -38,13 +49,14 @@ def main_menu_keyboard():
     )
     markup.add(
         KeyboardButton("Vazifalar ✅"),
-        KeyboardButton("👤 Profil")
+        KeyboardButton("Vazifalar ✅")
     )
     markup.add(
         KeyboardButton("💎 Premium"),
         KeyboardButton("📞 Qayta aloqa")
     )
-    markup.add(KeyboardButton("🔗 Referal"))
+    markup.add(KeyboardButton("👤 Profil"), KeyboardButton("📊 Statistika"))
+    markup.add(KeyboardButton("📸 Kaloriyani aniqlash"))
     return markup
 
 def gamification_keyboard():
