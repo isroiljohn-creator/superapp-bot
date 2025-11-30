@@ -46,7 +46,7 @@ def register_all_handlers(bot):
         from bot.workout import handle_workout_plan
         handle_workout_plan(message, bot)
 
-    @bot.message_handler(func=lambda message: "Odatlar" in message.text)
+    @bot.message_handler(func=lambda message: "Kunlik odatlar" in message.text)
     def menu_habits(message):
         trackers.handle_habits_menu(message, bot)
 

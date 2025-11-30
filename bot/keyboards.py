@@ -44,7 +44,7 @@ def main_menu_keyboard():
     markup = ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
     
     markup.add(KeyboardButton("Mening Rejam 📅"))
-    markup.add(KeyboardButton("Odatlar (Suv, Uyqu) 💧"), KeyboardButton("Shaxsiy Murabbiy 🤖"))
+    markup.add(KeyboardButton("Kunlik odatlar 💧"), KeyboardButton("Shaxsiy Murabbiy 🤖"))
     markup.add(KeyboardButton("Chellenjlar ⚔️"), KeyboardButton("Yasha Ball ⭐️"))
     markup.add(KeyboardButton("Profil 👤"), KeyboardButton("Premium 💎"))
     markup.add(KeyboardButton("Qayta Aloqa 📞"))
