@@ -235,7 +235,7 @@ Foydalanuvchiga uy sharoitida bajariladigan 4 kunlik mashq rejasi tuzing.
     
     response_text = call_gemini(prompt)
     if response_text and len(response_text) > 50: # Ensure meaningful response
-        return format_ai_text(response_text, "Sizning mashg‘ulot rejangiz")
+        return format_gemini_text(response_text, "Sizning mashg‘ulot rejangiz")
         
     print(f"DEBUG: AI failed or returned empty. Using fallback for user {user_profile.get('name')}")
     return get_offline_workout(user_profile)
@@ -288,7 +288,7 @@ Foydalanuvchiga 7 kunlik ovqatlanish rejasi tuzing. Juda uzun bo'lmasin — odam
 
     response_text = call_gemini(prompt)
     if response_text and len(response_text) > 50:
-        return format_ai_text(response_text, "Sizning ovqatlanish rejangiz")
+        return format_gemini_text(response_text, "Sizning ovqatlanish rejangiz")
 
     print(f"DEBUG: AI failed or returned empty. Using fallback for user {user_profile.get('name')}")
     return get_offline_menu(user_profile)
@@ -297,7 +297,7 @@ def ai_answer_question(question):
     """Answers a general fitness question using Gemini."""
     response_text = call_gemini(f"Siz fitnes murabbiyisiz. Savolga qisqa va aniq javob bering (o'zbek tilida): {question}")
     if response_text:
-        return format_ai_text(response_text, "Savolingizga javob")
+        return format_gemini_text(response_text, "Savolingizga javob")
             
     return "⚠️ AI hozircha band. Iltimos, keyinroq urinib ko‘ring."
 
