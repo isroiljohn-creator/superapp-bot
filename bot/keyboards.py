@@ -55,7 +55,7 @@ def main_menu_keyboard():
         KeyboardButton("💎 Premium"),
         KeyboardButton("📞 Qayta aloqa")
     )
-    markup.add(KeyboardButton("👤 Profil"), KeyboardButton("📊 Statistika"))
+    markup.add(KeyboardButton("👤 Profil"))
     markup.add(KeyboardButton("📸 Kaloriyani aniqlash"))
     return markup
 
