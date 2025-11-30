@@ -9,12 +9,12 @@ def handle_points_menu(message, bot):
     points = user.get('yasha_points', 0)
     
     text = (
-        f"🟡 **Yasha Ball**\n\n"
-        f"Sizning balingiz: **{points}** ⭐️\n\n"
-        "Ballarni qanday ishlash mumkin?\n"
-        "• Odatlar (suv, uyqu) → +1-5 ball\n"
-        "• Do'stlarni taklif qilish → +10 ball\n"
-        "• Chellenjlar → +50 ballgacha"
+        f"🟡 **Yasha Coin**\n\n"
+        f"Sizning balingiz: **{points}** 🟡\n\n"
+        "Coinlarni qanday ishlash mumkin?\n"
+        "• Odatlar (suv, uyqu) → +1-5 coin\n"
+        "• Do'stlarni taklif qilish → +10 coin\n"
+        "• Chellenjlar → +50 coingacha"
     )
     
     bot.send_message(message.chat.id, text, reply_markup=points_menu_keyboard(), parse_mode="Markdown")

@@ -24,7 +24,7 @@ def handle_premium_menu(message, bot, user_id=None):
     
     text = (
         f"💎 **Premium Bo'limi**\n\n"
-        f"💰 Ballaringiz: **{points}**\n"
+        f"💰 Yasha Coinlaringiz: **{points}**\n"
         f"🌟 Premium holati: {premium_status}\n"
         f"📅 Premium tugash sanasi: {until_date}\n\n"
         "Premium imkoniyatlari:\n"

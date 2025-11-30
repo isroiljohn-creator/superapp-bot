@@ -34,7 +34,8 @@ def handle_profile(message, bot):
         
     except Exception as e:
         print(f"Profile Error: {e}")
-        bot.send_message(message.chat.id, "❌ Profilni yuklashda xatolik.")
+        traceback.print_exc()
+        bot.send_message(message.chat.id, "❌ Profilni yuklashda xatolik yuz berdi. Iltimos, /start ni bosib qayta ro'yxatdan o'ting yoki admin bilan bog'laning.")
 
 def handle_edit_profile_command(message, bot):
     """Show inline menu for editing fields"""
@@ -59,7 +60,7 @@ def handle_profile_stats(message, bot):
         "📊 **Sog'liq Statistikasi**\n\n"
         f"BMI (Tana Massasi Indeksi): {calculate_bmi(user.get('weight'), user.get('height'))}\n"
         f"Suv Streaki: {user.get('streak_water', 0)} kun\n"
-        f"Yasha Ball: {user.get('yasha_points', 0)}"
+        f"Yasha Coin: {user.get('yasha_points', 0)}"
     )
     bot.send_message(message.chat.id, text, parse_mode="Markdown")
 

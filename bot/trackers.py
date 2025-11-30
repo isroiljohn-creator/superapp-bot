@@ -5,7 +5,7 @@ from core.db import db
 def handle_water_tracker(message, bot):
     user_id = message.from_user.id
     markup = types.InlineKeyboardMarkup()
-    markup.add(types.InlineKeyboardButton("💧 250ml ichdim (+1 ball)", callback_data="track_water_250"))
+    markup.add(types.InlineKeyboardButton("💧 250ml ichdim (+1 coin)", callback_data="track_water_250"))
     
     user = db.get_user(user_id)
     streak = user.get('streak_water', 0)
@@ -22,7 +22,7 @@ def process_water_callback(call, bot):
     db.update_streak(user_id, 'water')
     db.update_points(user_id, 1)
     
-    bot.answer_callback_query(call.id, "✅ Qabul qilindi! +1 ball")
+    bot.answer_callback_query(call.id, "✅ Qabul qilindi! +1 coin")
     bot.edit_message_text(
         "✅ **Ajoyib!** Suv ichishda davom eting. 💧",
         call.message.chat.id,
@@ -59,9 +59,9 @@ def process_sleep_callback(call, bot):
     db.update_streak(user_id, 'sleep')
     db.update_points(user_id, points)
     
-    bot.answer_callback_query(call.id, f"✅ Qabul qilindi! +{points} ball")
+    bot.answer_callback_query(call.id, f"✅ Qabul qilindi! +{points} coin")
     bot.edit_message_text(
-        f"✅ **Uyqu qayd etildi!**\nSizga +{points} ball berildi.",
+        f"✅ **Uyqu qayd etildi!**\nSizga +{points} coin berildi.",
         call.message.chat.id,
         call.message.message_id,
         parse_mode="Markdown"
@@ -89,7 +89,7 @@ def process_mood_callback(call, bot):
     db.update_streak(user_id, 'mood')
     db.update_points(user_id, 2)
     
-    bot.answer_callback_query(call.id, "✅ Qabul qilindi! +2 ball")
+    bot.answer_callback_query(call.id, "✅ Qabul qilindi! +2 coin")
     bot.edit_message_text(
         "✅ **Kayfiyat qayd etildi!**\nHar doim ijobiy bo'ling! ✨",
         call.message.chat.id,

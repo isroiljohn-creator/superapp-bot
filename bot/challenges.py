@@ -48,7 +48,7 @@ def show_leaderboard_message(message, bot):
     for i, (name, points) in enumerate(leaders, 1):
         medal = "🥇" if i==1 else "🥈" if i==2 else "🥉" if i==3 else f"{i}."
         clean_name = name if name else "Foydalanuvchi"
-        text += f"{medal} {clean_name} — {points or 0} ball\n"
+        text += f"{medal} {clean_name} — {points or 0} coin\n"
         
     bot.send_message(message.chat.id, text, parse_mode="Markdown")
 

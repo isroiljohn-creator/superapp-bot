@@ -26,6 +26,10 @@ def register_all_handlers(bot):
     def back_to_main(message):
         bot.send_message(message.chat.id, "🏠 Asosiy menyu", reply_markup=main_menu_keyboard())
 
+    @bot.message_handler(func=lambda message: message.text == "⬅️ Premium menyu")
+    def back_to_premium(message):
+        premium.handle_premium_menu(message, bot)
+
     @bot.message_handler(func=lambda message: message.text == "🏋️ Mening Rejam")
     def menu_plan(message):
         workout.handle_plan_menu(message, bot)
@@ -38,7 +42,7 @@ def register_all_handlers(bot):
     def menu_ai(message):
         ai_features.handle_ai_tools_menu(message, bot)
 
-    @bot.message_handler(func=lambda message: message.text == "🟡 Yasha Ball")
+    @bot.message_handler(func=lambda message: message.text == "🟡 Yasha Coin")
     def menu_points(message):
         gamification.handle_points_menu(message, bot)
 

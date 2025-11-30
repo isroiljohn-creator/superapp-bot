@@ -44,9 +44,9 @@ def main_menu_keyboard():
     markup = ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
     
     markup.add(KeyboardButton("🏋️ Mening Rejam"), KeyboardButton("🔁 Odatlar"))
-    markup.add(KeyboardButton("🎯 Shaxsiy Murabbiy"), KeyboardButton("🟡 Yasha Ball"))
-    markup.add(KeyboardButton("🔥 Chellenjlar"), KeyboardButton("👤 Profil"))
-    markup.add(KeyboardButton("💎 Premium"), KeyboardButton("📩 Qayta aloqa"))
+    markup.add(KeyboardButton("🎯 Shaxsiy Murabbiy"), KeyboardButton("🔥 Chellenjlar"))
+    markup.add(KeyboardButton("💎 Premium"), KeyboardButton("👤 Profil"))
+    markup.add(KeyboardButton("📩 Qayta aloqa"))
     
     return markup
 
@@ -82,7 +82,7 @@ def points_menu_keyboard():
     markup = ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
     markup.add(
         KeyboardButton("📊 Ballarim"), KeyboardButton("🎁 Mukofotlar"),
-        KeyboardButton("📜 Qoidalar"), KeyboardButton("⬅️ Asosiy menyu")
+        KeyboardButton("📜 Qoidalar"), KeyboardButton("⬅️ Premium menyu")
     )
     return markup
 
@@ -110,6 +110,7 @@ def premium_menu_keyboard():
     markup.add(
         KeyboardButton("💳 Premium sotib olish"),
         KeyboardButton("ℹ️ Tariflar"),
+        KeyboardButton("🟡 Yasha Coin"),
         KeyboardButton("⬅️ Asosiy menyu")
     )
     return markup
