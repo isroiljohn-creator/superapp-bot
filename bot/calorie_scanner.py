@@ -2,6 +2,7 @@ from telebot import types
 from core.db import db
 from core.ai import analyze_food_image, analyze_food_text
 from bot import onboarding
+from bot.premium import require_premium
 
 # States
 STATE_CALORIE_PHOTO = "calorie_photo_upload"
@@ -56,14 +57,15 @@ def calorie_mode_callback(call, bot):
     
     bot.answer_callback_query(call.id)
 
+@require_premium
 def handle_calorie_photo(message, bot):
     user_id = message.from_user.id
     
-    # Double check limit before processing (to prevent bypass)
-    allowed, _ = db.check_calorie_limit(user_id)
-    if not allowed:
-        bot.send_message(user_id, "🚫 Limit tugadi. Premium oling.")
-        return
+    # The limit check is now handled by the @require_premium decorator.
+    # allowed, _ = db.check_calorie_limit(user_id)
+    # if not allowed:
+    #     bot.send_message(user_id, "🚫 Limit tugadi. Premium oling.")
+    #     return
 
     status_msg = bot.send_message(user_id, "⏳ **Tahlil qilinmoqda...**", parse_mode="Markdown")
     
@@ -85,13 +87,15 @@ def handle_calorie_photo(message, bot):
     
     onboarding.manager.clear_user(user_id)
 
+@require_premium
 def handle_calorie_text(message, bot):
     user_id = message.from_user.id
     
-    allowed, _ = db.check_calorie_limit(user_id)
-    if not allowed:
-        bot.send_message(user_id, "🚫 Limit tugadi. Premium oling.")
-        return
+    # The limit check is now handled by the @require_premium decorator.
+    # allowed, _ = db.check_calorie_limit(user_id)
+    # if not allowed:
+    #     bot.send_message(user_id, "🚫 Limit tugadi. Premium oling.")
+    #     return
 
     status_msg = bot.send_message(user_id, "⏳ **Hisoblanmoqda...**", parse_mode="Markdown")
     

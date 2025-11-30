@@ -320,6 +320,30 @@ def finish_onboarding(user_id, message, bot):
         allergies=data.get('allergies')
     )
     
+    # Activate 5-day Trial
+    try:
+        from datetime import datetime, timedelta
+        trial_days = 5
+        now = datetime.now()
+        trial_end = now + timedelta(days=trial_days)
+        
+        db.set_premium(user_id, trial_days) # Reusing set_premium to set date
+        
+        # Update trial specific flags
+        conn = db.get_connection()
+        cursor = conn.cursor()
+        cursor.execute("UPDATE users SET trial_start = ?, trial_used = 1 WHERE telegram_id = ?", (now.isoformat(), user_id))
+        conn.commit()
+        conn.close()
+        
+        bot.send_message(
+            user_id,
+            f"🎁 **Sizga {trial_days} kunlik Premium sinov muddati yoqildi!**\n\n"
+            "Barcha AI xizmatlar (Mashqlar, Ovqatlanish, Retseptlar) siz uchun ochiq. 🔥"
+        )
+    except Exception as e:
+        print(f"Error activating trial: {e}")
+    
     # Handle referral rewards
     if referrer_id:
         db.add_points(referrer_id, 5)

@@ -14,26 +14,37 @@ def handle_premium_menu(message, bot, user_id=None):
         return
 
     points = user['points']
-    is_premium = db.is_premium(user_id)
+    status = db.get_premium_status(user_id)
     
     until_date = "Yo‘q"
-    if is_premium and user['is_premium_until']:
-        until_date = user['is_premium_until'][:10]
+    if status['until']:
+        until_date = status['until'][:10]
         
-    premium_status = "✅ Aktiv" if is_premium else "❌ Yo‘q"
+    status_text = "❌ Yo‘q"
+    if status['active']:
+        if status['type'] == 'trial':
+            status_text = "🎁 Sinov muddati (Trial)"
+        elif status['type'] == 'subscription':
+            status_text = "✅ Obuna (Auto-renew)"
+        else:
+            status_text = "✅ Premium Aktiv"
     
     text = (
         f"💎 **Premium Bo'limi**\n\n"
         f"💰 Yasha Coinlaringiz: **{points}**\n"
-        f"🌟 Premium holati: {premium_status}\n"
-        f"📅 Premium tugash sanasi: {until_date}\n\n"
+        f"🌟 Status: {status_text}\n"
+        f"📅 Tugash sanasi: {until_date}\n\n"
         "Premium imkoniyatlari:\n"
         "• Cheksiz AI maslahatlari\n"
         "• Foto orqali kaloriya aniqlash\n"
         "• Chellenjlarda 2x ball\n"
     )
     
-    bot.send_message(user_id, text, reply_markup=premium_menu_keyboard(), parse_mode="Markdown")
+    markup = premium_menu_keyboard()
+    # If trial active, maybe show "Buy to extend"
+    # If expired, show "Buy"
+    
+    bot.send_message(user_id, text, reply_markup=markup, parse_mode="Markdown")
 
 def handle_premium_info(message, bot):
     text = (
@@ -128,6 +139,13 @@ def register_handlers(bot):
         # Activate Premium
         db.set_premium(user_id, days)
         
+        # Set Auto-Renew flag
+        conn = db.get_connection()
+        cursor = conn.cursor()
+        cursor.execute("UPDATE users SET auto_renew = 1 WHERE telegram_id = ?", (user_id,))
+        conn.commit()
+        conn.close()
+        
         bot.send_message(user_id, f"✅ **To'lov muvaffaqiyatli amalga oshirildi!**\n\nSizga {days} kunlik Premium obuna faollashtirildi. 🎉\nBarcha imkoniyatlardan foydalanishingiz mumkin!", parse_mode="Markdown")
         
         # Notify Admin
@@ -163,3 +181,22 @@ def register_handlers(bot):
             bot.reply_to(message, f"✅ To'lov tasdiqlandi! User {order['user_id']} ga {days} kun Premium berildi.")
         except Exception:
             pass
+
+def require_premium(func):
+    """Decorator to restrict handlers to premium users only"""
+    def wrapper(message, bot, *args, **kwargs):
+        user_id = message.from_user.id
+        if not db.is_premium(user_id):
+            # Upsell message
+            text = (
+                "💎 **Premium kerak**\n\n"
+                "Bu xizmat faqat Premium foydalanuvchilar uchun.\n"
+                "Sizning sinov muddatingiz tugagan.\n\n"
+                "Premium ochish uchun “💎 Premium” bo‘limiga o‘ting."
+            )
+            markup = types.InlineKeyboardMarkup()
+            markup.add(types.InlineKeyboardButton("💎 Premium olish", callback_data="back_premium"))
+            bot.send_message(user_id, text, reply_markup=markup, parse_mode="Markdown")
+            return
+        return func(message, bot, *args, **kwargs)
+    return wrapper

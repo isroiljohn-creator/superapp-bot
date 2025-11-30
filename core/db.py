@@ -41,6 +41,9 @@ class Database:
                     is_active INTEGER DEFAULT 1,
                     is_premium INTEGER DEFAULT 0,
                     premium_until TEXT,
+                    trial_start TEXT,
+                    trial_used INTEGER DEFAULT 0,
+                    auto_renew INTEGER DEFAULT 0,
                     referrer_id INTEGER,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
@@ -148,6 +151,20 @@ class Database:
                 pass
             try:
                 cursor.execute("ALTER TABLE users ADD COLUMN calorie_daily_uses INTEGER DEFAULT 0")
+            except sqlite3.OperationalError:
+                pass
+
+            # Premium & Trial Columns
+            try:
+                cursor.execute("ALTER TABLE users ADD COLUMN trial_start TEXT")
+            except sqlite3.OperationalError:
+                pass
+            try:
+                cursor.execute("ALTER TABLE users ADD COLUMN trial_used INTEGER DEFAULT 0")
+            except sqlite3.OperationalError:
+                pass
+            try:
+                cursor.execute("ALTER TABLE users ADD COLUMN auto_renew INTEGER DEFAULT 0")
             except sqlite3.OperationalError:
                 pass
 
@@ -381,9 +398,48 @@ class Database:
         
         try:
             until = datetime.fromisoformat(user['premium_until'])
-            return until > datetime.now()
+            # Check if premium is active (covers both paid and trial)
+            if until > datetime.now():
+                return True
+            return False
         except ValueError:
             return False
+
+    def get_premium_status(self, user_id):
+        """Returns dict with status details"""
+        user = self.get_user(user_id)
+        if not user: return {"active": False, "type": "none"}
+        
+        is_active = self.is_premium(user_id)
+        trial_used = user.get('trial_used', 0)
+        
+        status_type = "none"
+        if is_active:
+            # Check if it's trial or paid
+            # Simple heuristic: if trial_used=1 and we are within 5 days of trial_start, it's likely trial
+            # But simpler: just check auto_renew. If 0 and active, likely trial or manual.
+            # If auto_renew=1, it's subscription.
+            if user.get('auto_renew'):
+                status_type = "subscription"
+            elif trial_used and user.get('trial_start'):
+                # Check if we are still in trial window
+                try:
+                    start = datetime.fromisoformat(user['trial_start'])
+                    if datetime.now() < start + timedelta(days=6): # Buffer
+                        status_type = "trial"
+                    else:
+                        status_type = "paid_fixed"
+                except:
+                    status_type = "paid_fixed"
+            else:
+                status_type = "paid_fixed"
+                
+        return {
+            "active": is_active,
+            "type": status_type,
+            "until": user.get('premium_until'),
+            "auto_renew": user.get('auto_renew')
+        }
 
     def remove_premium(self, user_id):
         with self.lock:

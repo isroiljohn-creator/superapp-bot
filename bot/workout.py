@@ -93,35 +93,27 @@ def generate_ai_meal(message, bot, user_id=None):
         bot.send_message(user_id, "Iltimos, avval /start ni bosing.")
         return
     
-    # Check premium status
-    if not db.is_premium(user_id):
-        bot.send_message(
-            user_id,
-            "⚠️ Individual AI reja faqat Premium foydalanuvchilar uchun mavjud.\n\n"
-            "💎 Premium obuna sotib oling va sizga maxsus reja tayyorlanadi!",
-            parse_mode="Markdown"
-        )
-        return
-
-    msg = bot.send_message(user_id, "⏳ Siz uchun maxsus ovqatlanish rejasi tuzilmoqda... Biroz kuting.")
+    user_id = message.from_user.id
+    user = db.get_user(user_id)
     
-    # Generate plan
-    plan = ai_generate_menu(user)
+    bot.send_message(user_id, "🤖 **AI Ovqatlanish rejasi tuzilmoqda...**\n\nIltimos, biroz kuting ⏳", parse_mode="Markdown")
     
-    bot.delete_message(user_id, msg.message_id)
+    prompt = f"""
+    Foydalanuvchi ma'lumotlari:
+    Yosh: {user.get('age')}
+    Jins: {user.get('gender')}
+    Bo'y: {user.get('height')}
+    Vazn: {user.get('weight')}
+    Maqsad: {user.get('goal')}
+    Faollik darajasi: {user.get('activity_level')}
     
-    header = "🍏 <b>Sizning Individual Ovqatlanish Rejangiz:</b>\n\n"
-    full_text = header + plan
+    Ushbu ma'lumotlar asosida 1 haftalik batafsil ovqatlanish rejasi tuzib ber. 
+    Har bir kun uchun ovqatlanish vaqti, taom nomi va miqdorini yoz.
+    Javobni O'zbek tilida, chiroyli formatda (Markdown) qaytar.
+    """
     
-    if len(full_text) > 4000:
-        chunks = [full_text[i:i+4000] for i in range(0, len(full_text), 4000)]
-        for chunk in chunks:
-            try:
-                bot.send_message(user_id, chunk,parse_mode="HTML")
-            except Exception:
-                bot.send_message(user_id, chunk)
-    else:
-        try:
-            bot.send_message(user_id, full_text, parse_mode="HTML")
-        except Exception:
-            bot.send_message(user_id, full_text)
+    try:
+        response = ai_generate_menu(prompt)
+        bot.send_message(user_id, response, parse_mode="Markdown")
+    except Exception as e:
+        bot.send_message(user_id, "❌ Xatolik yuz berdi. Keyinroq urinib ko'ring.")
