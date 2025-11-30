@@ -569,4 +569,15 @@ class Database:
                 "premium": premium_users
             }
 
+    def log_calorie_check(self, user_id, total_kcal, json_data):
+        with self.lock:
+            conn = self.get_connection()
+            cursor = conn.cursor()
+            cursor.execute("""
+            INSERT INTO calorie_logs (user_id, total_kcal, json_data)
+            VALUES (?, ?, ?)
+            """, (user_id, total_kcal, json_data))
+            conn.commit()
+            conn.close()
+
 db = Database()
