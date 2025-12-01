@@ -1,129 +1,128 @@
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardMarkup, KeyboardButton, WebAppInfo
-from bot.languages import get_text
 
-def phone_request_keyboard(lang="uz"):
+def phone_request_keyboard():
     """Request phone number from user"""
     markup = ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
-    markup.add(KeyboardButton(get_text("btn_phone_request", lang), request_contact=True))
+    markup.add(KeyboardButton("📱 Telefon raqamni yuborish", request_contact=True))
     return markup
 
-def gender_keyboard(lang="uz"):
+def gender_keyboard():
     markup = InlineKeyboardMarkup()
     markup.row(
-        InlineKeyboardButton(get_text("male", lang), callback_data="gender_male"),
-        InlineKeyboardButton(get_text("female", lang), callback_data="gender_female")
+        InlineKeyboardButton("Erkak 👨", callback_data="gender_male"),
+        InlineKeyboardButton("Ayol 👩", callback_data="gender_female")
     )
     return markup
 
-def goal_keyboard(lang="uz"):
+def goal_keyboard():
     markup = InlineKeyboardMarkup()
-    markup.add(InlineKeyboardButton(get_text("goal_weight_loss", lang), callback_data="goal_weight_loss"))
-    markup.add(InlineKeyboardButton(get_text("goal_mass_gain", lang), callback_data="goal_muscle_gain"))
-    markup.add(InlineKeyboardButton(get_text("goal_health", lang), callback_data="goal_health"))
+    markup.add(InlineKeyboardButton("Ozish 🏃‍♂️", callback_data="goal_weight_loss"))
+    markup.add(InlineKeyboardButton("Massa olish 💪", callback_data="goal_muscle_gain"))
+    markup.add(InlineKeyboardButton("Sog‘liqni tiklash 🧘", callback_data="goal_health"))
     return markup
 
-def activity_level_keyboard(lang="uz"):
+def activity_level_keyboard():
     markup = InlineKeyboardMarkup(row_width=1)
     markup.add(
-        InlineKeyboardButton(get_text("activity_sedentary", lang), callback_data="activity_sedentary"),
-        InlineKeyboardButton(get_text("activity_light", lang), callback_data="activity_light"),
-        InlineKeyboardButton(get_text("activity_moderate", lang), callback_data="activity_moderate"),
-        InlineKeyboardButton(get_text("activity_active", lang), callback_data="activity_active"),
-        InlineKeyboardButton(get_text("activity_athlete", lang), callback_data="activity_athlete")
+        InlineKeyboardButton("Kam harakat 🪑", callback_data="activity_sedentary"),
+        InlineKeyboardButton("Yengil faol 🚶‍♂️", callback_data="activity_light"),
+        InlineKeyboardButton("O'rtacha faol 🏃‍♂️", callback_data="activity_moderate"),
+        InlineKeyboardButton("Juda faol 🏋️‍♂️", callback_data="activity_active"),
+        InlineKeyboardButton("Atlet 🔥", callback_data="activity_athlete")
     )
     return markup
 
-def allergy_keyboard(lang="uz"):
+def allergy_keyboard():
     markup = InlineKeyboardMarkup()
     markup.row(
-        InlineKeyboardButton(get_text("no", lang) + " ❌", callback_data="allergy_no"),
-        InlineKeyboardButton(get_text("yes", lang) + " ✅", callback_data="allergy_yes")
+        InlineKeyboardButton("Yo‘q ❌", callback_data="allergy_no"),
+        InlineKeyboardButton("Ha ✅", callback_data="allergy_yes")
     )
     return markup
 
-def main_menu_keyboard(lang="uz"):
+def main_menu_keyboard():
     markup = ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
     
-    markup.add(KeyboardButton(get_text("btn_calorie", lang)), KeyboardButton(get_text("btn_habits", lang)))
-    markup.add(KeyboardButton(get_text("btn_trainer", lang)), KeyboardButton(get_text("btn_challenges", lang)))
-    markup.add(KeyboardButton(get_text("btn_premium", lang)), KeyboardButton(get_text("btn_profile", lang)))
-    markup.add(KeyboardButton(get_text("btn_referral", lang)), KeyboardButton(get_text("btn_feedback", lang)))
+    markup.add(KeyboardButton("🍽 Kaloriya tahlili"), KeyboardButton("🔁 Odatlar"))
+    markup.add(KeyboardButton("🎯 Shaxsiy Murabbiy"), KeyboardButton("🔥 Chellenjlar"))
+    markup.add(KeyboardButton("💎 Premium"), KeyboardButton("👤 Profil"))
+    markup.add(KeyboardButton("🔗 Referal"), KeyboardButton("📩 Qayta aloqa"))
     
     return markup
 
-def plan_inline_keyboard(lang="uz"):
+def plan_inline_keyboard():
     markup = InlineKeyboardMarkup(row_width=1)
     markup.add(
-        InlineKeyboardButton(get_text("btn_ai_workout", lang), callback_data="plan_ai_workout"),
-        InlineKeyboardButton(get_text("btn_ai_meal", lang), callback_data="plan_ai_meal"),
-        InlineKeyboardButton(get_text("btn_calorie_premium", lang), callback_data="plan_calorie_scan")
+        InlineKeyboardButton("🤖 AI mashg‘ulot rejasi", callback_data="plan_ai_workout"),
+        InlineKeyboardButton("🥦 AI ovqatlanish rejasi", callback_data="plan_ai_meal"),
+        InlineKeyboardButton("🍽 Kaloriya tahlili (premium)", callback_data="plan_calorie_scan")
     )
     return markup
 
-def habits_inline_keyboard(lang="uz"):
+def habits_inline_keyboard():
     markup = InlineKeyboardMarkup(row_width=2)
     markup.add(
-        InlineKeyboardButton(get_text("btn_water", lang), callback_data="habit_water"),
-        InlineKeyboardButton(get_text("btn_sleep", lang), callback_data="habit_sleep"),
-        InlineKeyboardButton(get_text("btn_mood", lang), callback_data="habit_mood"),
-        InlineKeyboardButton(get_text("btn_steps", lang), callback_data="habit_steps"),
-        InlineKeyboardButton(get_text("btn_habit_stats", lang), callback_data="habit_stats")
+        InlineKeyboardButton("💧 Suv ichish", callback_data="habit_water"),
+        InlineKeyboardButton("😴 Uyqu", callback_data="habit_sleep"),
+        InlineKeyboardButton("🙂 Kayfiyat", callback_data="habit_mood"),
+        InlineKeyboardButton("🚶 Qadamlar", callback_data="habit_steps"),
+        InlineKeyboardButton("📊 Odatlar statistikasi", callback_data="habit_stats")
     )
     return markup
 
-def ai_inline_keyboard(lang="uz"):
+def ai_inline_keyboard():
     markup = InlineKeyboardMarkup(row_width=2)
     markup.add(
-        InlineKeyboardButton(get_text("btn_ai_qa", lang), callback_data="ai_qa"),
-        InlineKeyboardButton(get_text("btn_ai_meal", lang), callback_data="ai_meal"),
-        InlineKeyboardButton(get_text("btn_ai_workout", lang), callback_data="ai_workout"),
-        InlineKeyboardButton(get_text("btn_ai_recipe", lang), callback_data="ai_recipe"),
-        InlineKeyboardButton(get_text("btn_ai_shopping", lang), callback_data="ai_shopping")
+        InlineKeyboardButton("❓ AI savol-javob", callback_data="ai_qa"),
+        InlineKeyboardButton("🥦 AI menyu", callback_data="ai_meal"),
+        InlineKeyboardButton("🏋️ AI mashq rejasi", callback_data="ai_workout"),
+        InlineKeyboardButton("🍳 AI retsept", callback_data="ai_recipe"),
+        InlineKeyboardButton("🛒 AI shopping list", callback_data="ai_shopping")
     )
     return markup
 
-def points_inline_keyboard(lang="uz"):
+def points_inline_keyboard():
     markup = InlineKeyboardMarkup(row_width=2)
     markup.add(
-        InlineKeyboardButton(get_text("btn_points", lang), callback_data="points_balance"),
-        InlineKeyboardButton(get_text("btn_rewards", lang), callback_data="points_rewards"),
-        InlineKeyboardButton(get_text("btn_rules", lang), callback_data="points_rules"),
-        InlineKeyboardButton(get_text("btn_back_premium", lang), callback_data="back_premium")
+        InlineKeyboardButton("📊 Ballarim", callback_data="points_balance"),
+        InlineKeyboardButton("🎁 Mukofotlar", callback_data="points_rewards"),
+        InlineKeyboardButton("📜 Qoidalar", callback_data="points_rules"),
+        InlineKeyboardButton("⬅️ Premium menyu", callback_data="back_premium")
     )
     return markup
 
-def challenges_inline_keyboard(lang="uz"):
+def challenges_inline_keyboard():
     markup = InlineKeyboardMarkup(row_width=2)
     markup.add(
-        InlineKeyboardButton(get_text("btn_weekly_challenge", lang), callback_data="challenge_weekly"),
-        InlineKeyboardButton(get_text("btn_monthly_challenge", lang), callback_data="challenge_monthly"),
-        InlineKeyboardButton(get_text("btn_friends_challenge", lang), callback_data="challenge_friends"),
-        InlineKeyboardButton(get_text("btn_leaderboard", lang), callback_data="challenge_leaderboard")
+        InlineKeyboardButton("📆 Haftalik challenge", callback_data="challenge_weekly"),
+        InlineKeyboardButton("🗓 Oylik challenge", callback_data="challenge_monthly"),
+        InlineKeyboardButton("👥 Do‘stlar challenge", callback_data="challenge_friends"),
+        InlineKeyboardButton("🏆 Leaderboard", callback_data="challenge_leaderboard")
     )
     return markup
 
-def profile_inline_keyboard(lang="uz"):
+def profile_inline_keyboard():
     markup = InlineKeyboardMarkup(row_width=2)
     markup.add(
-        InlineKeyboardButton(get_text("btn_edit_profile", lang), callback_data="profile_edit"),
-        InlineKeyboardButton(get_text("btn_health_stats", lang), callback_data="profile_stats"),
-        InlineKeyboardButton(get_text("btn_change_goal", lang), callback_data="profile_change_goal")
+        InlineKeyboardButton("✏️ Ma’lumotlarni tahrirlash", callback_data="profile_edit"),
+        InlineKeyboardButton("📊 Sog‘liq statistikasi", callback_data="profile_stats"),
+        InlineKeyboardButton("🎯 Maqsadni o‘zgartirish", callback_data="profile_change_goal")
     )
     return markup
 
-def premium_inline_keyboard(lang="uz"):
+def premium_inline_keyboard():
     markup = InlineKeyboardMarkup()
     # Big button for Buy Premium
-    markup.row(InlineKeyboardButton(get_text("btn_buy_premium", lang), callback_data="premium_buy"))
+    markup.row(InlineKeyboardButton("💳 Premium sotib olish", callback_data="premium_buy"))
     # Two buttons in one row: Tariffs and Yasha Coin
     markup.row(
-        InlineKeyboardButton(get_text("btn_tariffs", lang), callback_data="premium_info"),
-        InlineKeyboardButton(get_text("btn_coins", lang), callback_data="premium_coins")
+        InlineKeyboardButton("ℹ️ Tariflar", callback_data="premium_info"),
+        InlineKeyboardButton("🟡 Yasha Coin", callback_data="premium_coins")
     )
     return markup
 
-def gamification_keyboard(lang="uz"):
+def gamification_keyboard():
     markup = InlineKeyboardMarkup()
-    markup.add(InlineKeyboardButton(get_text("btn_workout_done", lang), callback_data="daily_workout_done"))
-    markup.add(InlineKeyboardButton(get_text("btn_water_done", lang), callback_data="daily_water_done"))
+    markup.add(InlineKeyboardButton("Mashq qildim ✅", callback_data="daily_workout_done"))
+    markup.add(InlineKeyboardButton("Suv ichdim 💧", callback_data="daily_water_done"))
     return markup

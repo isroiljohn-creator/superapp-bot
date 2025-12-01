@@ -88,16 +88,11 @@ def generate_ai_meal(message, bot, user_id=None):
         bot.send_message(user_id, "Iltimos, avval /start ni bosing.")
         return
     
-    msg = bot.send_message(user_id, "🤖 **AI Ovqatlanish rejasi tuzilmoqda...**\n\nIltimos, biroz kuting ⏳", parse_mode="Markdown")
+    bot.send_message(user_id, "🤖 **AI Ovqatlanish rejasi tuzilmoqda...**\n\nIltimos, biroz kuting ⏳", parse_mode="Markdown")
     
     try:
         # Pass the user object directly, as ai_generate_menu expects a user profile dict
         response = ai_generate_menu(user)
-        
-        try:
-            bot.delete_message(user_id, msg.message_id)
-        except:
-            pass
         
         if len(response) > 4000:
             chunks = [response[i:i+4000] for i in range(0, len(response), 4000)]

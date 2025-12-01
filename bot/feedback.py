@@ -1,30 +1,24 @@
 import os
 from telebot import types
 from core.db import db
-from bot.onboarding import delete_tracked_messages
-from bot import onboarding
+from bot.keyboards import main_menu_keyboard
+from dotenv import load_dotenv
 
-# ... (imports)
-
-# ... (load_dotenv)
+load_dotenv()
+ADMIN_ID = int(os.getenv("ADMIN_ID", 0))
 
 def handle_feedback_start(message, bot):
     user_id = message.from_user.id
     msg = bot.send_message(user_id, "Fikringizni yozing:", reply_markup=types.ForceReply())
-    onboarding.manager.track_message(user_id, msg.message_id)
     bot.register_next_step_handler(msg, process_feedback, bot)
 
 def process_feedback(message, bot):
     user_id = message.from_user.id
-    onboarding.manager.track_message(user_id, message.message_id)
-    
     text = message.text
     
     # If user cancels or sends a command
     if text.startswith("/"):
         bot.send_message(user_id, "Bekor qilindi.", reply_markup=main_menu_keyboard())
-        delete_tracked_messages(user_id, bot)
-        onboarding.manager.clear_user(user_id)
         return
 
     # Save to DB
@@ -32,9 +26,6 @@ def process_feedback(message, bot):
     
     # Notify User
     bot.send_message(user_id, "✅ Rahmat! Fikringiz qabul qilindi va jamoamizga yuborildi.", reply_markup=main_menu_keyboard())
-    
-    delete_tracked_messages(user_id, bot)
-    onboarding.manager.clear_user(user_id)
     
     # Forward to Admin
     if ADMIN_ID:
