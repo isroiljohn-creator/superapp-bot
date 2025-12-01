@@ -3,7 +3,42 @@ from bot.calories import handle_calorie_button, handle_food_photo, STATE_CALORIE
 from bot.keyboards import main_menu_keyboard
 from bot import trackers, ai_features, challenges, calorie_scanner
 
+from core.db import db
+
 def register_all_handlers(bot):
+    # --- Global Logging Middleware ---
+    def log_middleware(bot_instance, update):
+        try:
+            user_id = None
+            content = ""
+            type_ = ""
+            
+            if hasattr(update, 'message') and update.message:
+                # CallbackQuery
+                user_id = update.from_user.id
+                content = f"Callback: {update.data}"
+                type_ = "callback"
+            elif hasattr(update, 'text'):
+                # Message
+                user_id = update.from_user.id
+                content = update.text
+                type_ = "message"
+            
+            if user_id:
+                db.log_activity(user_id, type_, content)
+        except Exception as e:
+            print(f"Logging Error: {e}")
+
+    # Register middleware manually if supported or use a catch-all check
+    # Telebot middleware is a bit specific. Let's use a simple pre-execution hook if possible.
+    # Or better, just use a handler that matches everything but doesn't stop propagation?
+    # Telebot handlers stop propagation if they handle it.
+    # Best way in standard telebot is `bot.register_middleware_handler(log_middleware, update_types=['message', 'callback_query'])`
+    try:
+        bot.register_middleware_handler(log_middleware, update_types=['message', 'callback_query'])
+    except AttributeError:
+        # Fallback for older versions or if method missing
+        print("Warning: register_middleware_handler not found. Logging might be limited.")
     # --- Calorie Handlers ---
     @bot.message_handler(func=lambda message: message.text == "🍽 Kaloriya tahlili (premium)" or message.text == "🍽 Kaloriya skaneri")
     def calorie_handler(message):

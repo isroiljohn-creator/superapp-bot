@@ -224,6 +224,9 @@ def process_mood_reason(message, bot):
     
     db.update_daily_log(user_id, today, mood_reason=reason)
     
+    # Log as a problem for easier tracking
+    db.log_activity(user_id, "problem", f"Mood Reason: {reason}")
+    
     # AI Support
     bot.send_chat_action(user_id, 'typing')
     support_msg = ai_provide_psychological_support(reason)
