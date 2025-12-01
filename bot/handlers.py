@@ -77,10 +77,6 @@ def register_all_handlers(bot):
     def menu_ai(message):
         ai_features.handle_ai_tools_menu(message, bot)
 
-    @bot.message_handler(func=lambda message: message.text == "🟡 Yasha Coin")
-    def menu_points(message):
-        gamification.handle_points_menu(message, bot)
-
     @bot.message_handler(func=lambda message: message.text == "🔗 Referal")
     def menu_referral(message):
         gamification.handle_referral_link(message, bot)
