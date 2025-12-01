@@ -1,6 +1,11 @@
 from bot import onboarding, menu, gamification, admin, feedback, premium, profile, templates, workout
 from bot.calories import handle_calorie_button, handle_food_photo, STATE_CALORIE_PHOTO
-from bot.keyboards import main_menu_keyboard
+from bot.languages import get_text, TRANS
+from bot.keyboards import (
+    main_menu_keyboard, plan_inline_keyboard, habits_inline_keyboard, 
+    ai_inline_keyboard, points_inline_keyboard, challenges_inline_keyboard,
+    profile_inline_keyboard, premium_inline_keyboard
+)
 from bot import trackers, ai_features, challenges, calorie_scanner
 
 from core.db import db
@@ -39,11 +44,119 @@ def register_all_handlers(bot):
     except AttributeError:
         # Fallback for older versions or if method missing
         print("Warning: register_middleware_handler not found. Logging might be limited.")
-    # --- Calorie Handlers ---
-    @bot.message_handler(func=lambda message: message.text == "🍽 Kaloriya tahlili (premium)" or message.text == "🍽 Kaloriya skaneri" or message.text == "🍽 Kaloriya tahlili")
-    def calorie_handler(message):
-        calorie_scanner.show_calorie_menu(message, bot)
+# Helper to find key by value (reverse lookup)
+def get_key_by_text(text):
+    for lang in TRANS:
+        for key, value in TRANS[lang].items():
+            if value == text:
+                return key
+    return None
 
+    # --- Main Menu Navigation & Global Handlers ---
+    
+    @bot.message_handler(func=lambda message: True, content_types=['text'])
+    def handle_message(message):
+        user_id = message.from_user.id
+        user = db.get_user(user_id)
+        
+        if not user:
+            from bot.onboarding import start_onboarding
+            start_onboarding(message, bot)
+            return
+
+        lang = user.get('language', 'uz')
+        text = message.text
+        key = get_key_by_text(text)
+        
+        # --- Main Menu ---
+        if key == "btn_calorie" or key == "btn_calorie_premium":
+            calorie_handler(message)
+            
+        elif key == "btn_habits":
+            bot.send_message(user_id, get_text("choose_habit", lang) if "choose_habit" in TRANS[lang] else "Odatni tanlang:", reply_markup=habits_inline_keyboard(lang))
+            
+        elif key == "btn_trainer":
+            bot.send_message(user_id, get_text("choose_plan_type", lang), reply_markup=plan_inline_keyboard(lang))
+            
+        elif key == "btn_challenges":
+            bot.send_message(user_id, get_text("choose_challenge", lang) if "choose_challenge" in TRANS[lang] else "Chellenjni tanlang:", reply_markup=challenges_inline_keyboard(lang))
+            
+        elif key == "btn_premium":
+            premium.handle_premium_menu(message, bot)
+            
+        elif key == "btn_profile":
+            profile.handle_profile(message, bot)
+            
+        elif key == "btn_referral":
+            gamification.handle_referral_link(message, bot)
+            
+        elif key == "btn_feedback":
+            feedback.handle_feedback_start(message, bot)
+
+        # --- Sub-Menus ---
+        elif key == "back": # Back button
+            # We need to know where to go back to. Usually Main Menu.
+            bot.send_message(user_id, get_text("main_menu", lang) if "main_menu" in TRANS[lang] else "🏠 Asosiy menyu", reply_markup=main_menu_keyboard(lang))
+            
+        elif key == "btn_back_premium":
+             premium.handle_premium_menu(message, bot)
+
+        # Plan
+        elif key == "btn_ai_workout":
+            workout.generate_ai_workout(message, bot)
+        elif key == "btn_ai_meal":
+            workout.generate_ai_meal(message, bot)
+            
+        # Habits
+        elif key == "btn_water": trackers.handle_water_tracker(message, bot)
+        elif key == "btn_sleep": trackers.handle_sleep_tracker(message, bot)
+        elif key == "btn_mood": trackers.handle_mood_tracker(message, bot)
+        elif key == "btn_steps": trackers.handle_steps_tracker(message, bot)
+        elif key == "btn_habit_stats": trackers.handle_habits_stats(message, bot)
+        
+        # AI Tools
+        elif key == "btn_ai_qa": ai_features.handle_ai_qa(message, bot)
+        elif key == "btn_ai_recipe": ai_features.handle_recipe_gen(message, bot)
+        elif key == "btn_ai_shopping": ai_features.handle_shopping_list(message, bot)
+        
+        # Points
+        elif key == "btn_points": gamification.handle_my_points(message, bot)
+        elif key == "btn_rewards": gamification.handle_rewards(message, bot)
+        elif key == "btn_rules": gamification.handle_rules(message, bot)
+        
+        # Challenges
+        elif key == "btn_weekly_challenge": challenges.handle_weekly_challenge(message, bot)
+        elif key == "btn_monthly_challenge": challenges.handle_monthly_challenge(message, bot)
+        elif key == "btn_friends_challenge": challenges.handle_friends_challenge(message, bot)
+        elif key == "btn_leaderboard": challenges.show_leaderboard_message(message, bot)
+        
+        # Profile
+        elif key == "btn_edit_profile": profile.handle_edit_profile_command(message, bot)
+        elif key == "btn_health_stats": profile.handle_profile_stats(message, bot)
+        elif key == "btn_change_goal": profile.handle_change_goal_command(message, bot)
+        
+        # Premium
+        elif key == "btn_buy_premium": premium.handle_premium_buy(message, bot)
+        elif key == "btn_tariffs": premium.handle_premium_info(message, bot)
+        
+        else:
+            # Check for states
+            state = onboarding.manager.get_state(user_id)
+            if state == trackers.STATE_STEPS_INPUT:
+                trackers.process_steps_input(message, bot)
+            elif state == trackers.STATE_SLEEP_INPUT:
+                trackers.process_sleep_input(message, bot)
+            elif state == trackers.STATE_MOOD_REASON:
+                trackers.process_mood_reason(message, bot)
+            elif state == calorie_scanner.STATE_CALORIE_TEXT:
+                calorie_scanner.handle_calorie_text(message, bot)
+            else:
+                # Unknown command
+                pass
+
+    # --- Sub-Menu Handlers ---
+
+    # --- Photo Handler ---
     @bot.message_handler(content_types=['photo'])
     def photo_handler(message):
         # Check for calorie scanner state
@@ -51,161 +164,7 @@ def register_all_handlers(bot):
         if state == calorie_scanner.STATE_CALORIE_PHOTO:
             calorie_scanner.handle_calorie_photo(message, bot)
             return
-        
-        # Check for feedback state (if implemented via state, but feedback uses next_step_handler usually)
-        # If no state, ignore or handle as generic photo
         pass
-
-    # --- Main Menu Navigation ---
-    @bot.message_handler(func=lambda message: message.text == "⬅️ Asosiy menyu")
-    def back_to_main(message):
-        bot.send_message(message.chat.id, "🏠 Asosiy menyu", reply_markup=main_menu_keyboard())
-
-    @bot.message_handler(func=lambda message: message.text == "⬅️ Premium menyu")
-    def back_to_premium(message):
-        premium.handle_premium_menu(message, bot)
-
-    # @bot.message_handler(func=lambda message: message.text == "🏋️ Mening Rejam")
-    # def menu_plan(message):
-    #     workout.handle_plan_menu(message, bot)
-
-    @bot.message_handler(func=lambda message: message.text == "🔁 Odatlar")
-    def menu_habits(message):
-        trackers.handle_habits_menu(message, bot)
-
-    @bot.message_handler(func=lambda message: message.text == "🎯 Shaxsiy Murabbiy")
-    def menu_ai(message):
-        ai_features.handle_ai_tools_menu(message, bot)
-
-    @bot.message_handler(func=lambda message: message.text == "🔗 Referal")
-    def menu_referral(message):
-        gamification.handle_referral_link(message, bot)
-
-    @bot.message_handler(func=lambda message: message.text == "🔥 Chellenjlar")
-    def menu_challenges(message):
-        challenges.handle_challenges_menu(message, bot)
-
-    @bot.message_handler(func=lambda message: message.text == "👤 Profil")
-    def menu_profile(message):
-        profile.handle_profile(message, bot)
-
-    @bot.message_handler(func=lambda message: message.text == "💎 Premium")
-    def menu_premium(message):
-        premium.handle_premium_menu(message, bot)
-
-    @bot.message_handler(func=lambda message: message.text == "📩 Qayta aloqa")
-    def menu_feedback(message):
-        feedback.handle_feedback_start(message, bot)
-
-    # --- Sub-Menu Handlers ---
-
-    # Plan
-    @bot.message_handler(func=lambda message: message.text == "🤖 AI mashg‘ulot rejasi" or message.text == "🏋️ AI mashq rejasi")
-    def plan_workout_ai(message):
-        workout.generate_ai_workout(message, bot)
-
-    @bot.message_handler(func=lambda message: message.text == "🥦 AI ovqatlanish rejasi" or message.text == "🥦 AI menyu")
-    def plan_meal_ai(message):
-        workout.generate_ai_meal(message, bot)
-
-    # Habits
-    @bot.message_handler(func=lambda message: message.text == "💧 Suv ichish")
-    def habit_water(message):
-        trackers.handle_water_tracker(message, bot)
-
-    @bot.message_handler(func=lambda message: message.text == "😴 Uyqu")
-    def habit_sleep(message):
-        trackers.handle_sleep_tracker(message, bot)
-
-    @bot.message_handler(func=lambda message: message.text == "🙂 Kayfiyat")
-    def habit_mood(message):
-        trackers.handle_mood_tracker(message, bot)
-        
-    @bot.message_handler(func=lambda message: message.text == "🚶 Qadamlar")
-    def habit_steps(message):
-        trackers.handle_steps_tracker(message, bot)
-
-    @bot.message_handler(func=lambda message: message.text == "📊 Odatlar statistikasi")
-    def habit_stats(message):
-        trackers.handle_habits_stats(message, bot)
-
-    # Habits Input Handlers
-    @bot.message_handler(func=lambda message: onboarding.manager.get_state(message.from_user.id) == trackers.STATE_STEPS_INPUT)
-    def steps_input_handler(message):
-        trackers.process_steps_input(message, bot)
-
-    @bot.message_handler(func=lambda message: onboarding.manager.get_state(message.from_user.id) == trackers.STATE_SLEEP_INPUT)
-    def sleep_input_handler(message):
-        trackers.process_sleep_input(message, bot)
-
-    @bot.message_handler(func=lambda message: onboarding.manager.get_state(message.from_user.id) == trackers.STATE_MOOD_REASON)
-    def mood_reason_handler(message):
-        trackers.process_mood_reason(message, bot)
-        
-    # AI Tools
-    @bot.message_handler(func=lambda message: message.text == "❓ AI savol-javob")
-    def ai_qa(message):
-        ai_features.handle_ai_qa(message, bot)
-
-    @bot.message_handler(func=lambda message: message.text == "🍳 AI retsept")
-    def ai_recipe(message):
-        ai_features.handle_recipe_gen(message, bot)
-
-    @bot.message_handler(func=lambda message: message.text == "🛒 AI shopping list")
-    def ai_shopping(message):
-        ai_features.handle_shopping_list(message, bot)
-
-    # Points
-    @bot.message_handler(func=lambda message: message.text == "📊 Ballarim")
-    def points_my(message):
-        gamification.handle_my_points(message, bot)
-
-    @bot.message_handler(func=lambda message: message.text == "🎁 Mukofotlar")
-    def points_rewards(message):
-        gamification.handle_rewards(message, bot)
-
-    @bot.message_handler(func=lambda message: message.text == "📜 Qoidalar")
-    def points_rules(message):
-        gamification.handle_rules(message, bot)
-
-    # Challenges
-    @bot.message_handler(func=lambda message: message.text == "📆 Haftalik challenge")
-    def challenge_weekly(message):
-        challenges.handle_weekly_challenge(message, bot)
-
-    @bot.message_handler(func=lambda message: message.text == "🗓 Oylik challenge")
-    def challenge_monthly(message):
-        challenges.handle_monthly_challenge(message, bot)
-
-    @bot.message_handler(func=lambda message: message.text == "👥 Do‘stlar challenge")
-    def challenge_friends(message):
-        challenges.handle_friends_challenge(message, bot)
-
-    @bot.message_handler(func=lambda message: message.text == "🏆 Leaderboard")
-    def challenge_leaderboard(message):
-        challenges.show_leaderboard_message(message, bot)
-
-    # Profile
-    @bot.message_handler(func=lambda message: message.text == "✏️ Ma’lumotlarni tahrirlash")
-    def profile_edit(message):
-        profile.handle_edit_profile_command(message, bot)
-
-    @bot.message_handler(func=lambda message: message.text == "📊 Sog‘liq statistikasi")
-    def profile_stats(message):
-        profile.handle_profile_stats(message, bot)
-
-    @bot.message_handler(func=lambda message: message.text == "🎯 Maqsadni o‘zgartirish")
-    def profile_goal(message):
-        profile.handle_change_goal_command(message, bot)
-
-    # Premium
-    @bot.message_handler(func=lambda message: message.text == "💳 Premium sotib olish")
-    def premium_buy(message):
-        premium.handle_premium_buy(message, bot)
-
-    @bot.message_handler(func=lambda message: message.text == "ℹ️ Tariflar")
-    def premium_info(message):
-        premium.handle_premium_info(message, bot)
 
     # Register module handlers (callbacks etc)
     onboarding.register_handlers(bot)

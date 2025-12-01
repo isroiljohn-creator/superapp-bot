@@ -1,7 +1,8 @@
 from telebot import types
 from core.db import db
 from core.ai import analyze_food_image, analyze_food_text
-from bot.onboarding import delete_tracked_messages
+from bot.onboarding import delete_tracked_messages, STATE_CALORIE_PHOTO, STATE_CALORIE_TEXT
+from bot.premium import require_premium
 
 # ... (imports)
 

@@ -9,3 +9,4 @@ node_modules/
 .DS_Store
 ngrok.log
 tunnel.log
+fitness_bot_backup_*.zip
