@@ -13,11 +13,35 @@ def handle_points_menu(message, bot):
         f"Sizning balingiz: **{points}** 🟡\n\n"
         "Coinlarni qanday ishlash mumkin?\n"
         "• Odatlar (suv, uyqu) → +1-5 coin\n"
-        "• Do'stlarni taklif qilish → +10 coin\n"
+        "• Do'stlarni taklif qilish → +1 coin\n"
         "• Chellenjlar → +50 coingacha"
     )
     
-    bot.send_message(message.chat.id, text, reply_markup=points_inline_keyboard(), parse_mode="Markdown")
+    markup = points_inline_keyboard()
+    markup.add(types.InlineKeyboardButton("🔗 Referal havola", callback_data="points_referral"))
+    
+    bot.send_message(message.chat.id, text, reply_markup=markup, parse_mode="Markdown")
+
+def handle_referral_link(message, bot):
+    user_id = message.from_user.id
+    user = db.get_user(user_id)
+    
+    # Generate link if not exists (though db should have it, let's generate on fly if needed)
+    # Actually db stores referral_code.
+    code = user.get('referral_code')
+    if not code:
+        code = f"r{user_id}" # Fallback
+        
+    bot_username = bot.get_me().username
+    link = f"https://t.me/{bot_username}?start={code}"
+    
+    text = (
+        "🔗 **Sizning referal havolangiz:**\n\n"
+        f"`{link}`\n\n"
+        "Bu havolani do'stlaringizga yuboring. Ular ro'yxatdan o'tsa, sizga +1 coin beriladi! 🟡"
+    )
+    
+    bot.send_message(message.chat.id, text, parse_mode="Markdown")
 
 def handle_my_points(message, bot):
     user_id = message.from_user.id

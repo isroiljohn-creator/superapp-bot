@@ -415,8 +415,6 @@ def ai_provide_psychological_support(reason):
     - O'zbek tilida.
     
     Javob formati:
-    💆‍♂️ <b>Psixologik Yordam</b>
-    
     [Matn]
     """
     

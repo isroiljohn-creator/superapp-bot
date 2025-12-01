@@ -347,11 +347,11 @@ def finish_onboarding(user_id, message, bot):
     
     # Handle referral rewards
     if referrer_id:
-        db.add_points(referrer_id, 5)
+        db.add_points(referrer_id, 1)
         try:
             bot.send_message(
                 referrer_id,
-                f"🎉 Yangi do'st ro'yxatdan o'tdi! +5 ball olasiz.\n"
+                f"🎉 Yangi do'st ro'yxatdan o'tdi! +1 ball olasiz.\n"
                 f"Jami ballar: {db.get_user(referrer_id)['points']}"
             )
         except:

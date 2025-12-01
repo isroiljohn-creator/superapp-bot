@@ -267,6 +267,7 @@ def register_all_handlers(bot):
         if action == 'balance': gamification.handle_my_points(call.message, bot)
         elif action == 'rewards': gamification.handle_rewards(call.message, bot)
         elif action == 'rules': gamification.handle_rules(call.message, bot)
+        elif action == 'referral': gamification.handle_referral_link(call.message, bot)
         bot.answer_callback_query(call.id)
 
     # Challenges Callbacks (Merged with existing if needed, but existing uses challenge_ prefix too)

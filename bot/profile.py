@@ -18,21 +18,51 @@ def handle_profile(message, bot, user_id=None):
             bot.send_message(user_id, "Siz hali ro'yxatdan o'tmagansiz. /start ni bosing.")
             return
 
+        # Translation Maps
+        GENDER_MAP = {
+            "male": "Erkak",
+            "female": "Ayol"
+        }
+        
+        GOAL_MAP = {
+            "weight_loss": "Ozish",
+            "muscle_gain": "Mushak yig'ish",
+            "health": "Sog'lom bo'lish"
+        }
+        
+        ACTIVITY_MAP = {
+            "sedentary": "Kam harakat",
+            "light": "Yengil faol",
+            "moderate": "O'rtacha faol",
+            "active": "Juda faol",
+            "athlete": "Atlet"
+        }
+
         # Helper to escape Markdown special characters
         def esc(text):
             if not text: return "-"
             return str(text).replace("_", "\\_").replace("*", "\\*").replace("`", "\\`").replace("[", "\\[")
 
+        # Get display values
+        display_name = user.get('full_name') or user.get('username') or "Foydalanuvchi"
+        gender_raw = user.get('gender')
+        goal_raw = user.get('goal')
+        activity_raw = user.get('activity_level')
+        
+        display_gender = GENDER_MAP.get(gender_raw, gender_raw)
+        display_goal = GOAL_MAP.get(goal_raw, goal_raw)
+        display_activity = ACTIVITY_MAP.get(activity_raw, activity_raw)
+
         # Format profile text
         text = (
             f"👤 **Sizning Profilingiz**\n\n"
-            f"Ism: {esc(user.get('full_name', 'Noma’lum'))}\n"
+            f"Ism: {esc(display_name)}\n"
             f"Yosh: {esc(user.get('age', '-'))} yosh\n"
-            f"Jins: {esc(user.get('gender', '-'))}\n"
+            f"Jins: {esc(display_gender)}\n"
             f"Bo'y: {esc(user.get('height', '-'))} sm\n"
             f"Vazn: {esc(user.get('weight', '-'))} kg\n"
-            f"Faollik: {esc(user.get('activity_level', 'Belgilanmagan'))}\n"
-            f"Maqsad: {esc(user.get('goal', '-'))}\n"
+            f"Faollik: {esc(display_activity)}\n"
+            f"Maqsad: {esc(display_goal)}\n"
             f"Allergiya: {esc(user.get('allergies') or 'Yo‘q')}\n\n"
             f"👇 Quyidagi menyudan tanlang:"
         )
