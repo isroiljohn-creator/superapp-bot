@@ -1,4 +1,4 @@
-Qfrom core.db import db
+from core.db import db
 from core.ai import ai_generate_workout, ai_generate_menu
 from bot.keyboards import plan_inline_keyboard
 from bot.premium import require_premium
