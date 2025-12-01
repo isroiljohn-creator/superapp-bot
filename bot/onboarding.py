@@ -339,7 +339,8 @@ def finish_onboarding(user_id, message, bot):
         bot.send_message(
             user_id,
             f"🎁 **Sizga {trial_days} kunlik Premium sinov muddati yoqildi!**\n\n"
-            "Barcha AI xizmatlar (Mashqlar, Ovqatlanish, Retseptlar) siz uchun ochiq. 🔥"
+            "Barcha AI xizmatlar (Mashqlar, Ovqatlanish, Retseptlar) siz uchun ochiq. 🔥",
+            parse_mode="Markdown"
         )
     except Exception as e:
         print(f"Error activating trial: {e}")
