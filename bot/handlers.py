@@ -54,105 +54,7 @@ def get_key_by_text(text):
 
     # --- Main Menu Navigation & Global Handlers ---
     
-    @bot.message_handler(func=lambda message: True, content_types=['text'])
-    def handle_message(message):
-        user_id = message.from_user.id
-        user = db.get_user(user_id)
-        
-        if not user:
-            from bot.onboarding import start_onboarding
-            start_onboarding(message, bot)
-            return
 
-        lang = user.get('language', 'uz')
-        text = message.text
-        key = get_key_by_text(text)
-        
-        # --- Main Menu ---
-        if key == "btn_calorie" or key == "btn_calorie_premium":
-            calorie_handler(message)
-            
-        elif key == "btn_habits":
-            bot.send_message(user_id, get_text("choose_habit", lang) if "choose_habit" in TRANS[lang] else "Odatni tanlang:", reply_markup=habits_inline_keyboard(lang))
-            
-        elif key == "btn_trainer":
-            bot.send_message(user_id, get_text("choose_plan_type", lang), reply_markup=plan_inline_keyboard(lang))
-            
-        elif key == "btn_challenges":
-            bot.send_message(user_id, get_text("choose_challenge", lang) if "choose_challenge" in TRANS[lang] else "Chellenjni tanlang:", reply_markup=challenges_inline_keyboard(lang))
-            
-        elif key == "btn_premium":
-            premium.handle_premium_menu(message, bot)
-            
-        elif key == "btn_profile":
-            profile.handle_profile(message, bot)
-            
-        elif key == "btn_referral":
-            gamification.handle_referral_link(message, bot)
-            
-        elif key == "btn_feedback":
-            feedback.handle_feedback_start(message, bot)
-
-        # --- Sub-Menus ---
-        elif key == "back": # Back button
-            # We need to know where to go back to. Usually Main Menu.
-            bot.send_message(user_id, get_text("main_menu", lang) if "main_menu" in TRANS[lang] else "🏠 Asosiy menyu", reply_markup=main_menu_keyboard(lang))
-            
-        elif key == "btn_back_premium":
-             premium.handle_premium_menu(message, bot)
-
-        # Plan
-        elif key == "btn_ai_workout":
-            workout.generate_ai_workout(message, bot)
-        elif key == "btn_ai_meal":
-            workout.generate_ai_meal(message, bot)
-            
-        # Habits
-        elif key == "btn_water": trackers.handle_water_tracker(message, bot)
-        elif key == "btn_sleep": trackers.handle_sleep_tracker(message, bot)
-        elif key == "btn_mood": trackers.handle_mood_tracker(message, bot)
-        elif key == "btn_steps": trackers.handle_steps_tracker(message, bot)
-        elif key == "btn_habit_stats": trackers.handle_habits_stats(message, bot)
-        
-        # AI Tools
-        elif key == "btn_ai_qa": ai_features.handle_ai_qa(message, bot)
-        elif key == "btn_ai_recipe": ai_features.handle_recipe_gen(message, bot)
-        elif key == "btn_ai_shopping": ai_features.handle_shopping_list(message, bot)
-        
-        # Points
-        elif key == "btn_points": gamification.handle_my_points(message, bot)
-        elif key == "btn_rewards": gamification.handle_rewards(message, bot)
-        elif key == "btn_rules": gamification.handle_rules(message, bot)
-        
-        # Challenges
-        elif key == "btn_weekly_challenge": challenges.handle_weekly_challenge(message, bot)
-        elif key == "btn_monthly_challenge": challenges.handle_monthly_challenge(message, bot)
-        elif key == "btn_friends_challenge": challenges.handle_friends_challenge(message, bot)
-        elif key == "btn_leaderboard": challenges.show_leaderboard_message(message, bot)
-        
-        # Profile
-        elif key == "btn_edit_profile": profile.handle_edit_profile_command(message, bot)
-        elif key == "btn_health_stats": profile.handle_profile_stats(message, bot)
-        elif key == "btn_change_goal": profile.handle_change_goal_command(message, bot)
-        
-        # Premium
-        elif key == "btn_buy_premium": premium.handle_premium_buy(message, bot)
-        elif key == "btn_tariffs": premium.handle_premium_info(message, bot)
-        
-        else:
-            # Check for states
-            state = onboarding.manager.get_state(user_id)
-            if state == trackers.STATE_STEPS_INPUT:
-                trackers.process_steps_input(message, bot)
-            elif state == trackers.STATE_SLEEP_INPUT:
-                trackers.process_sleep_input(message, bot)
-            elif state == trackers.STATE_MOOD_REASON:
-                trackers.process_mood_reason(message, bot)
-            elif state == calorie_scanner.STATE_CALORIE_TEXT:
-                calorie_scanner.handle_calorie_text(message, bot)
-            else:
-                # Unknown command
-                pass
 
     # --- Sub-Menu Handlers ---
 
@@ -316,6 +218,111 @@ def get_key_by_text(text):
     @bot.message_handler(commands=['version'])
     def handle_version(message):
         bot.reply_to(message, "🤖 Bot Version: v3.0 - REFACTORED MENU")
+
+    @bot.message_handler(commands=['start'])
+    def handle_start(message):
+        from bot.onboarding import start_onboarding
+        start_onboarding(message, bot)
+
+    @bot.message_handler(func=lambda message: True, content_types=['text'])
+    def handle_message(message):
+        user_id = message.from_user.id
+        user = db.get_user(user_id)
+        
+        if not user:
+            from bot.onboarding import start_onboarding
+            start_onboarding(message, bot)
+            return
+
+        lang = user.get('language', 'uz')
+        text = message.text
+        key = get_key_by_text(text)
+        
+        # --- Main Menu ---
+        if key == "btn_calorie" or key == "btn_calorie_premium":
+            handle_calorie_button(message, bot, onboarding.manager)
+            
+        elif key == "btn_habits":
+            bot.send_message(user_id, get_text("choose_habit", lang) if "choose_habit" in TRANS[lang] else "Odatni tanlang:", reply_markup=habits_inline_keyboard(lang))
+            
+        elif key == "btn_trainer":
+            bot.send_message(user_id, get_text("choose_plan_type", lang), reply_markup=plan_inline_keyboard(lang))
+            
+        elif key == "btn_challenges":
+            bot.send_message(user_id, get_text("choose_challenge", lang) if "choose_challenge" in TRANS[lang] else "Chellenjni tanlang:", reply_markup=challenges_inline_keyboard(lang))
+            
+        elif key == "btn_premium":
+            premium.handle_premium_menu(message, bot)
+            
+        elif key == "btn_profile":
+            profile.handle_profile(message, bot)
+            
+        elif key == "btn_referral":
+            gamification.handle_referral_link(message, bot)
+            
+        elif key == "btn_feedback":
+            feedback.handle_feedback_start(message, bot)
+
+        # --- Sub-Menus ---
+        elif key == "back": # Back button
+            # We need to know where to go back to. Usually Main Menu.
+            bot.send_message(user_id, get_text("main_menu", lang) if "main_menu" in TRANS[lang] else "🏠 Asosiy menyu", reply_markup=main_menu_keyboard(lang))
+            
+        elif key == "btn_back_premium":
+             premium.handle_premium_menu(message, bot)
+
+        # Plan
+        elif key == "btn_ai_workout":
+            workout.generate_ai_workout(message, bot)
+        elif key == "btn_ai_meal":
+            workout.generate_ai_meal(message, bot)
+            
+        # Habits
+        elif key == "btn_water": trackers.handle_water_tracker(message, bot)
+        elif key == "btn_sleep": trackers.handle_sleep_tracker(message, bot)
+        elif key == "btn_mood": trackers.handle_mood_tracker(message, bot)
+        elif key == "btn_steps": trackers.handle_steps_tracker(message, bot)
+        elif key == "btn_habit_stats": trackers.handle_habits_stats(message, bot)
+        
+        # AI Tools
+        elif key == "btn_ai_qa": ai_features.handle_ai_qa(message, bot)
+        elif key == "btn_ai_recipe": ai_features.handle_recipe_gen(message, bot)
+        elif key == "btn_ai_shopping": ai_features.handle_shopping_list(message, bot)
+        
+        # Points
+        elif key == "btn_points": gamification.handle_my_points(message, bot)
+        elif key == "btn_rewards": gamification.handle_rewards(message, bot)
+        elif key == "btn_rules": gamification.handle_rules(message, bot)
+        
+        # Challenges
+        elif key == "btn_weekly_challenge": challenges.handle_weekly_challenge(message, bot)
+        elif key == "btn_monthly_challenge": challenges.handle_monthly_challenge(message, bot)
+        elif key == "btn_friends_challenge": challenges.handle_friends_challenge(message, bot)
+        elif key == "btn_leaderboard": challenges.show_leaderboard_message(message, bot)
+        
+        # Profile
+        elif key == "btn_edit_profile": profile.handle_edit_profile_command(message, bot)
+        elif key == "btn_health_stats": profile.handle_profile_stats(message, bot)
+        elif key == "btn_change_goal": profile.handle_change_goal_command(message, bot)
+        
+        # Premium
+        elif key == "btn_buy_premium": premium.handle_premium_buy(message, bot)
+        elif key == "btn_tariffs": premium.handle_premium_info(message, bot)
+        
+        else:
+            # Check for states
+            state = onboarding.manager.get_state(user_id)
+            if state == trackers.STATE_STEPS_INPUT:
+                trackers.process_steps_input(message, bot)
+            elif state == trackers.STATE_SLEEP_INPUT:
+                trackers.process_sleep_input(message, bot)
+            elif state == trackers.STATE_MOOD_REASON:
+                trackers.process_mood_reason(message, bot)
+            elif state == calorie_scanner.STATE_CALORIE_TEXT:
+                calorie_scanner.handle_calorie_text(message, bot)
+            else:
+                # Unknown command
+                bot.reply_to(message, "⚠️ Tushunarsiz buyruq. Iltimos, menyudan foydalaning.")
 
     # Debug callback LAST
     @bot.callback_query_handler(func=lambda call: True)
