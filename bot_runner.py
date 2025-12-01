@@ -57,10 +57,14 @@ def main():
     else:
         print("⚠️ WEBAPP_URL topilmadi. Mini App tugmasi o'rnatilmadi.")
 
-    try:
-        bot.infinity_polling()
-    except Exception as e:
-        print(f"Bot to‘xtadi: {e}")
+    import time
+    
+    while True:
+        try:
+            bot.infinity_polling(timeout=10, long_polling_timeout=5)
+        except Exception as e:
+            print(f"Bot to‘xtadi (qayta ulanish 5 soniyadan so'ng): {e}")
+            time.sleep(5)
 
 if __name__ == "__main__":
     main()
