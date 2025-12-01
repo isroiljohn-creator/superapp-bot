@@ -88,12 +88,25 @@ def register_all_handlers(bot):
         
     @bot.message_handler(func=lambda message: message.text == "🚶 Qadamlar")
     def habit_steps(message):
-        bot.send_message(message.chat.id, "🚶 **Qadamlar**\n\nTez kunda avtomatik hisoblash qo'shiladi!", parse_mode="Markdown")
+        trackers.handle_steps_tracker(message, bot)
 
     @bot.message_handler(func=lambda message: message.text == "📊 Odatlar statistikasi")
     def habit_stats(message):
         trackers.handle_habits_stats(message, bot)
 
+    # Habits Input Handlers
+    @bot.message_handler(func=lambda message: onboarding.manager.get_state(message.from_user.id) == trackers.STATE_STEPS_INPUT)
+    def steps_input_handler(message):
+        trackers.process_steps_input(message, bot)
+
+    @bot.message_handler(func=lambda message: onboarding.manager.get_state(message.from_user.id) == trackers.STATE_SLEEP_INPUT)
+    def sleep_input_handler(message):
+        trackers.process_sleep_input(message, bot)
+
+    @bot.message_handler(func=lambda message: onboarding.manager.get_state(message.from_user.id) == trackers.STATE_MOOD_REASON)
+    def mood_reason_handler(message):
+        trackers.process_mood_reason(message, bot)
+        
     # AI Tools
     @bot.message_handler(func=lambda message: message.text == "❓ AI savol-javob")
     def ai_qa(message):
@@ -176,8 +189,11 @@ def register_all_handlers(bot):
     def tracker_action_callback(call):
         type = call.data.split('_')[1]
         if type == 'water': trackers.process_water_callback(call, bot)
-        elif type == 'sleep': trackers.process_sleep_callback(call, bot)
         elif type == 'mood': trackers.process_mood_callback(call, bot)
+        # Sleep is now input based, but we might have old buttons or need to remove them?
+        # The new tracker uses input for sleep, so no callback needed for sleep logic unless we kept buttons.
+        # But wait, handle_sleep_tracker in trackers.py now asks for input, so no buttons.
+        # So we can remove sleep callback here.
 
     # AI Tool Callbacks (if any left using callbacks)
     @bot.callback_query_handler(func=lambda call: call.data.startswith('ai_tool_'))
@@ -228,9 +244,7 @@ def register_all_handlers(bot):
         if action == 'water': trackers.handle_water_tracker(call.message, bot, user_id=call.from_user.id)
         elif action == 'sleep': trackers.handle_sleep_tracker(call.message, bot, user_id=call.from_user.id)
         elif action == 'mood': trackers.handle_mood_tracker(call.message, bot, user_id=call.from_user.id)
-        elif action == 'steps': 
-            bot.answer_callback_query(call.id, "Tez kunda...")
-            bot.send_message(call.from_user.id, "🚶 **Qadamlar**\n\nTez kunda avtomatik hisoblash qo'shiladi!", parse_mode="Markdown")
+        elif action == 'steps': trackers.handle_steps_tracker(call.message, bot, user_id=call.from_user.id)
         elif action == 'stats': trackers.handle_habits_stats(call.message, bot, user_id=call.from_user.id)
         bot.answer_callback_query(call.id)
 

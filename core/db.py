@@ -144,6 +144,28 @@ class Database:
             except sqlite3.OperationalError:
                 pass
 
+            # Daily Logs Migrations for Gamification
+            try:
+                cursor.execute("ALTER TABLE daily_logs ADD COLUMN water_ml INTEGER DEFAULT 0")
+            except sqlite3.OperationalError:
+                pass
+            try:
+                cursor.execute("ALTER TABLE daily_logs ADD COLUMN steps INTEGER DEFAULT 0")
+            except sqlite3.OperationalError:
+                pass
+            try:
+                cursor.execute("ALTER TABLE daily_logs ADD COLUMN sleep_hours REAL DEFAULT 0")
+            except sqlite3.OperationalError:
+                pass
+            try:
+                cursor.execute("ALTER TABLE daily_logs ADD COLUMN mood TEXT")
+            except sqlite3.OperationalError:
+                pass
+            try:
+                cursor.execute("ALTER TABLE daily_logs ADD COLUMN mood_reason TEXT")
+            except sqlite3.OperationalError:
+                pass
+
             # Calorie Scanner Limits
             try:
                 cursor.execute("ALTER TABLE users ADD COLUMN calorie_last_use_date TEXT")

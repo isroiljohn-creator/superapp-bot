@@ -401,3 +401,26 @@ def format_gemini_text(raw_text, title):
     text = raw_text.replace("**", "").replace("##", "").replace("#", "")
     
     return f"<b>{title}</b>\n\n{text}"
+
+def ai_provide_psychological_support(reason):
+    """Provides psychological support based on user's mood reason."""
+    prompt = f"""
+    Foydalanuvchi kayfiyati yomonligini aytdi. Sababi: "{reason}"
+    
+    Vazifa:
+    - Unga qisqa, dalda beruvchi va psixologik yordam beruvchi xabar yoz.
+    - Agar muammo jiddiy bo'lsa, oddiy maslahat ber (nafas olish mashqi, sayr qilish, va h.k.).
+    - Do'stona va samimiy ohangda bo'lsin.
+    - Maksimal 500 belgi.
+    - O'zbek tilida.
+    
+    Javob formati:
+    💆‍♂️ <b>Psixologik Yordam</b>
+    
+    [Matn]
+    """
+    
+    response_text = call_gemini(prompt)
+    if response_text:
+        return response_text
+    return "Tushunaman, ba'zida shunday kunlar bo'ladi. O'zingizni ehtiyot qiling va chuqur nafas oling. 💚"
