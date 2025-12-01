@@ -1,26 +1,11 @@
 from telebot import types
 from core.db import db
 from core.ai import analyze_food_image, analyze_food_text
-from bot import onboarding
-from bot.premium import require_premium
+from bot.onboarding import delete_tracked_messages
 
-# States
-STATE_CALORIE_PHOTO = "calorie_photo_upload"
-STATE_CALORIE_TEXT = "calorie_text_input"
+# ... (imports)
 
-def show_calorie_menu(message, bot):
-    markup = types.InlineKeyboardMarkup()
-    markup.add(
-        types.InlineKeyboardButton("📷 Rasm orqali", callback_data="calorie_mode_photo"),
-        types.InlineKeyboardButton("📝 Matn orqali", callback_data="calorie_mode_text")
-    )
-    
-    bot.send_message(
-        message.chat.id,
-        "🍽 **Kaloriya Skaneri**\n\nKaloriyani qanday aniqlamoqchisiz?",
-        reply_markup=markup,
-        parse_mode="Markdown"
-    )
+# ... (show_calorie_menu)
 
 def calorie_mode_callback(call, bot):
     user_id = call.from_user.id
@@ -43,31 +28,29 @@ def calorie_mode_callback(call, bot):
 
     if mode == 'photo':
         onboarding.manager.set_state(user_id, STATE_CALORIE_PHOTO)
-        bot.send_message(
+        msg = bot.send_message(
             user_id,
             "📷 **Rasm yuboring**\n\nOvqatingizni yaqin masofadan, yorug‘likda suratga oling va shu yerga yuboring.",
             parse_mode="Markdown"
         )
+        onboarding.manager.track_message(user_id, msg.message_id)
     elif mode == 'text':
         onboarding.manager.set_state(user_id, STATE_CALORIE_TEXT)
-        bot.send_message(
+        msg = bot.send_message(
             user_id,
             "📝 **Ovqatni tasvirlang**\n\nOvqat tarkibi va porsiyasini yozing.\nMasalan: \"200 g qaynatilgan guruch, 150 g tovuq filesi, 1 osh qoshiq yog'\"."
         )
+        onboarding.manager.track_message(user_id, msg.message_id)
     
     bot.answer_callback_query(call.id)
 
 @require_premium
 def handle_calorie_photo(message, bot):
     user_id = message.from_user.id
+    onboarding.manager.track_message(user_id, message.message_id)
     
-    # The limit check is now handled by the @require_premium decorator.
-    # allowed, _ = db.check_calorie_limit(user_id)
-    # if not allowed:
-    #     bot.send_message(user_id, "🚫 Limit tugadi. Premium oling.")
-    #     return
-
     status_msg = bot.send_message(user_id, "⏳ **Tahlil qilinmoqda...**", parse_mode="Markdown")
+    onboarding.manager.track_message(user_id, status_msg.message_id)
     
     try:
         file_info = bot.get_file(message.photo[-1].file_id)
@@ -77,41 +60,43 @@ def handle_calorie_photo(message, bot):
         
         if result:
             db.increment_calorie_usage(user_id)
-            bot.edit_message_text(result, user_id, status_msg.message_id, parse_mode="HTML")
+            # Send result as new message instead of edit to keep it after cleanup
+            bot.send_message(user_id, result, parse_mode="HTML")
+            # bot.edit_message_text(result, user_id, status_msg.message_id, parse_mode="HTML") 
         else:
-            send_fallback_message(bot, user_id, status_msg.message_id)
+            send_fallback_message(bot, user_id)
             
     except Exception as e:
         print(f"Photo Handler Error: {e}")
-        send_fallback_message(bot, user_id, status_msg.message_id)
+        send_fallback_message(bot, user_id)
     
+    delete_tracked_messages(user_id, bot)
     onboarding.manager.clear_user(user_id)
 
 @require_premium
 def handle_calorie_text(message, bot):
     user_id = message.from_user.id
-    
-    # The limit check is now handled by the @require_premium decorator.
-    # allowed, _ = db.check_calorie_limit(user_id)
-    # if not allowed:
-    #     bot.send_message(user_id, "🚫 Limit tugadi. Premium oling.")
-    #     return
+    onboarding.manager.track_message(user_id, message.message_id)
 
     status_msg = bot.send_message(user_id, "⏳ **Hisoblanmoqda...**", parse_mode="Markdown")
+    onboarding.manager.track_message(user_id, status_msg.message_id)
     
     try:
         result = analyze_food_text(message.text)
         
         if result:
             db.increment_calorie_usage(user_id)
-            bot.edit_message_text(result, user_id, status_msg.message_id, parse_mode="HTML")
+            # Send result as new message
+            bot.send_message(user_id, result, parse_mode="HTML")
+            # bot.edit_message_text(result, user_id, status_msg.message_id, parse_mode="HTML")
         else:
-            send_fallback_message(bot, user_id, status_msg.message_id)
+            send_fallback_message(bot, user_id)
             
     except Exception as e:
         print(f"Text Handler Error: {e}")
-        send_fallback_message(bot, user_id, status_msg.message_id)
+        send_fallback_message(bot, user_id)
         
+    delete_tracked_messages(user_id, bot)
     onboarding.manager.clear_user(user_id)
 
 def send_fallback_message(bot, chat_id, message_id=None):

@@ -3,26 +3,27 @@ from core.ai import call_gemini, format_gemini_text
 from core.db import db
 from bot.premium import require_premium
 
-from bot.keyboards import ai_inline_keyboard
+from bot.onboarding import delete_tracked_messages
+from bot import onboarding
 
-def handle_ai_tools_menu(message, bot):
-    bot.send_message(
-        message.chat.id,
-        "🎯 **Shaxsiy Murabbiy**\n\nQanday yordam bera olaman?",
-        reply_markup=ai_inline_keyboard(),
-        parse_mode="Markdown"
-    )
+# ... (imports)
+
+# ... (handle_ai_tools_menu)
 
 @require_premium
 def handle_ai_qa(message, bot):
     msg = bot.send_message(message.chat.id, "❓ Savolingizni yozing:")
+    onboarding.manager.track_message(message.from_user.id, msg.message_id)
     bot.register_next_step_handler(msg, process_ai_qa, bot)
 
 def process_ai_qa(message, bot):
     user_id = message.from_user.id
+    onboarding.manager.track_message(user_id, message.message_id)
+    
     question = message.text
     
-    bot.send_message(user_id, "🤖 **Javob tayyorlanmoqda...**", parse_mode="Markdown")
+    status_msg = bot.send_message(user_id, "🤖 **Javob tayyorlanmoqda...**", parse_mode="Markdown")
+    onboarding.manager.track_message(user_id, status_msg.message_id)
     
     try:
         # Assuming ai_answer_question is a new function that needs to be defined or imported
@@ -43,6 +44,9 @@ def process_ai_qa(message, bot):
             bot.send_message(user_id, "❌ AI band. Keyinroq urining.")
     except Exception as e:
         bot.send_message(user_id, "❌ Xatolik yuz berdi.")
+        
+    delete_tracked_messages(user_id, bot)
+    onboarding.manager.clear_user(user_id)
 
 @require_premium
 def handle_shopping_list(message, bot, user_id=None):
@@ -80,11 +84,16 @@ def handle_shopping_list(message, bot, user_id=None):
 @require_premium
 def handle_recipe_gen(message, bot):
     msg = bot.send_message(message.chat.id, "🍳 **Muzlatgichda nima bor?**\n\nMahsulotlarni yozing (masalan: tuxum, pomidor, pishloq), men retsept tuzib beraman:", reply_markup=types.ForceReply())
+    onboarding.manager.track_message(message.from_user.id, msg.message_id)
     bot.register_next_step_handler(msg, process_recipe_input, bot)
 
 def process_recipe_input(message, bot):
+    user_id = message.from_user.id
+    onboarding.manager.track_message(user_id, message.message_id)
+    
     ingredients = message.text
     status_msg = bot.send_message(message.chat.id, "⏳ **Retsept yaratilmoqda...**", parse_mode="Markdown")
+    onboarding.manager.track_message(user_id, status_msg.message_id)
     
     prompt = f"""
     Mavjud mahsulotlar: {ingredients}
@@ -108,9 +117,14 @@ def process_recipe_input(message, bot):
     
     response = call_gemini(prompt)
     if response:
-        bot.edit_message_text(format_gemini_text(response, "AI Retsept"), message.chat.id, status_msg.message_id, parse_mode="HTML")
+        # Send as new message
+        bot.send_message(message.chat.id, format_gemini_text(response, "AI Retsept"), parse_mode="HTML")
+        # bot.edit_message_text(format_gemini_text(response, "AI Retsept"), message.chat.id, status_msg.message_id, parse_mode="HTML")
     else:
-        bot.edit_message_text("❌ AI band. Keyinroq urining.", message.chat.id, status_msg.message_id)
+        bot.send_message(message.chat.id, "❌ AI band. Keyinroq urining.")
+        
+    delete_tracked_messages(user_id, bot)
+    onboarding.manager.clear_user(user_id)
 
 @require_premium
 def handle_weekly_report(message, bot, user_id=None):

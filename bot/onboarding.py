@@ -390,7 +390,7 @@ def finish_onboarding(user_id, message, bot):
     # manager.clear_user(user_id) # Moved to after deletion to keep msg_ids
     
     # Delete Onboarding Messages
-    delete_onboarding_messages(user_id, bot)
+    delete_tracked_messages(user_id, bot)
     manager.clear_user(user_id) # Now clear
     
     # Send welcome message
@@ -517,8 +517,8 @@ def register_handlers(bot):
 
 
 
-def delete_onboarding_messages(user_id, bot):
-    """Deletes all tracked messages during onboarding"""
+def delete_tracked_messages(user_id, bot):
+    """Deletes all tracked messages"""
     msg_ids = manager.get_messages(user_id)
     if not msg_ids:
         return

@@ -76,6 +76,12 @@ def process_water_callback(call, bot):
         parse_mode="Markdown"
     )
 
+from bot.onboarding import delete_tracked_messages
+
+# ... (imports)
+
+# ... (handle_water_tracker, process_water_callback)
+
 # --- Steps Tracker ---
 def handle_steps_tracker(message, bot, user_id=None):
     if user_id is None:
@@ -84,19 +90,24 @@ def handle_steps_tracker(message, bot, user_id=None):
     from bot import onboarding
     onboarding.manager.set_state(user_id, STATE_STEPS_INPUT)
     
-    bot.send_message(
+    msg = bot.send_message(
         user_id,
         "🚶 **Qadamlar**\n\nBugun qancha qadam yurdingiz? (Raqam kiriting)\n\n"
         "Har 10,000 qadam uchun 5 ball beriladi! 🎁",
         parse_mode="Markdown"
     )
+    onboarding.manager.track_message(user_id, msg.message_id)
 
 def process_steps_input(message, bot):
     user_id = message.from_user.id
+    from bot import onboarding
+    onboarding.manager.track_message(user_id, message.message_id)
+    
     text = message.text.strip()
     
     if not text.isdigit():
-        bot.send_message(user_id, "Iltimos, faqat raqam kiriting.")
+        msg = bot.send_message(user_id, "Iltimos, faqat raqam kiriting.")
+        onboarding.manager.track_message(user_id, msg.message_id)
         return
         
     steps = int(text)
@@ -113,7 +124,7 @@ def process_steps_input(message, bot):
     else:
         bot.send_message(user_id, f"✅ Qabul qilindi: {steps} qadam.\n10,000 ga yetkazishga harakat qiling! 💪")
         
-    from bot import onboarding
+    delete_tracked_messages(user_id, bot)
     onboarding.manager.clear_user(user_id)
 
 # --- Sleep Tracker ---
@@ -124,20 +135,25 @@ def handle_sleep_tracker(message, bot, user_id=None):
     from bot import onboarding
     onboarding.manager.set_state(user_id, STATE_SLEEP_INPUT)
     
-    bot.send_message(
+    msg = bot.send_message(
         user_id,
         "🌙 **Uyqu Monitoringi**\n\nBugun necha soat uxladingiz? (Raqam kiriting, masalan: 7.5)",
         parse_mode="Markdown"
     )
+    onboarding.manager.track_message(user_id, msg.message_id)
 
 def process_sleep_input(message, bot):
     user_id = message.from_user.id
+    from bot import onboarding
+    onboarding.manager.track_message(user_id, message.message_id)
+    
     text = message.text.strip().replace(',', '.')
     
     try:
         hours = float(text)
     except ValueError:
-        bot.send_message(user_id, "Iltimos, to'g'ri raqam kiriting.")
+        msg = bot.send_message(user_id, "Iltimos, to'g'ri raqam kiriting.")
+        onboarding.manager.track_message(user_id, msg.message_id)
         return
         
     today = datetime.now().strftime("%Y-%m-%d")
@@ -150,26 +166,11 @@ def process_sleep_input(message, bot):
     else:
         bot.send_message(user_id, f"✅ Qabul qilindi: {hours} soat.\nSog'lom bo'lish uchun kamida 8 soat uxlashga harakat qiling.")
         
-    from bot import onboarding
+    delete_tracked_messages(user_id, bot)
     onboarding.manager.clear_user(user_id)
 
 # --- Mood Tracker ---
-def handle_mood_tracker(message, bot, user_id=None):
-    if user_id is None:
-        user_id = message.from_user.id
-    markup = types.InlineKeyboardMarkup()
-    markup.add(
-        types.InlineKeyboardButton("😞 Yomon", callback_data="track_mood_bad"),
-        types.InlineKeyboardButton("😐 O'rtacha", callback_data="track_mood_ok"),
-        types.InlineKeyboardButton("😊 A'lo", callback_data="track_mood_good")
-    )
-    
-    bot.send_message(
-        user_id,
-        "🧠 **Kayfiyat Kundaligi**\n\nBugun o'zingizni qanday his qilyapsiz?",
-        reply_markup=markup,
-        parse_mode="Markdown"
-    )
+# ... (handle_mood_tracker)
 
 def process_mood_callback(call, bot):
     user_id = call.from_user.id
@@ -179,12 +180,7 @@ def process_mood_callback(call, bot):
     db.update_daily_log(user_id, today, mood=mood)
     
     if mood == 'good':
-        # 0.5 points (rounded to 1 for integer DB, or need float support? DB is int. Let's give 1 point to be generous or 0.5 if we change DB)
-        # User asked for 0.5. DB points is INTEGER. I should probably change DB or just give 1 point every 2 days?
-        # Or just give 1 point. Let's give 1 point for now as 0.5 is hard with Int.
-        # Wait, I can't change DB type easily now. Let's give 1 point but say it's bonus.
-        # Or maybe store as float? No, let's stick to int.
-        # Let's give 1 point.
+        # ... (good mood logic)
         db.add_points(user_id, 1) 
         db.update_streak(user_id, 'mood')
         
@@ -202,6 +198,13 @@ def process_mood_callback(call, bot):
         onboarding.manager.set_state(user_id, STATE_MOOD_REASON)
         
         bot.answer_callback_query(call.id)
+        # We edit the message, so we don't need to track the old one, but we should track this new edited one if we want to delete it later?
+        # Actually, if we edit, the message ID stays the same. 
+        # But wait, this message is the Mood Menu message. Do we want to delete the Mood Menu after input?
+        # Yes, usually.
+        # So let's track the message ID of the callback message.
+        onboarding.manager.track_message(user_id, call.message.message_id)
+        
         bot.edit_message_text(
             "😔 **Tushunaman...**\n\nNega kayfiyatingiz yomon? Qisqacha yozib yuboring, balki yordam bera olarman.",
             call.message.chat.id,
@@ -219,6 +222,9 @@ def process_mood_callback(call, bot):
 
 def process_mood_reason(message, bot):
     user_id = message.from_user.id
+    from bot import onboarding
+    onboarding.manager.track_message(user_id, message.message_id)
+    
     reason = message.text
     today = datetime.now().strftime("%Y-%m-%d")
     
@@ -233,7 +239,7 @@ def process_mood_reason(message, bot):
     
     bot.send_message(user_id, support_msg, parse_mode="HTML")
     
-    from bot import onboarding
+    delete_tracked_messages(user_id, bot)
     onboarding.manager.clear_user(user_id)
 
 # --- Main Habits Menu ---
