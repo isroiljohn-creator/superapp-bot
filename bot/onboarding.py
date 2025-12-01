@@ -334,14 +334,11 @@ def finish_onboarding(user_id, message, bot):
         cursor = conn.cursor()
         cursor.execute("UPDATE users SET trial_start = ?, trial_used = 1 WHERE telegram_id = ?", (now.isoformat(), user_id))
         conn.commit()
+        conn.commit()
         conn.close()
         
-        bot.send_message(
-            user_id,
-            f"🎁 **Sizga {trial_days} kunlik Premium sinov muddati yoqildi!**\n\n"
-            "Barcha AI xizmatlar (Mashqlar, Ovqatlanish, Retseptlar) siz uchun ochiq. 🔥",
-            parse_mode="Markdown"
-        )
+        # Trial message removed, merged with welcome message below
+        
     except Exception as e:
         print(f"Error activating trial: {e}")
     
@@ -361,11 +358,23 @@ def finish_onboarding(user_id, message, bot):
     manager.clear_user(user_id)
     
     # Send welcome message
+    welcome_text = (
+        "✅ **Ro‘yxatdan o‘tdingiz! YASHA ga xush kelibsiz.**\n\n"
+        "🎁 **Sizga 5 kunlik Premium sinov ochildi** - hech qanday cheklovsiz barcha AI xizmatlardan foydalanishingiz mumkin.\n\n"
+        "Bu 5 kun ichida siz:\n"
+        "- shaxsiylashtirilgan mashqlar rejasiga ega bo‘lasiz\n"
+        "- o‘zingizga mos ovqatlanish rejasini olasiz\n"
+        "- individual retseptlardan foydalanasiz\n"
+        "- shaxsiy psixolog va odatlar murabbiyiga ega bo'lasiz\n\n"
+        "Bu shunchaki “bot” emas. Bu sog‘lom hayotga kirish uchun birinchi qadam. Agar odatlaringizni o‘zgartirmoqchi bo‘lsangiz, mana shu yerda boshlanadi.\n\n"
+        "Quyidagi tugmalar orqali o‘z rejangizni ishga tushiring 👇"
+    )
+    
     bot.send_message(
         user_id,
-        f"✅ Ro'yxatdan o'tdingiz!\n\n"
-        f"YASHA ga xush kelibsiz. Pastdagi tugmalar orqali botdan foydalanishingiz mumkin 👇",
-        reply_markup=main_menu_keyboard()
+        welcome_text,
+        reply_markup=main_menu_keyboard(),
+        parse_mode="Markdown"
     )
 
 def register_handlers(bot):
