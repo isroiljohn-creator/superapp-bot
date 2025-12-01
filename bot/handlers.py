@@ -40,7 +40,7 @@ def register_all_handlers(bot):
         # Fallback for older versions or if method missing
         print("Warning: register_middleware_handler not found. Logging might be limited.")
     # --- Calorie Handlers ---
-    @bot.message_handler(func=lambda message: message.text == "🍽 Kaloriya tahlili (premium)" or message.text == "🍽 Kaloriya skaneri")
+    @bot.message_handler(func=lambda message: message.text == "🍽 Kaloriya tahlili (premium)" or message.text == "🍽 Kaloriya skaneri" or message.text == "🍽 Kaloriya tahlili")
     def calorie_handler(message):
         calorie_scanner.show_calorie_menu(message, bot)
 
@@ -65,9 +65,9 @@ def register_all_handlers(bot):
     def back_to_premium(message):
         premium.handle_premium_menu(message, bot)
 
-    @bot.message_handler(func=lambda message: message.text == "🏋️ Mening Rejam")
-    def menu_plan(message):
-        workout.handle_plan_menu(message, bot)
+    # @bot.message_handler(func=lambda message: message.text == "🏋️ Mening Rejam")
+    # def menu_plan(message):
+    #     workout.handle_plan_menu(message, bot)
 
     @bot.message_handler(func=lambda message: message.text == "🔁 Odatlar")
     def menu_habits(message):

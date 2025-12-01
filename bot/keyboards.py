@@ -43,7 +43,7 @@ def allergy_keyboard():
 def main_menu_keyboard():
     markup = ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
     
-    markup.add(KeyboardButton("🏋️ Mening Rejam"), KeyboardButton("🔁 Odatlar"))
+    markup.add(KeyboardButton("🍽 Kaloriya tahlili"), KeyboardButton("🔁 Odatlar"))
     markup.add(KeyboardButton("🎯 Shaxsiy Murabbiy"), KeyboardButton("🔥 Chellenjlar"))
     markup.add(KeyboardButton("💎 Premium"), KeyboardButton("👤 Profil"))
     markup.add(KeyboardButton("🔗 Referal"), KeyboardButton("📩 Qayta aloqa"))
