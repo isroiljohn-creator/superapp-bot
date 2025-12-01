@@ -46,8 +46,7 @@ def main_menu_keyboard():
     markup.add(KeyboardButton("🏋️ Mening Rejam"), KeyboardButton("🔁 Odatlar"))
     markup.add(KeyboardButton("🎯 Shaxsiy Murabbiy"), KeyboardButton("🔥 Chellenjlar"))
     markup.add(KeyboardButton("💎 Premium"), KeyboardButton("👤 Profil"))
-    markup.add(KeyboardButton("🔗 Referal"))
-    markup.add(KeyboardButton("📩 Qayta aloqa"))
+    markup.add(KeyboardButton("🔗 Referal"), KeyboardButton("📩 Qayta aloqa"))
     
     return markup
 
