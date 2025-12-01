@@ -267,7 +267,7 @@ def register_all_handlers(bot):
     def profile_callback(call):
         action = call.data.replace('profile_', '')
         if action == 'edit': profile.handle_edit_profile_command(call.message, bot)
-        elif action == 'stats': profile.handle_profile_stats(call.message, bot)
+        elif action == 'stats': profile.handle_profile_stats(call.message, bot, user_id=call.from_user.id)
         elif action == 'change_goal': profile.handle_change_goal_command(call.message, bot)
         bot.answer_callback_query(call.id)
 

@@ -59,9 +59,14 @@ def handle_edit_profile_command(message, bot):
     )
     bot.send_message(message.chat.id, "✏️ **Nimani o'zgartirmoqchisiz?**", reply_markup=markup, parse_mode="Markdown")
 
-def handle_profile_stats(message, bot):
-    user_id = message.from_user.id
+def handle_profile_stats(message, bot, user_id=None):
+    if user_id is None:
+        user_id = message.from_user.id
     user = db.get_user(user_id)
+    
+    if not user:
+        bot.send_message(message.chat.id, "Foydalanuvchi topilmadi.")
+        return
     # Simple stats for now
     text = (
         "📊 **Sog'liq Statistikasi**\n\n"
