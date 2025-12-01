@@ -17,6 +17,8 @@ STATE_WEIGHT = 6
 STATE_ACTIVITY = 9 # New state
 STATE_GOAL = 7
 STATE_ALLERGY = 8
+STATE_CALORIE_PHOTO = 10
+STATE_CALORIE_TEXT = 11
 
 class OnboardingManager:
     def __init__(self):
