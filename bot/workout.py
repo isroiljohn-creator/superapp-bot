@@ -1,4 +1,4 @@
-from core.db import db
+Qfrom core.db import db
 from core.ai import ai_generate_workout, ai_generate_menu
 from bot.keyboards import plan_inline_keyboard
 from bot.premium import require_premium
@@ -106,6 +106,7 @@ def generate_ai_meal(message, bot, user_id=None):
     
     try:
         response = ai_generate_menu(prompt)
-        bot.send_message(user_id, response, parse_mode="Markdown")
+        bot.send_message(user_id, response, parse_mode="HTML")
     except Exception as e:
+        print(f"ERROR in generate_ai_meal: {e}")
         bot.send_message(user_id, "❌ Xatolik yuz berdi. Keyinroq urinib ko'ring.")
