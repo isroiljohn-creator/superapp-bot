@@ -5,6 +5,8 @@ from core.db import db
 from bot.handlers import register_all_handlers
 from bot.reminders import start_reminder_thread
 
+from telebot import apihelper
+
 # Load environment variables
 load_dotenv()
 BOT_TOKEN = os.getenv("BOT_TOKEN")
@@ -12,6 +14,9 @@ BOT_TOKEN = os.getenv("BOT_TOKEN")
 if not BOT_TOKEN:
     print("Error: BOT_TOKEN not found in .env file.")
     exit(1)
+
+# Enable Middleware
+apihelper.ENABLE_MIDDLEWARE = True
 
 # Initialize Bot
 bot = telebot.TeleBot(BOT_TOKEN)
