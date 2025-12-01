@@ -27,7 +27,6 @@ class Database:
                     username TEXT,
                     full_name TEXT,
                     phone TEXT,
-                    language TEXT DEFAULT 'uz',
                     referral_code TEXT UNIQUE,
                     age INTEGER,
                     gender TEXT,
@@ -50,30 +49,238 @@ class Database:
                 )
             """)
             
-            # Activity Logs table
+            # Daily logs table for gamification
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS daily_logs (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_id INTEGER,
+                    date DATE,
+                    water_drank BOOLEAN DEFAULT 0,
+                    workout_done BOOLEAN DEFAULT 0,
+                    FOREIGN KEY (user_id) REFERENCES users (id),
+                    UNIQUE(user_id, date)
+                )
+            """)
+
+            # Feedback table
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS feedback (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_id INTEGER,
+                    message TEXT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (user_id) REFERENCES users (id)
+                )
+            """)
+
+            # Orders table
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS orders (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    order_id TEXT UNIQUE,
+                    user_id INTEGER,
+                    days INTEGER,
+                    amount INTEGER,
+                    currency TEXT,
+                    status TEXT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (user_id) REFERENCES users (id)
+                )
+            """)
+            
+            # Activity Logs table (generic)
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS activity_logs (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     user_id INTEGER,
                     type TEXT,
-                    content TEXT,
-                    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    payload TEXT,
+                    ts TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (user_id) REFERENCES users (id)
                 )
             """)
-            
-            # ... (rest of init_db)
 
             # Migrations
             try:
-                cursor.execute("ALTER TABLE users ADD COLUMN language TEXT DEFAULT 'uz'")
+                cursor.execute("ALTER TABLE users ADD COLUMN last_checkin DATE")
+            except sqlite3.OperationalError:
+                pass
+            
+            try:
+                cursor.execute("ALTER TABLE users ADD COLUMN active BOOLEAN DEFAULT 1")
             except sqlite3.OperationalError:
                 pass
 
-            # ... (rest of migrations)
+            try:
+                cursor.execute("ALTER TABLE orders ADD COLUMN days INTEGER")
+            except sqlite3.OperationalError:
+                pass
 
-    # ... (rest of methods)
+            try:
+                cursor.execute("ALTER TABLE users ADD COLUMN updated_at TIMESTAMP")
+            except sqlite3.OperationalError:
+                pass
+                
+            try:
+                cursor.execute("ALTER TABLE users ADD COLUMN activity_level TEXT")
+            except sqlite3.OperationalError:
+                pass
 
-    def add_user(self, telegram_id, username, phone, referral_code=None, language='uz'):
+            # Phase 2 Columns
+            try:
+                cursor.execute("ALTER TABLE users ADD COLUMN yasha_points INTEGER DEFAULT 0")
+            except sqlite3.OperationalError:
+                pass
+            try:
+                cursor.execute("ALTER TABLE users ADD COLUMN streak_water INTEGER DEFAULT 0")
+            except sqlite3.OperationalError:
+                pass
+            try:
+                cursor.execute("ALTER TABLE users ADD COLUMN streak_sleep INTEGER DEFAULT 0")
+            except sqlite3.OperationalError:
+                pass
+            try:
+                cursor.execute("ALTER TABLE users ADD COLUMN streak_mood INTEGER DEFAULT 0")
+            except sqlite3.OperationalError:
+                pass
+
+            # Daily Logs Migrations for Gamification
+            try:
+                cursor.execute("ALTER TABLE daily_logs ADD COLUMN water_ml INTEGER DEFAULT 0")
+            except sqlite3.OperationalError:
+                pass
+            try:
+                cursor.execute("ALTER TABLE daily_logs ADD COLUMN steps INTEGER DEFAULT 0")
+            except sqlite3.OperationalError:
+                pass
+            try:
+                cursor.execute("ALTER TABLE daily_logs ADD COLUMN sleep_hours REAL DEFAULT 0")
+            except sqlite3.OperationalError:
+                pass
+            try:
+                cursor.execute("ALTER TABLE daily_logs ADD COLUMN mood TEXT")
+            except sqlite3.OperationalError:
+                pass
+            try:
+                cursor.execute("ALTER TABLE daily_logs ADD COLUMN mood_reason TEXT")
+            except sqlite3.OperationalError:
+                pass
+
+            # Calorie Scanner Limits
+            try:
+                cursor.execute("ALTER TABLE users ADD COLUMN calorie_last_use_date TEXT")
+            except sqlite3.OperationalError:
+                pass
+            try:
+                cursor.execute("ALTER TABLE users ADD COLUMN calorie_daily_uses INTEGER DEFAULT 0")
+            except sqlite3.OperationalError:
+                pass
+
+            # Premium & Trial Columns
+            try:
+                cursor.execute("ALTER TABLE users ADD COLUMN trial_start TEXT")
+            except sqlite3.OperationalError:
+                pass
+            try:
+                cursor.execute("ALTER TABLE users ADD COLUMN trial_used INTEGER DEFAULT 0")
+            except sqlite3.OperationalError:
+                pass
+            try:
+                cursor.execute("ALTER TABLE users ADD COLUMN auto_renew INTEGER DEFAULT 0")
+            except sqlite3.OperationalError:
+                pass
+
+            # Calorie Logs
+            cursor.execute("""
+            CREATE TABLE IF NOT EXISTS calorie_logs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER,
+                total_kcal INTEGER,
+                json_data TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+            """)
+
+            # Workout Cache
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS workout_cache (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_id INTEGER,
+                    plan_text TEXT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (user_id) REFERENCES users (id)
+                )
+            """)
+
+            # Menu Cache
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS menu_cache (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_id INTEGER,
+                    menu_text TEXT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (user_id) REFERENCES users (id)
+                )
+            """)
+
+            # Admin Logs
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS admin_logs (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    admin_id INTEGER,
+                    action TEXT,
+                    target_id INTEGER,
+                    details TEXT,
+                    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+
+            conn.commit()
+            conn.close()
+
+    # ... (keep existing methods) ...
+
+    def log_activity(self, user_id, type, payload):
+        with self.lock:
+            conn = self.get_connection()
+            cursor = conn.cursor()
+            cursor.execute("INSERT INTO activity_logs (user_id, type, payload) VALUES (?, ?, ?)", (user_id, type, payload))
+            conn.commit()
+            conn.close()
+
+    def get_weight_history(self, user_id, limit=30):
+        with self.lock:
+            conn = self.get_connection()
+            cursor = conn.cursor()
+            # Get from activity_logs where type='weight_update'
+            # Payload is expected to be like '{"weight": 75.5}' or just '75.5' depending on implementation
+            # For simplicity, let's assume we log it as JSON or simple string.
+            # We'll return raw rows and parse in app.
+            cursor.execute("""
+                SELECT ts, payload FROM activity_logs 
+                WHERE user_id = ? AND type = 'weight_update' 
+                ORDER BY ts ASC
+            """, (user_id,))
+            logs = cursor.fetchall()
+            conn.close()
+            return logs
+
+    def get_checkin_history(self, user_id, days=7):
+        with self.lock:
+            conn = self.get_connection()
+            cursor = conn.cursor()
+            # Get from daily_logs
+            start_date = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%d")
+            cursor.execute("""
+                SELECT date, workout_done FROM daily_logs 
+                WHERE user_id = ? AND date >= ? 
+                ORDER BY date ASC
+            """, (user_id, start_date))
+            logs = cursor.fetchall()
+            conn.close()
+            return logs
+
+    def add_user(self, telegram_id, username, phone, referral_code=None):
         with self.lock:
             conn = self.get_connection()
             cursor = conn.cursor()
@@ -81,8 +288,8 @@ class Database:
             try:
                 print(f"DEBUG: Attempting to add user {telegram_id}")
                 cursor.execute(
-                    "INSERT OR IGNORE INTO users (telegram_id, username, phone, referral_code, language) VALUES (?, ?, ?, ?, ?)",
-                    (telegram_id, username, phone, ref_code, language)
+                    "INSERT OR IGNORE INTO users (telegram_id, username, phone, referral_code) VALUES (?, ?, ?, ?)",
+                    (telegram_id, username, phone, ref_code)
                 )
                 conn.commit()
                 print(f"DEBUG: User {telegram_id} added/ignored successfully.")
@@ -522,20 +729,6 @@ class Database:
                 
             conn.commit()
             conn.close()
-
-
-
-    def log_activity(self, user_id, type_, content):
-        with self.lock:
-            conn = self.get_connection()
-            cursor = conn.cursor()
-            try:
-                cursor.execute("INSERT INTO activity_logs (user_id, type, content) VALUES (?, ?, ?)", (user_id, type_, content))
-                conn.commit()
-            except Exception as e:
-                print(f"Error logging activity: {e}")
-            finally:
-                conn.close()
 
     def log_calorie_check(self, user_id, total_kcal, json_data):
         with self.lock:

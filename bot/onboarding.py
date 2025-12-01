@@ -17,8 +17,6 @@ STATE_WEIGHT = 6
 STATE_ACTIVITY = 9 # New state
 STATE_GOAL = 7
 STATE_ALLERGY = 8
-STATE_CALORIE_PHOTO = 10
-STATE_CALORIE_TEXT = 11
 
 class OnboardingManager:
     def __init__(self):
@@ -57,26 +55,17 @@ class OnboardingManager:
 
 manager = OnboardingManager()
 
-from bot.languages import get_text
-
-# ... (imports)
-
-# ... (OnboardingManager class)
-
-manager = OnboardingManager()
-
 def start_onboarding(message, bot):
-    """Step 0: Check if user exists, if not request Language FIRST"""
+    """Step 0: Check if user exists, if not request phone number FIRST"""
     user_id = message.from_user.id
     
     # Check if user already exists in database
     existing_user = db.get_user(user_id)
     if existing_user:
-        lang = existing_user.get('language', 'uz')
         bot.send_message(
             user_id, 
-            get_text("welcome", lang, name=message.from_user.first_name), 
-            reply_markup=main_menu_keyboard(lang)
+            "Asosiy menyuga qaytdingiz, pastdagi tugmalar orqali keyingi qadamni tanlang👇🏻", 
+            reply_markup=main_menu_keyboard()
         )
         return
     
@@ -100,94 +89,37 @@ def start_onboarding(message, bot):
     
     # Initialize onboarding
     manager.clear_user(user_id)
-    # manager.set_state(user_id, STATE_PHONE) # Don't set state yet, wait for lang
+    manager.set_state(user_id, STATE_PHONE)
     manager.update_data(user_id, 'referrer_id', referrer_id)
     manager.update_data(user_id, 'msg_ids', []) # Init message tracking
     
-    # Track user's start command
+    # Track user's start command if possible (message.message_id)
     manager.track_message(user_id, message.message_id)
     
-    # Language Selection
-    markup = types.InlineKeyboardMarkup()
-    markup.add(types.InlineKeyboardButton("🇺🇿 O'zbek", callback_data="lang_uz"))
-    markup.add(types.InlineKeyboardButton("🇷🇺 Русский", callback_data="lang_ru"))
-    markup.add(types.InlineKeyboardButton("🇬🇧 English", callback_data="lang_en"))
-    
     msg = bot.send_message(
         user_id,
-        "🇺🇿 Tilni tanlang / 🇷🇺 Выберите язык / 🇬🇧 Select language",
-        reply_markup=markup
-    )
-    manager.track_message(user_id, msg.message_id)
-
-def handle_language_callback(call, bot):
-    user_id = call.from_user.id
-    lang = call.data.split("_")[1]
-    
-    # Save language to manager
-    manager.update_data(user_id, "language", lang)
-    
-    # Delete selection message (or answer it)
-    bot.answer_callback_query(call.id)
-    # We don't delete it here because track_message handles cleanup later, 
-    # BUT for a smooth transition we might want to delete it or edit it.
-    # Let's delete it to keep chat clean as per "Cleanup" task.
-    # Actually, delete_tracked_messages is called at the END. 
-    # So we can leave it or delete it. Let's delete it to be clean immediately.
-    try:
-        bot.delete_message(user_id, call.message.message_id)
-    except:
-        pass
-    
-    # Ask for phone
-    manager.set_state(user_id, STATE_PHONE)
-    
-    markup = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
-    btn_text = "📱 Telefon raqamni yuborish" # Default fallback
-    if lang == "ru": btn_text = "📱 Отправить номер телефона"
-    elif lang == "en": btn_text = "📱 Send Phone Number"
-    
-    markup.add(types.KeyboardButton(btn_text, request_contact=True))
-    
-    text_key = "enter_phone" 
-    # Note: enter_phone key might not exist in languages.py yet, need to check/add it.
-    # I'll assume I need to add it or use a hardcoded fallback if missing.
-    # Let's use get_text with a default.
-    msg_text = get_text("enter_phone", lang)
-    if msg_text == "enter_phone": # Key missing
-        if lang == "ru": msg_text = "Отправьте ваш номер телефона:"
-        elif lang == "en": msg_text = "Please send your phone number:"
-        else: msg_text = "Telefon raqamingizni yuboring:"
-    
-    msg = bot.send_message(
-        user_id,
-        msg_text,
-        reply_markup=markup
+        "🎉 Assalomu alaykum! YASHA botiga xush kelibsiz.\n\n"
+        "Davom etish uchun telefon raqamingizni yuboring 👇",
+        reply_markup=phone_request_keyboard()
     )
     manager.track_message(user_id, msg.message_id)
 
 def process_phone(message, bot):
     user_id = message.from_user.id
-    user_data = manager.get_data(user_id)
-    lang = user_data.get("language", "uz")
     
     if manager.get_state(user_id) != STATE_PHONE:
         return
 
-    phone = None
-    if message.contact:
-        phone = message.contact.phone_number
-    elif message.text and message.text.replace('+', '').isdigit(): # Allow manual input if it looks like a phone number
-        phone = message.text
-    
-    if not phone:
+    if not message.contact:
         bot.send_message(
             user_id,
-            get_text("invalid_phone_format", lang),
-            reply_markup=phone_request_keyboard(lang)
+            "❌ Iltimos, telefon raqamingizni kontakt sifatida yuboring 👇\n\n"
+            "Pastdagi tugmani bosing:",
+            reply_markup=phone_request_keyboard()
         )
         return
     
+    phone = message.contact.phone_number
     manager.update_data(user_id, 'phone', phone)
     manager.set_state(user_id, STATE_NAME)
     
@@ -196,63 +128,55 @@ def process_phone(message, bot):
     
     msg = bot.send_message(
         user_id, 
-        get_text("enter_name", lang),
+        f"✅ Rahmat!\n\n"
+        f"Endi ismingizni kiriting:",
         reply_markup=types.ReplyKeyboardRemove()
     )
     manager.track_message(user_id, msg.message_id)
 
 def process_name(message, bot):
     user_id = message.from_user.id
-    user_data = manager.get_data(user_id)
-    lang = user_data.get("language", "uz")
     
     if manager.get_state(user_id) != STATE_NAME:
         return
     
     name = message.text.strip()
-    if not name:
-        bot.send_message(user_id, get_text("name_cannot_be_empty", lang))
-        return
-
     manager.update_data(user_id, 'name', name)
     manager.set_state(user_id, STATE_AGE)
     
     manager.track_message(user_id, message.message_id)
-    msg = bot.send_message(user_id, get_text("enter_age", lang, name=name))
+    msg = bot.send_message(user_id, f"Rahmat, {name}! Yoshingiz nechida? (faqat raqam)")
     manager.track_message(user_id, msg.message_id)
 
 def process_age(message, bot):
     user_id = message.from_user.id
-    user_data = manager.get_data(user_id)
-    lang = user_data.get("language", "uz")
     
     if manager.get_state(user_id) != STATE_AGE:
         return
     
     if not message.text.isdigit():
-        bot.send_message(user_id, get_text("enter_age_error", lang))
+        bot.send_message(user_id, "Iltimos, yoshingizni raqamda kiriting:")
         return
     
     age = int(message.text)
     if age < 10 or age > 120:
-        bot.send_message(user_id, get_text("enter_age_range_error", lang))
+        bot.send_message(user_id, "Yoshingizni to'g'ri kiriting (10-120 oralig'ida):")
         return
     
     manager.update_data(user_id, 'age', age)
     manager.set_state(user_id, STATE_GENDER)
     
     manager.track_message(user_id, message.message_id)
-    msg = bot.send_message(user_id, get_text("enter_gender", lang), reply_markup=gender_keyboard(lang))
+    msg = bot.send_message(user_id, "Jinsingizni tanlang:", reply_markup=gender_keyboard())
     manager.track_message(user_id, msg.message_id)
 
 def process_gender(call, bot):
     user_id = call.from_user.id
-    user_data = manager.get_data(user_id)
-    lang = user_data.get("language", "uz")
+    print(f"DEBUG: process_gender called for {user_id}, state: {manager.get_state(user_id)}")
     
     if manager.get_state(user_id) != STATE_GENDER:
         try:
-            bot.answer_callback_query(call.id, get_text("old_button", lang))
+            bot.answer_callback_query(call.id, "Eski tugma.")
         except:
             pass
         return
@@ -260,43 +184,44 @@ def process_gender(call, bot):
     gender = call.data
     manager.update_data(user_id, 'gender', gender)
     manager.set_state(user_id, STATE_HEIGHT)
+    print(f"DEBUG: State updated to STATE_HEIGHT for {user_id}")
     
     try:
         bot.answer_callback_query(call.id)
     except Exception as e:
-        pass
+        print(f"DEBUG: Error answering callback: {e}")
         
-    msg = bot.send_message(user_id, get_text("enter_height", lang))
+    msg = bot.send_message(user_id, "Bo'yingizni kiriting (sm):")
     manager.track_message(user_id, msg.message_id)
+    # Explicitly register next step handler as a backup for FSM
+    # bot.register_next_step_handler(msg, process_height, bot) 
+    # Actually, FSM should handle this via the generic handler in register_handlers
+    # But let's make sure the generic handler is catching it.
 
 def process_height(message, bot):
     user_id = message.from_user.id
-    user_data = manager.get_data(user_id)
-    lang = user_data.get("language", "uz")
     
     if manager.get_state(user_id) != STATE_HEIGHT:
         return
     
     if not message.text.isdigit():
-        bot.send_message(user_id, get_text("enter_height_error", lang))
+        bot.send_message(user_id, "Iltimos, bo'yingizni raqamda kiriting (sm):")
         return
     
     height = int(message.text)
     if height < 50 or height > 250:
-        bot.send_message(user_id, get_text("enter_height_range_error", lang))
+        bot.send_message(user_id, "Bo'yingizni to'g'ri kiriting (50-250 sm):")
         return
     
     manager.update_data(user_id, 'height', height)
     manager.set_state(user_id, STATE_WEIGHT)
     
     manager.track_message(user_id, message.message_id)
-    msg = bot.send_message(user_id, get_text("enter_weight", lang))
+    msg = bot.send_message(user_id, "Vazningizni kiriting (kg):")
     manager.track_message(user_id, msg.message_id)
 
 def process_weight(message, bot):
     user_id = message.from_user.id
-    user_data = manager.get_data(user_id)
-    lang = user_data.get("language", "uz")
     
     if manager.get_state(user_id) != STATE_WEIGHT:
         return
@@ -306,24 +231,22 @@ def process_weight(message, bot):
         if weight < 20 or weight > 300:
             raise ValueError
     except ValueError:
-        bot.send_message(user_id, get_text("enter_weight_error", lang))
+        bot.send_message(user_id, "Vazningizni to'g'ri kiriting (20-300 kg):")
         return
     
     manager.update_data(user_id, 'weight', weight)
     manager.set_state(user_id, STATE_ACTIVITY)
     
     manager.track_message(user_id, message.message_id)
-    msg = bot.send_message(user_id, get_text("choose_activity", lang), reply_markup=activity_level_keyboard(lang))
+    msg = bot.send_message(user_id, "Jismoniy faollik darajangizni tanlang:", reply_markup=activity_level_keyboard())
     manager.track_message(user_id, msg.message_id)
 
 def process_activity(call, bot):
     user_id = call.from_user.id
-    user_data = manager.get_data(user_id)
-    lang = user_data.get("language", "uz")
     
     if manager.get_state(user_id) != STATE_ACTIVITY:
         try:
-            bot.answer_callback_query(call.id, get_text("old_button", lang))
+            bot.answer_callback_query(call.id, "Eski tugma.")
         except:
             pass
         return
@@ -337,17 +260,15 @@ def process_activity(call, bot):
     except:
         pass
         
-    msg = bot.send_message(user_id, get_text("choose_goal", lang), reply_markup=goal_keyboard(lang))
+    msg = bot.send_message(user_id, "Maqsadingizni tanlang:", reply_markup=goal_keyboard())
     manager.track_message(user_id, msg.message_id)
 
 def process_goal(call, bot):
     user_id = call.from_user.id
-    user_data = manager.get_data(user_id)
-    lang = user_data.get("language", "uz")
     
     if manager.get_state(user_id) != STATE_GOAL:
         try:
-            bot.answer_callback_query(call.id, get_text("old_button", lang))
+            bot.answer_callback_query(call.id, "Eski tugma.")
         except:
             pass
         return
@@ -361,17 +282,15 @@ def process_goal(call, bot):
     except:
         pass
         
-    msg = bot.send_message(user_id, get_text("allergy_question", lang), reply_markup=allergy_keyboard(lang))
+    msg = bot.send_message(user_id, "Hastaligingiz yoki allergiyangiz mavjudmi?", reply_markup=allergy_keyboard())
     manager.track_message(user_id, msg.message_id)
 
 def process_allergy(call, bot):
     user_id = call.from_user.id
-    user_data = manager.get_data(user_id)
-    lang = user_data.get("language", "uz")
     
     if manager.get_state(user_id) != STATE_ALLERGY:
         try:
-            bot.answer_callback_query(call.id, get_text("old_button", lang))
+            bot.answer_callback_query(call.id, "Eski tugma.")
         except:
             pass
         return
@@ -388,7 +307,8 @@ def process_allergy(call, bot):
         manager.set_state(user_id, STATE_NONE)  # Temporarily exit FSM for text input
         msg = bot.send_message(
             user_id,
-            get_text("allergy_details_prompt", lang),
+            "📝 Qanday hastalik yoki nima mahsulotlarga allergiyangiz bor?\n\n"
+            "Masalan: yong'oq, sut, tuxum, gluten, dengiz mahsulotlari",
             reply_markup=types.ReplyKeyboardRemove()
         )
         manager.track_message(user_id, msg.message_id)
@@ -412,14 +332,12 @@ def process_allergy_details(message, bot):
 def finish_onboarding(user_id, message, bot):
     data = manager.get_data(user_id)
     referrer_id = data.get('referrer_id')
-    lang = data.get("language", "uz")
     
     # Add user to database
     db.add_user(
         telegram_id=user_id,
         username=message.chat.username or f"user_{user_id}",
-        phone=data.get('phone'),
-        language=lang
+        phone=data.get('phone')
     )
     
     # Update profile
@@ -451,6 +369,8 @@ def finish_onboarding(user_id, message, bot):
         conn.commit()
         conn.close()
         
+        # Trial message removed, merged with welcome message below
+        
     except Exception as e:
         print(f"Error activating trial: {e}")
     
@@ -466,17 +386,30 @@ def finish_onboarding(user_id, message, bot):
         except:
             pass
     
+    # Clear state
+    # manager.clear_user(user_id) # Moved to after deletion to keep msg_ids
+    
     # Delete Onboarding Messages
     delete_tracked_messages(user_id, bot)
     manager.clear_user(user_id) # Now clear
     
     # Send welcome message
-    welcome_text = get_text("onboarding_complete", lang) + "\n\n" + get_text("premium_desc", lang)
+    welcome_text = (
+        "✅ **Ro‘yxatdan o‘tdingiz! YASHA ga xush kelibsiz.**\n\n"
+        "🎁 **Sizga 5 kunlik Premium sinov ochildi** - hech qanday cheklovsiz barcha AI xizmatlardan foydalanishingiz mumkin.\n\n"
+        "Bu 5 kun ichida siz:\n"
+        "- shaxsiylashtirilgan mashqlar rejasiga ega bo‘lasiz\n"
+        "- o‘zingizga mos ovqatlanish rejasini olasiz\n"
+        "- individual retseptlardan foydalanasiz\n"
+        "- shaxsiy psixolog va odatlar murabbiyiga ega bo'lasiz\n\n"
+        "Bu shunchaki “bot” emas. Bu sog‘lom hayotga kirish uchun birinchi qadam. Agar odatlaringizni o‘zgartirmoqchi bo‘lsangiz, mana shu yerda boshlanadi.\n\n"
+        "Quyidagi tugmalar orqali o‘z rejangizni ishga tushiring 👇"
+    )
     
     bot.send_message(
         user_id,
         welcome_text,
-        reply_markup=main_menu_keyboard(lang),
+        reply_markup=main_menu_keyboard(),
         parse_mode="Markdown"
     )
 
@@ -485,10 +418,6 @@ def register_handlers(bot):
     @bot.message_handler(commands=['start'])
     def handle_start(message):
         start_onboarding(message, bot)
-        
-    @bot.callback_query_handler(func=lambda call: call.data.startswith('lang_'))
-    def handle_language_selection(call):
-        handle_language_callback(call, bot)
     
     @bot.message_handler(content_types=['contact'])
     def handle_contact(message):

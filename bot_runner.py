@@ -22,9 +22,7 @@ apihelper.ENABLE_MIDDLEWARE = True
 bot = telebot.TeleBot(BOT_TOKEN)
 
 def main():
-    import uuid
-    instance_id = str(uuid.uuid4())[:8]
-    print(f"🚀 Fitness AI Bot ishga tushmoqda... (Instance ID: {instance_id})")
+    print("🚀 Fitness AI Bot ishga tushmoqda...")
     
     # Initialize Database
     db.init_db()
@@ -40,7 +38,6 @@ def main():
     
     # Start Polling
     print("🤖 Bot ishlamoqda...")
-    bot.remove_webhook()
 
     # Set Chat Menu Button (Mini App)
     webapp_url = os.getenv("WEBAPP_URL")
@@ -59,14 +56,10 @@ def main():
     else:
         print("⚠️ WEBAPP_URL topilmadi. Mini App tugmasi o'rnatilmadi.")
 
-    import time
-    
-    while True:
-        try:
-            bot.infinity_polling(timeout=10, long_polling_timeout=5)
-        except Exception as e:
-            print(f"Bot to‘xtadi (qayta ulanish 5 soniyadan so'ng): {e}")
-            time.sleep(5)
+    try:
+        bot.infinity_polling()
+    except Exception as e:
+        print(f"Bot to‘xtadi: {e}")
 
 if __name__ == "__main__":
     main()
