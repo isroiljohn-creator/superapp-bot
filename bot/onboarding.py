@@ -37,6 +37,16 @@ class OnboardingManager:
     def get_data(self, user_id):
         return self.user_data.get(user_id, {})
 
+    def track_message(self, user_id, message_id):
+        if user_id not in self.user_data:
+            self.user_data[user_id] = {}
+        if 'msg_ids' not in self.user_data[user_id]:
+            self.user_data[user_id]['msg_ids'] = []
+        self.user_data[user_id]['msg_ids'].append(message_id)
+
+    def get_messages(self, user_id):
+        return self.user_data.get(user_id, {}).get('msg_ids', [])
+
     def clear_user(self, user_id):
         if user_id in self.user_states:
             del self.user_states[user_id]
@@ -81,13 +91,18 @@ def start_onboarding(message, bot):
     manager.clear_user(user_id)
     manager.set_state(user_id, STATE_PHONE)
     manager.update_data(user_id, 'referrer_id', referrer_id)
+    manager.update_data(user_id, 'msg_ids', []) # Init message tracking
     
-    bot.send_message(
+    # Track user's start command if possible (message.message_id)
+    manager.track_message(user_id, message.message_id)
+    
+    msg = bot.send_message(
         user_id,
         "🎉 Assalomu alaykum! YASHA botiga xush kelibsiz.\n\n"
         "Davom etish uchun telefon raqamingizni yuboring 👇",
         reply_markup=phone_request_keyboard()
     )
+    manager.track_message(user_id, msg.message_id)
 
 def process_phone(message, bot):
     user_id = message.from_user.id
@@ -108,12 +123,16 @@ def process_phone(message, bot):
     manager.update_data(user_id, 'phone', phone)
     manager.set_state(user_id, STATE_NAME)
     
-    bot.send_message(
+    # Track user message
+    manager.track_message(user_id, message.message_id)
+    
+    msg = bot.send_message(
         user_id, 
         f"✅ Rahmat!\n\n"
         f"Endi ismingizni kiriting:",
         reply_markup=types.ReplyKeyboardRemove()
     )
+    manager.track_message(user_id, msg.message_id)
 
 def process_name(message, bot):
     user_id = message.from_user.id
@@ -125,7 +144,9 @@ def process_name(message, bot):
     manager.update_data(user_id, 'name', name)
     manager.set_state(user_id, STATE_AGE)
     
-    bot.send_message(user_id, f"Rahmat, {name}! Yoshingiz nechida? (faqat raqam)")
+    manager.track_message(user_id, message.message_id)
+    msg = bot.send_message(user_id, f"Rahmat, {name}! Yoshingiz nechida? (faqat raqam)")
+    manager.track_message(user_id, msg.message_id)
 
 def process_age(message, bot):
     user_id = message.from_user.id
@@ -145,7 +166,9 @@ def process_age(message, bot):
     manager.update_data(user_id, 'age', age)
     manager.set_state(user_id, STATE_GENDER)
     
-    bot.send_message(user_id, "Jinsingizni tanlang:", reply_markup=gender_keyboard())
+    manager.track_message(user_id, message.message_id)
+    msg = bot.send_message(user_id, "Jinsingizni tanlang:", reply_markup=gender_keyboard())
+    manager.track_message(user_id, msg.message_id)
 
 def process_gender(call, bot):
     user_id = call.from_user.id
@@ -169,6 +192,7 @@ def process_gender(call, bot):
         print(f"DEBUG: Error answering callback: {e}")
         
     msg = bot.send_message(user_id, "Bo'yingizni kiriting (sm):")
+    manager.track_message(user_id, msg.message_id)
     # Explicitly register next step handler as a backup for FSM
     # bot.register_next_step_handler(msg, process_height, bot) 
     # Actually, FSM should handle this via the generic handler in register_handlers
@@ -192,7 +216,9 @@ def process_height(message, bot):
     manager.update_data(user_id, 'height', height)
     manager.set_state(user_id, STATE_WEIGHT)
     
-    bot.send_message(user_id, "Vazningizni kiriting (kg):")
+    manager.track_message(user_id, message.message_id)
+    msg = bot.send_message(user_id, "Vazningizni kiriting (kg):")
+    manager.track_message(user_id, msg.message_id)
 
 def process_weight(message, bot):
     user_id = message.from_user.id
@@ -211,7 +237,9 @@ def process_weight(message, bot):
     manager.update_data(user_id, 'weight', weight)
     manager.set_state(user_id, STATE_ACTIVITY)
     
-    bot.send_message(user_id, "Jismoniy faollik darajangizni tanlang:", reply_markup=activity_level_keyboard())
+    manager.track_message(user_id, message.message_id)
+    msg = bot.send_message(user_id, "Jismoniy faollik darajangizni tanlang:", reply_markup=activity_level_keyboard())
+    manager.track_message(user_id, msg.message_id)
 
 def process_activity(call, bot):
     user_id = call.from_user.id
@@ -232,7 +260,8 @@ def process_activity(call, bot):
     except:
         pass
         
-    bot.send_message(user_id, "Maqsadingizni tanlang:", reply_markup=goal_keyboard())
+    msg = bot.send_message(user_id, "Maqsadingizni tanlang:", reply_markup=goal_keyboard())
+    manager.track_message(user_id, msg.message_id)
 
 def process_goal(call, bot):
     user_id = call.from_user.id
@@ -253,7 +282,8 @@ def process_goal(call, bot):
     except:
         pass
         
-    bot.send_message(user_id, "Hastaligingiz yoki allergiyangiz mavjudmi?", reply_markup=allergy_keyboard())
+    msg = bot.send_message(user_id, "Hastaligingiz yoki allergiyangiz mavjudmi?", reply_markup=allergy_keyboard())
+    manager.track_message(user_id, msg.message_id)
 
 def process_allergy(call, bot):
     user_id = call.from_user.id
@@ -281,6 +311,7 @@ def process_allergy(call, bot):
             "Masalan: yong'oq, sut, tuxum, gluten, dengiz mahsulotlari",
             reply_markup=types.ReplyKeyboardRemove()
         )
+        manager.track_message(user_id, msg.message_id)
         bot.register_next_step_handler(msg, process_allergy_details, bot)
     else:
         # No allergy
@@ -293,6 +324,7 @@ def process_allergy_details(message, bot):
     allergy_details = message.text.strip()
     
     manager.update_data(user_id, 'allergies', allergy_details)
+    manager.track_message(user_id, message.message_id)
     
     # Finish Onboarding
     finish_onboarding(user_id, message=message, bot=bot)
@@ -355,7 +387,11 @@ def finish_onboarding(user_id, message, bot):
             pass
     
     # Clear state
-    manager.clear_user(user_id)
+    # manager.clear_user(user_id) # Moved to after deletion to keep msg_ids
+    
+    # Delete Onboarding Messages
+    delete_onboarding_messages(user_id, bot)
+    manager.clear_user(user_id) # Now clear
     
     # Send welcome message
     welcome_text = (
@@ -477,3 +513,19 @@ def register_handlers(bot):
             except:
                 pass
 
+            except:
+                pass
+
+def delete_onboarding_messages(user_id, bot):
+    """Deletes all tracked messages during onboarding"""
+    msg_ids = manager.get_messages(user_id)
+    if not msg_ids:
+        return
+        
+    for msg_id in msg_ids:
+        try:
+            bot.delete_message(user_id, msg_id)
+        except Exception as e:
+            # Message might be too old or already deleted
+            # print(f"DEBUG: Failed to delete message {msg_id}: {e}")
+            pass
