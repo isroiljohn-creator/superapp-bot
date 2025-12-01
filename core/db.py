@@ -530,7 +530,7 @@ class Database:
             conn = self.get_connection()
             cursor = conn.cursor()
             try:
-                cursor.execute("INSERT INTO activity_logs (user_id, type, payload) VALUES (?, ?, ?)", (user_id, type_, content))
+                cursor.execute("INSERT INTO activity_logs (user_id, type, content) VALUES (?, ?, ?)", (user_id, type_, content))
                 conn.commit()
             except Exception as e:
                 print(f"Error logging activity: {e}")
