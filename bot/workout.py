@@ -90,22 +90,9 @@ def generate_ai_meal(message, bot, user_id=None):
     
     bot.send_message(user_id, "🤖 **AI Ovqatlanish rejasi tuzilmoqda...**\n\nIltimos, biroz kuting ⏳", parse_mode="Markdown")
     
-    prompt = f"""
-    Foydalanuvchi ma'lumotlari:
-    Yosh: {user.get('age')}
-    Jins: {user.get('gender')}
-    Bo'y: {user.get('height')}
-    Vazn: {user.get('weight')}
-    Maqsad: {user.get('goal')}
-    Faollik darajasi: {user.get('activity_level')}
-    
-    Ushbu ma'lumotlar asosida 1 haftalik batafsil ovqatlanish rejasi tuzib ber. 
-    Har bir kun uchun ovqatlanish vaqti, taom nomi va miqdorini yoz.
-    Javobni O'zbek tilida, chiroyli formatda (Markdown) qaytar.
-    """
-    
     try:
-        response = ai_generate_menu(prompt)
+        # Pass the user object directly, as ai_generate_menu expects a user profile dict
+        response = ai_generate_menu(user)
         
         if len(response) > 4000:
             chunks = [response[i:i+4000] for i in range(0, len(response), 4000)]
