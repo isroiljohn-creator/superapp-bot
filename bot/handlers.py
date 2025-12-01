@@ -299,10 +299,10 @@ def register_all_handlers(bot):
     @bot.callback_query_handler(func=lambda call: call.data.startswith('points_'))
     def points_callback(call):
         action = call.data.replace('points_', '')
-        if action == 'balance': gamification.handle_my_points(call.message, bot)
+        if action == 'balance': gamification.handle_my_points(call.message, bot, user_id=call.from_user.id)
         elif action == 'rewards': gamification.handle_rewards(call.message, bot)
         elif action == 'rules': gamification.handle_rules(call.message, bot)
-        elif action == 'referral': gamification.handle_referral_link(call.message, bot)
+        elif action == 'referral': gamification.handle_referral_link(call.message, bot, user_id=call.from_user.id)
         bot.answer_callback_query(call.id)
 
     # Challenges Callbacks (Merged with existing if needed, but existing uses challenge_ prefix too)
@@ -327,7 +327,7 @@ def register_all_handlers(bot):
         action = call.data.replace('premium_', '')
         if action == 'buy': premium.handle_premium_buy(call.message, bot)
         elif action == 'info': premium.handle_premium_info(call.message, bot)
-        elif action == 'coins': gamification.handle_points_menu(call.message, bot)
+        elif action == 'coins': gamification.handle_points_menu(call.message, bot, user_id=call.from_user.id)
         bot.answer_callback_query(call.id)
 
     # General utility handlers

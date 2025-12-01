@@ -3,8 +3,9 @@ from telebot import types
 from core.db import db
 from bot.keyboards import gamification_keyboard, points_inline_keyboard
 
-def handle_points_menu(message, bot):
-    user_id = message.from_user.id
+def handle_points_menu(message, bot, user_id=None):
+    if user_id is None:
+        user_id = message.from_user.id
     user = db.get_user(user_id)
     points = user.get('yasha_points', 0)
     
@@ -20,10 +21,14 @@ def handle_points_menu(message, bot):
     markup = points_inline_keyboard()
     markup.add(types.InlineKeyboardButton("🔗 Referal havola", callback_data="points_referral"))
     
+    # If called from callback, maybe edit message? But for now send new.
+    # Actually, if we want to be nice, we can try to edit if it's a callback message.
+    # But let's stick to send_message for consistency with other menus unless requested.
     bot.send_message(message.chat.id, text, reply_markup=markup, parse_mode="Markdown")
 
-def handle_referral_link(message, bot):
-    user_id = message.from_user.id
+def handle_referral_link(message, bot, user_id=None):
+    if user_id is None:
+        user_id = message.from_user.id
     user = db.get_user(user_id)
     
     # Generate link if not exists (though db should have it, let's generate on fly if needed)
@@ -43,8 +48,9 @@ def handle_referral_link(message, bot):
     
     bot.send_message(message.chat.id, text, parse_mode="Markdown")
 
-def handle_my_points(message, bot):
-    user_id = message.from_user.id
+def handle_my_points(message, bot, user_id=None):
+    if user_id is None:
+        user_id = message.from_user.id
     user = db.get_user(user_id)
     points = user.get('yasha_points', 0)
     text = f"📊 **Sizning Ballaringiz:** {points}\n\nDavom eting! 🚀"
