@@ -106,7 +106,17 @@ def generate_ai_meal(message, bot, user_id=None):
     
     try:
         response = ai_generate_menu(prompt)
-        bot.send_message(user_id, response, parse_mode="HTML")
+        
+        if len(response) > 4000:
+            chunks = [response[i:i+4000] for i in range(0, len(response), 4000)]
+            for chunk in chunks:
+                try:
+                    bot.send_message(user_id, chunk, parse_mode="HTML")
+                except Exception:
+                    bot.send_message(user_id, chunk)
+        else:
+            bot.send_message(user_id, response, parse_mode="HTML")
+            
     except Exception as e:
         print(f"ERROR in generate_ai_meal: {e}")
         bot.send_message(user_id, "❌ Xatolik yuz berdi. Keyinroq urinib ko'ring.")
