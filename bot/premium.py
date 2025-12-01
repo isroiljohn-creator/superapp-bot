@@ -23,11 +23,11 @@ def handle_premium_menu(message, bot, user_id=None):
     status_text = "❌ Yo‘q"
     if status['active']:
         if status['type'] == 'trial':
-            status_text = "🎁 Sinov muddati (Trial)"
+            status_text = "🎁 Sinov muddati"
         elif status['type'] == 'subscription':
-            status_text = "✅ Obuna (Auto-renew)"
+            status_text = "✅ Obuna (Avto-yangilanish)"
         else:
-            status_text = "✅ Premium Aktiv"
+            status_text = "✅ Premium Faol"
     
     text = (
         f"💎 **Premium Bo'limi**\n\n"

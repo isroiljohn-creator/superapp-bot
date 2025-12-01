@@ -24,11 +24,11 @@ def goal_keyboard():
 def activity_level_keyboard():
     markup = InlineKeyboardMarkup(row_width=1)
     markup.add(
-        InlineKeyboardButton("Kam harakat (Sedentary) 🪑", callback_data="activity_sedentary"),
-        InlineKeyboardButton("Yengil faol (Lightly Active) 🚶‍♂️", callback_data="activity_light"),
-        InlineKeyboardButton("O'rtacha faol (Moderately Active) 🏃‍♂️", callback_data="activity_moderate"),
-        InlineKeyboardButton("Juda faol (Very Active) 🏋️‍♂️", callback_data="activity_active"),
-        InlineKeyboardButton("Atlet (Athlete) 🔥", callback_data="activity_athlete")
+        InlineKeyboardButton("Kam harakat 🪑", callback_data="activity_sedentary"),
+        InlineKeyboardButton("Yengil faol 🚶‍♂️", callback_data="activity_light"),
+        InlineKeyboardButton("O'rtacha faol 🏃‍♂️", callback_data="activity_moderate"),
+        InlineKeyboardButton("Juda faol 🏋️‍♂️", callback_data="activity_active"),
+        InlineKeyboardButton("Atlet 🔥", callback_data="activity_athlete")
     )
     return markup
 

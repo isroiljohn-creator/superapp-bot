@@ -86,7 +86,7 @@ def calculate_bmi(weight, height):
         return "-"
 
 def handle_change_goal_command(message, bot):
-    bot.send_message(message.chat.id, "🎯 **Yangi maqsadni tanlang:**", reply_markup=goal_keyboard())
+    bot.send_message(message.chat.id, "🎯 **Yangi maqsadni tanlang:**", reply_markup=goal_keyboard(), parse_mode="Markdown")
 
 # Keep existing handle_edit_profile_menu for callback compatibility if needed, or remove if unused.
 # But handle_edit_profile_command replaces the entry point.
