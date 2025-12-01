@@ -653,6 +653,61 @@ class Database:
                 "premium": premium_users
             }
 
+    def check_calorie_limit(self, user_id):
+        """
+        Checks if user can use calorie scanner.
+        Returns (allowed: bool, reason: str)
+        """
+        if self.is_premium(user_id):
+            return True, "premium"
+            
+        with self.lock:
+            conn = self.get_connection()
+            cursor = conn.cursor()
+            
+            cursor.execute("SELECT calorie_last_use_date, calorie_daily_uses FROM users WHERE telegram_id = ?", (user_id,))
+            result = cursor.fetchone()
+            conn.close()
+            
+            if not result:
+                return False, "user_not_found"
+                
+            last_date, uses = result
+            today = datetime.now().strftime("%Y-%m-%d")
+            
+            if last_date != today:
+                # Reset if new day (will be updated in increment)
+                return True, "free_daily"
+            
+            if uses is None: uses = 0
+            
+            if uses < 3: # Free limit: 3 per day
+                return True, "free_daily"
+                
+            return False, "limit_reached"
+
+    def increment_calorie_usage(self, user_id):
+        with self.lock:
+            conn = self.get_connection()
+            cursor = conn.cursor()
+            
+            today = datetime.now().strftime("%Y-%m-%d")
+            
+            # Check if we need to reset count first
+            cursor.execute("SELECT calorie_last_use_date FROM users WHERE telegram_id = ?", (user_id,))
+            result = cursor.fetchone()
+            last_date = result[0] if result else None
+            
+            if last_date != today:
+                # Reset and set to 1
+                cursor.execute("UPDATE users SET calorie_last_use_date = ?, calorie_daily_uses = 1 WHERE telegram_id = ?", (today, user_id))
+            else:
+                # Increment
+                cursor.execute("UPDATE users SET calorie_daily_uses = calorie_daily_uses + 1 WHERE telegram_id = ?", (user_id,))
+                
+            conn.commit()
+            conn.close()
+
     def log_calorie_check(self, user_id, total_kcal, json_data):
         with self.lock:
             conn = self.get_connection()
