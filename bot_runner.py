@@ -38,6 +38,7 @@ def main():
     
     # Start Polling
     print("🤖 Bot ishlamoqda...")
+    bot.remove_webhook()
 
     # Set Chat Menu Button (Mini App)
     webapp_url = os.getenv("WEBAPP_URL")
