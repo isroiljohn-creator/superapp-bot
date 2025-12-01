@@ -513,8 +513,7 @@ def register_handlers(bot):
             except:
                 pass
 
-            except:
-                pass
+
 
 def delete_onboarding_messages(user_id, bot):
     """Deletes all tracked messages during onboarding"""
