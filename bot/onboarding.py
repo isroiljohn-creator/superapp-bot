@@ -447,6 +447,7 @@ def register_handlers(bot):
             
             # Send next step message
             msg = bot.send_message(user_id, "Bo'yingizni kiriting (sm):")
+            manager.track_message(user_id, msg.message_id)
             
             # Explicitly register next step just in case FSM generic handler misses it
             # (Though generic handler should catch it if state is set correctly)
@@ -491,7 +492,8 @@ def register_handlers(bot):
             manager.update_data(user_id, 'goal', goal_val)
             manager.set_state(user_id, STATE_ALLERGY)
             
-            bot.send_message(user_id, "Qandaydir hastalik yoki biror mahsulotga allergiyangiz bormi?", reply_markup=allergy_keyboard())
+            msg = bot.send_message(user_id, "Qandaydir hastalik yoki biror mahsulotga allergiyangiz bormi?", reply_markup=allergy_keyboard())
+            manager.track_message(user_id, msg.message_id)
             
         except Exception as e:
             print(f"ERROR in handle_goal_step: {e}")
