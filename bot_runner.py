@@ -22,7 +22,9 @@ apihelper.ENABLE_MIDDLEWARE = True
 bot = telebot.TeleBot(BOT_TOKEN)
 
 def main():
-    print("🚀 Fitness AI Bot ishga tushmoqda...")
+    import uuid
+    instance_id = str(uuid.uuid4())[:8]
+    print(f"🚀 Fitness AI Bot ishga tushmoqda... (Instance ID: {instance_id})")
     
     # Initialize Database
     db.init_db()
