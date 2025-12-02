@@ -206,7 +206,7 @@ Vazn: {user_profile.get('weight')}
 Faollik darajasi: {user_profile.get('activity_level', 'Belgilanmagan')}
 
 🎯 Vazifa:
-Foydalanuvchiga uy sharoitida bajariladigan 4 kunlik mashq rejasi tuzing.
+Foydalanuvchiga uy sharoitida bajariladigan 3 kunlik mashq rejasi tuzing.
 
 📌 FORMAT TALABLARI:
 - HTML ishlatma (<p>, <ul>, <li> yo‘q).
@@ -222,10 +222,7 @@ Foydalanuvchiga uy sharoitida bajariladigan 4 kunlik mashq rejasi tuzing.
 <b>2-kun: Oyoq & Yelka</b>  
 - ...
 
-<b>3-kun: Dam olish</b>  
-- Qisqa maslahat yozing (1–2 jumla)
-
-<b>4-kun: Orqa & Core</b>  
+<b>3-kun: Orqa & Core</b>  
 - ... 
 
 🧩 Matn juda uzun chiqmasin. Maksimal 1500 belgi.
@@ -261,9 +258,14 @@ Faollik darajasi: {user_profile.get('activity_level', 'Belgilanmagan')}
 Maqsad: {user_profile.get('goal')}{allergy_section}
 
 🎯 Vazifa:
-Foydalanuvchiga 7 kunlik ovqatlanish rejasi tuzing. Juda uzun bo'lmasin — odam Telegramda o'rtacha 700–900 belgi o'qiydi.
+Foydalanuvchiga 3 kunlik ovqatlanish rejasi tuzing.
 
-📌 MUHIM FORMAT TALABLARI:
+📌 MUHIM SHARTLAR:
+1. O'zbekiston bozoriga mos mahsulotlar bo'lsin (avokado, qimmat baliqlar o'rniga — tuxum, tovuq, mol go'shti, mahalliy mevalar).
+2. Xaridlar ro'yxatini YOZMANG (bu alohida so'raladi).
+3. Agar foydalanuvchida allergiya yoki kasallik bo'lsa, menyuni shunga qarab qat'iy moslang!
+
+📌 FORMAT TALABLARI:
 - Hech qanday HTML (<p>, <br>, <ul>, <li>) ishlatma.
 - Faqat matn + <b>qalin</b> joylar.
 - Emojilarni kam ishlat — faqat kun nomlarida yoki sarlavhalarda.
@@ -275,11 +277,7 @@ Foydalanuvchiga 7 kunlik ovqatlanish rejasi tuzing. Juda uzun bo'lmasin — odam
 - Kechki: ...
 - Snack: ...
 
-- 7 kunda ham struktura bir xil bo'lsin.
-- Oxirida alohida blokda:
-
-<b>Xarid ro'yxati</b>
-- ...
+- 3 kunda ham struktura bir xil bo'lsin.
 
 🧩 Matn juda uzun chiqmasin. Maksimal 1500 belgi.
 
@@ -300,6 +298,46 @@ def ai_answer_question(question):
         return format_gemini_text(response_text, "Savolingizga javob")
             
     return "⚠️ AI hozircha band. Iltimos, keyinroq urinib ko‘ring."
+
+def ai_generate_shopping_list(user_profile):
+    """Generates a shopping list based on user profile and health context."""
+    
+    # Build allergy/health warning
+    allergy_text = user_profile.get('allergies')
+    health_context = ""
+    if allergy_text and allergy_text.lower() not in ['yo\'q', 'no', 'none', 'yoq']:
+        health_context = f"\n⚠️ DIQQAT: Foydalanuvchida {allergy_text} ga allergiya bor. Ro'yxatga bularni qo'shmang!\n"
+        
+    prompt = f"""
+    Foydalanuvchi maqsadi: {user_profile.get('goal')}
+    {health_context}
+    
+    Vazifa: 3 kunlik sog'lom ovqatlanish uchun kerakli mahsulotlar ro'yxatini tuzing.
+    
+    📌 SHARTLAR:
+    1. O'zbekiston bozorida oson topiladigan mahsulotlar bo'lsin (Bozor/Korzinka).
+    2. Qimmat va kamyob narsalar (kinoa, avokado, losos) o'rniga mahalliy muqobillarini yozing.
+    3. Agar allergiya bo'lsa, qat'iy inobatga oling.
+    
+    FORMAT:
+    🛒 **Xaridlar Ro'yxati**
+    
+    **Sabzavot va Mevalar:**
+    - ...
+    
+    **Oqsillar (Go'sht/Tuxum):**
+    - ...
+    
+    **Don mahsulotlari:**
+    - ...
+    
+    Qisqa va aniq bo'lsin.
+    """
+    
+    response = call_gemini(prompt)
+    if response:
+        return format_gemini_text(response, "Xaridlar Ro'yxati")
+    return None
 
 def analyze_food_image(image_data):
     """

@@ -22,27 +22,21 @@ def process_ai_qa(message, bot):
     user_id = message.from_user.id
     question = message.text
     
-    bot.send_message(user_id, "🤖 **Javob tayyorlanmoqda...**", parse_mode="Markdown")
+    status_msg = bot.send_message(user_id, "🤖 **Javob tayyorlanmoqda...**", parse_mode="Markdown")
     
     try:
-        # Assuming ai_answer_question is a new function that needs to be defined or imported
-        # For now, I'll simulate its behavior based on the original process_ai_qa logic
-        # and the instruction's intent to use a new helper.
-        # If ai_answer_question is not defined elsewhere, this will cause a NameError.
-        # The instruction implies it exists or should be created.
-        # For the purpose of this edit, I will use the original call_gemini logic
-        # but adapt it to the new structure.
+        # Use the centralized function from core.ai
+        from core.ai import ai_answer_question
+        answer = ai_answer_question(question)
         
-        prompt = f"Siz fitnes murabbiyisiz. Savolga qisqa va aniq javob bering (o'zbek tilida): {question}"
-        response = call_gemini(prompt)
-        
-        if response:
-            answer = format_gemini_text(response, "Savolga Javob")
-            bot.send_message(user_id, answer, parse_mode="HTML")
+        if answer:
+            bot.edit_message_text(answer, user_id, status_msg.message_id, parse_mode="HTML")
         else:
-            bot.send_message(user_id, "❌ AI band. Keyinroq urining.")
+            bot.edit_message_text("❌ AI band. Keyinroq urining.", user_id, status_msg.message_id)
+            
     except Exception as e:
-        bot.send_message(user_id, "❌ Xatolik yuz berdi.")
+        print(f"AI QA Error: {e}")
+        bot.edit_message_text("❌ Xatolik yuz berdi.", user_id, status_msg.message_id)
 
 @require_premium
 def handle_shopping_list(message, bot, user_id=None):
@@ -52,28 +46,12 @@ def handle_shopping_list(message, bot, user_id=None):
     
     status_msg = bot.send_message(user_id, "⏳ **AI xaridlar ro'yxatini tuzmoqda...**", parse_mode="Markdown")
     
-    prompt = f"""
-    Foydalanuvchi maqsadi: {user.get('goal')}
-    Vazifa: 1 haftalik sog'lom ovqatlanish uchun kerakli mahsulotlar ro'yxatini tuzing.
+    from core.ai import ai_generate_shopping_list
     
-    FORMAT:
-    🛒 **Xaridlar Ro'yxati**
+    response = ai_generate_shopping_list(user)
     
-    **Sabzavot va Mevalar:**
-    - ...
-    
-    **Oqsillar (Go'sht/Tuxum):**
-    - ...
-    
-    **Don mahsulotlari:**
-    - ...
-    
-    Qisqa va aniq bo'lsin.
-    """
-    
-    response = call_gemini(prompt)
     if response:
-        bot.edit_message_text(format_gemini_text(response, "Xaridlar Ro'yxati"), user_id, status_msg.message_id, parse_mode="HTML")
+        bot.edit_message_text(response, user_id, status_msg.message_id, parse_mode="HTML")
     else:
         bot.edit_message_text("❌ AI band. Keyinroq urining.", user_id, status_msg.message_id)
 
@@ -89,6 +67,10 @@ def process_recipe_input(message, bot):
     prompt = f"""
     Mavjud mahsulotlar: {ingredients}
     Vazifa: Shu mahsulotlardan tayyorlasa bo'ladigan sog'lom va mazali retsept yozing.
+    
+    📌 SHARTLAR:
+    - O'zbek milliy taomlariga yaqin bo'lsa yaxshi.
+    - Sog'lom va parhezbop bo'lsin.
     
     FORMAT:
     🍳 **Taom Nomi**
@@ -106,11 +88,15 @@ def process_recipe_input(message, bot):
     Qisqa va londa bo'lsin.
     """
     
-    response = call_gemini(prompt)
-    if response:
-        bot.edit_message_text(format_gemini_text(response, "AI Retsept"), message.chat.id, status_msg.message_id, parse_mode="HTML")
-    else:
-        bot.edit_message_text("❌ AI band. Keyinroq urining.", message.chat.id, status_msg.message_id)
+    try:
+        response = call_gemini(prompt)
+        if response:
+            bot.edit_message_text(format_gemini_text(response, "AI Retsept"), message.chat.id, status_msg.message_id, parse_mode="HTML")
+        else:
+            bot.edit_message_text("❌ AI band. Keyinroq urining.", message.chat.id, status_msg.message_id)
+    except Exception as e:
+        print(f"Recipe Error: {e}")
+        bot.edit_message_text("❌ Xatolik yuz berdi.", message.chat.id, status_msg.message_id)
 
 @require_premium
 def handle_weekly_report(message, bot, user_id=None):
