@@ -181,7 +181,7 @@ def process_gender(call, bot):
             pass
         return
     
-    gender = call.data
+    gender = call.data.replace("gender_", "")
     manager.update_data(user_id, 'gender', gender)
     manager.set_state(user_id, STATE_HEIGHT)
     print(f"DEBUG: State updated to STATE_HEIGHT for {user_id}")
@@ -273,7 +273,7 @@ def process_goal(call, bot):
             pass
         return
     
-    goal = call.data
+    goal = call.data.replace("goal_", "")
     manager.update_data(user_id, 'goal', goal)
     manager.set_state(user_id, STATE_ALLERGY)
     
@@ -434,29 +434,12 @@ def register_handlers(bot):
     @bot.callback_query_handler(func=lambda call: call.data.startswith('gender_'))
     def handle_gender_step(call):
         try:
-            # Extract actual gender value (male/female) from gender_male/gender_female
-            gender_val = call.data.split('_')[1]
-            
-            # Answer callback immediately to stop loading animation
             bot.answer_callback_query(call.id)
-            
-            # Update state and data
-            user_id = call.from_user.id
-            manager.update_data(user_id, 'gender', gender_val)
-            manager.set_state(user_id, STATE_HEIGHT)
-            
-            # Send next step message
-            msg = bot.send_message(user_id, "Bo'yingizni kiriting (sm):")
-            manager.track_message(user_id, msg.message_id)
-            
-            # Explicitly register next step just in case FSM generic handler misses it
-            # (Though generic handler should catch it if state is set correctly)
-            # bot.register_next_step_handler(msg, process_height, bot)
-            
+            process_gender(call, bot)
         except Exception as e:
             print(f"ERROR in handle_gender_step: {e}")
             try:
-                bot.answer_callback_query(call.id, "Xatolik yuz berdi. Qaytadan urining.")
+                bot.answer_callback_query(call.id, "Xatolik yuz berdi.")
             except:
                 pass
 
@@ -483,18 +466,8 @@ def register_handlers(bot):
     @bot.callback_query_handler(func=lambda call: call.data.startswith('goal_'))
     def handle_goal_step(call):
         try:
-            # Extract goal value (weight_loss/muscle_gain/health)
-            goal_val = call.data.split('_', 1)[1] # Split only on first underscore
-            
             bot.answer_callback_query(call.id)
-            
-            user_id = call.from_user.id
-            manager.update_data(user_id, 'goal', goal_val)
-            manager.set_state(user_id, STATE_ALLERGY)
-            
-            msg = bot.send_message(user_id, "Qandaydir hastalik yoki biror mahsulotga allergiyangiz bormi?", reply_markup=allergy_keyboard())
-            manager.track_message(user_id, msg.message_id)
-            
+            process_goal(call, bot)
         except Exception as e:
             print(f"ERROR in handle_goal_step: {e}")
             try:

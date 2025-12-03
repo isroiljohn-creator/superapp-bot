@@ -40,17 +40,26 @@ def register_handlers(bot):
             gender_stats = stats.get('gender', {})
             goal_stats = stats.get('goal', {})
             
+            # Dynamic formatting for gender
+            gender_text = ""
+            for k, v in gender_stats.items():
+                gender_text += f"- {k}: {v}\n"
+            if not gender_text: gender_text = "Ma'lumot yo'q"
+
+            # Dynamic formatting for goal
+            goal_text = ""
+            for k, v in goal_stats.items():
+                goal_text += f"- {k}: {v}\n"
+            if not goal_text: goal_text = "Ma'lumot yo'q"
+            
             text = (
                 f"📊 **Statistika**\n\n"
                 f"👥 Jami foydalanuvchilar: {total}\n"
                 f"✅ Faol foydalanuvchilar: {active}\n"
                 f"💎 Premium foydalanuvchilar: {premium}\n\n"
-                f"👨 Erkaklar: {gender_stats.get('male', 0) + gender_stats.get('Erkak', 0)}\n"
-                f"👩 Ayollar: {gender_stats.get('female', 0) + gender_stats.get('Ayol', 0)}\n\n"
-                f"⚖️ Ozish: {goal_stats.get('weight_loss', 0) + goal_stats.get('Ozish', 0)}\n"
-                f"💪 Massa: {goal_stats.get('mass_gain', 0) + goal_stats.get('Massa olish', 0)}\n"
-                f"❤️ Sog‘liq: {goal_stats.get('health', 0) + goal_stats.get('Sog‘liqni tiklash', 0)}\n\n"
-                f"🏃 Faollik:\n"
+                f"👨👩 **Jins bo'yicha:**\n{gender_text}\n"
+                f"🎯 **Maqsad bo'yicha:**\n{goal_text}\n"
+                f"🏃 **Faollik:**\n"
                 f"- Kam harakat: {stats.get('activity', {}).get('sedentary', 0)}\n"
                 f"- Yengil: {stats.get('activity', {}).get('light', 0)}\n"
                 f"- O'rtacha: {stats.get('activity', {}).get('moderate', 0)}\n"

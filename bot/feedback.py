@@ -47,7 +47,7 @@ def process_feedback(message, bot):
             print("DEBUG: Feedback forwarded successfully.")
         except Exception as e:
             print(f"Failed to forward feedback to admin: {e}")
-            bot.send_message(user_id, f"DEBUG: Admin send error: {e}") # Temporary for user to see
+            # bot.send_message(user_id, f"DEBUG: Admin send error: {e}") # Temporary for user to see
     else:
         print("DEBUG: ADMIN_ID is not set or 0.")
 

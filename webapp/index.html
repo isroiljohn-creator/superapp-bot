@@ -151,6 +151,12 @@
                 <p class="text-xs opacity-70">Suv</p>
                 <p class="font-bold text-lg text-blue-400" id="card-water">0%</p>
             </div>
+            <!-- Premium Button -->
+            <div class="card p-3 rounded-xl shadow text-center bg-gradient-to-r from-yellow-400 to-yellow-600 text-white cursor-pointer col-span-2"
+                onclick="document.getElementById('premium-modal').classList.remove('hidden')">
+                <p class="text-xs opacity-90">Premium Obuna</p>
+                <p class="font-bold text-lg">Sotib Olish 💎</p>
+            </div>
         </div>
 
         <!-- Tasks -->
@@ -184,10 +190,32 @@
         </div>
     </div>
 
+    <!-- PREMIUM MODAL -->
+    <div id="premium-modal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+        <div class="bg-white p-6 rounded-xl w-11/12 max-w-sm">
+            <h2 class="text-xl font-bold mb-4 text-center">Premium Tariflar</h2>
+            <div class="space-y-3">
+                <button onclick="buyPremium('30_days')"
+                    class="w-full bg-blue-600 text-white py-3 rounded-lg font-bold shadow hover:bg-blue-700">
+                    1 Oy — 49 000 so'm
+                </button>
+                <button onclick="buyPremium('90_days')"
+                    class="w-full bg-purple-600 text-white py-3 rounded-lg font-bold shadow hover:bg-purple-700">
+                    3 Oy — 119 000 so'm (-20%)
+                </button>
+            </div>
+            <button onclick="document.getElementById('premium-modal').classList.add('hidden')"
+                class="mt-4 w-full text-gray-500 py-2">
+                Yopish
+            </button>
+        </div>
+    </div>
+
     <script>
         const API_URL = "https://launch-research-whole-outlet.trycloudflare.com/api"; // Auto-updated
         const tg = window.Telegram.WebApp;
         tg.expand();
+        let GLOBAL_TOKEN = null;
 
         async function init() {
             try {
@@ -222,6 +250,7 @@
                     } else {
                         loadUserDashboard(initData, authData.token);
                     }
+                    GLOBAL_TOKEN = authData.token;
                 }
 
             } catch (e) {
@@ -342,6 +371,44 @@
                 });
             } else {
                 document.getElementById("weightChart").parentElement.innerHTML += "<p class='text-xs text-center text-gray-500'>Ma'lumot yo'q</p>";
+            }
+        }
+
+        async function buyPremium(planId) {
+            if (!GLOBAL_TOKEN) return alert("Auth error");
+
+            const btn = event.target;
+            const originalText = btn.innerText;
+            btn.innerText = "Yuklanmoqda...";
+            btn.disabled = true;
+
+            try {
+                const res = await fetch(`${API_URL}/v1/payments/invoice`, {
+                    method: "POST",
+                    headers: {
+                        "Authorization": `Bearer ${GLOBAL_TOKEN}`,
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({ plan_id: planId })
+                });
+
+                if (!res.ok) throw new Error("Invoice error");
+                const data = await res.json();
+
+                tg.openInvoice(data.invoice_link, (status) => {
+                    if (status === 'paid') {
+                        tg.showAlert("To'lov muvaffaqiyatli!");
+                        location.reload();
+                    } else {
+                        // tg.showAlert("To'lov bekor qilindi");
+                    }
+                });
+            } catch (e) {
+                tg.showAlert("Xatolik: " + e.message);
+            } finally {
+                btn.innerText = originalText;
+                btn.disabled = false;
+                document.getElementById('premium-modal').classList.add('hidden');
             }
         }
 

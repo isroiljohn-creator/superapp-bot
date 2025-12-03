@@ -229,6 +229,7 @@ def register_all_handlers(bot):
         # The new tracker uses input for sleep, so no callback needed for sleep logic unless we kept buttons.
         # But wait, handle_sleep_tracker in trackers.py now asks for input, so no buttons.
         # So we can remove sleep callback here.
+        bot.answer_callback_query(call.id)
 
     # AI Tool Callbacks (if any left using callbacks)
     @bot.callback_query_handler(func=lambda call: call.data.startswith('ai_tool_'))
@@ -356,7 +357,7 @@ def register_all_handlers(bot):
 
     @bot.message_handler(commands=['version'])
     def handle_version(message):
-        bot.reply_to(message, "🤖 Bot Version: v3.0 - REFACTORED MENU")
+        bot.reply_to(message, "🤖 Bot Version: v3.1 - FIXES APPLIED (Dec 3)")
 
     @bot.message_handler(commands=['debug_ai'])
     def handle_debug_ai(message):

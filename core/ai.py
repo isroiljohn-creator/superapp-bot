@@ -389,7 +389,15 @@ def analyze_food_image(image_data):
         try:
             genai.configure(api_key=GEMINI_API_KEY)
             model = genai.GenerativeModel(model_name)
-            response = model.generate_content([prompt, image])
+            
+            safety_settings = [
+                {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
+                {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"},
+                {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"},
+                {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"},
+            ]
+            
+            response = model.generate_content([prompt, image], safety_settings=safety_settings)
             if response.text:
                 return response.text
         except Exception as e:
@@ -429,7 +437,14 @@ def analyze_food_text(text):
         Bu taxminiy hisob, lekin kunlik nazorat uchun yetarli. 🙂
         """
         
-        response = model.generate_content(prompt)
+        safety_settings = [
+            {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
+            {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"},
+            {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"},
+            {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"},
+        ]
+        
+        response = model.generate_content(prompt, safety_settings=safety_settings)
         return response.text
     except Exception as e:
         print(f"Gemini Text Error: {e}")
