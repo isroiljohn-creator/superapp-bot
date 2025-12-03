@@ -15,8 +15,12 @@ def handle_ai_tools_menu(message, bot):
 
 @require_premium
 def handle_ai_qa(message, bot):
-    msg = bot.send_message(message.chat.id, "❓ Savolingizni yozing:")
-    bot.register_next_step_handler(msg, process_ai_qa, bot)
+    try:
+        msg = bot.send_message(message.chat.id, "❓ Savolingizni yozing:", reply_markup=types.ForceReply())
+        bot.register_next_step_handler(msg, process_ai_qa, bot)
+    except Exception as e:
+        print(f"Handle AI QA Error: {e}")
+        bot.send_message(message.chat.id, "❌ Xatolik yuz berdi. Iltimos qayta urinib ko'ring.")
 
 def process_ai_qa(message, bot):
     user_id = message.from_user.id
@@ -57,8 +61,12 @@ def handle_shopping_list(message, bot, user_id=None):
 
 @require_premium
 def handle_recipe_gen(message, bot):
-    msg = bot.send_message(message.chat.id, "🍳 **Muzlatgichda nima bor?**\n\nMahsulotlarni yozing (masalan: tuxum, pomidor, pishloq), men retsept tuzib beraman:", reply_markup=types.ForceReply())
-    bot.register_next_step_handler(msg, process_recipe_input, bot)
+    try:
+        msg = bot.send_message(message.chat.id, "🍳 **Muzlatgichda nima bor?**\n\nMahsulotlarni yozing (masalan: tuxum, pomidor, pishloq), men retsept tuzib beraman:", reply_markup=types.ForceReply())
+        bot.register_next_step_handler(msg, process_recipe_input, bot)
+    except Exception as e:
+        print(f"Handle Recipe Error: {e}")
+        bot.send_message(message.chat.id, "❌ Xatolik yuz berdi. Iltimos qayta urinib ko'ring.")
 
 def process_recipe_input(message, bot):
     ingredients = message.text

@@ -157,11 +157,9 @@ def call_gemini(prompt):
         return None
 
     models_to_try = [
-        'gemini-2.5-flash',
-        'gemini-2.5-flash-preview-09-2025',
-        'gemini-2.5-flash-lite',
-        'gemini-2.0-flash-exp', 
-        'gemini-1.5-flash'
+        'gemini-1.5-flash',
+        'gemini-2.0-flash-exp',
+        'gemini-1.5-pro'
     ]
     
     for model_name in models_to_try:
