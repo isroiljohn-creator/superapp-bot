@@ -34,7 +34,11 @@ def process_ai_qa(message, bot):
         answer = ai_answer_question(question)
         
         if answer:
-            bot.edit_message_text(answer, user_id, status_msg.message_id, parse_mode="HTML")
+            try:
+                bot.edit_message_text(answer, user_id, status_msg.message_id, parse_mode="HTML")
+            except Exception as e:
+                # Fallback if HTML parsing fails
+                bot.edit_message_text(answer, user_id, status_msg.message_id, parse_mode=None)
         else:
             bot.edit_message_text("❌ AI band. Keyinroq urining.", user_id, status_msg.message_id)
             
@@ -55,7 +59,10 @@ def handle_shopping_list(message, bot, user_id=None):
     response = ai_generate_shopping_list(user)
     
     if response:
-        bot.edit_message_text(response, user_id, status_msg.message_id, parse_mode="HTML")
+        try:
+            bot.edit_message_text(response, user_id, status_msg.message_id, parse_mode="HTML")
+        except Exception:
+            bot.edit_message_text(response, user_id, status_msg.message_id, parse_mode=None)
     else:
         bot.edit_message_text("❌ AI band. Keyinroq urining.", user_id, status_msg.message_id)
 
@@ -99,7 +106,10 @@ def process_recipe_input(message, bot):
     try:
         response = call_gemini(prompt)
         if response:
-            bot.edit_message_text(format_gemini_text(response, "AI Retsept"), message.chat.id, status_msg.message_id, parse_mode="HTML")
+            try:
+                bot.edit_message_text(format_gemini_text(response, "AI Retsept"), message.chat.id, status_msg.message_id, parse_mode="HTML")
+            except Exception:
+                bot.edit_message_text(format_gemini_text(response, "AI Retsept"), message.chat.id, status_msg.message_id, parse_mode=None)
         else:
             bot.edit_message_text("❌ AI band. Keyinroq urining.", message.chat.id, status_msg.message_id)
     except Exception as e:

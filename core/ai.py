@@ -433,8 +433,11 @@ def format_gemini_text(raw_text, title):
     if not raw_text:
         return ""
     
-    # Clean up Markdown
+    import html
+    # Clean up Markdown (basic)
     text = raw_text.replace("**", "").replace("##", "").replace("#", "")
+    # Escape HTML special characters to prevent parsing errors
+    text = html.escape(text)
     
     return f"<b>{title}</b>\n\n{text}"
 
