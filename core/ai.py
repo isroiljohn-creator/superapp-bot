@@ -11,8 +11,8 @@ model = None
 if GEMINI_API_KEY:
     try:
         genai.configure(api_key=GEMINI_API_KEY)
-        # Using 1.5 Flash as requested (fastest and most cost-effective)
-        model = genai.GenerativeModel('gemini-1.5-flash')
+        # Using 2.5 Flash as requested by user
+        model = genai.GenerativeModel('gemini-2.5-flash')
         print("DEBUG: Gemini AI initialized successfully.")
     except Exception as e:
         print(f"Error initializing Gemini: {e}")
@@ -157,9 +157,9 @@ def call_gemini(prompt):
         return None
 
     models_to_try = [
+        'gemini-2.5-flash',
         'gemini-1.5-flash',
-        'gemini-2.0-flash-exp',
-        'gemini-1.5-pro'
+        'gemini-2.0-flash-exp'
     ]
     
     for model_name in models_to_try:
