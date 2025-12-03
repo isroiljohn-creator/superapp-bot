@@ -289,10 +289,10 @@ def register_all_handlers(bot):
     def ai_callback(call):
         action = call.data.replace('ai_', '')
         # Handle ai_tool_ prefix from old callbacks if any, but we renamed to ai_
-        if action == 'qa': ai_features.handle_ai_qa(call.message, bot)
+        if action == 'qa': ai_features.handle_ai_qa(call.message, bot, user_id=call.from_user.id)
         elif action == 'meal': workout.generate_ai_meal(call.message, bot, user_id=call.from_user.id)
         elif action == 'workout': workout.generate_ai_workout(call.message, bot, user_id=call.from_user.id)
-        elif action == 'recipe': ai_features.handle_recipe_gen(call.message, bot)
+        elif action == 'recipe': ai_features.handle_recipe_gen(call.message, bot, user_id=call.from_user.id)
         elif action == 'shopping': ai_features.handle_shopping_list(call.message, bot, user_id=call.from_user.id)
         bot.answer_callback_query(call.id)
 

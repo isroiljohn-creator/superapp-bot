@@ -14,7 +14,7 @@ def handle_ai_tools_menu(message, bot):
     )
 
 @require_premium
-def handle_ai_qa(message, bot):
+def handle_ai_qa(message, bot, user_id=None):
     try:
         msg = bot.send_message(
             message.chat.id, 
@@ -89,7 +89,7 @@ def handle_shopping_list(message, bot, user_id=None):
         bot.edit_message_text("❌ AI band. Keyinroq urining.", user_id, status_msg.message_id)
 
 @require_premium
-def handle_recipe_gen(message, bot):
+def handle_recipe_gen(message, bot, user_id=None):
     try:
         msg = bot.send_message(
             message.chat.id, 
