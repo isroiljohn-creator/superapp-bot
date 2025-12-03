@@ -44,7 +44,7 @@ def process_ai_qa(message, bot):
             
     except Exception as e:
         print(f"AI QA Error: {e}")
-        bot.edit_message_text("❌ Xatolik yuz berdi.", user_id, status_msg.message_id)
+        bot.edit_message_text(f"❌ Xatolik: {str(e)[:100]}", user_id, status_msg.message_id)
 
 @require_premium
 def handle_shopping_list(message, bot, user_id=None):
@@ -114,7 +114,7 @@ def process_recipe_input(message, bot):
             bot.edit_message_text("❌ AI band. Keyinroq urining.", message.chat.id, status_msg.message_id)
     except Exception as e:
         print(f"Recipe Error: {e}")
-        bot.edit_message_text("❌ Xatolik yuz berdi.", message.chat.id, status_msg.message_id)
+        bot.edit_message_text(f"❌ Xatolik: {str(e)[:100]}", message.chat.id, status_msg.message_id)
 
 @require_premium
 def handle_weekly_report(message, bot, user_id=None):

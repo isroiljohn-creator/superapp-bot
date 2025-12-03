@@ -167,7 +167,14 @@ def call_gemini(prompt):
             print(f"DEBUG: Trying model {model_name}...")
             genai.configure(api_key=GEMINI_API_KEY)
             model = genai.GenerativeModel(model_name)
-            response = model.generate_content(prompt)
+            # Disable safety settings to prevent blocking health advice
+            safety_settings = [
+                {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
+                {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"},
+                {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"},
+                {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"},
+            ]
+            response = model.generate_content(prompt, safety_settings=safety_settings)
             if response.text:
                 print(f"DEBUG: Success with {model_name}")
                 return response.text
