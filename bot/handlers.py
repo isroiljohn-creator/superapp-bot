@@ -143,13 +143,7 @@ def register_all_handlers(bot):
         trackers.process_mood_reason(message, bot)
         
     # AI Tools
-    @bot.message_handler(func=lambda message: message.text == "❓ AI savol-javob")
-    def ai_qa(message):
-        ai_features.handle_ai_qa(message, bot)
 
-    @bot.message_handler(func=lambda message: message.text == "🍳 AI retsept")
-    def ai_recipe(message):
-        ai_features.handle_recipe_gen(message, bot)
 
     @bot.message_handler(func=lambda message: message.text == "🛒 AI shopping list")
     def ai_shopping(message):
@@ -236,7 +230,6 @@ def register_all_handlers(bot):
     def ai_tool_callback(call):
         tool = call.data.split('_')[2]
         if tool == 'shopping': ai_features.handle_shopping_list(call.message, bot)
-        elif tool == 'recipe': ai_features.handle_recipe_gen(call.message, bot)
         elif tool == 'report': ai_features.handle_weekly_report(call.message, bot)
         bot.answer_callback_query(call.id)
 
@@ -292,7 +285,6 @@ def register_all_handlers(bot):
         if action == 'qa': ai_features.handle_ai_qa(call.message, bot)
         elif action == 'meal': workout.generate_ai_meal(call.message, bot, user_id=call.from_user.id)
         elif action == 'workout': workout.generate_ai_workout(call.message, bot, user_id=call.from_user.id)
-        elif action == 'recipe': ai_features.handle_recipe_gen(call.message, bot)
         elif action == 'shopping': ai_features.handle_shopping_list(call.message, bot, user_id=call.from_user.id)
         bot.answer_callback_query(call.id)
 
