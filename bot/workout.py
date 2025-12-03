@@ -102,8 +102,11 @@ def generate_ai_meal(message, bot, user_id=None):
                 except Exception:
                     bot.send_message(user_id, chunk)
         else:
-            bot.send_message(user_id, response, parse_mode="HTML")
+            try:
+                bot.send_message(user_id, response, parse_mode="HTML")
+            except Exception:
+                bot.send_message(user_id, response)
             
     except Exception as e:
         print(f"ERROR in generate_ai_meal: {e}")
-        bot.send_message(user_id, "❌ Xatolik yuz berdi. Keyinroq urinib ko'ring.")
+        bot.send_message(user_id, f"❌ Xatolik: {str(e)[:100]}")
