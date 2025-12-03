@@ -358,6 +358,25 @@ def register_all_handlers(bot):
     def handle_version(message):
         bot.reply_to(message, "🤖 Bot Version: v3.0 - REFACTORED MENU")
 
+    @bot.message_handler(commands=['debug_ai'])
+    def handle_debug_ai(message):
+        import google.generativeai as genai
+        import os
+        key = os.getenv("GEMINI_API_KEY")
+        if not key:
+            bot.reply_to(message, "❌ API Key topilmadi!")
+            return
+        
+        bot.reply_to(message, f"🔑 Key: {key[:5]}...{key[-5:]}\n🔄 Model: gemini-2.5-flash sinalyapti...")
+        
+        try:
+            genai.configure(api_key=key)
+            model = genai.GenerativeModel('gemini-2.5-flash')
+            response = model.generate_content("Test")
+            bot.reply_to(message, f"✅ Success! Response: {response.text}")
+        except Exception as e:
+            bot.reply_to(message, f"❌ Error: {e}")
+
     # Debug callback LAST
     @bot.callback_query_handler(func=lambda call: True)
     def debug_callback(call):
