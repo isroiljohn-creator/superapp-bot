@@ -43,9 +43,16 @@ def allergy_keyboard():
 def main_menu_keyboard():
     markup = ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
     
-    markup.add(KeyboardButton("🍽 Kaloriya tahlili"), KeyboardButton("🔁 Odatlar"))
-    markup.add(KeyboardButton("🎯 Shaxsiy Murabbiy"), KeyboardButton("🔥 Chellenjlar"))
-    markup.add(KeyboardButton("💎 Premium"), KeyboardButton("👤 Profil"))
+    # Row 1: AI murabbiy (was Shaxsiy Murabbiy) | Kunlik odatlar (was Odatlar)
+    markup.add(KeyboardButton("🤖 AI murabbiy"), KeyboardButton("📆 Kunlik odatlar"))
+    
+    # Row 2: Kaloriya tahlili (swapped) | Premium (swapped with Chellenjlar)
+    markup.add(KeyboardButton("🍽 Kaloriya tahlili"), KeyboardButton("💎 Premium"))
+    
+    # Row 3: Chellenjlar (swapped with Premium) | Profil
+    markup.add(KeyboardButton("🔥 Chellenjlar"), KeyboardButton("👤 Profil"))
+    
+    # Row 4: Referal | Qayta aloqa
     markup.add(KeyboardButton("🔗 Referal"), KeyboardButton("📩 Qayta aloqa"))
     
     return markup

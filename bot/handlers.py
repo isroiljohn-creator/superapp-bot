@@ -69,11 +69,11 @@ def register_all_handlers(bot):
     # def menu_plan(message):
     #     workout.handle_plan_menu(message, bot)
 
-    @bot.message_handler(func=lambda message: message.text == "🔁 Odatlar")
+    @bot.message_handler(func=lambda message: message.text == "📆 Kunlik odatlar")
     def menu_habits(message):
         trackers.handle_habits_menu(message, bot)
 
-    @bot.message_handler(func=lambda message: message.text == "🎯 Shaxsiy Murabbiy")
+    @bot.message_handler(func=lambda message: message.text == "🤖 AI murabbiy")
     def menu_ai(message):
         ai_features.handle_ai_tools_menu(message, bot)
 
