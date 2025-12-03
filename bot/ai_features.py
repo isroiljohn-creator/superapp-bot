@@ -31,9 +31,10 @@ def process_ai_qa(message, bot):
     question = message.text
     user = db.get_user(user_id)
     
+    # Send "typing" action instead of message to avoid clutter, or keep message if preferred
     status_msg = bot.send_message(user_id, "🤖 **Javob tayyorlanmoqda...**", parse_mode="Markdown")
     
-    prompt = f"""
+    system_prompt = f"""
     Siz professional fitnes murabbiyisiz.
     
     Foydalanuvchi Profili:
@@ -44,32 +45,28 @@ def process_ai_qa(message, bot):
     - Maqsad: {user.get('goal')}
     - Faollik: {user.get('activity_level')}
     
-    Foydalanuvchi savoli: "{question}"
-    
     Vazifa: Savolga qisqa, aniq va foydalanuvchi profiliga moslashtirilgan javob bering.
     
-    FORMAT:
+    FORMAT TALABLARI:
+    - Maksimal 700-900 belgi.
     - Qisqa paragraflar.
-    - Muhim joylari **qalin** harfda.
-    - Ro'yxat (bullet points) ishlating.
+    - Muhim joylari uchun *yulduzcha* yoki **qalin** (Markdown) ishlating.
+    - Ro'yxat uchun tire (-) ishlating.
+    - HTML TEGLARNI ISHLATMANG (<p>, <ul>, <li>, <b> va h.k. MUMKIN EMAS).
+    - Faqat Telegram Markdown (yulduzcha, tire).
     - O'zbek tilida.
-    - HTML formatida (faqat <b>, <i>).
     """
     
     try:
-        response = call_gemini(prompt)
+        from core.ai import ask_gemini
+        response = ask_gemini(system_prompt, question)
         
-        if response:
-            try:
-                bot.edit_message_text(format_gemini_text(response, "AI Javobi"), user_id, status_msg.message_id, parse_mode="HTML")
-            except Exception:
-                bot.edit_message_text(format_gemini_text(response, "AI Javobi"), user_id, status_msg.message_id, parse_mode=None)
-        else:
-            bot.edit_message_text("❌ AI band. Keyinroq urining.", user_id, status_msg.message_id)
+        # Edit status message with response
+        bot.edit_message_text(response, user_id, status_msg.message_id, parse_mode="Markdown")
             
     except Exception as e:
         print(f"AI QA Error: {e}")
-        bot.edit_message_text(f"❌ Xatolik: {str(e)[:100]}", user_id, status_msg.message_id)
+        bot.edit_message_text("AI hozircha javob bera olmadi. Birozdan keyin yana urinib ko‘ring 🙂", user_id, status_msg.message_id)
 
 @require_premium
 def handle_shopping_list(message, bot, user_id=None):
@@ -111,7 +108,7 @@ def process_recipe_input(message, bot):
     
     status_msg = bot.send_message(message.chat.id, "⏳ **Retsept yaratilmoqda...**", parse_mode="Markdown")
     
-    prompt = f"""
+    system_prompt = f"""
     Siz professional dietolog va oshpazsiz.
     
     Foydalanuvchi Profili:
@@ -119,45 +116,28 @@ def process_recipe_input(message, bot):
     - Faollik: {user.get('activity_level')}
     - Allergiya: {user.get('allergies')}
     
-    Mavjud mahsulotlar: "{ingredients}"
+    Vazifa: Foydalanuvchi kiritgan mahsulotlardan foydalanib, uning maqsadiga mos 1 ta sog'lom va mazali retsept taklif qiling.
     
-    Vazifa: Shu mahsulotlardan foydalanib, foydalanuvchi maqsadiga mos 1-2 ta sog'lom va mazali retsept taklif qiling.
-    
-    SHARTLAR:
-    - O'zbek milliy taomlariga moslashtirilgan bo'lsin.
-    - Sog'lom va parhezbop bo'lsin.
-    
-    FORMAT:
-    🍳 **Taom Nomi**
-    
-    📝 **Qisqa tavsif**
-    
-    ⏱ Vaqt: ... daqiqa
-    🔥 Kaloriya: ... kkal
-    📊 BJU: Oqsil ...g / Yog' ...g / Uglevod ...g
-    
-    🛒 **Kerakli masalliqlar:**
-    - ...
-    
-    👨‍🍳 **Tayyorlash:**
-    1. ...
-    2. ...
-    
-    Qisqa, londa va ishtahaochar bo'lsin. HTML formatida (faqat <b>).
+    FORMAT TALABLARI:
+    - Maksimal 900 belgi.
+    - HTML TEGLARNI ISHLATMANG. Faqat Markdown (*, -).
+    - Struktura:
+      * Taom Nomi (Qalin)
+      * Masalliqlar (Ro'yxat)
+      * Tayyorlash (3-6 qadam)
+      * Foydali maslahat (1 gap)
+    - O'zbek tilida.
     """
     
     try:
-        response = call_gemini(prompt)
-        if response:
-            try:
-                bot.edit_message_text(format_gemini_text(response, "AI Retsept"), message.chat.id, status_msg.message_id, parse_mode="HTML")
-            except Exception:
-                bot.edit_message_text(format_gemini_text(response, "AI Retsept"), message.chat.id, status_msg.message_id, parse_mode=None)
-        else:
-            bot.edit_message_text("❌ AI band. Keyinroq urining.", message.chat.id, status_msg.message_id)
+        from core.ai import ask_gemini
+        response = ask_gemini(system_prompt, ingredients)
+        
+        bot.edit_message_text(response, message.chat.id, status_msg.message_id, parse_mode="Markdown")
+            
     except Exception as e:
         print(f"Recipe Error: {e}")
-        bot.edit_message_text(f"❌ Xatolik: {str(e)[:100]}", message.chat.id, status_msg.message_id)
+        bot.edit_message_text("AI hozir retsept tuza olmadi. Mahsulotlar ozroq bo‘lishi yoki tarmoqda muammo bo‘lishi mumkin. Birozdan keyin yana urinib ko‘ring 🙂", message.chat.id, status_msg.message_id)
 
 @require_premium
 def handle_weekly_report(message, bot, user_id=None):

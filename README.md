@@ -5,11 +5,11 @@ Professional Telegram Bot for fitness tracking, AI workout/meal plans, and gamif
 ## 🚀 Features
 
 - **Smart Onboarding**: Button-based registration (Name, Age, Gender, Height, Weight, Goal, Allergy).
-- **AI Integration**: OpenAI GPT-3.5-turbo for personalized plans (with Offline Fallback).
-- **Gamification**: Daily tasks (Water, Workout) with points system.
-- **Referral System**: Invite friends and earn Premium.
-- **Admin Panel**: Statistics, Broadcast, CSV Export.
-- **Daily Reminders**: Automated 24h reminders.
+- **AI Integration**: Google Gemini 2.5 Flash for personalized plans and Q&A.
+- **Database**: SQLite (via SQLAlchemy) for user data and tracking.
+- **Admin Panel**: Broadcast messages, view statistics.
+- **Gamification**: Points system, challenges, leaderboard.
+- **Premium**: Subscription model for advanced AI features.
 
 ## 📂 Project Structure
 

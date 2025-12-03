@@ -150,38 +150,46 @@ def get_offline_menu(user_profile):
 - Olma yoki nok
 """
 
-def call_gemini(prompt):
-    """Sends prompt to Gemini with fallback."""
+def ask_gemini(system_prompt, user_prompt):
+    """
+    Centralized helper to call Gemini 2.5 Flash.
+    Returns plain text response or raises Exception.
+    """
     if not GEMINI_API_KEY:
-        print("DEBUG: No API Key")
-        return None
+        raise Exception("API Key not found")
 
-    models_to_try = [
-        'gemini-2.5-flash',
-        'gemini-1.5-flash',
-        'gemini-2.0-flash-exp'
-    ]
-    
-    for model_name in models_to_try:
-        try:
-            print(f"DEBUG: Trying model {model_name}...")
-            genai.configure(api_key=GEMINI_API_KEY)
-            model = genai.GenerativeModel(model_name)
-            # Disable safety settings to prevent blocking health advice
-            safety_settings = [
-                {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
-                {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"},
-                {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"},
-                {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"},
-            ]
-            response = model.generate_content(prompt, safety_settings=safety_settings)
-            if response.text:
-                print(f"DEBUG: Success with {model_name}")
-                return response.text
-        except Exception as e:
-            print(f"DEBUG: Failed with {model_name}: {e}")
+    try:
+        print(f"DEBUG: Calling Gemini 2.5 Flash...")
+        genai.configure(api_key=GEMINI_API_KEY)
+        model = genai.GenerativeModel('gemini-2.5-flash')
+        
+        # Combine system and user prompt for simple generation
+        full_prompt = f"{system_prompt}\n\nUser Input: {user_prompt}"
+        
+        safety_settings = [
+            {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
+            {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"},
+            {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"},
+            {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"},
+        ]
+        
+        response = model.generate_content(full_prompt, safety_settings=safety_settings)
+        
+        if response.text:
+            return response.text.strip()
+        else:
+            raise Exception("Empty response from AI")
             
-    return None
+    except Exception as e:
+        print(f"Gemini Error: {e}")
+        raise e
+
+def call_gemini(prompt):
+    """Legacy wrapper for backward compatibility, redirects to ask_gemini"""
+    try:
+        return ask_gemini("You are a helpful assistant.", prompt)
+    except:
+        return None
 
     # Clean up Markdown
     text = raw_text.replace("**", "").replace("##", "").replace("#", "")
