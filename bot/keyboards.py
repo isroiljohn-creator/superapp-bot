@@ -80,6 +80,8 @@ def habits_inline_keyboard():
 def ai_inline_keyboard():
     markup = InlineKeyboardMarkup(row_width=2)
     markup.add(
+        InlineKeyboardButton("❓ AI savol-javob", callback_data="ai_qa"),
+        InlineKeyboardButton("🍳 AI retsept", callback_data="ai_recipe"),
         InlineKeyboardButton("🥦 AI menyu", callback_data="ai_meal"),
         InlineKeyboardButton("🏋️ AI mashq rejasi", callback_data="ai_workout"),
         InlineKeyboardButton("🛒 AI shopping list", callback_data="ai_shopping")

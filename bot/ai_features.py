@@ -16,7 +16,11 @@ def handle_ai_tools_menu(message, bot):
 @require_premium
 def handle_ai_qa(message, bot):
     try:
-        msg = bot.send_message(message.chat.id, "❓ Savolingizni yozing:", reply_markup=types.ForceReply())
+        msg = bot.send_message(
+            message.chat.id, 
+            "❓ **AI Murabbiy**\n\nMashg'ulotlar, ovqatlanish yoki sog'lom turmush tarzi bo'yicha istalgan savolingizni yozing:", 
+            reply_markup=types.ForceReply()
+        )
         bot.register_next_step_handler(msg, process_ai_qa, bot)
     except Exception as e:
         print(f"Handle AI QA Error: {e}")
@@ -25,20 +29,41 @@ def handle_ai_qa(message, bot):
 def process_ai_qa(message, bot):
     user_id = message.from_user.id
     question = message.text
+    user = db.get_user(user_id)
     
     status_msg = bot.send_message(user_id, "🤖 **Javob tayyorlanmoqda...**", parse_mode="Markdown")
     
+    prompt = f"""
+    Siz professional fitnes murabbiyisiz.
+    
+    Foydalanuvchi Profili:
+    - Yosh: {user.get('age')}
+    - Jins: {user.get('gender')}
+    - Bo'y: {user.get('height')} sm
+    - Vazn: {user.get('weight')} kg
+    - Maqsad: {user.get('goal')}
+    - Faollik: {user.get('activity_level')}
+    
+    Foydalanuvchi savoli: "{question}"
+    
+    Vazifa: Savolga qisqa, aniq va foydalanuvchi profiliga moslashtirilgan javob bering.
+    
+    FORMAT:
+    - Qisqa paragraflar.
+    - Muhim joylari **qalin** harfda.
+    - Ro'yxat (bullet points) ishlating.
+    - O'zbek tilida.
+    - HTML formatida (faqat <b>, <i>).
+    """
+    
     try:
-        # Use the centralized function from core.ai
-        from core.ai import ai_answer_question
-        answer = ai_answer_question(question)
+        response = call_gemini(prompt)
         
-        if answer:
+        if response:
             try:
-                bot.edit_message_text(answer, user_id, status_msg.message_id, parse_mode="HTML")
-            except Exception as e:
-                # Fallback if HTML parsing fails
-                bot.edit_message_text(answer, user_id, status_msg.message_id, parse_mode=None)
+                bot.edit_message_text(format_gemini_text(response, "AI Javobi"), user_id, status_msg.message_id, parse_mode="HTML")
+            except Exception:
+                bot.edit_message_text(format_gemini_text(response, "AI Javobi"), user_id, status_msg.message_id, parse_mode=None)
         else:
             bot.edit_message_text("❌ AI band. Keyinroq urining.", user_id, status_msg.message_id)
             
@@ -69,38 +94,56 @@ def handle_shopping_list(message, bot, user_id=None):
 @require_premium
 def handle_recipe_gen(message, bot):
     try:
-        msg = bot.send_message(message.chat.id, "🍳 **Muzlatgichda nima bor?**\n\nMahsulotlarni yozing (masalan: tuxum, pomidor, pishloq), men retsept tuzib beraman:", reply_markup=types.ForceReply())
+        msg = bot.send_message(
+            message.chat.id, 
+            "🍳 **AI Retsept**\n\nMuzlatgichda bor mahsulotlarni yozing (masalan: tovuq, guruch, pomidor). Men sizga mos sog'lom retsept tuzib beraman:", 
+            reply_markup=types.ForceReply()
+        )
         bot.register_next_step_handler(msg, process_recipe_input, bot)
     except Exception as e:
         print(f"Handle Recipe Error: {e}")
         bot.send_message(message.chat.id, "❌ Xatolik yuz berdi. Iltimos qayta urinib ko'ring.")
 
 def process_recipe_input(message, bot):
+    user_id = message.from_user.id
     ingredients = message.text
+    user = db.get_user(user_id)
+    
     status_msg = bot.send_message(message.chat.id, "⏳ **Retsept yaratilmoqda...**", parse_mode="Markdown")
     
     prompt = f"""
-    Mavjud mahsulotlar: {ingredients}
-    Vazifa: Shu mahsulotlardan tayyorlasa bo'ladigan sog'lom va mazali retsept yozing.
+    Siz professional dietolog va oshpazsiz.
     
-    📌 SHARTLAR:
-    - O'zbek milliy taomlariga yaqin bo'lsa yaxshi.
+    Foydalanuvchi Profili:
+    - Maqsad: {user.get('goal')}
+    - Faollik: {user.get('activity_level')}
+    - Allergiya: {user.get('allergies')}
+    
+    Mavjud mahsulotlar: "{ingredients}"
+    
+    Vazifa: Shu mahsulotlardan foydalanib, foydalanuvchi maqsadiga mos 1-2 ta sog'lom va mazali retsept taklif qiling.
+    
+    SHARTLAR:
+    - O'zbek milliy taomlariga moslashtirilgan bo'lsin.
     - Sog'lom va parhezbop bo'lsin.
     
     FORMAT:
     🍳 **Taom Nomi**
     
-    ⏱ Vaqt: ...
-    🔥 Kaloriya: ...
+    📝 **Qisqa tavsif**
     
-    **Kerakli masalliqlar:**
+    ⏱ Vaqt: ... daqiqa
+    🔥 Kaloriya: ... kkal
+    📊 BJU: Oqsil ...g / Yog' ...g / Uglevod ...g
+    
+    🛒 **Kerakli masalliqlar:**
     - ...
     
-    **Tayyorlash:**
+    👨‍🍳 **Tayyorlash:**
     1. ...
     2. ...
     
-    Qisqa va londa bo'lsin.
+    Qisqa, londa va ishtahaochar bo'lsin. HTML formatida (faqat <b>).
     """
     
     try:
