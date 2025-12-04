@@ -1,5 +1,4 @@
-from bot import onboarding, menu, gamification, admin, feedback, premium, profile, templates, workout
-from bot.calories import handle_calorie_button, handle_food_photo, STATE_CALORIE_PHOTO
+from bot import onboarding, gamification, admin, feedback, premium, profile, templates, workout
 from bot.keyboards import main_menu_keyboard
 from bot import trackers, ai_features, challenges, calorie_scanner
 
@@ -209,7 +208,7 @@ def register_all_handlers(bot):
 
     # Register module handlers (callbacks etc)
     onboarding.register_handlers(bot)
-    menu.register_handlers(bot)
+    # menu.register_handlers(bot) # Removed
     gamification.register_handlers(bot)
     admin.register_handlers(bot)
     feedback.register_handlers(bot)
