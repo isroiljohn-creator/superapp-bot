@@ -59,8 +59,8 @@ def generate_ai_workout(message, bot, user_id=None):
     
     from core.utils import safe_split_text, strip_html
     
-    header = "🏋️‍♂️ <b>Sizning Individual Mashq Rejangiz:</b>\n\n"
-    full_text = header + plan
+    # Header is now included in ai_generate_workout response
+    full_text = plan
     
     chunks = safe_split_text(full_text)
     

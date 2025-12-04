@@ -245,7 +245,7 @@ Foydalanuvchiga uy sharoitida bajariladigan 3 kunlik mashq rejasi tuzing.
     
     response_text = call_gemini(prompt)
     if response_text and len(response_text) > 50: # Ensure meaningful response
-        return format_gemini_text(response_text, "Sizning mashg‘ulot rejangiz")
+        return format_gemini_text(response_text, "🏋️‍♂️ Sizning Individual Mashq Rejangiz")
         
     print(f"DEBUG: AI failed or returned empty. Using fallback for user {user_profile.get('name')}")
     return get_offline_workout(user_profile)
