@@ -94,7 +94,7 @@ def points_inline_keyboard():
         InlineKeyboardButton("📊 Ballarim", callback_data="points_balance"),
         InlineKeyboardButton("🎁 Mukofotlar", callback_data="points_rewards"),
         InlineKeyboardButton("📜 Qoidalar", callback_data="points_rules"),
-        InlineKeyboardButton("⬅️ Premium menyu", callback_data="back_premium")
+        InlineKeyboardButton("⬅️ Orqaga", callback_data="back_premium")
     )
     return markup
 
