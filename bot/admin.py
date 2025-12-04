@@ -100,9 +100,12 @@ def register_handlers(bot):
                 phone = user_data.get('phone', 'N/A')
                 goal = user_data.get('goal', 'N/A')
                 
+                # Prioritize username, then name, then fallback
+                display_name = f"@{username}" if username else (name if name else "Noma'lum")
+                
                 # Clean name to avoid issues
                 import html
-                safe_name = html.escape(name) if name else "Noma'lum"
+                safe_name = html.escape(display_name)
                 
                 text += f"🆔 <code>{uid}</code> | {safe_name} | 📱 {phone} | {goal} {is_prem}\n"
                 
