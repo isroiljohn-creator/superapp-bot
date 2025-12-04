@@ -90,8 +90,8 @@ def register_handlers(bot):
             users.sort(key=lambda x: x[0], reverse=True)
             recent_users = users[:20]
             
-            text = "👥 Oxirgi 20 ta foydalanuvchi:\n\n"
-            for uid, name in recent_users:
+            text = "👥 <b>Oxirgi 20 ta foydalanuvchi:</b>\n\n"
+            for uid, name, username in recent_users:
                 user_data = db.get_user(uid)
                 if not user_data:
                     continue
@@ -101,11 +101,12 @@ def register_handlers(bot):
                 goal = user_data.get('goal', 'N/A')
                 
                 # Clean name to avoid issues
-                clean_name = name if name else "Noma'lum"
+                import html
+                safe_name = html.escape(name) if name else "Noma'lum"
                 
-                text += f"🆔 {uid} | {clean_name} | 📱 {phone} | {goal} {is_prem}\n"
+                text += f"🆔 <code>{uid}</code> | {safe_name} | 📱 {phone} | {goal} {is_prem}\n"
                 
-            bot.send_message(message.chat.id, text)
+            bot.send_message(message.chat.id, text, parse_mode="HTML")
             
         except Exception as e:
             print(f"Error in admin_user_list: {e}")
