@@ -437,7 +437,25 @@ def register_content_handlers(bot):
             bot.send_message(message.chat.id, "❌ Bekor qilindi.")
             return
             
-        if content_manager.set(key, new_val):
-            bot.send_message(message.chat.id, f"✅ **{key}** yangilandi!")
         else:
             bot.send_message(message.chat.id, "❌ Saqlashda xatolik bo'ldi.")
+
+    @bot.message_handler(commands=['seed'])
+    def admin_seed_content(message):
+        if message.from_user.id not in ADMIN_IDS: return
+        
+        defaults = {
+            "premium_title": "💎 **Premium Bo'limi**",
+            "premium_desc": "Premium imkoniyatlari:\n• Cheksiz AI maslahatlari\n• Foto orqali kaloriya aniqlash\n• Chellenjlarda 2x ball",
+            "welcome_message": "Assalomu alaykum! YASHA Fitness Botiga xush kelibsiz.",
+            "onboarding_name": "Ismingizni kiriting:",
+            "onboarding_age": "Yoshingizni kiriting (faqat raqam):"
+        }
+        
+        count = 0
+        for key, value in defaults.items():
+            if not content_manager.get(key):
+                content_manager.set(key, value)
+                count += 1
+        
+        bot.send_message(message.chat.id, f"✅ {count} ta yangi matn bazaga qo'shildi.")
