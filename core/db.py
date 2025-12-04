@@ -280,16 +280,16 @@ class Database:
             conn.close()
             return logs
 
-    def add_user(self, telegram_id, username, phone, referral_code=None):
+    def add_user(self, telegram_id, username, phone, referral_code=None, referrer_id=None):
         with self.lock:
             conn = self.get_connection()
             cursor = conn.cursor()
             ref_code = referral_code if referral_code else f"r{telegram_id}"
             try:
-                print(f"DEBUG: Attempting to add user {telegram_id}")
+                print(f"DEBUG: Attempting to add user {telegram_id} with referrer {referrer_id}")
                 cursor.execute(
-                    "INSERT OR IGNORE INTO users (telegram_id, username, phone, referral_code) VALUES (?, ?, ?, ?)",
-                    (telegram_id, username, phone, ref_code)
+                    "INSERT OR IGNORE INTO users (telegram_id, username, phone, referral_code, referrer_id) VALUES (?, ?, ?, ?, ?)",
+                    (telegram_id, username, phone, ref_code, referrer_id)
                 )
                 conn.commit()
                 print(f"DEBUG: User {telegram_id} added/ignored successfully.")
@@ -337,7 +337,7 @@ class Database:
         with self.lock:
             conn = self.get_connection()
             cursor = conn.cursor()
-            cursor.execute("UPDATE users SET points = points + ? WHERE id = ?", (points, user_id))
+            cursor.execute("UPDATE users SET points = points + ? WHERE telegram_id = ?", (points, user_id))
             conn.commit()
             conn.close()
 
@@ -608,7 +608,8 @@ class Database:
             
             results = []
             for ref_id, count in top_referrers:
-                cursor.execute("SELECT full_name FROM users WHERE id = ?", (ref_id,))
+                # ref_id is telegram_id
+                cursor.execute("SELECT full_name FROM users WHERE telegram_id = ?", (ref_id,))
                 res = cursor.fetchone()
                 name = res[0] if res else "Noma'lum"
                 results.append({"name": name, "id": ref_id, "count": count})
@@ -620,7 +621,7 @@ class Database:
         with self.lock:
             conn = self.get_connection()
             cursor = conn.cursor()
-            cursor.execute("UPDATE users SET active = ? WHERE id = ?", (1 if active else 0, user_id))
+            cursor.execute("UPDATE users SET active = ? WHERE telegram_id = ?", (1 if active else 0, user_id))
             conn.commit()
             conn.close()
             

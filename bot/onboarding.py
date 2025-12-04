@@ -337,7 +337,8 @@ def finish_onboarding(user_id, message, bot):
     db.add_user(
         telegram_id=user_id,
         username=message.chat.username or f"user_{user_id}",
-        phone=data.get('phone')
+        phone=data.get('phone'),
+        referrer_id=referrer_id
     )
     
     # Update profile
