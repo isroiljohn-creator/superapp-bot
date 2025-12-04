@@ -53,20 +53,20 @@ def register_handlers(bot):
             if not goal_text: goal_text = "Ma'lumot yo'q"
             
             text = (
-                f"📊 **Statistika**\n\n"
+                f"📊 <b>Statistika</b>\n\n"
                 f"👥 Jami foydalanuvchilar: {total}\n"
                 f"✅ Faol foydalanuvchilar: {active}\n"
                 f"💎 Premium foydalanuvchilar: {premium}\n\n"
-                f"👨👩 **Jins bo'yicha:**\n{gender_text}\n"
-                f"🎯 **Maqsad bo'yicha:**\n{goal_text}\n"
-                f"🏃 **Faollik:**\n"
+                f"👨👩 <b>Jins bo'yicha:</b>\n{gender_text}\n"
+                f"🎯 <b>Maqsad bo'yicha:</b>\n{goal_text}\n"
+                f"🏃 <b>Faollik:</b>\n"
                 f"- Kam harakat: {stats.get('activity', {}).get('sedentary', 0)}\n"
                 f"- Yengil: {stats.get('activity', {}).get('light', 0)}\n"
                 f"- O'rtacha: {stats.get('activity', {}).get('moderate', 0)}\n"
                 f"- Faol: {stats.get('activity', {}).get('active', 0)}\n"
                 f"- Atlet: {stats.get('activity', {}).get('athlete', 0)}"
             )
-            bot.send_message(message.chat.id, text, parse_mode="Markdown")
+            bot.send_message(message.chat.id, text, parse_mode="HTML")
             
         except Exception as e:
             print(f"ERROR in admin_stats: {e}")
@@ -119,11 +119,14 @@ def register_handlers(bot):
         # This is a bit expensive without a direct DB query, but fine for MVP
         users = db.get_users_by_segment(is_premium=True)
         
-        text = f"💎 **Premium Foydalanuvchilar ({len(users)}):**\n\n"
+        text = f"💎 <b>Premium Foydalanuvchilar ({len(users)}):</b>\n\n"
         for uid, name in users[:20]:
-            text += f"🆔 `{uid}` | {name}\n"
+            # Escape HTML in name
+            import html
+            safe_name = html.escape(name) if name else "Noma'lum"
+            text += f"🆔 <code>{uid}</code> | {safe_name}\n"
             
-        bot.send_message(message.chat.id, text, parse_mode="Markdown")
+        bot.send_message(message.chat.id, text, parse_mode="HTML")
 
     @bot.message_handler(func=lambda message: "Referallar" in message.text)
     def admin_referrals(message):
@@ -132,11 +135,13 @@ def register_handlers(bot):
             
         top_referrers = db.get_top_referrals(10)
         
-        text = "🏷 **TOP 10 Referallar:**\n\n"
+        text = "🏷 <b>TOP 10 Referallar:</b>\n\n"
         for item in top_referrers:
-            text += f"👤 {item['name']} (ID: `{item['id']}`) — {item['count']} ta taklif\n"
+            import html
+            safe_name = html.escape(item['name']) if item['name'] else "Noma'lum"
+            text += f"👤 {safe_name} (ID: <code>{item['id']}</code>) — {item['count']} ta taklif\n"
             
-        bot.send_message(message.chat.id, text, parse_mode="Markdown")
+        bot.send_message(message.chat.id, text, parse_mode="HTML")
 
     @bot.message_handler(func=lambda message: "Umumiy xabar" in message.text)
     def admin_broadcast_start(message):
