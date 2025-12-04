@@ -468,7 +468,8 @@ def format_gemini_text(raw_text, title):
     import re
     
     # 1. Escape HTML special characters first (safe from random < or >)
-    text = html.escape(raw_text)
+    # quote=False ensures ' and " are not escaped, preventing &x27; issues
+    text = html.escape(raw_text, quote=False)
     
     # 2. Convert Markdown bold (**text**) to HTML (<b>text</b>)
     # This regex finds **text** and replaces it with <b>text</b>
