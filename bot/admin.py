@@ -123,11 +123,15 @@ def register_handlers(bot):
         # This is a bit expensive without a direct DB query, but fine for MVP
         users = db.get_users_by_segment(is_premium=True)
         
-        text = f"💎 <b>Premium Foydalanuvchilar ({len(users)}):</b>\n\n"
-        for uid, name in users[:20]:
+        text = f"💎 <b>Premium Foydalanuvchilar:</b>\n\n"
+        for uid, name, username in users[:20]:
+            # Prioritize username, then name, then fallback
+            display_name = f"@{username}" if username else (name if name else "Noma'lum")
+            
             # Escape HTML in name
             import html
-            safe_name = html.escape(name) if name else "Noma'lum"
+            safe_name = html.escape(display_name)
+            
             text += f"🆔 <code>{uid}</code> | {safe_name}\n"
             
         bot.send_message(message.chat.id, text, parse_mode="HTML")

@@ -533,7 +533,7 @@ class Database:
         with self.lock:
             conn = self.get_connection()
             cursor = conn.cursor()
-            query = "SELECT telegram_id, full_name FROM users WHERE active = 1"
+            query = "SELECT telegram_id, full_name, username FROM users WHERE active = 1"
             params = []
             if gender:
                 query += " AND gender = ?"
