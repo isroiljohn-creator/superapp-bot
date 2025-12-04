@@ -4,13 +4,14 @@ from core.db import db
 from dotenv import load_dotenv
 
 load_dotenv()
-ADMIN_ID = int(os.getenv("ADMIN_ID", 0))
-print(f"DEBUG: Loaded ADMIN_ID: {ADMIN_ID}")
+MAIN_ADMIN_ID = int(os.getenv("ADMIN_ID", 0))
+ADMIN_IDS = [MAIN_ADMIN_ID, 1392501306]
+print(f"DEBUG: Loaded ADMIN_IDS: {ADMIN_IDS}")
 
 def register_handlers(bot):
     @bot.message_handler(commands=['admin'])
     def admin_panel(message):
-        if message.from_user.id != ADMIN_ID:
+        if message.from_user.id not in ADMIN_IDS:
             return
 
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
@@ -30,7 +31,7 @@ def register_handlers(bot):
 
     @bot.message_handler(commands=['resetdb'])
     def admin_reset_db(message):
-        if message.from_user.id != ADMIN_ID:
+        if message.from_user.id not in ADMIN_IDS:
             return
         
         msg = bot.send_message(message.chat.id, "⚠️ **DIQQAT!**\n\nBu buyruq butun bazani o'chirib yuboradi (foydalanuvchilar, loglar, hamma narsa). \n\nDavom etish uchun 'TASDIQLAYMAN' deb yozing.", parse_mode="Markdown")
@@ -46,7 +47,7 @@ def register_handlers(bot):
         else:
             bot.send_message(message.chat.id, "❌ Bekor qilindi.")
 
-    @bot.message_handler(func=lambda message: "Statistika" in message.text and message.from_user.id == ADMIN_ID)
+    @bot.message_handler(func=lambda message: "Statistika" in message.text and message.from_user.id in ADMIN_IDS)
     def admin_stats(message):
         try:
             stats = db.get_stats()
@@ -92,7 +93,7 @@ def register_handlers(bot):
 
     @bot.message_handler(func=lambda message: "Foydalanuvchilar ro‘yxati" in message.text)
     def admin_user_list(message):
-        if message.from_user.id != ADMIN_ID:
+        if message.from_user.id not in ADMIN_IDS:
             print(f"DEBUG: Unauthorized admin access attempt by {message.from_user.id}")
             return
         
@@ -135,7 +136,7 @@ def register_handlers(bot):
 
     @bot.message_handler(func=lambda message: "Premium foydalanuvchilar" in message.text)
     def admin_premium_list(message):
-        if message.from_user.id != ADMIN_ID:
+        if message.from_user.id not in ADMIN_IDS:
             return
             
         # This is a bit expensive without a direct DB query, but fine for MVP
@@ -156,7 +157,7 @@ def register_handlers(bot):
 
     @bot.message_handler(func=lambda message: "Referallar" in message.text)
     def admin_referrals(message):
-        if message.from_user.id != ADMIN_ID:
+        if message.from_user.id not in ADMIN_IDS:
             return
             
         top_referrers = db.get_top_referrals(10)
@@ -171,7 +172,7 @@ def register_handlers(bot):
 
     @bot.message_handler(func=lambda message: "Umumiy xabar" in message.text)
     def admin_broadcast_start(message):
-        if message.from_user.id != ADMIN_ID:
+        if message.from_user.id not in ADMIN_IDS:
             return
         
         print(f"DEBUG: Admin broadcast started by {message.from_user.id}")
@@ -183,7 +184,7 @@ def register_handlers(bot):
 
     @bot.message_handler(func=lambda message: "Segment xabar" in message.text)
     def admin_segment_start(message):
-        if message.from_user.id != ADMIN_ID:
+        if message.from_user.id not in ADMIN_IDS:
             return
             
         markup = types.InlineKeyboardMarkup()
@@ -199,7 +200,7 @@ def register_handlers(bot):
         
         bot.send_message(message.chat.id, "Segmentni tanlang:", reply_markup=markup)
 
-    @bot.message_handler(func=lambda message: message.reply_to_message and message.from_user.id == ADMIN_ID)
+    @bot.message_handler(func=lambda message: message.reply_to_message and message.from_user.id in ADMIN_IDS)
     def admin_reply_to_user(message):
         """Handle admin replying to a user's feedback"""
         try:
@@ -230,7 +231,7 @@ def register_handlers(bot):
 
     @bot.callback_query_handler(func=lambda call: call.data.startswith("seg_"))
     def admin_segment_select(call):
-        if call.from_user.id != ADMIN_ID:
+        if call.from_user.id not in ADMIN_IDS:
             return
             
         segment = call.data.split("_")[1:] # ['gender', 'Erkak'] or ['premium', 'True']
@@ -302,7 +303,7 @@ def process_broadcast(message, bot, segment):
 # === Subscription Management ===
 
 def register_subscription_handlers(bot):
-    @bot.message_handler(func=lambda message: "Obunalar" in message.text and message.from_user.id == ADMIN_ID)
+    @bot.message_handler(func=lambda message: "Obunalar" in message.text and message.from_user.id in ADMIN_IDS)
     def admin_subs_start(message):
         msg = bot.send_message(message.chat.id, "Foydalanuvchi ID raqamini yuboring:", reply_markup=types.ForceReply())
         bot.register_next_step_handler(msg, process_subs_user_id, bot)
@@ -343,7 +344,7 @@ def register_subscription_handlers(bot):
 
     @bot.callback_query_handler(func=lambda call: call.data.startswith("sub_"))
     def handle_sub_action(call):
-        if call.from_user.id != ADMIN_ID:
+        if call.from_user.id not in ADMIN_IDS:
             return
             
         action, target_id = call.data.split("_")[1], int(call.data.split("_")[2])

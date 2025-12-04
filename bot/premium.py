@@ -65,7 +65,8 @@ def handle_premium_buy(message, bot):
 from dotenv import load_dotenv
 
 load_dotenv()
-ADMIN_ID = int(os.getenv("ADMIN_ID", 0))
+MAIN_ADMIN_ID = int(os.getenv("ADMIN_ID", 0))
+ADMIN_IDS = [MAIN_ADMIN_ID, 1392501306]
 
 # Payment details (Mock)
 PAYMENT_CARDS = {
@@ -149,12 +150,13 @@ def register_handlers(bot):
         
         bot.send_message(user_id, f"✅ **To'lov muvaffaqiyatli amalga oshirildi!**\n\nSizga {days} kunlik Premium obuna faollashtirildi. 🎉\nBarcha imkoniyatlardan foydalanishingiz mumkin!", parse_mode="Markdown")
         
-        # Notify Admin
-        if ADMIN_ID:
-            try:
-                bot.send_message(ADMIN_ID, f"💰 **Yangi To'lov!**\nUser: {message.from_user.first_name} (ID: {user_id})\nSumma: {amount} {currency}\nTarif: {days} kun")
-            except Exception:
-                pass
+        # Notify Admins
+        for admin_id in ADMIN_IDS:
+            if admin_id:
+                try:
+                    bot.send_message(admin_id, f"💰 **Yangi To'lov!**\nUser: {message.from_user.first_name} (ID: {user_id})\nSumma: {amount} {currency}\nTarif: {days} kun")
+                except Exception:
+                    pass
 
     @bot.callback_query_handler(func=lambda call: call.data == "back_premium")
     def back_to_premium(call):
@@ -164,7 +166,7 @@ def register_handlers(bot):
     # Admin manual confirm kept just in case
     @bot.message_handler(commands=['confirm_premium'])
     def admin_confirm_premium(message):
-        if message.from_user.id != ADMIN_ID:
+        if message.from_user.id not in ADMIN_IDS:
             return
         try:
             parts = message.text.split()
