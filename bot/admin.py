@@ -228,10 +228,13 @@ def process_broadcast(message, bot, segment):
         else:
             key, value = segment[0], segment[1]
             if key == "gender":
-                users = db.get_users_by_segment(gender=value)
+                # Map Uzbek label to DB value
+                db_value = "male" if value == "Erkak" else "female"
+                users = db.get_users_by_segment(gender=db_value)
             elif key == "goal":
-                # Simple fuzzy match for goal
-                users = db.get_users_by_segment(goal=value)
+                # Map Uzbek label to DB value
+                db_value = "weight_loss" if value == "Ozish" else ("muscle_gain" if value == "Massa" else value)
+                users = db.get_users_by_segment(goal=db_value)
             elif key == "premium":
                 is_prem = (value == "True")
                 users = db.get_users_by_segment(is_premium=is_prem)
