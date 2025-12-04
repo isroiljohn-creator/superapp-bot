@@ -1,6 +1,7 @@
 import os
 from telebot import types
 from core.db import db
+from core.content import content_manager
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -29,6 +30,7 @@ def register_handlers(bot):
         
     # Register sub handlers
     register_subscription_handlers(bot)
+    register_content_handlers(bot)
 
     @bot.message_handler(commands=['resetdb'])
     def admin_reset_db(message):
@@ -379,9 +381,9 @@ def register_subscription_handlers(bot):
                 pass
                 
         except ValueError:
-# === Content Management ===
-    from core.content import content_manager
+            bot.send_message(message.chat.id, "❌ Son kiritishingiz kerak.")
 
+def register_content_handlers(bot):
     @bot.message_handler(func=lambda message: "Matnlarni tahrirlash" in message.text and message.from_user.id in ADMIN_IDS)
     def admin_content_start(message):
         # List categories or show keys
