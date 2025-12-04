@@ -36,6 +36,30 @@ class User(Base):
     daily_logs = relationship("DailyLog", back_populates="user")
     plans = relationship("Plan", back_populates="user")
     transactions = relationship("Transaction", back_populates="user")
+    feedback = relationship("Feedback", back_populates="user")
+    orders = relationship("Order", back_populates="user")
+    activity_logs = relationship("ActivityLog", back_populates="user")
+    calorie_logs = relationship("CalorieLog", back_populates="user")
+
+    # Missing Columns from core/db.py
+    last_checkin = Column(String, nullable=True) # Stored as text in legacy
+    active = Column(Boolean, default=True)
+    updated_at = Column(DateTime, nullable=True)
+    
+    # Gamification & Streaks
+    yasha_points = Column(Integer, default=0)
+    streak_water = Column(Integer, default=0)
+    streak_sleep = Column(Integer, default=0)
+    streak_mood = Column(Integer, default=0)
+    
+    # Calorie Scanner Limits
+    calorie_last_use_date = Column(String, nullable=True)
+    calorie_daily_uses = Column(Integer, default=0)
+    
+    # Trial & Auto Renew
+    trial_start = Column(String, nullable=True)
+    trial_used = Column(Integer, default=0)
+    auto_renew = Column(Integer, default=0) # 0 or 1
 
 class DailyLog(Base):
     __tablename__ = "daily_logs"
@@ -46,8 +70,15 @@ class DailyLog(Base):
     
     water_drank = Column(Boolean, default=False)
     workout_done = Column(Boolean, default=False)
-    steps_count = Column(Integer, default=0)
+    steps_count = Column(Integer, default=0) # mapped to 'steps' in legacy? legacy has 'steps' column
+    steps = Column(Integer, default=0) # Legacy name
     calories_consumed = Column(Integer, default=0)
+    
+    # Legacy columns
+    water_ml = Column(Integer, default=0)
+    sleep_hours = Column(Float, default=0)
+    mood = Column(String, nullable=True)
+    mood_reason = Column(String, nullable=True)
     
     user = relationship("User", back_populates="daily_logs")
 
@@ -74,3 +105,69 @@ class Transaction(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     
     user = relationship("User", back_populates="transactions")
+
+class Feedback(Base):
+    __tablename__ = "feedback"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    message = Column(Text)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    user = relationship("User", back_populates="feedback")
+
+class Order(Base):
+    __tablename__ = "orders"
+    id = Column(Integer, primary_key=True, index=True)
+    order_id = Column(String, unique=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    days = Column(Integer)
+    amount = Column(Integer)
+    currency = Column(String)
+    status = Column(String)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    user = relationship("User", back_populates="orders")
+
+class ActivityLog(Base):
+    __tablename__ = "activity_logs"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    type = Column(String)
+    payload = Column(Text)
+    ts = Column(DateTime, default=datetime.utcnow)
+    
+    user = relationship("User", back_populates="activity_logs")
+
+class CalorieLog(Base):
+    __tablename__ = "calorie_logs"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    total_kcal = Column(Integer)
+    json_data = Column(Text)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    user = relationship("User", back_populates="calorie_logs")
+
+class WorkoutCache(Base):
+    __tablename__ = "workout_cache"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    plan_text = Column(Text)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+class MenuCache(Base):
+    __tablename__ = "menu_cache"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    menu_text = Column(Text)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+class AdminLog(Base):
+    __tablename__ = "admin_logs"
+    id = Column(Integer, primary_key=True, index=True)
+    admin_id = Column(Integer)
+    action = Column(String)
+    target_id = Column(Integer, nullable=True)
+    details = Column(Text)
+    timestamp = Column(DateTime, default=datetime.utcnow)
+

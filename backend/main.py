@@ -16,7 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from backend.database import get_db, init_db
 from backend.models import User, DailyLog, Plan, Transaction
 from backend.auth import create_access_token, get_current_user
-from core.ai import call_gemini, format_ai_text
+from core.ai import call_gemini, format_gemini_text as format_ai_text
 from dotenv import load_dotenv
 
 load_dotenv()
