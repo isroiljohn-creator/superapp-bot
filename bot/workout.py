@@ -57,23 +57,19 @@ def generate_ai_workout(message, bot, user_id=None):
     
     bot.delete_message(user_id, msg.message_id)
     
-    header = "🏋️‍♂️ **Sizning Individual Mashq Rejangiz:**\n\n"
+    from core.utils import safe_split_text, strip_html
+    
+    header = "🏋️‍♂️ <b>Sizning Individual Mashq Rejangiz:</b>\n\n"
     full_text = header + plan
     
-    if len(full_text) > 4000:
-        # Split into chunks
-        chunks = [full_text[i:i+4000] for i in range(0, len(full_text), 4000)]
-        for chunk in chunks:
-            try:
-                bot.send_message(user_id, chunk, parse_mode="HTML")
-            except Exception:
-                # Fallback to plain text if HTML fails
-                bot.send_message(user_id, chunk)
-    else:
+    chunks = safe_split_text(full_text)
+    
+    for chunk in chunks:
         try:
-            bot.send_message(user_id, full_text, parse_mode="HTML")
+            bot.send_message(user_id, chunk, parse_mode="HTML")
         except Exception:
-            bot.send_message(user_id, full_text)
+            # Fallback to plain text (stripped) if HTML fails
+            bot.send_message(user_id, strip_html(chunk))
 
 from bot.premium import require_premium
 
@@ -91,21 +87,18 @@ def generate_ai_meal(message, bot, user_id=None):
     bot.send_message(user_id, "🤖 <b>AI Ovqatlanish rejasi tuzilmoqda...</b>\n\nIltimos, biroz kuting ⏳", parse_mode="HTML")
     
     try:
+        from core.utils import safe_split_text, strip_html
+        
         # Pass the user object directly, as ai_generate_menu expects a user profile dict
         response = ai_generate_menu(user)
         
-        if len(response) > 4000:
-            chunks = [response[i:i+4000] for i in range(0, len(response), 4000)]
-            for chunk in chunks:
-                try:
-                    bot.send_message(user_id, chunk, parse_mode="HTML")
-                except Exception:
-                    bot.send_message(user_id, chunk)
-        else:
+        chunks = safe_split_text(response)
+        
+        for chunk in chunks:
             try:
-                bot.send_message(user_id, response, parse_mode="HTML")
+                bot.send_message(user_id, chunk, parse_mode="HTML")
             except Exception:
-                bot.send_message(user_id, response)
+                bot.send_message(user_id, strip_html(chunk))
             
     except Exception as e:
         print(f"ERROR in generate_ai_meal: {e}")

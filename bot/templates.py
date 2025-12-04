@@ -116,24 +116,27 @@ def send_template_plan(user_id, category, template_id, bot):
     
     # Send the plan
     try:
-        if len(plan_text) > 4000:
-            chunks = [plan_text[i:i+4000] for i in range(0, len(plan_text), 4000)]
-            for chunk in chunks:
+        from core.utils import safe_split_text, strip_html
+        
+        chunks = safe_split_text(plan_text)
+        
+        for chunk in chunks:
+            try:
                 bot.send_message(user_id, chunk, parse_mode="HTML")
-        else:
-            bot.send_message(user_id, plan_text, parse_mode="HTML")
+            except Exception:
+                bot.send_message(user_id, strip_html(chunk))
         
         # Add feedback message
         bot.send_message(
             user_id,
             "\n\n✅ Shablon reja yuborildi!\n\n"
-            "💡 Sizga maxsus moslashtir ilgan individual reja kerakmi?\n"
+            "💡 Sizga maxsus moslashtirilgan individual reja kerakmi?\n"
             "💎 Premium obuna oling va AI sizga shaxsiy reja tuzadi!",
             parse_mode="Markdown"
         )
     except Exception as e:
         print(f"Error sending template: {e}")
-        bot.send_message(user_id, plan_text)
+        bot.send_message(user_id, strip_html(plan_text))
 
 def register_handlers(bot):
     """Register all template-related callback handlers"""
