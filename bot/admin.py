@@ -28,6 +28,24 @@ def register_handlers(bot):
     # Register sub handlers
     register_subscription_handlers(bot)
 
+    @bot.message_handler(commands=['resetdb'])
+    def admin_reset_db(message):
+        if message.from_user.id != ADMIN_ID:
+            return
+        
+        msg = bot.send_message(message.chat.id, "⚠️ **DIQQAT!**\n\nBu buyruq butun bazani o'chirib yuboradi (foydalanuvchilar, loglar, hamma narsa). \n\nDavom etish uchun 'TASDIQLAYMAN' deb yozing.", parse_mode="Markdown")
+        bot.register_next_step_handler(msg, process_reset_db_confirm, bot)
+
+    def process_reset_db_confirm(message, bot):
+        if message.text == "TASDIQLAYMAN":
+            try:
+                db.reset_db()
+                bot.send_message(message.chat.id, "✅ Baza muvaffaqiyatli tozalandi va qayta yaratildi.")
+            except Exception as e:
+                bot.send_message(message.chat.id, f"❌ Xatolik: {e}")
+        else:
+            bot.send_message(message.chat.id, "❌ Bekor qilindi.")
+
     @bot.message_handler(func=lambda message: "Statistika" in message.text and message.from_user.id == ADMIN_ID)
     def admin_stats(message):
         try:

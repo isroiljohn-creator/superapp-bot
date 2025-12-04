@@ -11,6 +11,11 @@ class Database:
     def init_db(self):
         init_db_sync()
 
+    def reset_db(self):
+        from backend.database import sync_engine, Base
+        Base.metadata.drop_all(bind=sync_engine)
+        Base.metadata.create_all(bind=sync_engine)
+
     def _get_user_pk(self, session, telegram_id):
         user = session.query(User).filter(User.telegram_id == telegram_id).first()
         return user.id if user else None
