@@ -8,9 +8,9 @@ from bot.keyboards import ai_inline_keyboard
 def handle_ai_tools_menu(message, bot):
     bot.send_message(
         message.chat.id,
-        "🎯 **Shaxsiy Murabbiy**\n\nQanday yordam bera olaman?",
+        "🎯 <b>Shaxsiy Murabbiy</b>\n\nQanday yordam bera olaman?",
         reply_markup=ai_inline_keyboard(),
-        parse_mode="Markdown"
+        parse_mode="HTML"
     )
 
 @require_premium
@@ -98,8 +98,9 @@ def handle_recipe_gen(message, bot, user_id=None):
     try:
         msg = bot.send_message(
             message.chat.id, 
-            "🍳 **AI Retsept**\n\nMuzlatgichda bor mahsulotlarni yozing (masalan: tovuq, guruch, pomidor). Men sizga mos sog'lom retsept tuzib beraman:", 
-            reply_markup=types.ForceReply()
+            "🍳 <b>AI Retsept</b>\n\nMuzlatgichda bor mahsulotlarni yozing (masalan: tovuq, guruch, pomidor). Men sizga mos sog'lom retsept tuzib beraman:", 
+            reply_markup=types.ForceReply(),
+            parse_mode="HTML"
         )
         bot.register_next_step_handler(msg, process_recipe_input, bot)
     except Exception as e:
