@@ -18,8 +18,9 @@ def handle_ai_qa(message, bot, user_id=None):
     try:
         msg = bot.send_message(
             message.chat.id, 
-            "❓ **AI Murabbiy**\n\nMashg'ulotlar, ovqatlanish yoki sog'lom turmush tarzi bo'yicha istalgan savolingizni yozing:", 
-            reply_markup=types.ForceReply()
+            "❓ <b>AI Murabbiy</b>\n\nMashg'ulotlar, ovqatlanish yoki sog'lom turmush tarzi bo'yicha istalgan savolingizni yozing:", 
+            reply_markup=types.ForceReply(),
+            parse_mode="HTML"
         )
         bot.register_next_step_handler(msg, process_ai_qa, bot)
     except Exception as e:
@@ -32,7 +33,7 @@ def process_ai_qa(message, bot):
     user = db.get_user(user_id)
     
     # Send "typing" action instead of message to avoid clutter, or keep message if preferred
-    status_msg = bot.send_message(user_id, "🤖 **Javob tayyorlanmoqda...**", parse_mode="Markdown")
+    status_msg = bot.send_message(user_id, "🤖 <b>Javob tayyorlanmoqda...</b>", parse_mode="HTML")
     
     system_prompt = f"""
     Siz professional fitnes murabbiyisiz.
@@ -78,7 +79,7 @@ def handle_shopping_list(message, bot, user_id=None):
         user_id = message.from_user.id
     user = db.get_user(user_id)
     
-    status_msg = bot.send_message(user_id, "⏳ **AI xaridlar ro'yxatini tuzmoqda...**", parse_mode="Markdown")
+    status_msg = bot.send_message(user_id, "⏳ <b>AI xaridlar ro'yxatini tuzmoqda...</b>", parse_mode="HTML")
     
     from core.ai import ai_generate_shopping_list
     
@@ -110,7 +111,7 @@ def process_recipe_input(message, bot):
     ingredients = message.text
     user = db.get_user(user_id)
     
-    status_msg = bot.send_message(message.chat.id, "⏳ **Retsept yaratilmoqda...**", parse_mode="Markdown")
+    status_msg = bot.send_message(message.chat.id, "⏳ <b>Retsept yaratilmoqda...</b>", parse_mode="HTML")
     
     system_prompt = f"""
     Siz professional dietolog va oshpazsiz.
@@ -153,7 +154,7 @@ def handle_weekly_report(message, bot, user_id=None):
         user_id = message.from_user.id
     user = db.get_user(user_id)
     
-    status_msg = bot.send_message(user_id, "⏳ **Haftalik hisobot tayyorlanmoqda...**", parse_mode="Markdown")
+    status_msg = bot.send_message(user_id, "⏳ <b>Haftalik hisobot tayyorlanmoqda...</b>", parse_mode="HTML")
     
     # Mock data for now, ideally fetch logs
     prompt = f"""

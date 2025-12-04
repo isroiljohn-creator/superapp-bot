@@ -88,7 +88,7 @@ def generate_ai_meal(message, bot, user_id=None):
         bot.send_message(user_id, "Iltimos, avval /start ni bosing.")
         return
     
-    bot.send_message(user_id, "🤖 **AI Ovqatlanish rejasi tuzilmoqda...**\n\nIltimos, biroz kuting ⏳", parse_mode="Markdown")
+    bot.send_message(user_id, "🤖 <b>AI Ovqatlanish rejasi tuzilmoqda...</b>\n\nIltimos, biroz kuting ⏳", parse_mode="HTML")
     
     try:
         # Pass the user object directly, as ai_generate_menu expects a user profile dict
