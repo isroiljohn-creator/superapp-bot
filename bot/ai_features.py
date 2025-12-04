@@ -69,6 +69,10 @@ def process_ai_qa(message, bot):
             # Fallback to plain text if HTML is invalid
             bot.edit_message_text(response, user_id, status_msg.message_id, parse_mode=None)
             
+        # Send main menu to restore navigation
+        from bot.keyboards import main_menu_keyboard
+        bot.send_message(user_id, "Yana nima yordam bera olaman?", reply_markup=main_menu_keyboard())
+            
     except Exception as e:
         print(f"AI QA Error: {e}")
         bot.edit_message_text("AI hozircha javob bera olmadi. Birozdan keyin yana urinib ko‘ring 🙂", user_id, status_msg.message_id)
@@ -144,6 +148,10 @@ def process_recipe_input(message, bot):
             bot.edit_message_text(response, message.chat.id, status_msg.message_id, parse_mode="HTML")
         except Exception:
             bot.edit_message_text(response, message.chat.id, status_msg.message_id, parse_mode=None)
+            
+        # Send main menu to restore navigation
+        from bot.keyboards import main_menu_keyboard
+        bot.send_message(user_id, "Yana nima yordam bera olaman?", reply_markup=main_menu_keyboard())
             
     except Exception as e:
         print(f"Recipe Error: {e}")
