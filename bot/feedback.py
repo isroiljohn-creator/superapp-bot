@@ -9,7 +9,8 @@ ADMIN_ID = int(os.getenv("ADMIN_ID", 0))
 
 def handle_feedback_start(message, bot):
     user_id = message.from_user.id
-    msg = bot.send_message(user_id, "Fikringizni yozing:", reply_markup=types.ForceReply())
+    with open("assets/qayta_aloqa.png", "rb") as photo:
+        msg = bot.send_photo(user_id, photo, caption="Fikringizni yozing:", reply_markup=types.ForceReply())
     bot.register_next_step_handler(msg, process_feedback, bot)
 
 def process_feedback(message, bot):

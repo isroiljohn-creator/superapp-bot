@@ -6,12 +6,14 @@ from bot.premium import require_premium
 from bot.keyboards import ai_inline_keyboard
 
 def handle_ai_tools_menu(message, bot):
-    bot.send_message(
-        message.chat.id,
-        "🎯 <b>Shaxsiy Murabbiy</b>\n\nQanday yordam bera olaman?",
-        reply_markup=ai_inline_keyboard(),
-        parse_mode="HTML"
-    )
+    with open("assets/ai_murabbiy.png", "rb") as photo:
+        bot.send_photo(
+            message.chat.id,
+            photo,
+            caption="🎯 <b>Shaxsiy Murabbiy</b>\n\nQanday yordam bera olaman?",
+            reply_markup=ai_inline_keyboard(),
+            parse_mode="HTML"
+        )
 
 @require_premium
 def handle_ai_qa(message, bot, user_id=None):

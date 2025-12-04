@@ -67,7 +67,8 @@ def handle_profile(message, bot, user_id=None):
             f"👇 Quyidagi menyudan tanlang:"
         )
         
-        bot.send_message(user_id, text, reply_markup=profile_inline_keyboard(), parse_mode="Markdown")
+        with open("assets/profil.png", "rb") as photo:
+            bot.send_photo(user_id, photo, caption=text, reply_markup=profile_inline_keyboard(), parse_mode="Markdown")
         
     except Exception as e:
         print(f"Profile Error: {e}")

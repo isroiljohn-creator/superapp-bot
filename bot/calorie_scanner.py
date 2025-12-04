@@ -15,12 +15,14 @@ def show_calorie_menu(message, bot):
         types.InlineKeyboardButton("📝 Matn orqali", callback_data="calorie_mode_text")
     )
     
-    bot.send_message(
-        message.chat.id,
-        "🍽 **Kaloriya Skaneri**\n\nKaloriyani qanday aniqlamoqchisiz?",
-        reply_markup=markup,
-        parse_mode="Markdown"
-    )
+    with open("assets/kaloriya_tahlili.png", "rb") as photo:
+        bot.send_photo(
+            message.chat.id,
+            photo,
+            caption="🍽 **Kaloriya Skaneri**\n\nKaloriyani qanday aniqlamoqchisiz?",
+            reply_markup=markup,
+            parse_mode="Markdown"
+        )
 
 def calorie_mode_callback(call, bot):
     user_id = call.from_user.id

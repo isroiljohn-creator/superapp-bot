@@ -4,12 +4,14 @@ from core.db import db
 from bot.keyboards import challenges_inline_keyboard
 
 def handle_challenges_menu(message, bot):
-    bot.send_message(
-        message.chat.id,
-        "🔥 **Chellenjlar**\n\nQatnashing va yuting!",
-        reply_markup=challenges_inline_keyboard(),
-        parse_mode="Markdown"
-    )
+    with open("assets/chellenjlar.png", "rb") as photo:
+        bot.send_photo(
+            message.chat.id,
+            photo,
+            caption="🔥 **Chellenjlar**\n\nQatnashing va yuting!",
+            reply_markup=challenges_inline_keyboard(),
+            parse_mode="Markdown"
+        )
 
 def handle_weekly_challenge(message, bot):
     text = (

@@ -240,12 +240,14 @@ def process_mood_reason(message, bot):
 from bot.keyboards import habits_inline_keyboard
 
 def handle_habits_menu(message, bot):
-    bot.send_message(
-        message.chat.id,
-        "🔁 **Odatlar**\n\nQaysi odatni kiritmoqchisiz?",
-        reply_markup=habits_inline_keyboard(),
-        parse_mode="Markdown"
-    )
+    with open("assets/kunlik_odatlar.png", "rb") as photo:
+        bot.send_photo(
+            message.chat.id,
+            photo,
+            caption="🔁 **Odatlar**\n\nQaysi odatni kiritmoqchisiz?",
+            reply_markup=habits_inline_keyboard(),
+            parse_mode="Markdown"
+        )
 
 def handle_habits_stats(message, bot, user_id=None):
     if user_id is None:

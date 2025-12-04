@@ -46,7 +46,8 @@ def handle_referral_link(message, bot, user_id=None):
         "Bu havolani do'stlaringizga yuboring. Ular ro'yxatdan o'tsa, sizga +1 coin beriladi! 🟡"
     )
     
-    bot.send_message(message.chat.id, text, parse_mode="Markdown")
+    with open("assets/referal.png", "rb") as photo:
+        bot.send_photo(message.chat.id, photo, caption=text, parse_mode="Markdown")
 
 def handle_my_points(message, bot, user_id=None):
     if user_id is None:
