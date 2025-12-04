@@ -171,3 +171,11 @@ class AdminLog(Base):
     details = Column(Text)
     timestamp = Column(DateTime, default=datetime.utcnow)
 
+class BotContent(Base):
+    __tablename__ = "bot_content"
+    key = Column(String, primary_key=True)
+    value = Column(Text, nullable=False)
+    description = Column(String, nullable=True)
+    category = Column(String, default="general") # e.g., 'premium', 'onboarding'
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+

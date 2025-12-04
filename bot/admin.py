@@ -22,7 +22,8 @@ def register_handlers(bot):
             types.KeyboardButton("🎯 Segment xabar"),
             types.KeyboardButton("💎 Premium foydalanuvchilar"),
             types.KeyboardButton("🏷 Referallar"),
-            types.KeyboardButton("💳 Obunalar")
+            types.KeyboardButton("💳 Obunalar"),
+            types.KeyboardButton("✍️ Matnlarni tahrirlash")
         )
         bot.send_message(message.chat.id, "👨‍💼 **Admin Panel**", reply_markup=markup, parse_mode="Markdown")
         
@@ -378,4 +379,63 @@ def register_subscription_handlers(bot):
                 pass
                 
         except ValueError:
-            bot.send_message(message.chat.id, "❌ Son kiritishingiz kerak.")
+# === Content Management ===
+    from core.content import content_manager
+
+    @bot.message_handler(func=lambda message: "Matnlarni tahrirlash" in message.text and message.from_user.id in ADMIN_IDS)
+    def admin_content_start(message):
+        # List categories or show keys
+        # For simplicity, let's show keys directly or search
+        markup = types.InlineKeyboardMarkup(row_width=1)
+        
+        # We can group by category if we had many, but for now list all or search
+        markup.add(types.InlineKeyboardButton("🔍 Qidirish", callback_data="content_search"))
+        
+        # Add some common keys manually or fetch top ones
+        all_content = content_manager.get_all()
+        for key in list(all_content.keys())[:5]:
+            markup.add(types.InlineKeyboardButton(f"📝 {key}", callback_data=f"content_edit_{key}"))
+            
+        bot.send_message(message.chat.id, "Matnlarni boshqarish. Qidiruvdan foydalaning yoki ro'yxatdan tanlang:", reply_markup=markup)
+
+    @bot.callback_query_handler(func=lambda call: call.data == "content_search")
+    def admin_content_search_prompt(call):
+        if call.from_user.id not in ADMIN_IDS: return
+        msg = bot.send_message(call.message.chat.id, "Kalit so'zni kiriting (masalan: welcome):", reply_markup=types.ForceReply())
+        bot.register_next_step_handler(msg, process_content_search, bot)
+
+    def process_content_search(message, bot):
+        query = message.text.lower()
+        all_content = content_manager.get_all()
+        matches = [k for k in all_content.keys() if query in k.lower()]
+        
+        if not matches:
+            bot.send_message(message.chat.id, "❌ Hech narsa topilmadi.")
+            return
+            
+        markup = types.InlineKeyboardMarkup(row_width=1)
+        for key in matches[:10]: # Limit to 10
+            markup.add(types.InlineKeyboardButton(f"📝 {key}", callback_data=f"content_edit_{key}"))
+            
+        bot.send_message(message.chat.id, f"🔍 '{query}' bo'yicha natijalar:", reply_markup=markup)
+
+    @bot.callback_query_handler(func=lambda call: call.data.startswith("content_edit_"))
+    def admin_content_edit_prompt(call):
+        if call.from_user.id not in ADMIN_IDS: return
+        key = call.data.replace("content_edit_", "")
+        current_val = content_manager.get(key)
+        
+        text = f"🔑 **Kalit:** `{key}`\n\n📄 **Hozirgi matn:**\n{current_val}\n\n✏️ Yangi matnni yuboring:"
+        msg = bot.send_message(call.message.chat.id, text, parse_mode="Markdown", reply_markup=types.ForceReply())
+        bot.register_next_step_handler(msg, process_content_update, bot, key)
+
+    def process_content_update(message, bot, key):
+        new_val = message.text
+        if new_val.startswith("/"):
+            bot.send_message(message.chat.id, "❌ Bekor qilindi.")
+            return
+            
+        if content_manager.set(key, new_val):
+            bot.send_message(message.chat.id, f"✅ **{key}** yangilandi!")
+        else:
+            bot.send_message(message.chat.id, "❌ Saqlashda xatolik bo'ldi.")
