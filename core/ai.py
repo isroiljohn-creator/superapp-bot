@@ -223,24 +223,24 @@ Foydalanuvchiga uy sharoitida bajariladigan 3 kunlik mashq rejasi tuzing.
 
 📌 FORMAT TALABLARI:
 - HTML ishlatma (<p>, <ul>, <li> yo‘q).
-- Faqat oddiy matn + <b>qalin</b> joylar.
+- Muhim joylarni ajratish uchun **yulduzcha** (markdown) ishlat.
 - Emojilarni minimal ishlat (faqat bo‘lim sarlavhalarida).
 - Har bir kun quyidagicha struktura bo‘lsin:
 
-<b>1-kun: Ko‘krak & Triceps</b>  
+**1-kun: Ko‘krak & Triceps**  
 - Mashq 1 — takrorlar  
 - Mashq 2 — takrorlar  
 - Mashq 3 — takrorlar  
 
-<b>2-kun: Oyoq & Yelka</b>  
+**2-kun: Oyoq & Yelka**  
 - ...
 
-<b>3-kun: Orqa & Core</b>  
+**3-kun: Orqa & Core**  
 - ... 
 
 🧩 Matn juda uzun chiqmasin. Maksimal 1500 belgi.
 🧩 Har bir mashq sodda va uyda qilinadigan bo‘lsin.
-🧩 Javob faqat matn ko‘rinishida bo‘lsin, HTML teglarsiz.
+🧩 Javob faqat matn ko‘rinishida bo‘lsin.
 """
     
     response_text = call_gemini(prompt)
@@ -280,11 +280,11 @@ Foydalanuvchiga 3 kunlik ovqatlanish rejasi tuzing.
 
 📌 FORMAT TALABLARI:
 - Hech qanday HTML (<p>, <br>, <ul>, <li>) ishlatma.
-- Faqat matn + <b>qalin</b> joylar.
+- Muhim joylarni ajratish uchun **yulduzcha** (markdown) ishlat.
 - Emojilarni kam ishlat — faqat kun nomlarida yoki sarlavhalarda.
 - Har kun quyidagicha bo'lsin:
 
-<b>1-kun</b>
+**1-kun**
 - Nonushta: ...
 - Tushlik: ...
 - Kechki: ...
@@ -294,7 +294,7 @@ Foydalanuvchiga 3 kunlik ovqatlanish rejasi tuzing.
 
 🧩 Matn juda uzun chiqmasin. Maksimal 1500 belgi.
 
-📢 Javob faqat matn ko'rinishida bo'lsin, HTML teglarsiz!
+📢 Javob faqat matn ko'rinishida bo'lsin.
 """
 
     response_text = call_gemini(prompt)
@@ -345,6 +345,7 @@ def ai_generate_shopping_list(user_profile):
     - ...
     
     Qisqa va aniq bo'lsin.
+    Muhim joylarni **qalin** qilib yoz.
     """
     
     response = call_gemini(prompt)
@@ -464,10 +465,17 @@ def format_gemini_text(raw_text, title):
         return ""
     
     import html
-    # Clean up Markdown (basic)
-    text = raw_text.replace("**", "").replace("##", "").replace("#", "")
-    # Escape HTML special characters to prevent parsing errors
-    text = html.escape(text)
+    import re
+    
+    # 1. Escape HTML special characters first (safe from random < or >)
+    text = html.escape(raw_text)
+    
+    # 2. Convert Markdown bold (**text**) to HTML (<b>text</b>)
+    # This regex finds **text** and replaces it with <b>text</b>
+    text = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', text)
+    
+    # 3. Clean up any remaining Markdown artifacts if needed
+    text = text.replace("##", "").replace("#", "")
     
     return f"<b>{title}</b>\n\n{text}"
 
