@@ -50,10 +50,10 @@ def process_ai_qa(message, bot):
     FORMAT TALABLARI:
     - Maksimal 700-900 belgi.
     - Qisqa paragraflar.
-    - Muhim joylari uchun *yulduzcha* yoki **qalin** (Markdown) ishlating.
+    - Muhim joylari uchun <b>qalin</b> (HTML) ishlating.
     - Ro'yxat uchun tire (-) ishlating.
-    - HTML TEGLARNI ISHLATMANG (<p>, <ul>, <li>, <b> va h.k. MUMKIN EMAS).
-    - Faqat Telegram Markdown (yulduzcha, tire).
+    - Markdown ishlata ko'rmang (* yoki _).
+    - Faqat HTML teglar: <b>, <i>, <u>, <s>, <code>, <pre>.
     - O'zbek tilida.
     """
     
@@ -62,7 +62,11 @@ def process_ai_qa(message, bot):
         response = ask_gemini(system_prompt, question)
         
         # Edit status message with response
-        bot.edit_message_text(response, user_id, status_msg.message_id, parse_mode="Markdown")
+        try:
+            bot.edit_message_text(response, user_id, status_msg.message_id, parse_mode="HTML")
+        except Exception:
+            # Fallback to plain text if HTML is invalid
+            bot.edit_message_text(response, user_id, status_msg.message_id, parse_mode=None)
             
     except Exception as e:
         print(f"AI QA Error: {e}")
@@ -120,12 +124,13 @@ def process_recipe_input(message, bot):
     
     FORMAT TALABLARI:
     - Maksimal 900 belgi.
-    - HTML TEGLARNI ISHLATMANG. Faqat Markdown (*, -).
+    - Markdown ishlata ko'rmang (* yoki _).
+    - Faqat HTML teglar: <b>, <i>.
     - Struktura:
-      * Taom Nomi (Qalin)
-      * Masalliqlar (Ro'yxat)
-      * Tayyorlash (3-6 qadam)
-      * Foydali maslahat (1 gap)
+      * <b>Taom Nomi</b>
+      * <b>Masalliqlar</b> (Ro'yxat)
+      * <b>Tayyorlash</b> (3-6 qadam)
+      * <b>Foydali maslahat</b> (1 gap)
     - O'zbek tilida.
     """
     
@@ -133,7 +138,10 @@ def process_recipe_input(message, bot):
         from core.ai import ask_gemini
         response = ask_gemini(system_prompt, ingredients)
         
-        bot.edit_message_text(response, message.chat.id, status_msg.message_id, parse_mode="Markdown")
+        try:
+            bot.edit_message_text(response, message.chat.id, status_msg.message_id, parse_mode="HTML")
+        except Exception:
+            bot.edit_message_text(response, message.chat.id, status_msg.message_id, parse_mode=None)
             
     except Exception as e:
         print(f"Recipe Error: {e}")
