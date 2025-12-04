@@ -24,8 +24,13 @@ class ContentManager:
             self._cache = {}
 
     def get(self, key, default=None):
-        """Get text from cache"""
-        return self._cache.get(key, default)
+        """Get text from cache. If missing and default provided, save default to DB."""
+        val = self._cache.get(key)
+        if val is None and default is not None:
+            # Lazy seed
+            self.set(key, default)
+            return default
+        return val if val is not None else default
 
     def set(self, key, value, description=None, category="general"):
         """Update text in DB and Cache"""
