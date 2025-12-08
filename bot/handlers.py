@@ -317,7 +317,7 @@ def register_all_handlers(bot):
     def points_callback(call):
         action = call.data.replace('points_', '')
         if action == 'balance': gamification.handle_my_points(call.message, bot, user_id=call.from_user.id)
-        elif action == 'rewards': gamification.handle_rewards(call.message, bot)
+        elif action == 'rewards': gamification.handle_rewards(call.message, bot, user_id=call.from_user.id)
         elif action == 'rules': gamification.handle_rules(call.message, bot)
         elif action == 'referral': gamification.handle_referral_link(call.message, bot, user_id=call.from_user.id)
         bot.answer_callback_query(call.id)

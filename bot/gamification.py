@@ -66,8 +66,9 @@ def handle_my_points(message, bot, user_id=None):
     text = f"📊 **Sizning Ballaringiz:** {points}\n\nDavom eting! 🚀"
     bot.send_message(message.chat.id, text, parse_mode="Markdown")
 
-def handle_rewards(message, bot):
-    user_id = message.from_user.id
+def handle_rewards(message, bot, user_id=None):
+    if user_id is None:
+        user_id = message.from_user.id
     user = db.get_user(user_id)
     if not user:
         bot.send_message(message.chat.id, "⚠️ Foydalanuvchi topilmadi. Iltimos /start ni bosing.")
