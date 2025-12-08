@@ -436,7 +436,11 @@ def register_content_handlers(bot):
             return
             
         else:
-            bot.send_message(message.chat.id, "❌ Saqlashda xatolik bo'ldi.")
+            try:
+                content_manager.set(key, new_val)
+                bot.send_message(message.chat.id, f"✅ '{key}' muvaffaqiyatli yangilandi!")
+            except Exception as e:
+                bot.send_message(message.chat.id, f"❌ Saqlashda xatolik: {e}")
 
     @bot.message_handler(commands=['seed'])
     def admin_seed_content(message):

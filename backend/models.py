@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime, ForeignKey, Text
+from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime, ForeignKey, Text, BigInteger
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from backend.database import Base
@@ -7,7 +7,7 @@ class User(Base):
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True, index=True)
-    telegram_id = Column(Integer, unique=True, index=True)
+    telegram_id = Column(BigInteger, unique=True, index=True)
     username = Column(String, nullable=True)
     full_name = Column(String, nullable=True)
     phone = Column(String, nullable=True)  # Nullable for WebApp users, required for bot onboarding
@@ -165,9 +165,9 @@ class MenuCache(Base):
 class AdminLog(Base):
     __tablename__ = "admin_logs"
     id = Column(Integer, primary_key=True, index=True)
-    admin_id = Column(Integer)
+    admin_id = Column(BigInteger)
     action = Column(String)
-    target_id = Column(Integer, nullable=True)
+    target_id = Column(BigInteger, nullable=True)
     details = Column(Text)
     timestamp = Column(DateTime, default=datetime.utcnow)
 
