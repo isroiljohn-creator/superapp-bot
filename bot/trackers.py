@@ -182,40 +182,56 @@ def process_mood_callback(call, bot):
         # 0.5 points (rounded to 1 for integer DB, or need float support? DB is int. Let's give 1 point to be generous or 0.5 if we change DB)
         # User asked for 0.5. DB points is INTEGER. I should probably change DB or just give 1 point every 2 days?
         # Or just give 1 point. Let's give 1 point for now as 0.5 is hard with Int.
-        # Wait, I can't change DB type easily now. Let's give 1 point but say it's bonus.
-        # Or maybe store as float? No, let's stick to int.
-        # Let's give 1 point.
-        db.add_points(user_id, 1) 
-        db.update_streak(user_id, 'mood')
+# Refactored process_mood_callback to handle_mood_track with new logic
+def handle_mood_track(call, bot): # Added bot parameter for consistency with other handlers
+    user_id = call.from_user.id
+    today = datetime.now().strftime("%Y-%m-%d")
+
+    parts = parse_callback(call.data, prefix="track_mood_", min_parts=3)
+    
+    if not parts:
+        bot.answer_callback_query(call.id, "Xatolik")
+        return
+
+    try:
+        mood = parts[2] # bad, ok, good
         
-        bot.answer_callback_query(call.id, "✅ Ajoyib! +1 ball")
-        bot.edit_message_text(
-            "✅ **Kayfiyat a'lo!**\nShunday davom eting! ✨",
-            call.message.chat.id,
-            call.message.message_id,
-            parse_mode="Markdown"
-        )
+        db.update_daily_log(user_id, today, mood=mood) # Changed from log_daily to update_daily_log
         
-    elif mood == 'bad':
-        # Ask for reason
-        from bot import onboarding
-        onboarding.manager.set_state(user_id, STATE_MOOD_REASON)
-        
-        bot.answer_callback_query(call.id)
-        bot.edit_message_text(
-            "😔 **Tushunaman...**\n\nNega kayfiyatingiz yomon? Qisqacha yozib yuboring, balki yordam bera olarman.",
-            call.message.chat.id,
-            call.message.message_id,
-            parse_mode="Markdown"
-        )
-    else:
-        bot.answer_callback_query(call.id, "✅ Qabul qilindi")
-        bot.edit_message_text(
-            "✅ **Kayfiyat o'rtacha.**\nYaxshi dam olishga harakat qiling!",
-            call.message.chat.id,
-            call.message.message_id,
-            parse_mode="Markdown"
-        )
+        if mood == 'good':
+            db.add_points(user_id, 5) # Points changed from 1 to 5
+            db.update_streak(user_id, 'mood')
+            bot.answer_callback_query(call.id, "✅ Ajoyib! +5 ball")
+            bot.edit_message_text(
+                "✅ **Kayfiyat a'lo!**\nShunday davom eting! ✨",
+                call.message.chat.id,
+                call.message.message_id,
+                parse_mode="Markdown"
+            )
+            
+        elif mood == 'bad':
+            from bot import onboarding
+            onboarding.manager.set_state(user_id, STATE_MOOD_REASON)
+            
+            bot.answer_callback_query(call.id)
+            bot.edit_message_text(
+                "😔 **Tushunaman...**\n\nNega kayfiyatingiz yomon? Qisqacha yozib yuboring, balki yordam bera olarman.",
+                call.message.chat.id,
+                call.message.message_id,
+                parse_mode="Markdown"
+            )
+        else: # mood == 'ok'
+            bot.answer_callback_query(call.id, "✅ Qabul qilindi")
+            bot.edit_message_text(
+                "✅ **Kayfiyat o'rtacha.**\nYaxshi dam olishga harakat qiling!",
+                call.message.chat.id,
+                call.message.message_id,
+                parse_mode="Markdown"
+            )
+            
+    except Exception as e:
+        print(f"Mood track error: {e}")
+        bot.answer_callback_query(call.id, "Xatolik")
 
 def process_mood_reason(message, bot):
     user_id = message.from_user.id

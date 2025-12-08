@@ -231,13 +231,29 @@ def register_all_handlers(bot):
         bot.answer_callback_query(call.id)
 
     # AI Tool Callbacks (if any left using callbacks)
-    @bot.callback_query_handler(func=lambda call: call.data.startswith('ai_tool_'))
-    def ai_tool_callback(call):
-        tool = call.data.split('_')[2]
-        if tool == 'shopping': ai_features.handle_shopping_list(call.message, bot)
-        elif tool == 'recipe': ai_features.handle_recipe_gen(call.message, bot)
-        elif tool == 'report': ai_features.handle_weekly_report(call.message, bot)
-        bot.answer_callback_query(call.id)
+    @bot.callback_query_handler(func=lambda call: call.data.startswith("ai_tool_"))
+    def handle_ai_tool(call):
+        from core.utils import parse_callback
+        parts = parse_callback(call.data, prefix="ai_tool_", min_parts=3)
+        
+        if not parts:
+            bot.answer_callback_query(call.id, "Xatolik")
+            return
+
+        try:
+            tool = parts[2]
+            
+            if tool == "workout":
+                # ...
+                pass
+            elif tool == "diet":
+                # ...
+                pass
+                
+            bot.answer_callback_query(call.id, "Tez kunda...")
+        except Exception as e:
+            print(f"AI tool error: {e}")
+            bot.answer_callback_query(call.id, "Xatolik")
 
     # Challenge Callbacks
     @bot.callback_query_handler(func=lambda call: call.data.startswith('challenge_'))

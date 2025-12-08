@@ -41,28 +41,46 @@ def calorie_mode_callback(call, bot):
             parse_mode="Markdown"
         )
         bot.answer_callback_query(call.id)
+@bot.callback_query_handler(func=lambda call: call.data.startswith("calorie_mode_"))
+def handle_calorie_mode(call):
+    from core.utils import parse_callback
+    parts = parse_callback(call.data, prefix="calorie_mode_", min_parts=3)
+    
+    if not parts:
+        bot.answer_callback_query(call.id, "Xatolik")
         return
 
-    if mode == 'photo':
-        onboarding.manager.set_state(user_id, STATE_CALORIE_PHOTO)
-        bot.send_message(
-            user_id,
-            "📷 **Rasm yuboring**\n\nOvqatingizni yaqin masofadan, yorug‘likda suratga oling va shu yerga yuboring.",
-            parse_mode="Markdown"
-        )
-    elif mode == 'text':
-        onboarding.manager.set_state(user_id, STATE_CALORIE_TEXT)
-        bot.send_message(
-            user_id,
-            "📝 **Ovqatni tasvirlang**\n\n"
-            "Iltimos, yegan ovqatingizni batafsil yozing:\n"
-            "• Mahsulot nomi\n"
-            "• Miqdori (gramm, qoshiq, dona)\n\n"
-            "💡 *Masalan:* `200g osh, 1 bo'lak non, 1 kosa salat`",
-            parse_mode="Markdown"
-        )
-    
-    bot.answer_callback_query(call.id)
+    try:
+        mode = parts[2]
+        
+        # Check Limit (moved from original calorie_mode_callback)
+        user_id = call.from_user.id
+        allowed, reason = db.check_calorie_limit(user_id)
+        if not allowed:
+            markup = types.InlineKeyboardMarkup()
+            markup.add(types.InlineKeyboardButton("💎 Premium olish", callback_data="premium_info"))
+            
+            bot.send_message(
+                user_id,
+                "🚫 **Limit tugadi**\n\nKaloriya skaneri Premium paketiga kiradi. Siz bugungi bepul limitdan foydalanib bo‘ldingiz. 💚",
+                reply_markup=markup,
+                parse_mode="Markdown"
+            )
+            bot.answer_callback_query(call.id)
+            return
+
+        if mode == 'photo':
+            # Set state
+            onboarding.manager.set_state(call.from_user.id, STATE_CALORIE_PHOTO)
+            bot.send_message(call.message.chat.id, "📷 Ovqat rasmini yuboring:")
+        elif mode == 'text':
+            onboarding.manager.set_state(call.from_user.id, STATE_CALORIE_TEXT)
+            bot.send_message(call.message.chat.id, "📝 Ovqat haqida yozing (masalan: 100g palov, 1 ta non):")
+        
+        bot.answer_callback_query(call.id)
+    except Exception as e:
+        print(f"Calorie mode error: {e}")
+        bot.answer_callback_query(call.id, "Xatolik")
 
 @require_premium
 def handle_calorie_photo(message, bot):

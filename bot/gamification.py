@@ -162,60 +162,73 @@ def register_handlers(bot):
     def handle_already_done(call):
         bot.answer_callback_query(call.id, "Bugun allaqachon belgilagansiz, ertaga yana kutamiz 🙂", show_alert=True)
 
-    @bot.callback_query_handler(func=lambda call: call.data.startswith("redeem_"))
+    @bot.callback_query_handler(func=lambda call: call.data.startswith("redeem_prem_"))
     def handle_redeem(call):
-        user_id = call.from_user.id
-        action = call.data.split("_")[1] # prem
-        value = call.data.split("_")[2] # 7 or 30
+        from core.utils import parse_callback
+        parts = parse_callback(call.data, prefix="redeem_prem_", min_parts=3)
         
-        cost = 0
-        days = 0
-        
-        if action == "prem":
-            if value == "7":
-                cost = 100
-                days = 7
-            elif value == "30":
-                cost = 500
-                days = 30
-        
-        # Confirm dialog
-        markup = types.InlineKeyboardMarkup()
-        markup.add(
-            types.InlineKeyboardButton("✅ Tasdiqlash", callback_data=f"confirm_redeem_{cost}_{days}"),
-            types.InlineKeyboardButton("❌ Bekor qilish", callback_data="cancel_redeem")
-        )
-        
-        bot.edit_message_text(
-            f"❓ **Tasdiqlash**\n\n{days} kunlik Premium uchun {cost} ball sarflanadi.\nRozimisiz?",
-            call.message.chat.id,
-            call.message.message_id,
-            reply_markup=markup,
-            parse_mode="Markdown"
-        )
+        if not parts:
+            bot.answer_callback_query(call.id, "Xatolik: Noto'g'ri ma'lumot")
+            return
+
+        try:
+            action = parts[1] # prem
+            value = parts[2] # 7 or 30
+            
+            days = 7 if value == "7" else 30
+            cost = 100 if value == "7" else 500
+            
+            text = (
+                f"💎 **Premium olish**\n\n"
+                f"Muddat: {days} kun\n"
+                f"Narxi: {cost} ball\n\n"
+                f"Davom etishni xohlaysizmi?"
+            )
+            
+            markup = types.InlineKeyboardMarkup()
+            markup.row(
+                types.InlineKeyboardButton("✅ Tasdiqlash", callback_data=f"confirm_redeem_{cost}_{days}"),
+                types.InlineKeyboardButton("❌ Bekor qilish", callback_data="cancel_redeem")
+            )
+            
+            bot.edit_message_text(text, call.message.chat.id, call.message.message_id, reply_markup=markup, parse_mode="Markdown")
+        except Exception as e:
+            print(f"Redeem error: {e}")
+            bot.answer_callback_query(call.id, "Xatolik yuz berdi")
 
     @bot.callback_query_handler(func=lambda call: call.data.startswith("confirm_redeem_"))
-    def process_redeem_confirm(call):
-        user_id = call.from_user.id
-        cost = int(call.data.split("_")[2])
-        days = int(call.data.split("_")[3])
+    def handle_confirm_redeem(call):
+        from core.utils import parse_callback
+        parts = parse_callback(call.data, prefix="confirm_redeem_", min_parts=4)
         
-        success, msg = db.redeem_points(user_id, cost, "premium_days", days)
-        
-        if success:
-            bot.answer_callback_query(call.id, "Muvaffaqiyatli! 🎉", show_alert=True)
-            bot.edit_message_text(
-                f"🎉 **Tabriklaymiz!**\n\nSiz {cost} ball evaziga {days} kunlik Premium oldingiz!\n\n/start bosib tekshirishingiz mumkin.",
-                call.message.chat.id,
-                call.message.message_id,
-                parse_mode="Markdown"
-            )
-        else:
-            bot.answer_callback_query(call.id, f"Xatolik: {msg}", show_alert=True)
-            # Return to menu
-            handle_rewards(call.message, bot)
+        if not parts:
+            bot.answer_callback_query(call.id, "Xatolik: Noto'g'ri ma'lumot")
+            return
+
+        try:
+            cost = int(parts[2])
+            days = int(parts[3])
+            
+            user_id = call.from_user.id
+            success, msg = db.redeem_points(user_id, cost, days)
+            
+            if success:
+                bot.answer_callback_query(call.id, "✅ Muvaffaqiyatli!")
+                bot.edit_message_text(
+                    f"🎉 **Tabriklaymiz!**\n\nSiz {days} kunlik Premium obunani qo'lga kiritdingiz! ✅",
+                    call.message.chat.id,
+                    call.message.message_id,
+                    parse_mode="Markdown"
+                )
+            else:
+                bot.answer_callback_query(call.id, "❌ Ballar yetarli emas!")
+                bot.send_message(call.message.chat.id, msg)
+                
+        except Exception as e:
+            print(f"Confirm redeem error: {e}")
+            bot.answer_callback_query(call.id, "Xatolik yuz berdi")
 
     @bot.callback_query_handler(func=lambda call: call.data == "cancel_redeem")
     def process_redeem_cancel(call):
         handle_rewards(call.message, bot)
-
+```

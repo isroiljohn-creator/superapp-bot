@@ -60,3 +60,28 @@ def safe_split_text(text, limit=4000):
         chunks.append(current_chunk)
         
     return chunks
+
+def parse_callback(data, prefix=None, min_parts=0):
+    """
+    Safely parses callback data.
+    
+    Args:
+        data (str): The callback data string.
+        prefix (str, optional): Expected prefix (e.g., 'redeem_').
+        min_parts (int, optional): Minimum number of parts expected after split('_').
+        
+    Returns:
+        list: List of parts if valid, None otherwise.
+    """
+    if not data or not isinstance(data, str):
+        return None
+        
+    if prefix and not data.startswith(prefix):
+        return None
+        
+    parts = data.split('_')
+    
+    if len(parts) < min_parts:
+        return None
+        
+    return parts

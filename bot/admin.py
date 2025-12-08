@@ -165,8 +165,15 @@ def register_handlers(bot):
         if call.from_user.id not in ADMIN_IDS:
             return
         
+        from core.utils import parse_callback
+        parts = parse_callback(call.data, prefix="admin_users_page_", min_parts=4)
+        
+        if not parts:
+            bot.answer_callback_query(call.id, "Xatolik")
+            return
+
         try:
-            page = int(call.data.split("_")[3])
+            page = int(parts[3])
             show_user_list_page(call.message.chat.id, page, bot, call.message.message_id)
             bot.answer_callback_query(call.id)
         except Exception as e:
