@@ -353,5 +353,16 @@ class Database:
                 log = CalorieLog(user_id=pk, total_kcal=total_kcal, json_data=json_data)
                 session.add(log)
 
+    def update_streak(self, user_id, type):
+        with get_sync_db() as session:
+            user = session.query(User).filter(User.telegram_id == user_id).first()
+            if user:
+                if type == 'water':
+                    user.streak_water = (user.streak_water or 0) + 1
+                elif type == 'sleep':
+                    user.streak_sleep = (user.streak_sleep or 0) + 1
+                elif type == 'mood':
+                    user.streak_mood = (user.streak_mood or 0) + 1
+
 db = Database()
 
