@@ -413,6 +413,48 @@ class Database:
                 print(f"DB Error in complete_onboarding: {e}")
                 raise e
 
+    def get_weekly_stats(self, user_id):
+        with get_sync_db() as session:
+            pk = self._get_user_pk(session, user_id)
+            if not pk: return None
+            
+            # 1. Get User Streaks
+            user = session.query(User).filter(User.id == pk).first()
+            streaks = {
+                "water": user.streak_water or 0,
+                "sleep": user.streak_sleep or 0,
+                "mood": user.streak_mood or 0
+            }
+            
+            # 2. Get Last 7 Days Logs
+            start_date = (datetime.now() - timedelta(days=7)).strftime("%Y-%m-%d")
+            logs = session.query(DailyLog).filter(DailyLog.user_id == pk, DailyLog.date >= start_date).all()
+            
+            if not logs:
+                return {"has_data": False}
+                
+            # 3. Aggregate Data
+            stats = {
+                "has_data": True,
+                "days_tracked": len(logs),
+                "water_days": sum(1 for log in logs if log.water_drank),
+                "workouts": sum(1 for log in logs if log.workout_done),
+                "avg_sleep": 0,
+                "moods": {},
+                "streaks": streaks
+            }
+            
+            total_sleep = sum(log.sleep_hours for log in logs if log.sleep_hours)
+            sleep_count = sum(1 for log in logs if log.sleep_hours > 0)
+            if sleep_count > 0:
+                stats["avg_sleep"] = round(total_sleep / sleep_count, 1)
+                
+            for log in logs:
+                if log.mood:
+                    stats["moods"][log.mood] = stats["moods"].get(log.mood, 0) + 1
+                    
+            return stats
+
     def update_streak(self, user_id, type):
         with get_sync_db() as session:
             user = session.query(User).filter(User.telegram_id == user_id).first()

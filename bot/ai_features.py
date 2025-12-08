@@ -167,29 +167,59 @@ def handle_weekly_report(message, bot, user_id=None):
     
     status_msg = bot.send_message(user_id, "⏳ <b>Haftalik hisobot tayyorlanmoqda...</b>", parse_mode="HTML")
     
-    # Mock data for now, ideally fetch logs
+    # Fetch real stats
+    stats = db.get_weekly_stats(user_id)
+    
+    if not stats or not stats.get("has_data"):
+        bot.edit_message_text(
+            "📉 <b>Ma'lumot yetarli emas</b>\n\nTo'liq hisobot olish uchun botdan kamida 2-3 kun faol foydalaning (suv, uyqu, mashg'ulotlarni kiriting).", 
+            user_id, 
+            status_msg.message_id, 
+            parse_mode="HTML"
+        )
+        return
+
+    # Construct prompt with real data
     prompt = f"""
     Foydalanuvchi: {user.get('full_name')}
     Maqsad: {user.get('goal')}
-    Ballar: {user.get('yasha_points')}
     
-    Vazifa: Foydalanuvchiga motivatsion haftalik hisobot yozing.
+    📊 **So'nggi 7 kunlik statistika:**
+    - Faol kunlar: {stats['days_tracked']}/7
+    - Suv ichilgan kunlar: {stats['water_days']} (Streak: {stats['streaks']['water']})
+    - Mashg'ulotlar: {stats['workouts']} ta
+    - O'rtacha uyqu: {stats['avg_sleep']} soat (Streak: {stats['streaks']['sleep']})
+    - Kayfiyatlar: {stats['moods']}
+    
+    Vazifa: Yuqoridagi ma'lumotlarga asoslanib, foydalanuvchiga qisqa, motivatsion haftalik hisobot yozing.
     
     FORMAT:
     📊 **Haftalik Hisobot**
     
-    ✅ **Yutuqlar:**
-    - ...
+    ✅ **Natijalar:**
+    - (Aniq raqamlarni keltiring)
     
     💡 **Maslahat:**
-    - ...
+    - (Agar uyqu kam bo'lsa yoki suv ichilmagan bo'lsa, shunga urg'u bering)
     
-    🔥 **Keyingi hafta uchun maqsad:**
-    - ...
+    🔥 **Keyingi hafta uchun:**
+    - (Qisqa motivatsiya)
+    
+    Maksimal 800 belgi. O'zbek tilida.
     """
     
     response = call_gemini(prompt)
     if response:
-        bot.edit_message_text(format_gemini_text(response, "Haftalik Hisobot"), user_id, status_msg.message_id, parse_mode="HTML")
+        # Use format_gemini_text but ensure title isn't duplicated if AI adds it
+        formatted = format_gemini_text(response, "Haftalik Hisobot")
+        # If format_gemini_text adds a title and AI also adds it, it might be double. 
+        # But format_gemini_text usually just ensures bolding. 
+        # Let's just send the response if it looks good, or use the formatter.
+        # Actually, format_gemini_text is a helper that might add a header. Let's trust it.
+        
+        try:
+            bot.edit_message_text(formatted, user_id, status_msg.message_id, parse_mode="HTML")
+        except Exception:
+             bot.edit_message_text(formatted, user_id, status_msg.message_id, parse_mode=None)
     else:
         bot.edit_message_text("❌ AI band. Keyinroq urining.", user_id, status_msg.message_id)
