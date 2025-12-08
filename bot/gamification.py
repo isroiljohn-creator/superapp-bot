@@ -58,14 +58,28 @@ def handle_my_points(message, bot, user_id=None):
     bot.send_message(message.chat.id, text, parse_mode="Markdown")
 
 def handle_rewards(message, bot):
+    user_id = message.from_user.id
+    user = db.get_user(user_id)
+    points = user.get('points', 0) # Use 'points' not 'yasha_points' as per DB schema
+    
+    breakdown = db.get_todays_points_breakdown(user_id)
+    
     text = (
-        "🎁 **Mukofotlar**\n\n"
-        "• 100 ball = 1 hafta Premium\n"
-        "• 500 ball = 1 oy Premium\n"
-        "• 1000 ball = Yasha Merch (futbolka/kepka)\n\n"
-        "Tez kunda almashish imkoniyati qo'shiladi! ⏳"
+        f"🎁 **Mukofotlar Marketi**\n\n"
+        f"💰 Sizning hisobingiz: **{points} ball**\n\n"
+        f"📊 **Bugungi daromad (+{breakdown['total']}):**\n"
+        f"💧 Suv: +{breakdown['water']}\n"
+        f"🚶 Qadam: +{breakdown['steps']}\n"
+        f"😴 Uyqu: +{breakdown['sleep']}\n"
+        f"😊 Kayfiyat: +{breakdown['mood']}\n\n"
+        "👇 **Ballarni almashtirish:**"
     )
-    bot.send_message(message.chat.id, text, parse_mode="Markdown")
+    
+    markup = types.InlineKeyboardMarkup()
+    markup.add(types.InlineKeyboardButton("💎 1 Hafta Premium (100 ball)", callback_data="redeem_prem_7"))
+    markup.add(types.InlineKeyboardButton("💎 1 Oy Premium (500 ball)", callback_data="redeem_prem_30"))
+    
+    bot.send_message(message.chat.id, text, reply_markup=markup, parse_mode="Markdown")
 
 def handle_rules(message, bot):
     text = (
@@ -135,4 +149,61 @@ def register_handlers(bot):
     @bot.callback_query_handler(func=lambda call: call.data == "task_already_done")
     def handle_already_done(call):
         bot.answer_callback_query(call.id, "Bugun allaqachon belgilagansiz, ertaga yana kutamiz 🙂", show_alert=True)
+
+    @bot.callback_query_handler(func=lambda call: call.data.startswith("redeem_"))
+    def handle_redeem(call):
+        user_id = call.from_user.id
+        action = call.data.split("_")[1] # prem
+        value = call.data.split("_")[2] # 7 or 30
+        
+        cost = 0
+        days = 0
+        
+        if action == "prem":
+            if value == "7":
+                cost = 100
+                days = 7
+            elif value == "30":
+                cost = 500
+                days = 30
+        
+        # Confirm dialog
+        markup = types.InlineKeyboardMarkup()
+        markup.add(
+            types.InlineKeyboardButton("✅ Tasdiqlash", callback_data=f"confirm_redeem_{cost}_{days}"),
+            types.InlineKeyboardButton("❌ Bekor qilish", callback_data="cancel_redeem")
+        )
+        
+        bot.edit_message_text(
+            f"❓ **Tasdiqlash**\n\n{days} kunlik Premium uchun {cost} ball sarflanadi.\nRozimisiz?",
+            call.message.chat.id,
+            call.message.message_id,
+            reply_markup=markup,
+            parse_mode="Markdown"
+        )
+
+    @bot.callback_query_handler(func=lambda call: call.data.startswith("confirm_redeem_"))
+    def process_redeem_confirm(call):
+        user_id = call.from_user.id
+        cost = int(call.data.split("_")[2])
+        days = int(call.data.split("_")[3])
+        
+        success, msg = db.redeem_points(user_id, cost, "premium_days", days)
+        
+        if success:
+            bot.answer_callback_query(call.id, "Muvaffaqiyatli! 🎉", show_alert=True)
+            bot.edit_message_text(
+                f"🎉 **Tabriklaymiz!**\n\nSiz {cost} ball evaziga {days} kunlik Premium oldingiz!\n\n/start bosib tekshirishingiz mumkin.",
+                call.message.chat.id,
+                call.message.message_id,
+                parse_mode="Markdown"
+            )
+        else:
+            bot.answer_callback_query(call.id, f"Xatolik: {msg}", show_alert=True)
+            # Return to menu
+            handle_rewards(call.message, bot)
+
+    @bot.callback_query_handler(func=lambda call: call.data == "cancel_redeem")
+    def process_redeem_cancel(call):
+        handle_rewards(call.message, bot)
 
