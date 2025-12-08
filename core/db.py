@@ -13,7 +13,18 @@ class Database:
 
     def reset_db(self):
         from backend.database import sync_engine, Base
-        Base.metadata.drop_all(bind=sync_engine)
+        from sqlalchemy import text
+        
+        # Try to drop with CASCADE for Postgres
+        try:
+            with sync_engine.connect() as conn:
+                conn.execute(text("DROP SCHEMA public CASCADE; CREATE SCHEMA public;"))
+                conn.commit()
+            print("DEBUG: Schema reset via CASCADE")
+        except Exception as e:
+            print(f"DEBUG: CASCADE drop failed (likely SQLite), using drop_all: {e}")
+            Base.metadata.drop_all(bind=sync_engine)
+            
         Base.metadata.create_all(bind=sync_engine)
 
     def _get_user_pk(self, session, telegram_id):
