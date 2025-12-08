@@ -7,6 +7,9 @@ def handle_points_menu(message, bot, user_id=None):
     if user_id is None:
         user_id = message.from_user.id
     user = db.get_user(user_id)
+    if not user:
+        bot.send_message(message.chat.id, "⚠️ Foydalanuvchi topilmadi. Iltimos /start ni bosing.")
+        return
     points = user.get('yasha_points', 0)
     
     text = (
@@ -30,6 +33,9 @@ def handle_referral_link(message, bot, user_id=None):
     if user_id is None:
         user_id = message.from_user.id
     user = db.get_user(user_id)
+    if not user:
+        bot.send_message(message.chat.id, "⚠️ Foydalanuvchi topilmadi. Iltimos /start ni bosing.")
+        return
     
     # Generate link if not exists (though db should have it, let's generate on fly if needed)
     # Actually db stores referral_code.
@@ -53,6 +59,9 @@ def handle_my_points(message, bot, user_id=None):
     if user_id is None:
         user_id = message.from_user.id
     user = db.get_user(user_id)
+    if not user:
+        bot.send_message(message.chat.id, "⚠️ Foydalanuvchi topilmadi. Iltimos /start ni bosing.")
+        return
     points = user.get('yasha_points', 0)
     text = f"📊 **Sizning Ballaringiz:** {points}\n\nDavom eting! 🚀"
     bot.send_message(message.chat.id, text, parse_mode="Markdown")
@@ -60,6 +69,9 @@ def handle_my_points(message, bot, user_id=None):
 def handle_rewards(message, bot):
     user_id = message.from_user.id
     user = db.get_user(user_id)
+    if not user:
+        bot.send_message(message.chat.id, "⚠️ Foydalanuvchi topilmadi. Iltimos /start ni bosing.")
+        return
     points = user.get('points', 0) # Use 'points' not 'yasha_points' as per DB schema
     
     breakdown = db.get_todays_points_breakdown(user_id)
