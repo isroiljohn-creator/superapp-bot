@@ -41,8 +41,7 @@ def calorie_mode_callback(call, bot):
             parse_mode="Markdown"
         )
         bot.answer_callback_query(call.id)
-@bot.callback_query_handler(func=lambda call: call.data.startswith("calorie_mode_"))
-def handle_calorie_mode(call):
+def handle_calorie_mode(call, bot):
     from core.utils import parse_callback
     parts = parse_callback(call.data, prefix="calorie_mode_", min_parts=3)
     
@@ -81,6 +80,12 @@ def handle_calorie_mode(call):
     except Exception as e:
         print(f"Calorie mode error: {e}")
         bot.answer_callback_query(call.id, "Xatolik")
+
+def register_handlers(bot):
+    @bot.callback_query_handler(func=lambda call: call.data.startswith("calorie_mode_"))
+    def callback_wrapper(call):
+        handle_calorie_mode(call, bot)
+
 
 @require_premium
 def handle_calorie_photo(message, bot):
