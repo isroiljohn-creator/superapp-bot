@@ -562,5 +562,65 @@ class Database:
                 elif type == 'mood':
                     user.streak_mood = (user.streak_mood or 0) + 1
 
+    # --- Persistent Onboarding Methods ---
+    def get_onboarding_state(self, user_id):
+        with get_sync_db() as session:
+            user = session.query(User).filter(User.telegram_id == user_id).first()
+            if user:
+                return user.onboarding_state or 0
+            return 0
+
+    def set_onboarding_state(self, user_id, state):
+        with get_sync_db() as session:
+            user = session.query(User).filter(User.telegram_id == user_id).first()
+            if user:
+                user.onboarding_state = state
+            else:
+                # Create user if not exists (partial user for onboarding)
+                # We need to be careful here. Usually we create user on /start or first contact.
+                # Let's assume user exists or create minimal user.
+                # For now, let's assume user is created at start_onboarding.
+                pass
+
+    def get_onboarding_data(self, user_id):
+        with get_sync_db() as session:
+            user = session.query(User).filter(User.telegram_id == user_id).first()
+            if user and user.onboarding_data:
+                try:
+                    return json.loads(user.onboarding_data)
+                except:
+                    return {}
+            return {}
+
+    def update_onboarding_data(self, user_id, key, value):
+        with get_sync_db() as session:
+            user = session.query(User).filter(User.telegram_id == user_id).first()
+            if user:
+                data = {}
+                if user.onboarding_data:
+                    try:
+                        data = json.loads(user.onboarding_data)
+                    except:
+                        pass
+                data[key] = value
+                user.onboarding_data = json.dumps(data)
+
+    def clear_onboarding_state(self, user_id):
+        with get_sync_db() as session:
+            user = session.query(User).filter(User.telegram_id == user_id).first()
+            if user:
+                user.onboarding_state = 0
+                user.onboarding_data = "{}"
+
+    def ensure_user_exists(self, user_id, username=None):
+        """Ensures a user record exists for onboarding."""
+        with get_sync_db() as session:
+            user = session.query(User).filter(User.telegram_id == user_id).first()
+            if not user:
+                user = User(telegram_id=user_id, username=username, active=True)
+                session.add(user)
+                return True
+            return False
+
 db = Database()
 

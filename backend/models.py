@@ -61,6 +61,10 @@ class User(Base):
     trial_used = Column(Integer, default=0)
     auto_renew = Column(Integer, default=0) # 0 or 1
 
+    # Persistent Onboarding
+    onboarding_state = Column(Integer, default=0)
+    onboarding_data = Column(Text, nullable=True) # JSON string
+
 class DailyLog(Base):
     __tablename__ = "daily_logs"
     

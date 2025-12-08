@@ -20,38 +20,35 @@ STATE_ALLERGY = 8
 
 class OnboardingManager:
     def __init__(self):
-        self.user_states = {}
-        self.user_data = {}
+        pass # No local state
 
     def get_state(self, user_id):
-        return self.user_states.get(user_id, STATE_NONE)
+        return db.get_onboarding_state(user_id)
 
     def set_state(self, user_id, state):
-        self.user_states[user_id] = state
+        db.set_onboarding_state(user_id, state)
 
     def update_data(self, user_id, key, value):
-        if user_id not in self.user_data:
-            self.user_data[user_id] = {}
-        self.user_data[user_id][key] = value
+        db.update_onboarding_data(user_id, key, value)
 
     def get_data(self, user_id):
-        return self.user_data.get(user_id, {})
+        return db.get_onboarding_data(user_id)
 
     def track_message(self, user_id, message_id):
-        if user_id not in self.user_data:
-            self.user_data[user_id] = {}
-        if 'msg_ids' not in self.user_data[user_id]:
-            self.user_data[user_id]['msg_ids'] = []
-        self.user_data[user_id]['msg_ids'].append(message_id)
+        # Tracking messages can still be in DB or just keep in memory for short term?
+        # Ideally DB, but for now let's keep it in DB data
+        data = self.get_data(user_id)
+        msg_ids = data.get('msg_ids', [])
+        if message_id not in msg_ids:
+            msg_ids.append(message_id)
+            self.update_data(user_id, 'msg_ids', msg_ids)
 
     def get_messages(self, user_id):
-        return self.user_data.get(user_id, {}).get('msg_ids', [])
+        data = self.get_data(user_id)
+        return data.get('msg_ids', [])
 
     def clear_user(self, user_id):
-        if user_id in self.user_states:
-            del self.user_states[user_id]
-        if user_id in self.user_data:
-            del self.user_data[user_id]
+        db.clear_onboarding_state(user_id)
 
 manager = OnboardingManager()
 
@@ -88,6 +85,9 @@ def start_onboarding(message, bot):
             referrer_id = None
     
     # Initialize onboarding
+    # Ensure user exists in DB (as partial user) so we can save state
+    db.ensure_user_exists(user_id, message.from_user.username)
+    
     manager.clear_user(user_id)
     manager.set_state(user_id, STATE_PHONE)
     manager.update_data(user_id, 'referrer_id', referrer_id)
