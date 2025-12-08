@@ -381,17 +381,19 @@ def analyze_food_image(image_data):
     - protein / fat / carbs
     
     Respond in short Uzbek text, max ~800 characters, formatted like:
-    🍽 <b>Kaloriya baholash</b>
+    🍽 <b>Kaloriya Tahlili</b>
 
-    Ovqat: ...
-    Porsiya: ...
+    🥘 <b>Ovqat:</b> ...
+    📏 <b>Porsiya:</b> ...
 
-    Taxminiy kaloriya: ... kcal
-    – Oqsil: ... g
-    – Yog‘: ... g
-    – Uglevod: ... g
+    🔥 <b>Jami:</b> ... kkal
 
-    Bu taxminiy hisob, lekin kunlik nazorat uchun yetarli. 🙂
+    📊 <b>BJU:</b>
+    🥩 Oqsil: ... g
+    🥑 Yog‘: ... g
+    🍞 Uglevod: ... g
+
+    <i>Bu taxminiy hisob, lekin kunlik nazorat uchun yetarli.</i> ✅
     """
 
     for model_name in models_to_try:
@@ -433,17 +435,19 @@ def analyze_food_text(text):
         - Umumiy kaloriya va BJU (Oqsil, Yog', Uglevod) ni hisoblang.
         
         Javob formati (O'zbek tilida):
-        🍽 <b>Kaloriya baholash</b>
+        🍽 <b>Kaloriya Tahlili</b>
 
-        Ovqat: ...
-        Porsiya: ...
+        🥘 <b>Ovqat:</b> ...
+        📏 <b>Porsiya:</b> ...
 
-        Taxminiy kaloriya: ... kcal
-        – Oqsil: ... g
-        – Yog‘: ... g
-        – Uglevod: ... g
+        🔥 <b>Jami:</b> ... kkal
 
-        Bu taxminiy hisob, lekin kunlik nazorat uchun yetarli. 🙂
+        📊 <b>BJU:</b>
+        🥩 Oqsil: ... g
+        🥑 Yog‘: ... g
+        🍞 Uglevod: ... g
+
+        <i>Bu taxminiy hisob, lekin kunlik nazorat uchun yetarli.</i> ✅
         """
         
         safety_settings = [

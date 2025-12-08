@@ -54,7 +54,12 @@ def calorie_mode_callback(call, bot):
         onboarding.manager.set_state(user_id, STATE_CALORIE_TEXT)
         bot.send_message(
             user_id,
-            "📝 **Ovqatni tasvirlang**\n\nOvqat tarkibi va porsiyasini yozing.\nMasalan: \"200 g qaynatilgan guruch, 150 g tovuq filesi, 1 osh qoshiq yog'\"."
+            "📝 **Ovqatni tasvirlang**\n\n"
+            "Iltimos, yegan ovqatingizni batafsil yozing:\n"
+            "• Mahsulot nomi\n"
+            "• Miqdori (gramm, qoshiq, dona)\n\n"
+            "💡 *Masalan:* `200g osh, 1 bo'lak non, 1 kosa salat`",
+            parse_mode="Markdown"
         )
     
     bot.answer_callback_query(call.id)
@@ -63,13 +68,7 @@ def calorie_mode_callback(call, bot):
 def handle_calorie_photo(message, bot):
     user_id = message.from_user.id
     
-    # The limit check is now handled by the @require_premium decorator.
-    # allowed, _ = db.check_calorie_limit(user_id)
-    # if not allowed:
-    #     bot.send_message(user_id, "🚫 Limit tugadi. Premium oling.")
-    #     return
-
-    status_msg = bot.send_message(user_id, "⏳ **Tahlil qilinmoqda...**", parse_mode="Markdown")
+    status_msg = bot.send_message(user_id, "🔍 **Rasm tahlil qilinmoqda...**\n\nBiroz kuting, AI hisoblamoqda...", parse_mode="Markdown")
     
     try:
         file_info = bot.get_file(message.photo[-1].file_id)
@@ -93,13 +92,7 @@ def handle_calorie_photo(message, bot):
 def handle_calorie_text(message, bot):
     user_id = message.from_user.id
     
-    # The limit check is now handled by the @require_premium decorator.
-    # allowed, _ = db.check_calorie_limit(user_id)
-    # if not allowed:
-    #     bot.send_message(user_id, "🚫 Limit tugadi. Premium oling.")
-    #     return
-
-    status_msg = bot.send_message(user_id, "⏳ **Hisoblanmoqda...**", parse_mode="Markdown")
+    status_msg = bot.send_message(user_id, "🧮 **Hisoblanmoqda...**\n\nAI ma'lumotlarni qayta ishlamoqda...", parse_mode="Markdown")
     
     try:
         result = analyze_food_text(message.text)
@@ -117,17 +110,16 @@ def handle_calorie_text(message, bot):
     onboarding.manager.clear_user(user_id)
 
 def send_fallback_message(bot, chat_id, message_id=None):
-    text = """
-❌ AI hozir vaqtincha ishlamayapti.
-
-Ammo taxminiy hisoblash uchun:
-– Guruch va makaron: 100 g ≈ 130–150 kcal
-– Go‘sht va tovuq: 100 g ≈ 150–200 kcal
-– Yog‘: 1 osh qoshiq ≈ 100–120 kcal
-
-Keyingi safar qayta urinib ko‘ring. 🙂
-    """
+    text = (
+        "⚠️ **Uzr, tahlil qila olmadim.**\n\n"
+        "AI serverida vaqtincha yuklama yuqori yoki xatolik yuz berdi. 😔\n\n"
+        "📊 **Taxminiy hisob-kitob:**\n"
+        "🍚 Guruch/Makaron: 100g ≈ 130-150 kkal\n"
+        "🥩 Go'sht/Tovuq: 100g ≈ 150-200 kkal\n"
+        "🧈 Yog': 1 osh qoshiq ≈ 100-120 kkal\n\n"
+        "🔄 _Iltimos, birozdan so'ng qayta urinib ko'ring._"
+    )
     if message_id:
-        bot.edit_message_text(text, chat_id, message_id)
+        bot.edit_message_text(text, chat_id, message_id, parse_mode="Markdown")
     else:
-        bot.send_message(chat_id, text)
+        bot.send_message(chat_id, text, parse_mode="Markdown")
