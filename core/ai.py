@@ -150,30 +150,41 @@ def get_offline_menu(user_profile):
 - Olma yoki nok
 """
 
+# Global Safety Settings
+SAFETY_SETTINGS = [
+    {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
+    {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"},
+    {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"},
+    {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"},
+]
+
 def ask_gemini(system_prompt, user_prompt):
     """
     Centralized helper to call Gemini 2.5 Flash.
     Returns plain text response or raises Exception.
+    Uses the globally initialized 'model' instance.
     """
+    global model
+    
     if not GEMINI_API_KEY:
         raise Exception("API Key not found")
 
+    if not model:
+        # Try to re-initialize if it failed at startup (lazy init)
+        try:
+            print("DEBUG: Lazy initializing Gemini model...")
+            genai.configure(api_key=GEMINI_API_KEY)
+            model = genai.GenerativeModel('gemini-2.5-flash')
+        except Exception as e:
+            print(f"Error lazy initializing Gemini: {e}")
+            raise e
+
     try:
-        print(f"DEBUG: Calling Gemini 2.5 Flash...")
-        genai.configure(api_key=GEMINI_API_KEY)
-        model = genai.GenerativeModel('gemini-2.5-flash')
-        
         # Combine system and user prompt for simple generation
         full_prompt = f"{system_prompt}\n\nUser Input: {user_prompt}"
         
-        safety_settings = [
-            {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
-            {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"},
-            {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"},
-            {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"},
-        ]
-        
-        response = model.generate_content(full_prompt, safety_settings=safety_settings)
+        # Use the global model instance
+        response = model.generate_content(full_prompt, safety_settings=SAFETY_SETTINGS)
         
         if response.text:
             return response.text.strip()
@@ -182,6 +193,8 @@ def ask_gemini(system_prompt, user_prompt):
             
     except Exception as e:
         print(f"Gemini Error: {e}")
+        # If error is related to client state, maybe reset model?
+        # For now, just raise.
         raise e
 
 def call_gemini(prompt):
@@ -396,19 +409,16 @@ def analyze_food_image(image_data):
     <i>Bu taxminiy hisob, lekin kunlik nazorat uchun yetarli.</i> ✅
     """
 
+    # Ensure config is set (idempotent if already set globally, but good to be sure)
+    # genai.configure is global, so if it was called at startup, we are good.
+    # But we might need to instantiate specific models.
+
     for model_name in models_to_try:
         try:
-            genai.configure(api_key=GEMINI_API_KEY)
-            model = genai.GenerativeModel(model_name)
+            # Reuse global config, just instantiate model
+            vision_model = genai.GenerativeModel(model_name)
             
-            safety_settings = [
-                {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
-                {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"},
-                {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"},
-                {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"},
-            ]
-            
-            response = model.generate_content([prompt, image], safety_settings=safety_settings)
+            response = vision_model.generate_content([prompt, image], safety_settings=SAFETY_SETTINGS)
             if response.text:
                 return response.text
         except Exception as e:
@@ -421,12 +431,15 @@ def analyze_food_text(text):
     Analyzes food text description using Gemini.
     Returns structured text in Uzbek.
     """
+    global model
     if not GEMINI_API_KEY:
         return None
 
     try:
-        model = genai.GenerativeModel('gemini-2.5-flash')
-        
+        # Use global model if available and it supports text (2.5 flash does)
+        if not model:
+             model = genai.GenerativeModel('gemini-2.5-flash')
+
         prompt = f"""
         Foydalanuvchi yedi: "{text}"
         
@@ -450,14 +463,7 @@ def analyze_food_text(text):
         <i>Bu taxminiy hisob, lekin kunlik nazorat uchun yetarli.</i> ✅
         """
         
-        safety_settings = [
-            {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
-            {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"},
-            {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"},
-            {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"},
-        ]
-        
-        response = model.generate_content(prompt, safety_settings=safety_settings)
+        response = model.generate_content(prompt, safety_settings=SAFETY_SETTINGS)
         return response.text
     except Exception as e:
         print(f"Gemini Text Error: {e}")
