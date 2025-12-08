@@ -285,6 +285,10 @@ def process_broadcast(message, bot, segment):
                     blocked += 1
                 # print(f"Failed to send to {user[0]}: {e}")
             
+            # Rate limit: 20 messages per second max (Telegram limit is ~30)
+            import time
+            time.sleep(0.05)
+            
             # Update status every 20 users
             if i % 20 == 0:
                 try:

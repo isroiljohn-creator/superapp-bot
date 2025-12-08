@@ -456,20 +456,21 @@ class Database:
             return stats
 
     def get_todays_points_breakdown(self, user_id):
+        default_breakdown = {
+            "water": 0,
+            "steps": 0,
+            "sleep": 0,
+            "mood": 0,
+            "total": 0
+        }
         with get_sync_db() as session:
             pk = self._get_user_pk(session, user_id)
-            if not pk: return {}
+            if not pk: return default_breakdown
             
             today = datetime.now().strftime("%Y-%m-%d")
             log = session.query(DailyLog).filter(DailyLog.user_id == pk, DailyLog.date == today).first()
             
-            breakdown = {
-                "water": 0,
-                "steps": 0,
-                "sleep": 0,
-                "mood": 0,
-                "total": 0
-            }
+            breakdown = default_breakdown.copy()
             
             if log:
                 # Re-calculate points based on log data (since we don't store points per log item explicitly yet)
@@ -491,14 +492,22 @@ class Database:
 
     def redeem_points(self, user_id, cost, reward_type, reward_value):
         with get_sync_db() as session:
-            user = session.query(User).filter(User.telegram_id == user_id).first()
-            if not user: return False, "Foydalanuvchi topilmadi"
+            # Atomic check and deduct
+            # Returns number of rows updated (1 if success, 0 if condition failed)
+            rows = session.query(User).filter(
+                User.telegram_id == user_id, 
+                User.points >= cost
+            ).update(
+                {"points": User.points - cost}, 
+                synchronize_session=False
+            )
             
-            if user.points < cost:
+            if rows == 0:
                 return False, "Ballar yetarli emas"
-                
-            # Deduct points
-            user.points -= cost
+            
+            # Fetch user to grant reward (points already deducted in DB, but session object might be stale if we used synchronize_session=False)
+            # We need to refresh or just query again
+            user = session.query(User).filter(User.telegram_id == user_id).first()
             
             # Grant Reward
             if reward_type == "premium_days":
@@ -514,9 +523,6 @@ class Database:
                 user.premium_until = new_until
                 user.is_premium = True
                 
-            # Log transaction (optional but good)
-            # We can use Transaction table or just rely on points update
-            
             return True, "Muvaffaqiyatli"
 
     def update_streak(self, user_id, type):

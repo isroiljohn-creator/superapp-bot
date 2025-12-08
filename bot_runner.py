@@ -19,7 +19,7 @@ if not BOT_TOKEN:
 apihelper.ENABLE_MIDDLEWARE = True
 
 # Initialize Bot
-bot = telebot.TeleBot(BOT_TOKEN)
+bot = telebot.TeleBot(BOT_TOKEN, num_threads=5)
 
 def main():
     print("🚀 Fitness AI Bot ishga tushmoqda...")
