@@ -403,9 +403,48 @@ def register_all_handlers(bot):
         print(f"DEBUG: Unhandled callback: {call.data}")
         bot.answer_callback_query(call.id, "⚠️ Bu tugma hali ishlamayapti")
         
-    # Debug message handler
-    @bot.message_handler(func=lambda m: True)
-    def debug_message(message):
-        print(f"DEBUG: Unhandled message: {message.text}")
-        # Optional: bot.reply_to(message, "Tushunmadim. Menyudan tanlang.")
+    # Global Fallback Handler (MUST BE LAST)
+    @bot.message_handler(content_types=['text', 'audio', 'document', 'photo', 'sticker', 'video', 'video_note', 'voice', 'location', 'contact'], func=lambda m: True)
+    def fallback_handler(message):
+        """
+        Catches any unhandled message when user is NOT in a specific state.
+        Redirects to Main Menu without crashing or resetting state.
+        """
+        user_id = message.from_user.id
+        
+        # Check if user is in a state (onboarding, AI input, etc.)
+        # If state is NOT 0 (STATE_NONE), we ignore this fallback 
+        # because the specific handler for that state should handle it (or has already handled it).
+        # However, if the specific handler didn't catch it (e.g. photo sent when expecting text),
+        # we might want to warn. But for now, let's be safe:
+        # If state != 0, we assume the user is busy and we shouldn't interrupt with Main Menu.
+        # EXCEPT if the user is stuck.
+        
+        current_state = onboarding.manager.get_state(user_id)
+        
+        if current_state != onboarding.STATE_NONE:
+            # User is in a flow. 
+            # Ideally, the specific flow handler should have caught this.
+            # If we are here, it means no specific handler matched.
+            # We can either ignore or gently remind.
+            # Let's ignore to avoid breaking flows.
+            # print(f"DEBUG: Fallback ignored for user {user_id} in state {current_state}")
+            return
+
+        # If we are here, user is in STATE_NONE (Idle/Menu)
+        # But they sent something we didn't recognize.
+        
+        # Log it
+        # print(f"DEBUG: Fallback triggered for user {user_id}: {message.content_type}")
+        
+        # Send helpful response
+        try:
+            bot.send_message(
+                message.chat.id,
+                "🤷‍♂️ Uzr, men bu xabarni tushunmadim.\n\n"
+                "Iltimos, pastdagi menyudan kerakli bo‘limni tanlang 👇",
+                reply_markup=main_menu_keyboard()
+            )
+        except Exception as e:
+            print(f"Fallback error: {e}")
 
