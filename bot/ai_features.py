@@ -31,6 +31,10 @@ def handle_ai_qa(message, bot, user_id=None):
 
 def process_ai_qa(message, bot):
     user_id = message.from_user.id
+    if not message.text:
+        bot.send_message(user_id, "Iltimos, savolingizni matn ko'rinishida yozing.")
+        return
+        
     question = message.text
     user = db.get_user(user_id)
     
@@ -115,6 +119,10 @@ def handle_recipe_gen(message, bot, user_id=None):
 
 def process_recipe_input(message, bot):
     user_id = message.from_user.id
+    if not message.text:
+        bot.send_message(message.chat.id, "Iltimos, mahsulotlarni matn ko'rinishida yozing.")
+        return
+        
     ingredients = message.text
     user = db.get_user(user_id)
     

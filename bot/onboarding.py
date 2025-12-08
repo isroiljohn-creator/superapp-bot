@@ -140,6 +140,10 @@ def process_name(message, bot):
     if manager.get_state(user_id) != STATE_NAME:
         return
     
+    if not message.text:
+        bot.send_message(user_id, "Iltimos, ismingizni matn ko'rinishida yozing:")
+        return
+
     name = message.text.strip()
     manager.update_data(user_id, 'name', name)
     manager.set_state(user_id, STATE_AGE)
@@ -154,7 +158,7 @@ def process_age(message, bot):
     if manager.get_state(user_id) != STATE_AGE:
         return
     
-    if not message.text.isdigit():
+    if not message.text or not message.text.isdigit():
         bot.send_message(user_id, "Iltimos, yoshingizni raqamda kiriting:")
         return
     
@@ -204,7 +208,7 @@ def process_height(message, bot):
     if manager.get_state(user_id) != STATE_HEIGHT:
         return
     
-    if not message.text.isdigit():
+    if not message.text or not message.text.isdigit():
         bot.send_message(user_id, "Iltimos, bo'yingizni raqamda kiriting (sm):")
         return
     
@@ -227,6 +231,8 @@ def process_weight(message, bot):
         return
     
     try:
+        if not message.text:
+            raise ValueError
         weight = float(message.text)
         if weight < 20 or weight > 300:
             raise ValueError
@@ -324,6 +330,11 @@ def process_allergy(call, bot):
 def process_allergy_details(message, bot):
     """Process allergy details text input"""
     user_id = message.from_user.id
+    
+    if not message.text:
+        bot.send_message(user_id, "Iltimos, matn yuboring.")
+        return
+
     allergy_details = message.text.strip()
     
     bot.send_message(user_id, "⏳ Ma'lumotlar saqlanmoqda...")
