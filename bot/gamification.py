@@ -231,4 +231,4 @@ def register_handlers(bot):
     @bot.callback_query_handler(func=lambda call: call.data == "cancel_redeem")
     def process_redeem_cancel(call):
         handle_rewards(call.message, bot)
-```
+
