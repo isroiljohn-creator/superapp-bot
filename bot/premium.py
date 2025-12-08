@@ -79,7 +79,7 @@ def handle_premium_buy(message, bot):
     markup.add(types.InlineKeyboardButton(f"💳 3 oy — {p3} so'm", callback_data="select_90"))
     
     bot.send_message(message.chat.id, "👇 **Tarifni tanlang:**", reply_markup=markup, parse_mode="Markdown")
-from core.config import ADMIN_IDS, MAIN_ADMIN_ID, PRICE_1_MONTH, PRICE_3_MONTHS
+from core.config import ADMIN_IDS, PRICE_1_MONTH, PRICE_3_MONTHS
 
 # Payment details (Mock)
 PAYMENT_CARDS = {
