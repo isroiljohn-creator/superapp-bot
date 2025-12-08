@@ -95,45 +95,83 @@ def register_handlers(bot):
     @bot.message_handler(func=lambda message: "Foydalanuvchilar ro‘yxati" in message.text)
     def admin_user_list(message):
         if message.from_user.id not in ADMIN_IDS:
-            print(f"DEBUG: Unauthorized admin access attempt by {message.from_user.id}")
+            return
+        
+        show_user_list_page(message.chat.id, 1, bot)
+
+    def show_user_list_page(chat_id, page, bot, message_id=None):
+        try:
+            PAGE_SIZE = 20
+            users, total_count = db.get_users_paginated(page, PAGE_SIZE)
+            
+            if not users:
+                text = "👥 Foydalanuvchilar topilmadi."
+                if message_id:
+                    bot.edit_message_text(text, chat_id, message_id)
+                else:
+                    bot.send_message(chat_id, text)
+                return
+
+            total_pages = (total_count + PAGE_SIZE - 1) // PAGE_SIZE
+            
+            text = f"👥 <b>Foydalanuvchilar (Jami: {total_count})</b>\nSahifa: {page}/{total_pages}\n\n"
+            
+            for user in users:
+                uid = user['telegram_id']
+                name = user['full_name']
+                username = user['username']
+                phone = user['phone'] or "N/A"
+                goal = user['goal'] or "N/A"
+                
+                # Check premium
+                is_prem = ""
+                if user.get('premium_until'):
+                    from datetime import datetime
+                    if user['premium_until'] > datetime.now():
+                        is_prem = "💎"
+                
+                display_name = f"@{username}" if username else (name if name else "Noma'lum")
+                
+                import html
+                safe_name = html.escape(str(display_name))
+                
+                text += f"🆔 <code>{uid}</code> | {safe_name} | {goal} {is_prem}\n"
+            
+            # Pagination Buttons
+            markup = types.InlineKeyboardMarkup()
+            row = []
+            if page > 1:
+                row.append(types.InlineKeyboardButton("⬅️ Oldingi", callback_data=f"admin_users_page_{page-1}"))
+            if page < total_pages:
+                row.append(types.InlineKeyboardButton("Keyingi ➡️", callback_data=f"admin_users_page_{page+1}"))
+            
+            if row:
+                markup.row(*row)
+            
+            if message_id:
+                bot.edit_message_text(text, chat_id, message_id, reply_markup=markup, parse_mode="HTML")
+            else:
+                bot.send_message(chat_id, text, reply_markup=markup, parse_mode="HTML")
+                
+        except Exception as e:
+            print(f"Error in user list: {e}")
+            if message_id:
+                bot.send_message(chat_id, f"❌ Xatolik: {e}")
+            else:
+                bot.send_message(chat_id, f"❌ Xatolik: {e}")
+
+    @bot.callback_query_handler(func=lambda call: call.data.startswith("admin_users_page_"))
+    def handle_user_pagination(call):
+        if call.from_user.id not in ADMIN_IDS:
             return
         
         try:
-            # Get last 20 users (assuming ID order roughly correlates with time)
-            users = db.get_active_users() # Returns list of (id, name)
-            
-            if not users:
-                bot.send_message(message.chat.id, "👥 Foydalanuvchilar topilmadi.")
-                return
-
-            # Sort by ID desc to get newest first
-            users.sort(key=lambda x: x[0], reverse=True)
-            recent_users = users[:20]
-            
-            text = "👥 <b>Oxirgi 20 ta foydalanuvchi:</b>\n\n"
-            for uid, name, username in recent_users:
-                user_data = db.get_user(uid)
-                if not user_data:
-                    continue
-                    
-                is_prem = "💎" if db.is_premium(uid) else ""
-                phone = user_data.get('phone', 'N/A')
-                goal = user_data.get('goal', 'N/A')
-                
-                # Prioritize username, then name, then fallback
-                display_name = f"@{username}" if username else (name if name else "Noma'lum")
-                
-                # Clean name to avoid issues
-                import html
-                safe_name = html.escape(display_name)
-                
-                text += f"🆔 <code>{uid}</code> | {safe_name} | 📱 {phone} | {goal} {is_prem}\n"
-                
-            bot.send_message(message.chat.id, text, parse_mode="HTML")
-            
+            page = int(call.data.split("_")[3])
+            show_user_list_page(call.message.chat.id, page, bot, call.message.message_id)
+            bot.answer_callback_query(call.id)
         except Exception as e:
-            print(f"Error in admin_user_list: {e}")
-            bot.send_message(message.chat.id, f"❌ Xatolik: {e}")
+            print(f"Pagination error: {e}")
+            bot.answer_callback_query(call.id, "Xatolik yuz berdi")
 
     @bot.message_handler(func=lambda message: "Premium foydalanuvchilar" in message.text)
     def admin_premium_list(message):

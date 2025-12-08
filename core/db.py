@@ -236,6 +236,32 @@ class Database:
             users = session.query(User.telegram_id, User.full_name, User.username).filter(User.active == True).all()
             return users
 
+    def get_users_paginated(self, page=1, page_size=20):
+        with get_sync_db() as session:
+            offset = (page - 1) * page_size
+            
+            # Get total count
+            total_count = session.query(User).count()
+            
+            # Get paginated users
+            # Order by ID desc (newest first)
+            users = session.query(User).order_by(User.id.desc()).limit(page_size).offset(offset).all()
+            
+            # Convert to dicts for safety
+            users_list = []
+            for user in users:
+                users_list.append({
+                    "id": user.id,
+                    "telegram_id": user.telegram_id,
+                    "full_name": user.full_name,
+                    "username": user.username,
+                    "phone": user.phone,
+                    "goal": user.goal,
+                    "premium_until": user.premium_until
+                })
+                
+            return users_list, total_count
+
     def get_users_by_segment(self, gender=None, goal=None, activity_level=None, age_min=None, age_max=None, is_premium=None):
         with get_sync_db() as session:
             query = session.query(User.telegram_id, User.full_name, User.username).filter(User.active == True)
