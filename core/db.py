@@ -353,6 +353,55 @@ class Database:
                 log = CalorieLog(user_id=pk, total_kcal=total_kcal, json_data=json_data)
                 session.add(log)
 
+    def complete_onboarding(self, telegram_id, username, profile_data, referrer_id=None):
+        with get_sync_db() as session:
+            try:
+                # 1. Create or Get User
+                user = session.query(User).filter(User.telegram_id == telegram_id).first()
+                if not user:
+                    ref_code = f"r{telegram_id}"
+                    
+                    # Resolve referrer
+                    referrer_pk = None
+                    if referrer_id:
+                        ref_user = session.query(User).filter(User.telegram_id == referrer_id).first()
+                        if ref_user:
+                            referrer_pk = ref_user.id
+
+                    user = User(
+                        telegram_id=telegram_id,
+                        username=username,
+                        referral_code=ref_code,
+                        referrer_id=referrer_pk,
+                        active=True,
+                        created_at=datetime.utcnow()
+                    )
+                    session.add(user)
+                    session.flush() # Ensure user is attached
+                
+                # 2. Update Profile Data
+                for key, value in profile_data.items():
+                    if hasattr(user, key):
+                        setattr(user, key, value)
+                
+                # 3. Activate Trial (5 days)
+                now = datetime.now()
+                user.premium_until = now + timedelta(days=5)
+                user.is_premium = True
+                user.trial_start = now.isoformat()
+                user.trial_used = 1
+                
+                # 4. Award Referral Points
+                if user.referrer_id:
+                    referrer = session.query(User).filter(User.id == user.referrer_id).first()
+                    if referrer:
+                        referrer.points = (referrer.points or 0) + 1
+                        
+                return True
+            except Exception as e:
+                print(f"DB Error in complete_onboarding: {e}")
+                raise e
+
     def update_streak(self, user_id, type):
         with get_sync_db() as session:
             user = session.query(User).filter(User.telegram_id == user_id).first()

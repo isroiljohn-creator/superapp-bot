@@ -304,7 +304,7 @@ def process_allergy(call, bot):
     
     if allergy_choice == "allergy_yes":
         # Ask for allergy details
-        manager.set_state(user_id, STATE_NONE)  # Temporarily exit FSM for text input
+        manager.set_state(user_id, STATE_NONE)
         msg = bot.send_message(
             user_id,
             "📝 Qanday hastalik yoki nima mahsulotlarga allergiyangiz bor?\n\n"
@@ -315,6 +315,9 @@ def process_allergy(call, bot):
         bot.register_next_step_handler(msg, process_allergy_details, bot)
     else:
         # No allergy
+        # Send status message
+        bot.send_message(user_id, "⏳ Ma'lumotlar saqlanmoqda...")
+        
         manager.update_data(user_id, 'allergies', None)
         finish_onboarding(user_id, message=call.message, bot=bot)
 
@@ -323,6 +326,8 @@ def process_allergy_details(message, bot):
     user_id = message.from_user.id
     allergy_details = message.text.strip()
     
+    bot.send_message(user_id, "⏳ Ma'lumotlar saqlanmoqda...")
+    
     manager.update_data(user_id, 'allergies', allergy_details)
     manager.track_message(user_id, message.message_id)
     
@@ -330,89 +335,83 @@ def process_allergy_details(message, bot):
     finish_onboarding(user_id, message=message, bot=bot)
 
 def finish_onboarding(user_id, message, bot):
-    data = manager.get_data(user_id)
-    referrer_id = data.get('referrer_id')
-    
-    # Add user to database
-    db.add_user(
-        telegram_id=user_id,
-        username=message.chat.username or f"user_{user_id}",
-        phone=data.get('phone'),
-        referrer_id=referrer_id
-    )
-    
-    # Update profile
-    db.update_user_profile(
-        user_id=user_id,
-        age=data.get('age'),
-        gender=data.get('gender'),
-        height=data.get('height'),
-        weight=data.get('weight'),
-        activity_level=data.get('activity_level'),
-        goal=data.get('goal'),
-        allergies=data.get('allergies')
-    )
-    
-    # Activate 5-day Trial
     try:
-        from datetime import datetime, timedelta
-        trial_days = 5
-        now = datetime.now()
-        trial_end = now + timedelta(days=trial_days)
+        print(f"DEBUG: Starting finish_onboarding for {user_id}")
+        data = manager.get_data(user_id)
+        referrer_id = data.get('referrer_id')
         
-        db.set_premium(user_id, trial_days) # Reusing set_premium to set date
+        # Prepare profile data
+        profile_data = {
+            'phone': data.get('phone'),
+            'full_name': data.get('name'),
+            'age': data.get('age'),
+            'gender': data.get('gender'),
+            'height': data.get('height'),
+            'weight': data.get('weight'),
+            'activity_level': data.get('activity_level'),
+            'goal': data.get('goal'),
+            'allergies': data.get('allergies')
+        }
         
-        # Update trial specific flags
-        conn = db.get_connection()
-        cursor = conn.cursor()
-        cursor.execute("UPDATE users SET trial_start = ?, trial_used = 1 WHERE telegram_id = ?", (now.isoformat(), user_id))
-        conn.commit()
-        conn.commit()
-        conn.close()
+        # Execute Transaction
+        print(f"DEBUG: Calling complete_onboarding for {user_id}")
+        db.complete_onboarding(
+            telegram_id=user_id,
+            username=message.chat.username or f"user_{user_id}",
+            profile_data=profile_data,
+            referrer_id=referrer_id
+        )
+        print(f"DEBUG: complete_onboarding success for {user_id}")
         
-        # Trial message removed, merged with welcome message below
+        # Handle referral notification
+        if referrer_id:
+            try:
+                ref_user = db.get_user(referrer_id)
+                if ref_user:
+                    bot.send_message(
+                        referrer_id,
+                        f"🎉 Yangi do'st ro'yxatdan o'tdi! +1 ball olasiz.\n"
+                        f"Jami ballar: {ref_user['points']}"
+                    )
+            except Exception as e:
+                print(f"Referral notify error: {e}")
+        
+        # Send welcome message - PLAIN TEXT (No HTML) to be safe
+        welcome_text = (
+            "✅ Ro‘yxatdan o‘tdingiz! YASHA ga xush kelibsiz.\n\n"
+            "🎁 Sizga 5 kunlik Premium sinov ochildi - hech qanday cheklovsiz barcha AI xizmatlardan foydalanishingiz mumkin.\n\n"
+            "Bu 5 kun ichida siz:\n"
+            "- shaxsiylashtirilgan mashqlar rejasiga ega bo‘lasiz\n"
+            "- o‘zingizga mos ovqatlanish rejasini olasiz\n"
+            "- individual retseptlardan foydalanasiz\n"
+            "- shaxsiy psixolog va odatlar murabbiyiga ega bo'lasiz\n\n"
+            "Bu shunchaki “bot” emas. Bu sog‘lom hayotga kirish uchun birinchi qadam. Agar odatlaringizni o‘zgartirmoqchi bo‘lsangiz, mana shu yerda boshlanadi.\n\n"
+            "Quyidagi tugmalar orqali o‘z rejangizni ishga tushiring 👇"
+        )
+        
+        bot.send_message(
+            user_id,
+            welcome_text,
+            reply_markup=main_menu_keyboard(),
+            parse_mode=None # Disabled formatting
+        )
+        
+        # Delete Onboarding Messages - LAST (Background task)
+        delete_onboarding_messages(user_id, bot)
+        
+        # Clear state
+        manager.clear_user(user_id)
+        print(f"DEBUG: finish_onboarding completed for {user_id}")
         
     except Exception as e:
-        print(f"Error activating trial: {e}")
-    
-    # Handle referral rewards
-    if referrer_id:
-        db.add_points(referrer_id, 1)
+        print(f"CRITICAL ERROR in finish_onboarding: {e}")
+        import traceback
+        traceback.print_exc()
         try:
-            bot.send_message(
-                referrer_id,
-                f"🎉 Yangi do'st ro'yxatdan o'tdi! +1 ball olasiz.\n"
-                f"Jami ballar: {db.get_user(referrer_id)['points']}"
-            )
+            bot.send_message(user_id, f"⚠️ Tizimda xatolik yuz berdi: {str(e)}")
         except:
             pass
-    
-    # Clear state
-    # manager.clear_user(user_id) # Moved to after deletion to keep msg_ids
-    
-    # Delete Onboarding Messages
-    delete_onboarding_messages(user_id, bot)
-    manager.clear_user(user_id) # Now clear
-    
-    # Send welcome message
-    welcome_text = (
-        "✅ **Ro‘yxatdan o‘tdingiz! YASHA ga xush kelibsiz.**\n\n"
-        "🎁 **Sizga 5 kunlik Premium sinov ochildi** - hech qanday cheklovsiz barcha AI xizmatlardan foydalanishingiz mumkin.\n\n"
-        "Bu 5 kun ichida siz:\n"
-        "- shaxsiylashtirilgan mashqlar rejasiga ega bo‘lasiz\n"
-        "- o‘zingizga mos ovqatlanish rejasini olasiz\n"
-        "- individual retseptlardan foydalanasiz\n"
-        "- shaxsiy psixolog va odatlar murabbiyiga ega bo'lasiz\n\n"
-        "Bu shunchaki “bot” emas. Bu sog‘lom hayotga kirish uchun birinchi qadam. Agar odatlaringizni o‘zgartirmoqchi bo‘lsangiz, mana shu yerda boshlanadi.\n\n"
-        "Quyidagi tugmalar orqali o‘z rejangizni ishga tushiring 👇"
-    )
-    
-    bot.send_message(
-        user_id,
-        welcome_text,
-        reply_markup=main_menu_keyboard(),
-        parse_mode="Markdown"
-    )
+        manager.clear_user(user_id)
 
 def register_handlers(bot):
     """Register all onboarding-related handlers"""

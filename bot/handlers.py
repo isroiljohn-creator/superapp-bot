@@ -360,6 +360,10 @@ def register_all_handlers(bot):
 
     @bot.message_handler(commands=['debug_ai'])
     def handle_debug_ai(message):
+        from core.config import ADMIN_IDS
+        if message.from_user.id not in ADMIN_IDS:
+            return
+
         import google.generativeai as genai
         import os
         key = os.getenv("GEMINI_API_KEY")
@@ -367,7 +371,7 @@ def register_all_handlers(bot):
             bot.reply_to(message, "❌ API Key topilmadi!")
             return
         
-        bot.reply_to(message, f"🔑 Key: {key[:5]}...{key[-5:]}\n🔄 Model: gemini-2.5-flash sinalyapti...")
+        bot.reply_to(message, f"🔄 Model: gemini-2.5-flash sinalyapti...")
         
         try:
             genai.configure(api_key=key)

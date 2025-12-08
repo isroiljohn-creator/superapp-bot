@@ -4,9 +4,7 @@ from core.db import db
 from core.content import content_manager
 from dotenv import load_dotenv
 
-load_dotenv()
-MAIN_ADMIN_ID = int(os.getenv("ADMIN_ID", 0))
-ADMIN_IDS = [MAIN_ADMIN_ID, 1392501306]
+from core.config import ADMIN_IDS, MAIN_ADMIN_ID
 print(f"DEBUG: Loaded ADMIN_IDS: {ADMIN_IDS}")
 
 def register_handlers(bot):

@@ -59,25 +59,27 @@ def handle_premium_menu(message, bot, user_id=None):
         bot.send_photo(user_id, photo, caption=text, reply_markup=markup, parse_mode="Markdown")
 
 def handle_premium_info(message, bot):
+    p1 = f"{PRICE_1_MONTH // 100:,}".replace(",", " ")
+    p3 = f"{PRICE_3_MONTHS // 100:,}".replace(",", " ")
+    
     text = (
         "ℹ️ **Tariflar va Narxlar**\n\n"
-        "• 1 oy: 49 000 so'm\n"
-        "• 3 oy: 119 000 so'm (20% chegirma)\n\n"
+        f"• 1 oy: {p1} so'm\n"
+        f"• 3 oy: {p3} so'm (Chegirma bilan)\n\n"
         "To'lov turlari: Click, Payme, Uzum."
     )
     bot.send_message(message.chat.id, text, parse_mode="Markdown")
 
 def handle_premium_buy(message, bot):
+    p1 = f"{PRICE_1_MONTH // 100:,}".replace(",", " ")
+    p3 = f"{PRICE_3_MONTHS // 100:,}".replace(",", " ")
+
     markup = types.InlineKeyboardMarkup()
-    markup.add(types.InlineKeyboardButton("💳 1 oy — 49 000 so'm", callback_data="select_30"))
-    markup.add(types.InlineKeyboardButton("💳 3 oy — 119 000 so'm", callback_data="select_90"))
+    markup.add(types.InlineKeyboardButton(f"💳 1 oy — {p1} so'm", callback_data="select_30"))
+    markup.add(types.InlineKeyboardButton(f"💳 3 oy — {p3} so'm", callback_data="select_90"))
     
     bot.send_message(message.chat.id, "👇 **Tarifni tanlang:**", reply_markup=markup, parse_mode="Markdown")
-from dotenv import load_dotenv
-
-load_dotenv()
-MAIN_ADMIN_ID = int(os.getenv("ADMIN_ID", 0))
-ADMIN_IDS = [MAIN_ADMIN_ID, 1392501306]
+from core.config import ADMIN_IDS, MAIN_ADMIN_ID, PRICE_1_MONTH, PRICE_3_MONTHS
 
 # Payment details (Mock)
 PAYMENT_CARDS = {
@@ -110,9 +112,13 @@ def register_handlers(bot):
             return
         
         days = 30 if call.data == "select_30" else 90
-        amount = 4900000 if call.data == "select_30" else 11900000 # Amount in tiyin (100 tiyin = 1 sum)
+        amount = PRICE_1_MONTH if call.data == "select_30" else PRICE_3_MONTHS
+        
+        # Format for display (e.g. 49 000)
+        price_display = f"{amount // 100:,}".replace(",", " ")
+        
         title = f"Premium {days} kun"
-        description = f"Fitness Bot Premium obunasi ({days} kun). Barcha imkoniyatlardan foydalaning!"
+        description = f"Fitness Bot Premium obunasi ({days} kun). Narxi: {price_display} so'm"
         payload = f"premium_{days}"
         currency = "UZS"
         prices = [types.LabeledPrice(label=title, amount=amount)]
