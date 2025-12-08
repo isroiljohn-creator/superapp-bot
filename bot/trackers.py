@@ -102,14 +102,20 @@ def process_steps_input(message, bot):
     steps = int(text)
     today = datetime.now().strftime("%Y-%m-%d")
     
+    # Fetch previous log to check if points already awarded
+    log = db.get_daily_log(user_id, today)
+    old_steps = log.get('steps', 0) if log else 0
+    
     db.update_daily_log(user_id, today, steps=steps)
     
     # Calculate points: 5 points per 10k steps
-    points = (steps // 10000) * 5
+    # Only award if we crossed a 10k threshold we hadn't crossed before
+    # For simplicity, let's just cap it at 10k for now (single reward)
+    # If user had < 10000 and now has >= 10000, award 5 points.
     
-    if points > 0:
-        db.add_points(user_id, points)
-        bot.send_message(user_id, f"✅ **Qoyilmaqom!**\n\nSiz {steps} qadam yurdingiz.\nSizga +{points} ball berildi! 🎉", parse_mode="Markdown")
+    if old_steps < 10000 and steps >= 10000:
+        db.add_points(user_id, 5)
+        bot.send_message(user_id, f"✅ **Qoyilmaqom!**\n\nSiz {steps} qadam yurdingiz.\nSizga +5 ball berildi! 🎉", parse_mode="Markdown")
     else:
         bot.send_message(user_id, f"✅ Qabul qilindi: {steps} qadam.\n10,000 ga yetkazishga harakat qiling! 💪")
         
@@ -141,11 +147,15 @@ def process_sleep_input(message, bot):
         return
         
     today = datetime.now().strftime("%Y-%m-%d")
+    # Fetch previous log
+    log = db.get_daily_log(user_id, today)
+    old_sleep = log.get('sleep_hours', 0) if log else 0
+    
     db.update_daily_log(user_id, today, sleep_hours=hours)
     
-    if hours >= 8:
+    if old_sleep < 8 and hours >= 8:
         db.add_points(user_id, 2)
-        db.update_streak(user_id, 'sleep') # Assuming simple increment for now
+        db.update_streak(user_id, 'sleep') 
         bot.send_message(user_id, f"✅ **Ajoyib uyqu!**\n\nSiz {hours} soat uxladingiz.\nSog'lom uyqu uchun +2 ball! 😴✨", parse_mode="Markdown")
     else:
         bot.send_message(user_id, f"✅ Qabul qilindi: {hours} soat.\nSog'lom bo'lish uchun kamida 8 soat uxlashga harakat qiling.")
@@ -171,18 +181,7 @@ def handle_mood_tracker(message, bot, user_id=None):
         parse_mode="Markdown"
     )
 
-def process_mood_callback(call, bot):
-    user_id = call.from_user.id
-    mood = call.data.split('_')[2] # bad, ok, good
-    today = datetime.now().strftime("%Y-%m-%d")
-    
-    db.update_daily_log(user_id, today, mood=mood)
-    
-    if mood == 'good':
-        # 0.5 points (rounded to 1 for integer DB, or need float support? DB is int. Let's give 1 point to be generous or 0.5 if we change DB)
-        # User asked for 0.5. DB points is INTEGER. I should probably change DB or just give 1 point every 2 days?
-        # Or just give 1 point. Let's give 1 point for now as 0.5 is hard with Int.
-# Refactored process_mood_callback to handle_mood_track with new logic
+
 def handle_mood_track(call, bot): # Added bot parameter for consistency with other handlers
     user_id = call.from_user.id
     today = datetime.now().strftime("%Y-%m-%d")
@@ -196,10 +195,14 @@ def handle_mood_track(call, bot): # Added bot parameter for consistency with oth
     try:
         mood = parts[2] # bad, ok, good
         
-        db.update_daily_log(user_id, today, mood=mood) # Changed from log_daily to update_daily_log
+        # Check previous mood to prevent double points
+        log = db.get_daily_log(user_id, today)
+        old_mood = log.get('mood') if log else None
         
-        if mood == 'good':
-            db.add_points(user_id, 5) # Points changed from 1 to 5
+        db.update_daily_log(user_id, today, mood=mood) 
+        
+        if mood == 'good' and old_mood != 'good':
+            db.add_points(user_id, 5) 
             db.update_streak(user_id, 'mood')
             bot.answer_callback_query(call.id, "✅ Ajoyib! +5 ball")
             bot.edit_message_text(
@@ -208,6 +211,10 @@ def handle_mood_track(call, bot): # Added bot parameter for consistency with oth
                 call.message.message_id,
                 parse_mode="Markdown"
             )
+        elif mood == 'good' and old_mood == 'good':
+             bot.answer_callback_query(call.id, "Bugun allaqachon belgilagansiz 🙂")
+             # Don't edit message to avoid flicker or just leave it
+        
             
         elif mood == 'bad':
             from bot import onboarding

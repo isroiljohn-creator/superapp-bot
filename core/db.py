@@ -102,9 +102,11 @@ class Database:
 
     def add_points(self, user_id, points):
         with get_sync_db() as session:
-            user = session.query(User).filter(User.telegram_id == user_id).first()
-            if user:
-                user.points += points
+            # Atomic update
+            session.query(User).filter(User.telegram_id == user_id).update(
+                {"points": User.points + points},
+                synchronize_session=False
+            )
 
     def get_daily_log(self, user_id, date_str):
         with get_sync_db() as session:

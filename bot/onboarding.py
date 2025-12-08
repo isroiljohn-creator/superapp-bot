@@ -434,6 +434,16 @@ def register_handlers(bot):
     def handle_contact(message):
         process_phone(message, bot)
         
+    @bot.message_handler(func=lambda m: manager.get_state(m.from_user.id) == STATE_PHONE)
+    def handle_phone_fallback(message):
+        """Catch non-contact messages during phone step"""
+        bot.send_message(
+            message.chat.id,
+            "❌ Iltimos, telefon raqamingizni kontakt sifatida yuboring 👇\n\n"
+            "Pastdagi tugmani bosing:",
+            reply_markup=phone_request_keyboard()
+        )
+        
     @bot.message_handler(func=lambda m: manager.get_state(m.from_user.id) == STATE_NAME)
     def handle_name_step(message):
         process_name(message, bot)
