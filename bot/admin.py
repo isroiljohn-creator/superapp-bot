@@ -3,6 +3,7 @@ from telebot import types
 from core.db import db
 from core.content import content_manager
 from dotenv import load_dotenv
+from core.utils import safe_handler
 
 from core.config import ADMIN_IDS
 print(f"DEBUG: Loaded ADMIN_IDS: {ADMIN_IDS}")

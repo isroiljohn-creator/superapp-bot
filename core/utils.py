@@ -85,3 +85,20 @@ def parse_callback(data, prefix=None, min_parts=0):
         return None
         
     return parts
+
+def safe_handler(bot):
+    """
+    Decorator to wrap handlers with try-except block to prevent crashes.
+    """
+    def decorator(func):
+        def wrapper(message, *args, **kwargs):
+            try:
+                return func(message, *args, **kwargs)
+            except Exception as e:
+                print(f"ERROR in {func.__name__}: {e}")
+                try:
+                    bot.send_message(message.chat.id, "⚠️ Xatolik yuz berdi. Iltimos, qayta urinib ko'ring.")
+                except:
+                    pass
+        return wrapper
+    return decorator
