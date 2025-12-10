@@ -158,6 +158,14 @@ SAFETY_SETTINGS = [
     {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"},
 ]
 
+# Models to try in order
+MODELS_TO_TRY = [
+    'gemini-2.5-flash',
+    'gemini-1.5-flash',
+    'gemini-1.5-pro',
+    'gemini-pro'
+]
+
 # Usage Stats
 AI_USAGE_STATS = {
     "workout": 0,
