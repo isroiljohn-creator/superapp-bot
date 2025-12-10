@@ -31,6 +31,139 @@ def register_handlers(bot):
     register_subscription_handlers(bot)
     register_content_handlers(bot)
 
+    @bot.message_handler(commands=['test_ai'])
+    @safe_handler(bot)
+    def admin_test_ai(message):
+        if message.from_user.id not in ADMIN_IDS: return
+        
+        msg = bot.send_message(message.chat.id, "🤖 AI tekshirilmoqda...")
+        
+        import google.generativeai as genai
+        import os
+        
+        report = "🤖 <b>AI Test Report:</b>\n\n"
+        
+        # 1. Check Key
+        key = os.getenv("GEMINI_API_KEY")
+        if not key:
+            report += "❌ <b>Key:</b> Missing!\n"
+            bot.edit_message_text(report, message.chat.id, msg.message_id, parse_mode="HTML")
+            return
+        
+        try:
+            genai.configure(api_key=key)
+            report += "✅ <b>Config:</b> Success\n"
+        except Exception as e:
+            report += f"❌ <b>Config:</b> {e}\n"
+            bot.edit_message_text(report, message.chat.id, msg.message_id, parse_mode="HTML")
+            return
+
+        # 2. Test Models
+        models = ['gemini-2.5-flash', 'gemini-1.5-flash']
+        
+        for m_name in models:
+            report += f"\nTesting <b>{m_name}</b>:\n"
+            try:
+                model = genai.GenerativeModel(m_name)
+                response = model.generate_content("Hello", request_options={'timeout': 10})
+                if response.text:
+                    report += "✅ <b>Success!</b>\n"
+                else:
+                    report += "⚠️ <b>Empty Response</b>\n"
+            except Exception as e:
+                report += f"❌ <b>Error:</b> {e}\n"
+        
+        bot.edit_message_text(report, message.chat.id, msg.message_id, parse_mode="HTML")
+
+    @bot.message_handler(commands=['check_limit'])
+    @safe_handler(bot)
+    def admin_check_limit(message):
+        if message.from_user.id not in ADMIN_IDS: return
+        
+        msg = bot.send_message(message.chat.id, "⏳ Limit tekshirilmoqda...")
+        
+        import google.generativeai as genai
+        import os
+        from core.ai import AI_USAGE_STATS
+        
+        key = os.getenv("GEMINI_API_KEY")
+        if not key:
+            bot.edit_message_text("❌ API Key topilmadi.", message.chat.id, msg.message_id)
+            return
+
+        # 1. Live Test (Quota Check)
+        status_text = ""
+        try:
+            genai.configure(api_key=key)
+            model = genai.GenerativeModel('gemini-2.5-flash')
+            # Try a very short generation
+            model.generate_content("Test", request_options={'timeout': 5})
+            status_text = "✅ <b>AI Ishlayapti</b> (Limit bor)"
+        except Exception as e:
+            if "429" in str(e):
+                status_text = "❌ <b>LIMIT TUGAGAN</b> (Quota Exceeded)"
+            else:
+                status_text = f"⚠️ <b>Xatolik:</b> {str(e)[:50]}..."
+
+        # 2. Format Stats
+        stats_text = (
+            f"\n\n📊 <b>Ishlatilgan Limitlar (Restartdan beri):</b>\n"
+            f"🏋️‍♂️ Mashqlar: {AI_USAGE_STATS['workout']}\n"
+            f"🥗 Menyular: {AI_USAGE_STATS['meal']}\n"
+            f"💬 Chat: {AI_USAGE_STATS['chat']}\n"
+            f"👁 Vision: {AI_USAGE_STATS['vision']}\n"
+            f"🛒 Shopping: {AI_USAGE_STATS['shopping']}\n"
+            f"🆘 Support: {AI_USAGE_STATS['support']}\n"
+            f"❌ Xatoliklar: {AI_USAGE_STATS['errors']}\n"
+            f"-------------------\n"
+            f"🔥 <b>Jami So'rovlar: {AI_USAGE_STATS['total_requests']}</b>"
+        )
+        
+        full_text = status_text + stats_text
+        bot.edit_message_text(full_text, message.chat.id, msg.message_id, parse_mode="HTML")
+
+    @bot.message_handler(commands=['test_full'])
+    @safe_handler(bot)
+    def admin_test_full(message):
+        if message.from_user.id not in ADMIN_IDS: return
+        
+        msg = bot.send_message(message.chat.id, "🧪 To'liq test boshlandi (Menu Generation)...")
+        
+        # Dummy profile
+        profile = {
+            "name": "TestUser",
+            "age": 25,
+            "gender": "Erkak",
+            "height": 180,
+            "weight": 75,
+            "goal": "Ozish",
+            "activity_level": "O'rtacha",
+            "allergies": "Yo'q"
+        }
+        
+        try:
+            import google.generativeai as genai
+            import os
+            
+            key = os.getenv("GEMINI_API_KEY")
+            genai.configure(api_key=key)
+            model = genai.GenerativeModel('gemini-2.5-flash')
+            
+            prompt = "Siz dietologsiz. 3 kunlik menu tuzing."
+            
+            try:
+                response = model.generate_content(prompt)
+                if response.text:
+                    bot.edit_message_text(f"✅ **Success!**\nLength: {len(response.text)}\n\nPreview: {response.text[:100]}...", message.chat.id, msg.message_id)
+                else:
+                    feedback = getattr(response, 'prompt_feedback', 'No feedback')
+                    bot.edit_message_text(f"⚠️ **Empty Response!**\nFeedback: {feedback}", message.chat.id, msg.message_id)
+            except Exception as e:
+                bot.edit_message_text(f"❌ **Direct Error:** {e}", message.chat.id, msg.message_id)
+                
+        except Exception as e:
+            bot.edit_message_text(f"❌ **System Error:** {e}", message.chat.id, msg.message_id)
+
     @bot.message_handler(commands=['resetdb'])
     def admin_reset_db(message):
         if message.from_user.id not in ADMIN_IDS:
@@ -351,138 +484,7 @@ def process_broadcast(message, bot, segment):
         except:
             pass
 
-    @bot.message_handler(commands=['test_ai'])
-    @safe_handler(bot)
-    def admin_test_ai(message):
-        if message.from_user.id not in ADMIN_IDS: return
-        
-        msg = bot.send_message(message.chat.id, "🤖 AI tekshirilmoqda...")
-        
-        import google.generativeai as genai
-        import os
-        
-        report = "🤖 <b>AI Test Report:</b>\n\n"
-        
-        # 1. Check Key
-        key = os.getenv("GEMINI_API_KEY")
-        if not key:
-            report += "❌ <b>Key:</b> Missing!\n"
-            bot.edit_message_text(report, message.chat.id, msg.message_id, parse_mode="HTML")
-            return
-        
-        try:
-            genai.configure(api_key=key)
-            report += "✅ <b>Config:</b> Success\n"
-        except Exception as e:
-            report += f"❌ <b>Config:</b> {e}\n"
-            bot.edit_message_text(report, message.chat.id, msg.message_id, parse_mode="HTML")
-            return
 
-        # 2. Test Models
-        models = ['gemini-2.5-flash', 'gemini-1.5-flash']
-        
-        for m_name in models:
-            report += f"\nTesting <b>{m_name}</b>:\n"
-            try:
-                model = genai.GenerativeModel(m_name)
-                response = model.generate_content("Hello", request_options={'timeout': 10})
-                if response.text:
-                    report += "✅ <b>Success!</b>\n"
-                else:
-                    report += "⚠️ <b>Empty Response</b>\n"
-            except Exception as e:
-                report += f"❌ <b>Error:</b> {e}\n"
-        
-        bot.edit_message_text(report, message.chat.id, msg.message_id, parse_mode="HTML")
-
-    @bot.message_handler(commands=['check_limit'])
-    @safe_handler(bot)
-    def admin_check_limit(message):
-        if message.from_user.id not in ADMIN_IDS: return
-        
-        msg = bot.send_message(message.chat.id, "⏳ Limit tekshirilmoqda...")
-        
-        import google.generativeai as genai
-        import os
-        from core.ai import AI_USAGE_STATS
-        
-        key = os.getenv("GEMINI_API_KEY")
-        if not key:
-            bot.edit_message_text("❌ API Key topilmadi.", message.chat.id, msg.message_id)
-            return
-
-        # 1. Live Test (Quota Check)
-        status_text = ""
-        try:
-            genai.configure(api_key=key)
-            model = genai.GenerativeModel('gemini-2.5-flash')
-            # Try a very short generation
-            model.generate_content("Test", request_options={'timeout': 5})
-            status_text = "✅ <b>AI Ishlayapti</b> (Limit bor)"
-        except Exception as e:
-            if "429" in str(e):
-                status_text = "❌ <b>LIMIT TUGAGAN</b> (Quota Exceeded)"
-            else:
-                status_text = f"⚠️ <b>Xatolik:</b> {str(e)[:50]}..."
-
-        # 2. Format Stats
-        stats_text = (
-            f"\n\n📊 <b>Ishlatilgan Limitlar (Restartdan beri):</b>\n"
-            f"🏋️‍♂️ Mashqlar: {AI_USAGE_STATS['workout']}\n"
-            f"🥗 Menyular: {AI_USAGE_STATS['meal']}\n"
-            f"💬 Chat: {AI_USAGE_STATS['chat']}\n"
-            f"👁 Vision: {AI_USAGE_STATS['vision']}\n"
-            f"🛒 Shopping: {AI_USAGE_STATS['shopping']}\n"
-            f"🆘 Support: {AI_USAGE_STATS['support']}\n"
-            f"❌ Xatoliklar: {AI_USAGE_STATS['errors']}\n"
-            f"-------------------\n"
-            f"🔥 <b>Jami So'rovlar: {AI_USAGE_STATS['total_requests']}</b>"
-        )
-        
-        full_text = status_text + stats_text
-        bot.edit_message_text(full_text, message.chat.id, msg.message_id, parse_mode="HTML")
-
-    @bot.message_handler(commands=['test_full'])
-    @safe_handler(bot)
-    def admin_test_full(message):
-        if message.from_user.id not in ADMIN_IDS: return
-        
-        msg = bot.send_message(message.chat.id, "🧪 To'liq test boshlandi (Menu Generation)...")
-        
-        # Dummy profile
-        profile = {
-            "name": "TestUser",
-            "age": 25,
-            "gender": "Erkak",
-            "height": 180,
-            "weight": 75,
-            "goal": "Ozish",
-            "activity_level": "O'rtacha",
-            "allergies": "Yo'q"
-        }
-        
-        try:
-            import google.generativeai as genai
-            import os
-            
-            key = os.getenv("GEMINI_API_KEY")
-            genai.configure(api_key=key)
-            model = genai.GenerativeModel('gemini-2.5-flash')
-            
-            prompt = "Siz dietologsiz. 3 kunlik menu tuzing."
-            
-            try:
-                response = model.generate_content(prompt)
-                if response.text:
-                    bot.edit_message_text(f"✅ **Success!**\nLength: {len(response.text)}\n\nPreview: {response.text[:100]}...", message.chat.id, msg.message_id)
-                else:
-                    feedback = getattr(response, 'prompt_feedback', 'No feedback')
-                    bot.edit_message_text(f"⚠️ **Empty Response!**\nFeedback: {feedback}", message.chat.id, msg.message_id)
-            except Exception as e:
-                bot.edit_message_text(f"❌ **Direct Error:** {e}", message.chat.id, msg.message_id)
-                
-        except Exception as e:
-            bot.edit_message_text(f"❌ **System Error:** {e}", message.chat.id, msg.message_id)
 
 # === Subscription Management ===
 
