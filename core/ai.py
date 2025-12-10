@@ -406,7 +406,11 @@ def analyze_food_image(image_data):
             
             response = vision_model.generate_content([prompt, image], safety_settings=SAFETY_SETTINGS)
             if response.text:
-                return response.text
+                # Force convert Markdown bold to HTML bold
+                import re
+                text = response.text
+                text = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', text)
+                return text
         except Exception as e:
             print(f"DEBUG: Vision failed with {model_name}: {e}")
             
@@ -450,7 +454,12 @@ def analyze_food_text(text):
         """
         
         response = model.generate_content(prompt, safety_settings=SAFETY_SETTINGS)
-        return response.text
+        if response.text:
+            import re
+            text = response.text
+            text = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', text)
+            return text
+        return None
     except Exception as e:
         print(f"Gemini Text Error: {e}")
         return None
