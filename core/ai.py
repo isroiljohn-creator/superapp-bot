@@ -204,20 +204,6 @@ def call_gemini(prompt):
     except:
         return None
 
-    # Clean up Markdown
-    text = raw_text.replace("**", "").replace("##", "").replace("#", "")
-    
-    # Ensure no dangerous HTML
-    text = text.replace("<script>", "").replace("</script>", "")
-    
-    # Limit length (soft limit)
-    if len(text) > 2000:
-        text = text[:2000] + "..."
-        
-    # Add Title
-    formatted = f"🍽 <b>{title}</b>\n\n{text.strip()}"
-    return formatted
-
 def ai_generate_workout(user_profile):
     """Generates a weekly workout plan using Gemini or fallback."""
     prompt = f"""

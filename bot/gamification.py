@@ -105,8 +105,9 @@ def handle_rules(message, bot):
     )
     bot.send_message(message.chat.id, text, parse_mode="Markdown")
 
-def handle_tasks(message, bot):
-    user_id = message.from_user.id
+def handle_tasks(message, bot, user_id=None):
+    if user_id is None:
+        user_id = message.from_user.id
     today = datetime.now().strftime("%Y-%m-%d")
     
     log = db.get_daily_log(user_id, today)
@@ -157,7 +158,7 @@ def register_handlers(bot):
         bot.answer_callback_query(call.id, f"Zo‘r! Bugungi vazifa bajarildi, ball qo‘shildi 🎉")
         
         # Update message
-        handle_tasks(call.message, bot)
+        handle_tasks(call.message, bot, user_id=user_id)
 
     @bot.callback_query_handler(func=lambda call: call.data == "task_already_done")
     def handle_already_done(call):

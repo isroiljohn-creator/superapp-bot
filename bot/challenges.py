@@ -40,11 +40,7 @@ def handle_friends_challenge(message, bot):
     bot.send_message(message.chat.id, text, parse_mode="Markdown")
 
 def show_leaderboard_message(message, bot):
-    conn = db.get_connection()
-    cursor = conn.cursor()
-    cursor.execute("SELECT full_name, yasha_points FROM users ORDER BY yasha_points DESC LIMIT 10")
-    leaders = cursor.fetchall()
-    conn.close()
+    leaders = db.get_top_users(limit=10)
     
     text = "🏆 **O'zbekiston Reytingi (TOP 10)**\n\n"
     for i, (name, points) in enumerate(leaders, 1):
@@ -68,7 +64,7 @@ def handle_daily_challenge(call, bot):
 
 def complete_challenge(call, bot, points):
     user_id = call.from_user.id
-    db.update_points(user_id, points)
+    db.add_points(user_id, points)
     bot.answer_callback_query(call.id, f"🎉 Tabriklaymiz! +{points} ball")
     bot.edit_message_text(
         f"✅ **Chellenj bajarildi!**\nSizga +{points} ball berildi.\nErtaga yangi chellenj kuting!",
@@ -78,18 +74,12 @@ def complete_challenge(call, bot, points):
     )
 
 def show_leaderboard(call, bot):
-    # Get top 10 users by points
-    # Need to add get_leaderboard to db first, but for now simulate or use raw query
-    conn = db.get_connection()
-    cursor = conn.cursor()
-    cursor.execute("SELECT full_name, yasha_points FROM users ORDER BY yasha_points DESC LIMIT 10")
-    leaders = cursor.fetchall()
-    conn.close()
+    leaders = db.get_top_users(limit=10)
     
     text = "🏆 **O'zbekiston Reytingi (TOP 10)**\n\n"
     for i, (name, points) in enumerate(leaders, 1):
         medal = "🥇" if i==1 else "🥈" if i==2 else "🥉" if i==3 else f"{i}."
         clean_name = name if name else "Foydalanuvchi"
-        text += f"{medal} {clean_name} — {points} ball\n"
+        text += f"{medal} {clean_name} — {points or 0} ball\n"
         
     bot.edit_message_text(text, call.message.chat.id, call.message.message_id, parse_mode="Markdown")

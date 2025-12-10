@@ -159,11 +159,7 @@ def register_handlers(bot):
         db.set_premium(user_id, days)
         
         # Set Auto-Renew flag
-        conn = db.get_connection()
-        cursor = conn.cursor()
-        cursor.execute("UPDATE users SET auto_renew = 1 WHERE telegram_id = ?", (user_id,))
-        conn.commit()
-        conn.close()
+        db.update_user_profile(user_id, auto_renew=True)
         
         bot.send_message(user_id, f"✅ **To'lov muvaffaqiyatli amalga oshirildi!**\n\nSizga {days} kunlik Premium obuna faollashtirildi. 🎉\nBarcha imkoniyatlardan foydalanishingiz mumkin!", parse_mode="Markdown")
         
