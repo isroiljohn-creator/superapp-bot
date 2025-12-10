@@ -201,7 +201,7 @@ def ask_gemini(system_prompt, user_prompt):
             response = current_model.generate_content(
                 full_prompt, 
                 safety_settings=SAFETY_SETTINGS,
-                request_options={'timeout': 20}
+                request_options={'timeout': 60}
             )
             
             if response.text:
