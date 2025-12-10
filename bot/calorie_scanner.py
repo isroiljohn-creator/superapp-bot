@@ -46,7 +46,7 @@ def handle_calorie_mode(call, bot):
     parts = parse_callback(call.data, prefix="calorie_mode_", min_parts=3)
     
     if not parts:
-        bot.answer_callback_query(call.id, f"Xatolik: Callback parse failed ({call.data})")
+        bot.send_message(call.message.chat.id, f"⚠️ Callback Error: Parse failed ({call.data})")
         return
 
     try:
@@ -58,7 +58,7 @@ def handle_calorie_mode(call, bot):
             allowed, reason = db.check_calorie_limit(user_id)
         except Exception as e:
             print(f"DB Error in calorie check: {e}")
-            bot.answer_callback_query(call.id, f"DB Xatolik: {str(e)[:40]}")
+            bot.send_message(call.message.chat.id, f"⚠️ DB Error: {str(e)}")
             return
 
         if not allowed:
@@ -84,13 +84,14 @@ def handle_calorie_mode(call, bot):
                 bot.send_message(call.message.chat.id, "📝 Ovqat haqida yozing (masalan: 100g palov, 1 ta non):")
         except Exception as e:
             print(f"State Error in calorie check: {e}")
-            bot.answer_callback_query(call.id, f"State Xatolik: {str(e)[:40]}")
+            bot.send_message(call.message.chat.id, f"⚠️ State Error: {str(e)}")
             return
         
         bot.answer_callback_query(call.id)
     except Exception as e:
         print(f"Calorie mode error: {e}")
-        bot.answer_callback_query(call.id, f"Xatolik: {str(e)[:50]}")
+        bot.send_message(call.message.chat.id, f"⚠️ General Error: {str(e)}")
+        bot.answer_callback_query(call.id, "Xatolik yuz berdi")
 
 def register_handlers(bot):
     # Handlers are registered in bot/handlers.py
