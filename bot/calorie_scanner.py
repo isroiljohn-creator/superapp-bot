@@ -46,15 +46,21 @@ def handle_calorie_mode(call, bot):
     parts = parse_callback(call.data, prefix="calorie_mode_", min_parts=3)
     
     if not parts:
-        bot.answer_callback_query(call.id, "Xatolik")
+        bot.answer_callback_query(call.id, f"Xatolik: Callback parse failed ({call.data})")
         return
 
     try:
         mode = parts[2]
-        
-        # Check Limit (moved from original calorie_mode_callback)
         user_id = call.from_user.id
-        allowed, reason = db.check_calorie_limit(user_id)
+        
+        # 1. Check DB Limit
+        try:
+            allowed, reason = db.check_calorie_limit(user_id)
+        except Exception as e:
+            print(f"DB Error in calorie check: {e}")
+            bot.answer_callback_query(call.id, f"DB Xatolik: {str(e)[:40]}")
+            return
+
         if not allowed:
             markup = types.InlineKeyboardMarkup()
             markup.add(types.InlineKeyboardButton("💎 Premium olish", callback_data="premium_info"))
@@ -68,19 +74,22 @@ def handle_calorie_mode(call, bot):
             bot.answer_callback_query(call.id)
             return
 
-        if mode == 'photo':
-            # Set state
-            onboarding.manager.set_state(call.from_user.id, STATE_CALORIE_PHOTO)
-            bot.send_message(call.message.chat.id, "📷 Ovqat rasmini yuboring:")
-        elif mode == 'text':
-            onboarding.manager.set_state(call.from_user.id, STATE_CALORIE_TEXT)
-            bot.send_message(call.message.chat.id, "📝 Ovqat haqida yozing (masalan: 100g palov, 1 ta non):")
+        # 2. Set State
+        try:
+            if mode == 'photo':
+                onboarding.manager.set_state(call.from_user.id, STATE_CALORIE_PHOTO)
+                bot.send_message(call.message.chat.id, "📷 Ovqat rasmini yuboring:")
+            elif mode == 'text':
+                onboarding.manager.set_state(call.from_user.id, STATE_CALORIE_TEXT)
+                bot.send_message(call.message.chat.id, "📝 Ovqat haqida yozing (masalan: 100g palov, 1 ta non):")
+        except Exception as e:
+            print(f"State Error in calorie check: {e}")
+            bot.answer_callback_query(call.id, f"State Xatolik: {str(e)[:40]}")
+            return
         
-        bot.answer_callback_query(call.id)
         bot.answer_callback_query(call.id)
     except Exception as e:
         print(f"Calorie mode error: {e}")
-        # Send specific error for debugging
         bot.answer_callback_query(call.id, f"Xatolik: {str(e)[:50]}")
 
 def register_handlers(bot):
