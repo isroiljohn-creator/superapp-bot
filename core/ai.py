@@ -204,6 +204,11 @@ def ask_gemini(system_prompt, user_prompt):
             
         except Exception as e:
             print(f"DEBUG: Model {model_name} failed: {e}")
+            try:
+                if hasattr(response, 'prompt_feedback'):
+                    print(f"DEBUG: Prompt Feedback: {response.prompt_feedback}")
+            except:
+                pass
             last_error = e
             continue # Try next model
             
@@ -216,7 +221,8 @@ def call_gemini(prompt):
     """Legacy wrapper for backward compatibility, redirects to ask_gemini"""
     try:
         return ask_gemini("You are a helpful assistant.", prompt)
-    except:
+    except Exception as e:
+        print(f"DEBUG: call_gemini caught exception: {e}")
         return None
 
 def ai_generate_workout(user_profile):
