@@ -158,44 +158,59 @@ SAFETY_SETTINGS = [
     {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"},
 ]
 
+# Usage Stats
+AI_USAGE_STATS = {
+    "workout": 0,
+    "meal": 0,
+    "chat": 0,
+    "vision": 0,
+    "shopping": 0,
+    "support": 0,
+    "errors": 0,
+    "total_requests": 0
+}
+
 def ask_gemini(system_prompt, user_prompt):
     """
-    Centralized helper to call Gemini 2.5 Flash.
+    Centralized helper to call Gemini with model fallback.
     Returns plain text response or raises Exception.
-    Uses the globally initialized 'model' instance.
     """
     global model
     
     if not GEMINI_API_KEY:
         raise Exception("API Key not found")
 
-    if not model:
-        # Try to re-initialize if it failed at startup (lazy init)
+    # Combine system and user prompt
+    full_prompt = f"{system_prompt}\n\nUser Input: {user_prompt}"
+    
+    last_error = None
+    
+    for model_name in MODELS_TO_TRY:
         try:
-            print("DEBUG: Lazy initializing Gemini model...")
+            # Configure and instantiate specific model
             genai.configure(api_key=GEMINI_API_KEY)
-            model = genai.GenerativeModel('gemini-2.5-flash')
-        except Exception as e:
-            print(f"Error lazy initializing Gemini: {e}")
-            raise e
-
-    try:
-        # Combine system and user prompt for simple generation
-        full_prompt = f"{system_prompt}\n\nUser Input: {user_prompt}"
-        
-        # Use the global model instance
-        response = model.generate_content(full_prompt, safety_settings=SAFETY_SETTINGS)
-        
-        if response.text:
-            return response.text.strip()
-        else:
-            raise Exception("Empty response from AI")
+            current_model = genai.GenerativeModel(model_name)
             
-    except Exception as e:
-        print(f"Gemini Error: {e}")
-        # If error is related to client state, maybe reset model?
-        # For now, just raise.
-        raise e
+            print(f"DEBUG: Attempting AI generation with model: {model_name}")
+            
+            response = current_model.generate_content(
+                full_prompt, 
+                safety_settings=SAFETY_SETTINGS,
+                request_options={'timeout': 20}
+            )
+            
+            if response.text:
+                return response.text.strip()
+            
+        except Exception as e:
+            print(f"DEBUG: Model {model_name} failed: {e}")
+            last_error = e
+            continue # Try next model
+            
+    # If all models fail
+    print("ERROR: All AI models failed.")
+    AI_USAGE_STATS["errors"] += 1
+    raise last_error or Exception("All AI models failed")
 
 def call_gemini(prompt):
     """Legacy wrapper for backward compatibility, redirects to ask_gemini"""
@@ -206,6 +221,8 @@ def call_gemini(prompt):
 
 def ai_generate_workout(user_profile):
     """Generates a weekly workout plan using Gemini or fallback."""
+    AI_USAGE_STATS["workout"] += 1
+    AI_USAGE_STATS["total_requests"] += 1
     prompt = f"""
 Siz Telegram uchun qisqa, silliq, tushunarli mashq rejalari tuzadigan professional fitness trenerisiz.
 
@@ -251,6 +268,8 @@ Foydalanuvchiga uy sharoitida bajariladigan 3 kunlik mashq rejasi tuzing.
 
 def ai_generate_menu(user_profile):
     """Generates a weekly meal plan using Gemini or fallback."""
+    AI_USAGE_STATS["meal"] += 1
+    AI_USAGE_STATS["total_requests"] += 1
     
     # Build allergy warning if present
     allergy_text = user_profile.get('allergies')
@@ -305,6 +324,8 @@ Foydalanuvchiga 3 kunlik ovqatlanish rejasi tuzing.
 
 def ai_answer_question(question):
     """Answers a general fitness question using Gemini."""
+    AI_USAGE_STATS["chat"] += 1
+    AI_USAGE_STATS["total_requests"] += 1
     response_text = call_gemini(f"Siz fitnes murabbiyisiz. Savolga qisqa va aniq javob bering (o'zbek tilida): {question}")
     if response_text:
         return format_gemini_text(response_text, "Savolingizga javob")
@@ -313,6 +334,8 @@ def ai_answer_question(question):
 
 def ai_generate_shopping_list(user_profile):
     """Generates a shopping list based on user profile and health context."""
+    AI_USAGE_STATS["shopping"] += 1
+    AI_USAGE_STATS["total_requests"] += 1
     
     # Build allergy/health warning
     allergy_text = user_profile.get('allergies')
@@ -357,6 +380,8 @@ def analyze_food_image(image_data):
     Analyzes food image using Gemini Vision.
     Returns structured text in Uzbek.
     """
+    AI_USAGE_STATS["vision"] += 1
+    AI_USAGE_STATS["total_requests"] += 1
     if not GEMINI_API_KEY:
         return None
 
@@ -421,6 +446,8 @@ def analyze_food_text(text):
     Analyzes food text description using Gemini.
     Returns structured text in Uzbek.
     """
+    AI_USAGE_STATS["vision"] += 1
+    AI_USAGE_STATS["total_requests"] += 1
     global model
     if not GEMINI_API_KEY:
         return None
@@ -487,6 +514,8 @@ def format_gemini_text(raw_text, title):
 
 def ai_provide_psychological_support(reason):
     """Provides psychological support based on user's mood reason."""
+    AI_USAGE_STATS["support"] += 1
+    AI_USAGE_STATS["total_requests"] += 1
     prompt = f"""
     Foydalanuvchi kayfiyati yomonligini aytdi. Sababi: "{reason}"
     
