@@ -160,7 +160,8 @@ SAFETY_SETTINGS = [
 
 # Models to try in order
 MODELS_TO_TRY = [
-    'gemini-2.5-flash'
+    'gemini-2.5-flash',
+    'gemini-1.5-flash'
 ]
 
 # Usage Stats
