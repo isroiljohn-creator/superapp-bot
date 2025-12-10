@@ -316,10 +316,16 @@ Foydalanuvchiga 3 kunlik ovqatlanish rejasi tuzing.
 """
 
     response_text = call_gemini(prompt)
+    
+    if response_text:
+        print(f"DEBUG: AI Response Length: {len(response_text)}")
+    else:
+        print("DEBUG: AI Response was None or Empty.")
+
     if response_text and len(response_text) > 50:
         return format_gemini_text(response_text, "Sizning ovqatlanish rejangiz")
 
-    print(f"DEBUG: AI failed or returned empty. Using fallback for user {user_profile.get('name')}")
+    print(f"DEBUG: AI failed validation (len > 50). Using fallback for user {user_profile.get('name')}")
     return get_offline_menu(user_profile)
 
 def ai_answer_question(question):
