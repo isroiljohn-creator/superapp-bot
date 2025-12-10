@@ -127,42 +127,24 @@ def register_handlers(bot):
     def admin_test_full(message):
         if message.from_user.id not in ADMIN_IDS: return
         
-        msg = bot.send_message(message.chat.id, "🧪 To'liq test boshlandi (Menu Generation)...")
+        msg = bot.send_message(message.chat.id, "🧪 To'liq test boshlandi (Fallback bilan)...")
         
-        # Dummy profile
-        profile = {
-            "name": "TestUser",
-            "age": 25,
-            "gender": "Erkak",
-            "height": 180,
-            "weight": 75,
-            "goal": "Ozish",
-            "activity_level": "O'rtacha",
-            "allergies": "Yo'q"
-        }
+        from core.ai import ask_gemini
+        
+        prompt = "Siz dietologsiz. 3 kunlik menu tuzing."
         
         try:
-            import google.generativeai as genai
-            import os
+            # Use ask_gemini which has the fallback logic (2.5 -> 1.5 -> Pro)
+            response_text = ask_gemini("Siz yordamchisiz.", prompt)
             
-            key = os.getenv("GEMINI_API_KEY")
-            genai.configure(api_key=key)
-            model = genai.GenerativeModel('gemini-2.5-flash')
-            
-            prompt = "Siz dietologsiz. 3 kunlik menu tuzing."
-            
-            try:
-                response = model.generate_content(prompt)
-                if response.text:
-                    bot.edit_message_text(f"✅ **Success!**\nLength: {len(response.text)}\n\nPreview: {response.text[:100]}...", message.chat.id, msg.message_id)
-                else:
-                    feedback = getattr(response, 'prompt_feedback', 'No feedback')
-                    bot.edit_message_text(f"⚠️ **Empty Response!**\nFeedback: {feedback}", message.chat.id, msg.message_id)
-            except Exception as e:
-                bot.edit_message_text(f"❌ **Direct Error:** {e}", message.chat.id, msg.message_id)
+            if response_text:
+                bot.edit_message_text(f"✅ **Success!**\nLength: {len(response_text)}\n\nPreview: {response_text[:100]}...", message.chat.id, msg.message_id)
+            else:
+                bot.edit_message_text("⚠️ **Empty Response from ask_gemini**", message.chat.id, msg.message_id)
                 
         except Exception as e:
-            bot.edit_message_text(f"❌ **System Error:** {e}", message.chat.id, msg.message_id)
+            # This catches the "All AI models failed" exception
+            bot.edit_message_text(f"❌ **Fallback Failed:** {e}", message.chat.id, msg.message_id)
 
     @bot.message_handler(commands=['resetdb'])
     def admin_reset_db(message):
