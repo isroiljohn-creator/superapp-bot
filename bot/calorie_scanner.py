@@ -77,14 +77,15 @@ def handle_calorie_mode(call, bot):
             bot.send_message(call.message.chat.id, "📝 Ovqat haqida yozing (masalan: 100g palov, 1 ta non):")
         
         bot.answer_callback_query(call.id)
+        bot.answer_callback_query(call.id)
     except Exception as e:
         print(f"Calorie mode error: {e}")
-        bot.answer_callback_query(call.id, "Xatolik")
+        # Send specific error for debugging
+        bot.answer_callback_query(call.id, f"Xatolik: {str(e)[:50]}")
 
 def register_handlers(bot):
-    @bot.callback_query_handler(func=lambda call: call.data.startswith("calorie_mode_"))
-    def callback_wrapper(call):
-        handle_calorie_mode(call, bot)
+    # Handlers are registered in bot/handlers.py
+    pass
 
 
 @require_premium

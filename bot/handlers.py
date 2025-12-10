@@ -272,7 +272,7 @@ def register_all_handlers(bot):
     # Calorie Callbacks
     @bot.callback_query_handler(func=lambda call: call.data.startswith('calorie_mode_'))
     def calorie_mode_handler(call):
-        calorie_scanner.calorie_mode_callback(call, bot)
+        calorie_scanner.handle_calorie_mode(call, bot)
 
     @bot.message_handler(func=lambda message: onboarding.manager.get_state(message.from_user.id) == calorie_scanner.STATE_CALORIE_TEXT)
     def text_calorie_handler(message):
