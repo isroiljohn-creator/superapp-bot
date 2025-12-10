@@ -4,9 +4,9 @@ from core.ai import analyze_food_image, analyze_food_text
 from bot import onboarding
 from bot.premium import require_premium
 
-# States
-STATE_CALORIE_PHOTO = "calorie_photo_upload"
-STATE_CALORIE_TEXT = "calorie_text_input"
+# States (Must be integers as per DB schema)
+STATE_CALORIE_PHOTO = 100
+STATE_CALORIE_TEXT = 101
 
 def show_calorie_menu(message, bot):
     markup = types.InlineKeyboardMarkup()
