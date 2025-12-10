@@ -442,6 +442,48 @@ def process_broadcast(message, bot, segment):
         full_text = status_text + stats_text
         bot.edit_message_text(full_text, message.chat.id, msg.message_id, parse_mode="HTML")
 
+    @bot.message_handler(commands=['test_full'])
+    @safe_handler(bot)
+    def admin_test_full(message):
+        if message.from_user.id not in ADMIN_IDS: return
+        
+        msg = bot.send_message(message.chat.id, "🧪 To'liq test boshlandi (Menu Generation)...")
+        
+        # Dummy profile
+        profile = {
+            "name": "TestUser",
+            "age": 25,
+            "gender": "Erkak",
+            "height": 180,
+            "weight": 75,
+            "goal": "Ozish",
+            "activity_level": "O'rtacha",
+            "allergies": "Yo'q"
+        }
+        
+        try:
+            import google.generativeai as genai
+            import os
+            
+            key = os.getenv("GEMINI_API_KEY")
+            genai.configure(api_key=key)
+            model = genai.GenerativeModel('gemini-2.5-flash')
+            
+            prompt = "Siz dietologsiz. 3 kunlik menu tuzing."
+            
+            try:
+                response = model.generate_content(prompt)
+                if response.text:
+                    bot.edit_message_text(f"✅ **Success!**\nLength: {len(response.text)}\n\nPreview: {response.text[:100]}...", message.chat.id, msg.message_id)
+                else:
+                    feedback = getattr(response, 'prompt_feedback', 'No feedback')
+                    bot.edit_message_text(f"⚠️ **Empty Response!**\nFeedback: {feedback}", message.chat.id, msg.message_id)
+            except Exception as e:
+                bot.edit_message_text(f"❌ **Direct Error:** {e}", message.chat.id, msg.message_id)
+                
+        except Exception as e:
+            bot.edit_message_text(f"❌ **System Error:** {e}", message.chat.id, msg.message_id)
+
 # === Subscription Management ===
 
 def register_subscription_handlers(bot):
