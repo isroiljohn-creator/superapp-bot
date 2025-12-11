@@ -220,7 +220,15 @@ def show_daily_menu(bot, user_id, link_data, override_day_idx=None):
     from datetime import datetime, timedelta
     from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
     
-    start_date = link_data['start_date'] # datetime object
+    start_date = link_data['start_date'] # datetime object or string
+    if isinstance(start_date, str):
+        try:
+            start_date = datetime.strptime(start_date, "%Y-%m-%d %H:%M:%S.%f")
+        except:
+            try:
+                start_date = datetime.strptime(start_date, "%Y-%m-%d %H:%M:%S")
+            except:
+                start_date = datetime.utcnow() # Fallback
     
     # Logic: If no override, calculate specific day
     if override_day_idx is None:

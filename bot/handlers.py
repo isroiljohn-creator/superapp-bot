@@ -506,17 +506,22 @@ def register_all_handlers(bot):
             
             new_idx = current_idx + 1 if "next" in action else current_idx - 1
             
-            # Update DB
+            # Update DB (Attempt to save)
             updated_idx = db.update_menu_day(call.from_user.id, new_idx)
             
-            # DEBUG: Show user what happened
-            bot.answer_callback_query(call.id, f"Kun: {current_idx} -> {updated_idx}")
+            # OPTIMISTIC NAVIGATION: 
+            # We trust the button math (new_idx) more than the DB return (which might be 1 if fails)
+            # This ensures the user SEES the next day even if DB is slow/stuck.
+            display_idx = new_idx
+            
+            # debug toast
+            bot.answer_callback_query(call.id, f"Navigatsiya: {current_idx} -> {display_idx} (DB: {updated_idx})")
             
             # Get latest data (for menu_json content)
             link = db.get_user_menu_link(call.from_user.id)
             if link:
                 bot.delete_message(call.message.chat.id, call.message.message_id)
-                workout.show_daily_menu(bot, call.from_user.id, link, override_day_idx=updated_idx)
+                workout.show_daily_menu(bot, call.from_user.id, link, override_day_idx=display_idx)
             else:
                 bot.answer_callback_query(call.id, "Reja topilmadi.")
                 
