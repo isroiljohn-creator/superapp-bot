@@ -139,6 +139,7 @@ def generate_ai_meal(message, bot, user_id=None):
                         print(f"DEBUG: Rejecting incomplete menu ({item_count} items). Retrying...")
                         if attempt < max_retries - 1:
                             time.sleep(2) # Brief cooling
+                            bot.edit_message_text(f"🔄 Qayta urinish {attempt+2}/{max_retries}...", user_id, msg.message_id)
                             continue
                 
                 # If structure is wrong, retry
