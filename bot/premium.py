@@ -217,7 +217,7 @@ def require_premium(func):
                 "Premium ochish uchun “💎 Premium” bo‘limiga o‘ting."
             )
             markup = types.InlineKeyboardMarkup()
-            markup.add(types.InlineKeyboardButton("💎 Premium olish", callback_data="back_premium"))
+            markup.add(types.InlineKeyboardButton("💎 Premium olish", callback_data="premium_buy"))
             bot.send_message(user_id, text, reply_markup=markup, parse_mode="Markdown")
             return
         return func(message, bot, *args, **kwargs)
