@@ -366,29 +366,40 @@ def ai_generate_monthly_menu_json(user_profile):
     if allergy_text and allergy_text.lower() not in ['yo\'q', 'no', 'none', 'yoq']:
         allergy_section = f"DIQQAT: Foydalanuvchida {allergy_text} ga allergiya bor. Menyuda bular qat'iyan bo'lmasin!"
 
-    prompt = f"""
-Siz professional dietologsiz. Vazifangiz foydalanuvchi uchun 5 kunlik ovqatlanish rejasi va xaridlar ro'yxatini tuzish.
-Javob FAQAT va FAQAT toza JSON formatida bo'lishi shart.
+    
+    # 1. System Prompt (Strict Role & Format)
+    system_prompt = """
+Siz professional dietologsiz.
+Vazifangiz: 5 kunlik ovqatlanish rejasi va xaridlar ro'yxatini tuzish.
+Javob formati: FAQAT JSON (boshqa hech narsa yozma).
 
-Foydalanuvchi:
-Yosh: {user_profile.get('age')}, Jins: {user_profile.get('gender')}, Maqsad: {user_profile.get('goal')}
-{allergy_section}
-
-NAMUNA (SHUNDAY BO'LSIN):
-{{
+NAMUNA:
+{
   "menu": [
-    {{ "day": 1, "breakfast": "Tuxum", "lunch": "Osh", "dinner": "Salat", "snack": "Olma" }}
+    { "day": 1, "breakfast": "Tuxum", "lunch": "Osh", "dinner": "Salat", "snack": "Olma" }
   ],
   "shopping_list": ["Tuxum", "Guruch"]
-}}
+}
+"""
+
+    # 2. User Prompt (Data)
+    user_prompt = f"""
+Foydalanuvchi ma'lumotlari:
+Yosh: {user_profile.get('age')}
+Jins: {user_profile.get('gender')}
+Maqsad: {user_profile.get('goal')}
+{allergy_section}
 
 Talablar:
-1. "menu" va "shopping_list" kalitlari aniq bo'lsin.
-2. Barcha stringlar qo'shtirnoq (") bilan yozilsin.
-3. JSON valid bo'lishi shart.
+- Menu arrayida 5 kunlik reja bo'lsin.
+- Har bir kun uchun: day, breakfast, lunch, dinner, snack.
+- Mahsulotlar O'zbekistonda bor bo'lsin.
+- JSON valid bo'lsin (stringlar "qo'shtirnoq" ichida).
 """
+
     try:
-        response_text = call_gemini(prompt)
+        # Call ask_gemini directly to control system prompt
+        response_text = ask_gemini(system_prompt, user_prompt)
         
         # --- FALLBACK MECHANISM ---
         if not response_text: 
