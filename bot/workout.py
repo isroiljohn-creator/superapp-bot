@@ -254,19 +254,11 @@ def show_daily_menu(bot, user_id, link_data, override_day_idx=None):
     # Save current position to DB if navigating?
     # Actually, requirement says "Ertaga kirib 2-kun ochilsin".
     try:
-        if not link_data or not link_data.get('menu_template_id'):
+        if not link_data or not link_data.get('menu_json'):
             bot.send_message(user_id, "❌ Ma'lumot topilmadi. /start ni bosing.")
             return
 
-        # Fetch Template
-        template_id = link_data['menu_template_id']
-        template = db.get_element_by_id("menu_templates", template_id)
-        
-        if not template:
-            bot.send_message(user_id, "❌ Reja bazada topilmadi. Yangi reja tuzing.")
-            return
-
-        menu_list = json.loads(template['menu_json'])
+        menu_list = json.loads(link_data['menu_json'])
         total_days = len(menu_list)
         
         # Safety Check: If day_idx exceeds total_days, clamp it
