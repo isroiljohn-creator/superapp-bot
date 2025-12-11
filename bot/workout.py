@@ -250,19 +250,15 @@ def show_daily_menu(bot, user_id, link_data, override_day_idx=None):
         menu_list = json.loads(link_data['menu_json'])
         total_days = len(menu_list)
         
-        # DEBUG LOG
-        print(f"🔥 SHOW_MENU: override={override_day_idx}, total={total_days}")
-        
         # Boundary checks
         clamped = False
         if day_idx < 1: day_idx = 1
         if day_idx > total_days: 
             day_idx = total_days # Stop at last day
             clamped = True
-            
-        print(f"🔥 SHOW_MENU: final_day={day_idx}, clamped={clamped}")
         
         # Calculate Display Date for the *viewed* day
+        current_view_date = start_date + timedelta(days=day_idx-1)
         # viewed_date = start_date + (day_idx - 1) days
         current_view_date = start_date + timedelta(days=day_idx-1)
         weekday_name = get_weekday_name(current_view_date)

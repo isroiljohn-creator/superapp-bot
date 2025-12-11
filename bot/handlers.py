@@ -492,44 +492,8 @@ def register_all_handlers(bot):
     @bot.callback_query_handler(func=lambda call: call.data.startswith("menu_next_") or call.data.startswith("menu_prev_"))
     def callback_menu_nav(call):
         """ULTRA-SIMPLE navigation - just show the next/prev day."""
-        # EXPLICIT LOG
-        print(f"🔍 NAV HANDLER CALLED: {call.data}")
-        
-        try:
-            # Extract day number from callback
-            parts = call.data.split("_")  # ["menu", "next/prev", "day_number"]
-            current_day = int(parts[2])
-            
-            # Calculate new day
-            if "next" in call.data:
-                new_day = current_day + 1
-            else:
-                new_day = current_day - 1
-            
-            # Clamp to valid range
-            if new_day < 1:
-                new_day = 1
-            
-            # Get menu data
-            link = db.get_user_menu_link(call.from_user.id)
-            if not link:
-                bot.answer_callback_query(call.id, "Menyu topilmadi!")
-                return
-            
             # Show popup with debug info
-            bot.answer_callback_query(call.id, f"📍 {current_day} → {new_day}")
-            
-            # EXPLICIT DEBUG MESSAGE
-            import json
-            menu_list = json.loads(link['menu_json'])
-            total = len(menu_list)
-            bot.send_message(
-                call.from_user.id, 
-                f"🔧 DEBUG:\n"
-                f"Hozir ko'rsatilmoqda: {new_day}-kun\n"
-                f"Jami: {total} kun\n"
-                f"Override parametri: {new_day}"
-            )
+            # bot.answer_callback_query(call.id, f"📍 {current_day} → {new_day}")
             
             # Delete old message
             try:
