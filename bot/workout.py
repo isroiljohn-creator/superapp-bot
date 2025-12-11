@@ -127,8 +127,8 @@ def generate_ai_meal(message, bot, user_id=None):
         user = db_user # Use actual user data if available
         
     # Get profile key
-    # Helper logic (simplified for stability):
-    profile_key = f"{user_id}_30_day_plan"
+    # FORCE NEW KEY to bypass old stuck data
+    profile_key = f"{user_id}_weekly_plan_v1"
 
     # Clean old template
     existing_template = db.get_menu_template(profile_key)
