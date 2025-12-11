@@ -509,6 +509,9 @@ def register_all_handlers(bot):
             # Update DB
             updated_idx = db.update_menu_day(call.from_user.id, new_idx)
             
+            # DEBUG: Show user what happened
+            bot.answer_callback_query(call.id, f"Kun: {current_idx} -> {updated_idx}")
+            
             # Get latest data (for menu_json content)
             link = db.get_user_menu_link(call.from_user.id)
             if link:
