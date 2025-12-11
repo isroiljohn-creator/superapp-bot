@@ -237,57 +237,54 @@ def show_daily_menu(bot, user_id, link_data, override_day_idx=None):
     else:
         day_idx = override_day_idx
         
-    # Load Menu
-    menu_list = json.loads(link_data['menu_json'])
-    total_days = len(menu_list)
-    
-    # Boundary checks
-    if day_idx < 1: day_idx = 1
-    if day_idx > total_days: day_idx = total_days # Stop at last day
-    
-    # Calculate Display Date for the *viewed* day
-    # viewed_date = start_date + (day_idx - 1) days
-    current_view_date = start_date + timedelta(days=day_idx-1)
-    weekday_name = get_weekday_name(current_view_date)
-    # Format Date nicely (e.g. 12-Dek) if needed, but weekday + Day Number is good enough 
-    
-    # Save current position to DB if navigating?
-    # Actually, requirement says "Ertaga kirib 2-kun ochilsin".
     try:
-        if not link_data or not link_data.get('menu_json'):
-            bot.send_message(user_id, "❌ Ma'lumot topilmadi. /start ni bosing.")
-            return
-
+        # Load Menu
         menu_list = json.loads(link_data['menu_json'])
         total_days = len(menu_list)
         
-        # Safety Check: If day_idx exceeds total_days, clamp it
-        if day_idx > total_days:
-            day_idx = total_days
-        if day_idx < 1: 
-            day_idx = 1
-            
-        # Get Data
-        day_data = menu_list[day_idx - 1]
+        # Boundary checks
+        clamped = False
+        if day_idx < 1: day_idx = 1
+        if day_idx > total_days: 
+            day_idx = total_days # Stop at last day
+            clamped = True
         
-        # Format Date
-        # start_date is from link_data
-        current_date_obj = start_date + timedelta(days=day_idx-1)
-        weekday_name = get_weekday_name(current_date_obj)
-        date_str = current_date_obj.strftime("%d.%m.%Y")
+        # Calculate Display Date for the *viewed* day
+        # viewed_date = start_date + (day_idx - 1) days
+        current_view_date = start_date + timedelta(days=day_idx-1)
+        weekday_name = get_weekday_name(current_view_date)
+        date_str = current_view_date.strftime("%d.%m.%Y")
         
         # Build Text
         txt = f"📅 **{day_idx}-KUN** ({weekday_name}, {date_str})\n\n"
         
+        if clamped:
+             txt += f"⚠️ **DIQQAT:** Sizning rejangiz jami {total_days} kunlik. Davom etish uchun yangi reja tuzing.\n\n"
+             
+        db.update_menu_day(user_id, day_idx)
+
+        # Find day data
+        day_data = None
+        # menu_list is 0-indexed, day_idx is 1-indexed
+        idx = day_idx - 1
+        if 0 <= idx < total_days:
+            day_data = menu_list[idx]
+        
+        if not day_data:
+            bot.send_message(user_id, "⚠️ Bu kun uchun ma'lumot yo'q.")
+            return
+
+        # Format Message
+        # txt is already started
         txt += f"🍳 **Nonushta:** {day_data.get('breakfast', '-')}\n"
         txt += f"🥗 **Tushlik:** {day_data.get('lunch', '-')}\n"
         txt += f"🍲 **Kechki ovqat:** {day_data.get('dinner', '-')}\n"
         txt += f"🍏 **Snack:** {day_data.get('snack', '-')}\n"
-        
+            
         # Buttons
         markup = InlineKeyboardMarkup()
         btns = []
-        
+            
         if day_idx > 1:
             btns.append(InlineKeyboardButton("⬅️ Oldingi", callback_data=f"menu_prev_{day_idx}"))
         
@@ -295,10 +292,6 @@ def show_daily_menu(bot, user_id, link_data, override_day_idx=None):
             btns.append(InlineKeyboardButton("Keyingi ➡️", callback_data=f"menu_next_{day_idx}"))
         elif day_idx == total_days: # End of current plan (e.g. Day 7)
             # Show "Generate Next Week" button
-            # We reuse 'menu_regenerate' logic but with label "Keyingi hafta" 
-            # OR make a specific 'menu_next_week' callback. 
-            # Simplest for User: The "Regenerate" button handles new week.
-            # But let's add a BIG button for continuity.
             btns.append(InlineKeyboardButton("Keyingi Hafta (Yangi) 🔄", callback_data="menu_regenerate"))
             
         markup.row(*btns)
