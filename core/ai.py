@@ -393,7 +393,8 @@ Maqsad: {user_profile.get('goal')}
 {allergy_section}
 
 Talablar:
-- 30 kunlik reja (JSON array "menu" ichida).
+- 30 kunlik reja (JSON array "menu" ichida). 
+- DIQQAT: "menu" array ichida roppa-rosa 30 ta element bo'lishi SHART. Kam bo'lmasin.
 - Har bir kun uchun: day, breakfast, lunch, dinner, snack.
 - O'zbek milliy va yevropa taomlarini aralashtirib yoz.
 - "shopping_list" da hamma kerakli mahsulotlar bo'lsin (faqat o'zbek tilida).
@@ -417,6 +418,7 @@ Talablar:
             response = curr_model.generate_content(
                 full_text_prompt,
                 safety_settings=SAFETY_SETTINGS,
+                generation_config={"response_mime_type": "application/json"},
                 request_options={'timeout': 120} # Increased timeout for 30-day generation
             )
         except Exception as api_error:
