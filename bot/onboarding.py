@@ -388,16 +388,20 @@ def finish_onboarding(user_id, message, bot):
                 print(f"Referral notify error: {e}")
         
         # Send welcome message - PLAIN TEXT (No HTML) to be safe
-        welcome_text = (
-            "✅ Ro‘yxatdan o‘tdingiz! YASHA ga xush kelibsiz.\n\n"
-            "🎁 Sizga 5 kunlik Premium sinov ochildi - hech qanday cheklovsiz barcha AI xizmatlardan foydalanishingiz mumkin.\n\n"
-            "Bu 5 kun ichida siz:\n"
-            "- shaxsiylashtirilgan mashqlar rejasiga ega bo‘lasiz\n"
-            "- o‘zingizga mos ovqatlanish rejasini olasiz\n"
-            "- individual retseptlardan foydalanasiz\n"
-            "- shaxsiy psixolog va odatlar murabbiyiga ega bo'lasiz\n\n"
-            "Bu shunchaki “bot” emas. Bu sog‘lom hayotga kirish uchun birinchi qadam. Agar odatlaringizni o‘zgartirmoqchi bo‘lsangiz, mana shu yerda boshlanadi.\n\n"
-            "Quyidagi tugmalar orqali o‘z rejangizni ishga tushiring 👇"
+        from core.content import content_manager
+        welcome_text = content_manager.get(
+            "welcome_msg_v2",
+            default=(
+                "✅ Ro‘yxatdan o‘tdingiz! YASHA ga xush kelibsiz.\n\n"
+                "🎁 Sizga 5 kunlik Premium sinov ochildi - hech qanday cheklovsiz barcha AI xizmatlardan foydalanishingiz mumkin.\n\n"
+                "Bu 5 kun ichida siz:\n"
+                "- shaxsiylashtirilgan mashqlar rejasiga ega bo‘lasiz\n"
+                "- o‘zingizga mos ovqatlanish rejasini olasiz\n"
+                "- individual retseptlardan foydalanasiz\n"
+                "- shaxsiy psixolog va odatlar murabbiyiga ega bo'lasiz\n\n"
+                "Bu shunchaki “bot” emas. Bu sog‘lom hayotga kirish uchun birinchi qadam. Agar odatlaringizni o‘zgartirmoqchi bo‘lsangiz, mana shu yerda boshlanadi.\n\n"
+                "Quyidagi tugmalar orqali o‘z rejangizni ishga tushiring 👇"
+            )
         )
         
         bot.send_message(
