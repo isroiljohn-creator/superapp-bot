@@ -701,6 +701,22 @@ class Database:
             print(f"Error deleting menu template: {e}")
             return False
 
+    def update_menu_template_content(self, profile_key, menu_json, shopping_list_json):
+        from backend.models import MenuTemplate
+        try:
+            with get_sync_db() as session:
+                template = session.query(MenuTemplate).filter(MenuTemplate.profile_key == profile_key).first()
+                if template:
+                    template.menu_json = menu_json
+                    template.shopping_list_json = shopping_list_json
+                    # Update timestamp if you had updated_at column, but we don't.
+                    session.commit()
+                    return template.id
+                return None
+        except Exception as e:
+            print(f"Error updating menu template: {e}")
+            return None
+
     def create_menu_template(self, profile_key, menu_json, shopping_list_json):
         with get_sync_db() as session:
             template = MenuTemplate(

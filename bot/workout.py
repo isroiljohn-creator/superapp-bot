@@ -128,12 +128,29 @@ def generate_ai_meal(message, bot, user_id=None):
 
         bot.edit_message_text("💾 Natijalar bazaga saqlanmoqda...", user_id, msg.message_id)
         
-        # Save Template
-        template_id = db.create_menu_template(
-            profile_key,
-            json.dumps(data['menu']),
-            json.dumps(data['shopping_list'])
-        )
+        # Save Template (Upsert Logic)
+        try:
+            print(f"DEBUG: Attempting to create new template for {profile_key}")
+            template_id = db.create_menu_template(
+                profile_key,
+                json.dumps(data['menu']),
+                json.dumps(data['shopping_list'])
+            )
+        except Exception as e:
+            if "unique constraint" in str(e).lower() or "duplicate key" in str(e).lower() or "already exists" in str(e).lower():
+                print(f"DEBUG: Duplicate key found for {profile_key}. Updating existing template...")
+                template_id = db.update_menu_template_content(
+                    profile_key,
+                    json.dumps(data['menu']),
+                    json.dumps(data['shopping_list'])
+                )
+                if not template_id:
+                    # Should find it, but just in case
+                    # Try to get id again
+                    exist = db.get_menu_template(profile_key)
+                    template_id = exist['id']
+            else:
+                raise e
         
         # Link User
         db.create_user_menu_link(user_id, template_id)
