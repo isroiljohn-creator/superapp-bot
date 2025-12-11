@@ -401,11 +401,12 @@ Talablar:
 """
 
     
-    # STRICTLY ONLY 2.5 FLASH AS REQUESTED
-    model_name = 'gemini-2.5-flash'
+    # 3. Model Configuration
+    # Using 'gemini-1.5-flash' for better speed and fewer quota issues with large JSONs
+    model_name = 'gemini-1.5-flash'
     
     try:
-        print(f"DEBUG: Trying Menu Gen with {model_name}")
+        # print(f"DEBUG: Trying Menu Gen with {model_name}")
         
         genai.configure(api_key=GEMINI_API_KEY)
         curr_model = genai.GenerativeModel(model_name)
@@ -416,11 +417,13 @@ Talablar:
             response = curr_model.generate_content(
                 full_text_prompt,
                 safety_settings=SAFETY_SETTINGS,
-                request_options={'timeout': 60}
+                request_options={'timeout': 120} # Increased timeout for 30-day generation
             )
         except Exception as api_error:
             # Catch API errors (429, 500, etc) and re-raise with clear message
-            print(f"DEBUG: API Error: {api_error}")
+            # print(f"DEBUG: API Error: {api_error}")
+            if "429" in str(api_error) or "quota" in str(api_error).lower():
+                 raise Exception("AI charchadi (Limit tugadi). Iltimos, 1-2 daqiqadan keyin urinib ko'ring.")
             raise Exception(f"Google API Error: {api_error}")
 
         response_text = response.text
