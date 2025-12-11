@@ -382,7 +382,7 @@ def finish_onboarding(user_id, message, bot):
                     bot.send_message(
                         referrer_id,
                         f"🎉 Yangi do'st ro'yxatdan o'tdi! +1 ball olasiz.\n"
-                        f"Jami ballar: {ref_user['points']}"
+                        f"Jami ballar: {ref_user.get('yasha_points', 0) + 1}"
                     )
             except Exception as e:
                 print(f"Referral notify error: {e}")

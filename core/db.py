@@ -522,6 +522,7 @@ class Database:
                     referrer = session.query(User).filter(User.id == user.referrer_id).first()
                     if referrer:
                         referrer.points = (referrer.points or 0) + 1
+                        referrer.yasha_points = (referrer.yasha_points or 0) + 1
                         
                 return True
             except Exception as e:
