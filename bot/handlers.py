@@ -517,7 +517,11 @@ def register_all_handlers(bot):
             else:
                 bot.answer_callback_query(call.id, "Reja topilmadi.")
                 
+        except IndexError:
+             bot.answer_callback_query(call.id, "⚠️ Bu kun uchun ma'lumot yo'q. Qayta 'Regenerate' qiling.")
         except Exception as e:
+            print(f"Nav Error: {e}")
+            bot.answer_callback_query(call.id, f"Xatolik: {str(e)[:50]}")
             print(f"Menu Nav Error: {e}")
             bot.answer_callback_query(call.id, "Xatolik yuz berdi")
 

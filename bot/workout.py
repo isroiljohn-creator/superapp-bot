@@ -249,56 +249,67 @@ def show_daily_menu(bot, user_id, link_data, override_day_idx=None):
     # viewed_date = start_date + (day_idx - 1) days
     current_view_date = start_date + timedelta(days=day_idx-1)
     weekday_name = get_weekday_name(current_view_date)
-    
     # Format Date nicely (e.g. 12-Dek) if needed, but weekday + Day Number is good enough 
     
     # Save current position to DB if navigating?
     # Actually, requirement says "Ertaga kirib 2-kun ochilsin".
-    # This implies usually we don't save navigation unless we want to resume navigation?
-    # But if we Auto-Progression on entry (override_day_idx=None), then saving user navigation state here
-    # is only for "Resume where I left off browsing".
-    # Let's update DB `current_day_index` to reflect what is being viewed currently.
-    db.update_menu_day(user_id, day_idx)
+    try:
+        if not link_data or not link_data.get('menu_template_id'):
+            bot.send_message(user_id, "❌ Ma'lumot topilmadi. /start ni bosing.")
+            return
 
-    # Find day data
-    day_data = None
-    # menu_list is 0-indexed, day_idx is 1-indexed
-    idx = day_idx - 1
-    if 0 <= idx < total_days:
-        day_data = menu_list[idx]
-    
-    if not day_data:
-        bot.send_message(user_id, "⚠️ Bu kun uchun ma'lumot yo'q.")
-        return
-
-    # Clean function to remove markdown chars that break telegram
-    def clean(t):
-        if not t: return "-"
-        return str(t).replace("*", "").replace("_", "")
-
-    # Format Message
-    txt = f"📅 {day_idx}-KUN ({weekday_name})\n"
-    # txt += f"Sanasi: {current_view_date.strftime('%d.%m')}\n\n"
-    txt += "\n"
-    txt += f"🍳 Nonushta:\n{clean(day_data.get('breakfast', '-'))}\n\n"
-    txt += f"🥗 Tushlik:\n{clean(day_data.get('lunch', '-'))}\n\n"
-    txt += f"🍲 Kechki ovqat:\n{clean(day_data.get('dinner', '-'))}\n\n"
-    if day_data.get('snack'):
-        txt += f"🍏 Snack:\n{clean(day_data.get('snack'))}"
+        # Fetch Template
+        template_id = link_data['menu_template_id']
+        template = db.get_element_by_id("menu_templates", template_id)
         
-    # Navigation Buttons
-    markup = InlineKeyboardMarkup()
-    btns = []
-    if day_idx > 1:
-        btns.append(InlineKeyboardButton("⬅️ Oldingi", callback_data=f"menu_prev_{day_idx}"))
-    if day_idx < total_days:
-        btns.append(InlineKeyboardButton("Keyingi ➡️", callback_data=f"menu_next_{day_idx}"))
+        if not template:
+            bot.send_message(user_id, "❌ Reja bazada topilmadi. Yangi reja tuzing.")
+            return
+
+        menu_list = json.loads(template['menu_json'])
+        total_days = len(menu_list)
         
-    markup.row(*btns)
-    
-    # Add Shopping List and Regenerate Buttons
-    markup.row(InlineKeyboardButton("🛒 Xaridlar ro'yxati", callback_data="menu_shopping"))
-    markup.row(InlineKeyboardButton("🔄 Yangi Reja Tuzish (Reset)", callback_data="menu_regenerate"))
-    
-    # Send without parse_mode or with HTML if needed, but plain text is safest for mixed content
-    bot.send_message(user_id, txt, reply_markup=markup)
+        # Safety Check: If day_idx exceeds total_days, clamp it
+        if day_idx > total_days:
+            day_idx = total_days
+        if day_idx < 1: 
+            day_idx = 1
+            
+        # Get Data
+        day_data = menu_list[day_idx - 1]
+        
+        # Format Date
+        # start_date is from link_data
+        current_date_obj = start_date + timedelta(days=day_idx-1)
+        weekday_name = get_weekday_name(current_date_obj)
+        date_str = current_date_obj.strftime("%d.%m.%Y")
+        
+        # Build Text
+        txt = f"📅 **{day_idx}-KUN** ({weekday_name}, {date_str})\n\n"
+        
+        txt += f"🍳 **Nonushta:** {day_data.get('breakfast', '-')}\n"
+        txt += f"🥗 **Tushlik:** {day_data.get('lunch', '-')}\n"
+        txt += f"🍲 **Kechki ovqat:** {day_data.get('dinner', '-')}\n"
+        txt += f"🍏 **Snack:** {day_data.get('snack', '-')}\n"
+        
+        # Buttons
+        markup = InlineKeyboardMarkup()
+        btns = []
+        
+        if day_idx > 1:
+            btns.append(InlineKeyboardButton("⬅️ Oldingi", callback_data=f"menu_prev_{day_idx}"))
+        
+        if day_idx < total_days:
+            btns.append(InlineKeyboardButton("Keyingi ➡️", callback_data=f"menu_next_{day_idx}"))
+            
+        markup.row(*btns)
+        
+        # Add Shopping List and Regenerate Buttons
+        markup.row(InlineKeyboardButton("🛒 Xaridlar ro'yxati", callback_data="menu_shopping"))
+        markup.row(InlineKeyboardButton("🔄 Yangi Reja Tuzish (Reset)", callback_data="menu_regenerate"))
+        
+        bot.send_message(user_id, txt, parse_mode="Markdown", reply_markup=markup)
+
+    except Exception as e:
+        print(f"Show Menu Error: {e}")
+        bot.send_message(user_id, "❌ Menyu ochishda xatolik.")
