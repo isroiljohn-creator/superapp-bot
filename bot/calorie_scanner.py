@@ -5,8 +5,9 @@ from bot import onboarding
 from bot.premium import require_premium
 
 # States (Must be integers as per DB schema)
-STATE_CALORIE_PHOTO = 100
-STATE_CALORIE_TEXT = 101
+# States (Must be integers as per DB schema)
+STATE_CALORIE_PHOTO = 200
+STATE_CALORIE_TEXT = 201
 
 def show_calorie_menu(message, bot):
     markup = types.InlineKeyboardMarkup()
