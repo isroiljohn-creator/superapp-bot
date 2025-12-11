@@ -546,3 +546,21 @@ def register_all_handlers(bot):
         except Exception as e:
             print(f"Shopping List Error: {e}")
             bot.answer_callback_query(call.id, "Xatolik yuz berdi")
+
+    @bot.callback_query_handler(func=lambda call: call.data == "menu_regenerate")
+    def callback_menu_regenerate(call):
+        try:
+            bot.answer_callback_query(call.id, "✅ Jarayon boshlandi...")
+            
+            # Deactivate active link so generate_ai_meal sees clean state
+            db.deactivate_all_user_menus(call.from_user.id)
+            
+            # Delete message and restart generation
+            bot.delete_message(call.message.chat.id, call.message.message_id)
+            
+            # Trigger fresh generation
+            workout.generate_ai_meal(call.message, bot, user_id=call.from_user.id)
+
+        except Exception as e:
+            print(f"Regen Error: {e}")
+            bot.answer_callback_query(call.id, "Xatolik yuz berdi")

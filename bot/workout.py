@@ -287,7 +287,10 @@ def show_daily_menu(bot, user_id, link_data, override_day_idx=None):
         btns.append(InlineKeyboardButton("Keyingi ➡️", callback_data=f"menu_next_{day_idx}"))
         
     markup.row(*btns)
-    markup.row(InlineKeyboardButton("🛒 Shopping List", callback_data="menu_shopping"))
+    
+    # Add Shopping List and Regenerate Buttons
+    markup.row(InlineKeyboardButton("🛒 Xaridlar ro'yxati", callback_data="menu_shopping"))
+    markup.row(InlineKeyboardButton("🔄 Yangi Reja Tuzish (Reset)", callback_data="menu_regenerate"))
     
     # Send without parse_mode or with HTML if needed, but plain text is safest for mixed content
     bot.send_message(user_id, txt, reply_markup=markup)

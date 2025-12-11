@@ -769,6 +769,14 @@ class Database:
             session.add(link)
             session.commit()
 
+    def deactivate_all_user_menus(self, user_id):
+        with get_sync_db() as session:
+            pk = self._get_user_pk(session, user_id)
+            if not pk: return False
+            session.query(UserMenuLink).filter(UserMenuLink.user_id == pk).update({"is_active": False})
+            session.commit()
+            return True
+
     def update_menu_day(self, user_id, new_day_index):
         with get_sync_db() as session:
             pk = self._get_user_pk(session, user_id)
