@@ -445,10 +445,10 @@ def show_daily_menu(bot, user_id, link_data, override_day_idx=None):
 
         # Format Message
         # txt is already started
-        txt += f"🍳 **Nonushta:** {day_data.get('breakfast', '-')}\n"
-        txt += f"🥗 **Tushlik:** {day_data.get('lunch', '-')}\n"
-        txt += f"🍲 **Kechki ovqat:** {day_data.get('dinner', '-')}\n"
-        txt += f"🍏 **Snack:** {day_data.get('snack', '-')}\n"
+        txt += f"🍳 **Nonushta:**\n{day_data.get('breakfast', '-')}\n\n"
+        txt += f"🥗 **Tushlik:**\n{day_data.get('lunch', '-')}\n\n"
+        txt += f"🍲 **Kechki ovqat:**\n{day_data.get('dinner', '-')}\n\n"
+        txt += f"🍏 **Snack:**\n{day_data.get('snack', '-')}\n"
             
         # Buttons
         markup = InlineKeyboardMarkup()
