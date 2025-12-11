@@ -389,6 +389,9 @@ QAT'IY QOIDALAR:
 Ma'lumotlar:
 Yosh: {user_profile.get('age')}
 Jins: {user_profile.get('gender')}
+Bo'y: {user_profile.get('height')}
+Vazn: {user_profile.get('weight')}
+Faollik: {user_profile.get('activity_level', 'O’rtacha')}
 Maqsad: {user_profile.get('goal')}
 {allergy_section}
 
