@@ -777,9 +777,29 @@ Talablar:
              print("DEBUG: AI generated less than 7 days. Accepting partial but logging warning.")
 
         # VALIDATE CONTENT
+        import re
         for day in data["schedule"]:
             if "exercises" not in day or not day.get("exercises"):
                 day["exercises"] = "<i>Dam olish yoki yengil mashqlar</i>"
+            else:
+                # 1. Force spacing between numbered items (e.g. "1. Exercise" -> "\n\n1. Exercise")
+                # Look for digit+dot at start of line OR preceded by newline/space
+                clean_ex = day["exercises"]
+                if "1." in clean_ex and "2." in clean_ex:
+                     # Regex: find (digit dot) and ensure it has \n\n before it (unless it's the very start)
+                     # Using a simple approach: Replace all "<br>" with "\n", then "\n" with "\n\n"
+                     # But safer to just target the numbers.
+                     
+                     # First, clean existing newlines
+                     clean_ex = clean_ex.replace("<br>", "\n").replace("\\n", "\n")
+                     
+                     # Replace any sequence of newlines before a number with exactly \n\n
+                     clean_ex = re.sub(r'\s*(\d+\.)', r'\n\n\1', clean_ex)
+                     
+                     # Remove leading \n\n if added to the first item
+                     clean_ex = clean_ex.lstrip()
+                     
+                     day["exercises"] = clean_ex
             
             # Fix 'focus' having weird suffixes if any
             if "focus" in day:
