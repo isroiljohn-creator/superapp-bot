@@ -737,7 +737,7 @@ class Database:
             link = session.query(UserMenuLink).filter(
                 UserMenuLink.user_id == pk,
                 UserMenuLink.is_active == True
-            ).first()
+            ).order_by(UserMenuLink.id.desc()).first()
             
             if link:
                 menu = session.query(MenuTemplate).filter(MenuTemplate.id == link.menu_template_id).first()
