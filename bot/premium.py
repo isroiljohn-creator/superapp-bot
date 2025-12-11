@@ -29,26 +29,22 @@ def handle_premium_menu(message, bot, user_id=None):
         else:
             status_text = "✅ Premium Faol"
     
-    from core.content import content_manager
+    plan_type = user.get('plan_type', 'free').capitalize()
+    if plan_type == 'Vip': plan_type = 'VIP'
     
-    # Defaults
-    default_title = "💎 **Premium Bo'limi**"
-    default_desc = (
-        "Premium imkoniyatlari:\n"
-        "• Cheksiz AI maslahatlari\n"
-        "• Foto orqali kaloriya aniqlash\n"
-        "• Chellenjlarda 2x ball"
-    )
-    
-    title = content_manager.get("premium_title", default_title)
-    desc = content_manager.get("premium_desc", default_desc)
-    
+    # Use yasha_points if available, else points
+    yasha_points = user.get('yasha_points', user.get('points', 0))
+
     text = (
-        f"{title}\n\n"
-        f"💰 Yasha Coinlaringiz: **{points}**\n"
-        f"🌟 Status: {status_text}\n"
-        f"📅 Tugash sanasi: {until_date}\n\n"
-        f"{desc}\n"
+        "💎 **Obuna bo'limi**\n\n"
+        f"- Tarifingiz: **{plan_type}**\n"
+        f"- Tugash sanasi: **{until_date}**\n"
+        f"- Yasha coinlaringiz: **{yasha_points}**\n\n\n"
+        "🌟  **Premium va VIP tarifi imkoniyatlari:**\n"
+        "- Cheksiz AI maslahatlari\n"
+        "- Foto orqali kaloriya aniqlash\n"
+        "- Chellenjlarda 2x coinlar\n"
+        "- Shaxsiy AI murabbiy"
     )
     
     markup = premium_inline_keyboard()
