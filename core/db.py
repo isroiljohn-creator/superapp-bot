@@ -27,76 +27,146 @@ class Database:
                     conn.execute(text("ALTER TABLE users ADD COLUMN onboarding_state INTEGER DEFAULT 0"))
                     conn.commit()
                 except Exception as e:
-                    print(f"Migration error (onboarding_state): {e}")
-            
-            if 'onboarding_data' not in columns:
-                print("Migrating: Adding onboarding_data to users...")
-                try:
-                    conn.execute(text("ALTER TABLE users ADD COLUMN onboarding_data TEXT"))
-                    conn.commit()
-                except Exception as e:
-                    print(f"Migration error (onboarding_data): {e}")
-
-            if 'menu_templates' not in inspector.get_table_names():
-                print("Migrating: Creating menu_templates table...")
-                MenuTemplate.__table__.create(bind=sync_engine)
-
-            if 'user_menu_links' not in inspector.get_table_names():
-                print("Migrating: Creating user_menu_links table...")
-                UserMenuLink.__table__.create(bind=sync_engine)
-
-            # AI Limit Migration
-            if 'ai_menu_count' not in columns:
+        from sqlalchemy import text
+        try:
+            with sync_engine.connect() as conn:
+                # Add AI columns
                 try:
                     conn.execute(text("ALTER TABLE users ADD COLUMN ai_menu_count INTEGER DEFAULT 0"))
                     conn.execute(text("ALTER TABLE users ADD COLUMN ai_workout_count INTEGER DEFAULT 0"))
                     conn.execute(text("ALTER TABLE users ADD COLUMN ai_last_reset_month VARCHAR DEFAULT NULL"))
+                except Exception:
+                    pass
+
+                # Add Tier columns
+                try:
+                    conn.execute(text("ALTER TABLE users ADD COLUMN plan_type VARCHAR DEFAULT 'free'"))
+                    conn.execute(text("ALTER TABLE users ADD COLUMN daily_stats TEXT DEFAULT '{}'"))
+                except Exception:
+                    pass
+                
+                # Migrate Legacy Premium to VIP?
+                # Using SQL: UPDATE users SET plan_type='vip' WHERE is_premium=1 AND plan_type='free'
+                try:
+                    conn.execute(text("UPDATE users SET plan_type='vip' WHERE is_premium=1 AND plan_type='free'"))
                     conn.commit()
                 except Exception as e:
-                    print(f"Migration error (AI Limits): {e}")
+                    print(f"Migration Error: {e}")
+                    
+        except Exception as e:
+            print(f"Schema Check Error: {e}")
 
-    def check_ai_gen_limit(self, user_id, type_key='menu'):
+    def check_tiered_limit(self, user_id, feature_type):
         """
-        Checks monthly limit for AI generation (menu/workout).
-        Limit: 4 times per month.
-        Returns: (True, None) or (False, "Reason")
+        Check if user can use a feature based on their plan.
+        feature_type: 'menu_gen', 'calorie', 'chat'
+        Returns: (allowed: bool, message: str, limit_info: str)
         """
-        current_month = datetime.now().strftime("%Y-%m")
-        limit = 4
-        
         with get_sync_db() as session:
             user = session.query(User).filter(User.telegram_id == user_id).first()
-            if not user: return False, "Foydalanuvchi topilmadi"
-            
-            # Check for monthly reset
-            if user.ai_last_reset_month != current_month:
-                user.ai_last_reset_month = current_month
-                user.ai_menu_count = 0
-                user.ai_workout_count = 0
-                session.commit()
-            
-            # Check Limit
-            current_count = getattr(user, f"ai_{type_key}_count", 0)
-            
-            if current_count >= limit:
-                 return False, f"⚠️ **Oylik limit tugadi**\n\nSiz bu oyda {limit} marta {type_key} yaratib bo'ldingiz. Keyingi oyda yana urinib ko'ring yoki Premium oling."
-                 
-            # Note: We do NOT increment here. We increment ONLY after successful generation.
-            # But wait, if generation fails, we shouldn't count it.
-            # So incrementing should happen in the handler.
-            # But querying "check" implies "can I do it?".
-            
-            return True, f"{current_count}/{limit}"
+            if not user: return False, "User not found", ""
 
-    def increment_ai_usage(self, user_id, type_key='menu'):
-        """Increments usage count after successful generation."""
+            plan = user.plan_type or 'free'
+            
+            # 1. Menu/Workout Generation Limit
+            if feature_type == 'menu_gen':
+                current_month = datetime.now().strftime("%Y-%m")
+                
+                # Reset monthly
+                if user.ai_last_reset_month != current_month:
+                    user.ai_menu_count = 0
+                    user.ai_workout_count = 0
+                    user.ai_last_reset_month = current_month
+                    session.commit()
+                
+                usage = user.ai_menu_count + user.ai_workout_count
+                
+                # Limits
+                if plan == 'vip': limit = 4
+                elif plan == 'premium': limit = 1 # 1 week only
+                elif plan == 'trial': limit = 1
+                else: limit = 0 # Free
+                
+                if usage >= limit:
+                    msg = "⚠️ Sizning limitingiz tugadi."
+                    if plan == 'premium':
+                        msg += "\n\nPremium tarifida oyiga 1 marta AI menyu olish mumkin. Ko'proq imkoniyat uchun VIP ga o'ting."
+                    elif plan == 'trial':
+                        msg += "\n\nSinov davri uchun limit tugadi. Davom etish uchun tarif tanlang."
+                    elif plan == 'free':
+                        msg = "🔒 Bu funksiya faqat Premium/VIP da mavjud."
+                    return False, msg, f"{usage}/{limit}"
+                    
+                return True, "OK", f"{usage}/{limit}"
+
+            # 2. Calorie / Chat (Daily Limits)
+            elif feature_type in ['calorie', 'chat']:
+                import json
+                today = datetime.now().strftime("%Y-%m-%d")
+                stats = json.loads(user.daily_stats or '{}')
+                
+                if stats.get('date') != today:
+                    stats = {'date': today, 'calorie': 0, 'chat': 0}
+                
+                # Limits
+                daily_limit = 0
+                if plan == 'vip' or plan == 'trial': daily_limit = 9999
+                elif plan == 'premium': daily_limit = 1
+                else: daily_limit = 0
+                
+                current_usage = stats.get(feature_type, 0)
+                
+                if current_usage >= daily_limit:
+                    if plan == 'free':
+                         return False, "🔒 Bu funksiya faqat Premium/VIP da mavjud.", f"{current_usage}/{daily_limit}"
+                    return False, f"⚠️ Kunlik limit ({daily_limit} ta) tugadi. VIP tarifida cheksiz!", f"{current_usage}/{daily_limit}"
+                
+                return True, "OK", f"{current_usage}/{daily_limit}"
+                
+            return False, "Unknown feature", ""
+
+    def increment_tiered_usage(self, user_id, feature_type):
         with get_sync_db() as session:
-            user = session.query(User).filter(User.telegram_id == user_id).first()
+            pk = self._get_user_pk(session, user_id)
+            user = session.query(User).filter(User.id == pk).first()
             if not user: return
             
-            current_val = getattr(user, f"ai_{type_key}_count", 0)
-            setattr(user, f"ai_{type_key}_count", current_val + 1)
+            if feature_type == 'menu_gen':
+                user.ai_menu_count = (user.ai_menu_count or 0) + 1
+            
+            elif feature_type in ['calorie', 'chat']:
+                import json
+                today = datetime.now().strftime("%Y-%m-%d")
+                stats = json.loads(user.daily_stats or '{}')
+                
+                if stats.get('date') != today:
+                    stats = {'date': today, 'calorie': 0, 'chat': 0}
+                    
+                stats[feature_type] = stats.get(feature_type, 0) + 1
+                user.daily_stats = json.dumps(stats)
+            
             session.commit()
+
+    def set_user_plan(self, user_id, plan_type, days=30):
+        with get_sync_db() as session:
+            pk = self._get_user_pk(session, user_id)
+            user = session.query(User).filter(User.id == pk).first()
+            if not user: return
+            
+            user.plan_type = plan_type
+            user.is_premium = True 
+            user.premium_until = datetime.now() + timedelta(days=days)
+            session.commit()
+
+    # Legacy Wrapper to support existing calls, but warning: deprecated
+    def check_ai_gen_limit(self, user_id, type_key='menu'):
+         allowed, msg, _ = self.check_tiered_limit(user_id, 'menu_gen')
+         return allowed, msg
+
+    def increment_ai_usage(self, user_id, type_key='menu'):
+        self.increment_tiered_usage(user_id, 'menu_gen')
+
+
 
     def reset_db(self):
         from backend.database import sync_engine, Base
@@ -510,10 +580,11 @@ class Database:
                     if hasattr(user, key):
                         setattr(user, key, value)
                 
-                # 3. Activate Trial (5 days)
+                # 3. Activate Trial (3 days)
                 now = datetime.now()
-                user.premium_until = now + timedelta(days=5)
+                user.premium_until = now + timedelta(days=3)
                 user.is_premium = True
+                user.plan_type = 'trial'
                 user.trial_start = now.isoformat()
                 user.trial_used = 1
                 

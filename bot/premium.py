@@ -59,29 +59,30 @@ def handle_premium_menu(message, bot, user_id=None):
         bot.send_photo(user_id, photo, caption=text, reply_markup=markup, parse_mode="Markdown")
 
 def handle_premium_info(message, bot):
-    p1 = f"{PRICE_1_MONTH // 100:,}".replace(",", " ")
-    p3 = f"{PRICE_3_MONTHS // 100:,}".replace(",", " ")
-    
     text = (
-        "ℹ️ **Tariflar va Narxlar**\n\n"
-        f"• 1 oy: {p1} so'm\n"
-        f"• 3 oy: {p3} so'm (Chegirma bilan)\n\n"
+        "💎 **Tariflar**\n\n"
+        "1️⃣ **PREMIUM (49 000 so'm/oy)**\n"
+        "✅ AI Menyu (oyiga 1 marta / 7 kunlik)\n"
+        "✅ AI Mashqlar (oyiga 1 marta)\n"
+        "⚠️ Kaloriya tahlili (kuniga 1 marta)\n"
+        "⚠️ AI Chat (kuniga 1 marta)\n\n"
+        
+        "2️⃣ **VIP (97 000 so'm/oy)**\n"
+        "🔥 AI Menyu (oyiga 4 marta / 28 kunlik)\n"
+        "🔥 Cheksiz Kaloriya tahlili\n"
+        "🔥 Cheksiz AI Chat\n"
+        "🔥 Cheksiz Retseptlar\n\n"
         "To'lov turlari: Click, Payme, Uzum."
     )
     markup = types.InlineKeyboardMarkup()
-    markup.add(types.InlineKeyboardButton("🛒 Sotib olish (Tarif tanlash)", callback_data="premium_buy"))
+    markup.add(types.InlineKeyboardButton("⭐️ Premium olish (49k)", callback_data="select_premium"))
+    markup.add(types.InlineKeyboardButton("👑 VIP olish (97k)", callback_data="select_vip"))
     
     bot.send_message(message.chat.id, text, reply_markup=markup, parse_mode="Markdown")
 
 def handle_premium_buy(message, bot):
-    p1 = f"{PRICE_1_MONTH // 100:,}".replace(",", " ")
-    p3 = f"{PRICE_3_MONTHS // 100:,}".replace(",", " ")
-
-    markup = types.InlineKeyboardMarkup()
-    markup.add(types.InlineKeyboardButton(f"💳 1 oy — {p1} so'm", callback_data="select_30"))
-    markup.add(types.InlineKeyboardButton(f"💳 3 oy — {p3} so'm", callback_data="select_90"))
-    
-    bot.send_message(message.chat.id, "👇 **Tarifni tanlang:**", reply_markup=markup, parse_mode="Markdown")
+    # Redirect to info since it now has the direct buy buttons
+    handle_premium_info(message, bot)
 from core.config import ADMIN_IDS, PRICE_1_MONTH, PRICE_3_MONTHS
 
 # Payment details (Mock)
@@ -99,7 +100,7 @@ def register_handlers(bot):
     # def handle_redemption(call):
     #     ... (removed)
 
-    @bot.callback_query_handler(func=lambda call: call.data in ["select_30", "select_90"])
+    @bot.callback_query_handler(func=lambda call: call.data in ["select_premium", "select_vip"])
     def handle_plan_selection(call):
         provider_token = os.getenv("PAYMENT_PROVIDER_TOKEN")
         
@@ -114,15 +115,22 @@ def register_handlers(bot):
             )
             return
         
-        days = 30 if call.data == "select_30" else 90
-        amount = PRICE_1_MONTH if call.data == "select_30" else PRICE_3_MONTHS
+        days = 30
         
+        if call.data == "select_premium":
+            amount = 4900000 # 49 000 UZS
+            plan_name = "premium"
+            title = "Fitness Bot Premium (1 oy)"
+        else:
+            amount = 9700000 # 97 000 UZS
+            plan_name = "vip"
+            title = "Fitness Bot VIP (1 oy)"
+            
         # Format for display (e.g. 49 000)
         price_display = f"{amount // 100:,}".replace(",", " ")
         
-        title = f"Premium {days} kun"
-        description = f"Fitness Bot Premium obunasi ({days} kun). Narxi: {price_display} so'm"
-        payload = f"premium_{days}"
+        description = f"{title}. Narxi: {price_display} so'm"
+        payload = f"{plan_name}_{days}" # e.g. premium_30
         currency = "UZS"
         prices = [types.LabeledPrice(label=title, amount=amount)]
 
@@ -149,7 +157,10 @@ def register_handlers(bot):
         payment = message.successful_payment
         payload = payment.invoice_payload # e.g., premium_30
         
-        days = int(payload.split("_")[1])
+        parts = payload.split("_")
+        plan_type = parts[0]
+        days = int(parts[1])
+        
         amount = payment.total_amount / 100 # Convert back to UZS
         currency = payment.currency
         
@@ -158,13 +169,13 @@ def register_handlers(bot):
         db.create_order(order_id, user_id, days, amount, currency)
         db.update_order_status(order_id, 'paid')
         
-        # Activate Premium
-        db.set_premium(user_id, days)
+        # Activate Plan
+        db.set_user_plan(user_id, plan_type, days)
         
         # Set Auto-Renew flag
         db.update_user_profile(user_id, auto_renew=True)
         
-        bot.send_message(user_id, f"✅ **To'lov muvaffaqiyatli amalga oshirildi!**\n\nSizga {days} kunlik Premium obuna faollashtirildi. 🎉\nBarcha imkoniyatlardan foydalanishingiz mumkin!", parse_mode="Markdown")
+        bot.send_message(user_id, f"✅ **To'lov muvaffaqiyatli amalga oshirildi!**\n\nSizga {days} kunlik **{plan_type.upper()}** obuna faollashtirildi. 🎉\nBarcha imkoniyatlardan foydalanishingiz mumkin!", parse_mode="Markdown")
         
         # Notify Admins
         for admin_id in ADMIN_IDS:

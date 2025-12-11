@@ -59,9 +59,13 @@ class User(Base):
     calorie_daily_uses = Column(Integer, default=0)
     
     # AI Generative Limits (Monthly)
-    ai_menu_count = Column(Integer, default=0) # Limit: 4/month
-    ai_workout_count = Column(Integer, default=0) # Limit: 4/month
-    ai_last_reset_month = Column(String, nullable=True) # Format: "YYYY-MM"
+    ai_menu_count = Column(Integer, default=0)
+    ai_workout_count = Column(Integer, default=0)
+    ai_last_reset_month = Column(String, nullable=True) # "YYYY-MM"
+    
+    # New Tiered System
+    plan_type = Column(String, default="free") # free, trial, premium, vip
+    daily_stats = Column(Text, default="{}") # JSON: {"date": "YYYY-MM-DD", "scans": 0, "chat": 0}
     
     # Trial & Auto Renew
     trial_start = Column(String, nullable=True)
