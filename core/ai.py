@@ -351,34 +351,23 @@ def ai_generate_monthly_menu_json(user_profile):
 
     prompt = f"""
 Siz professional dietologsiz. Vazifangiz foydalanuvchi uchun 5 kunlik ovqatlanish rejasi va xaridlar ro'yxatini tuzish.
-Javob FAQAT va FAQAT toza JSON formatida bo'lishi shart. Hech qanday markdown (```json) yoki qo'shimcha so'z ishlatmang.
+Javob FAQAT va FAQAT toza JSON formatida bo'lishi shart.
 
 Foydalanuvchi:
 Yosh: {user_profile.get('age')}, Jins: {user_profile.get('gender')}, Maqsad: {user_profile.get('goal')}
 {allergy_section}
 
-JSON strukturasi shunday bo'lishi SHART:
+NAMUNA (SHUNDAY BO'LSIN):
 {{
   "menu": [
-    {{
-      "day": 1,
-      "breakfast": "...",
-      "lunch": "...",
-      "dinner": "...",
-      "snack": "..."
-    }},
-    ... (5 kunlik)
+    {{ "day": 1, "breakfast": "Tuxum", "lunch": "Osh", "dinner": "Salat", "snack": "Olma" }}
   ],
-  "shopping_list": [
-    "Mahsulot 1 (miqdori)",
-    "Mahsulot 2 (miqdori)",
-    ... (To'liq 5 kunga yetadigan ro'yxat, kategoriyalarga bo'linmagan, shunchaki ro'yxat)
-  ]
+  "shopping_list": ["Tuxum", "Guruch"]
 }}
 
 Talablar:
-1. O'zbekiston sharoitiga mos, hamyonbop mahsulotlar.
-2. Har hil kunlar uchun turlicha ovqatlar (5 kun bir xil bo'lmasin).
+1. "menu" va "shopping_list" kalitlari aniq bo'lsin.
+2. Barcha stringlar qo'shtirnoq (") bilan yozilsin.
 3. JSON valid bo'lishi shart.
 """
     try:
@@ -387,21 +376,28 @@ Talablar:
             print("DEBUG: Empty response from AI in ai_generate_monthly_menu_json")
             return None
 
-        print(f"DEBUG: AI Output: {response_text[:200]}...") # Print beginning to see if there's text
+        print(f"DEBUG: AI Output: {response_text[:200]}...")
 
-        # Robust JSON extraction using Regex
+        # Robust JSON extraction
         import re
         json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
         
         if json_match:
             clean_json = json_match.group(0)
-            print("DEBUG: Regex found JSON object.")
         else:
-            print("DEBUG: Regex failed to find JSON object.")
-            # Fallback to simple cleanup
-            clean_json = response_text.replace("```json", "").replace("```", "").strip()
+            clean_json = response_text
 
-        data = json.loads(clean_json)
+        # Try standard JSON
+        try:
+            data = json.loads(clean_json)
+        except json.JSONDecodeError:
+            print("DEBUG: JSON Decode Error. Trying AST literal_eval...")
+            try:
+                import ast
+                data = ast.literal_eval(clean_json)
+            except:
+                print(f"DEBUG: Parsing completely failed. Raw Text: {clean_json}")
+                return None
         
         # Validate structure
         if "menu" in data and "shopping_list" in data and len(data["menu"]) >= 1:
@@ -412,9 +408,9 @@ Talablar:
             
     except Exception as e:
         print(f"DEBUG: JSON Generation failed: {e}")
-        import traceback
-        traceback.print_exc()
         return None
+        
+
 
 def ai_answer_question(question):
     """Answers a general fitness question using Gemini."""
