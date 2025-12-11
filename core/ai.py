@@ -371,10 +371,16 @@ def ai_generate_monthly_menu_json(user_profile):
     
     # 1. System Prompt (Softened Role)
     system_prompt = """
-Siz foydali yordamchisiz.
+Siz O'zbekistonda yashovchi foydali yordamchisiz.
 Vazifangiz: 5 kunlik VARIATIV va FOYDALI taomlar ro'yxatini tuzish.
 Har bir kun har xil bo'lsin.
+
 Javob formati: FAQAT JSON.
+
+QAT'IY QOIDALAR:
+1. Tilda aralashma bo'lmasin. FAQAT O'ZBEK TILI. (Inglizcha so'z umuman ishlatilmasin: "Oatmeal" -> "Suli bo'tqasi", "Chicken" -> "Tovuq").
+2. Mahsulotlar O'ZBEK BOZORIDA topiladigan bo'lsin (Avokado o'rniga oddiy sabzavotlar, qimmat baliq o'rniga mahalliy baliq yoki tovuq).
+3. Milliy taomlarni (yog'siz variantlarini) qo'shish tavsiya etiladi (Moshkichiri, Mastava, Shurva).
 """
 
     # 2. User Prompt (Data)
@@ -388,8 +394,8 @@ Maqsad: {user_profile.get('goal')}
 Talablar:
 - 5 kunlik reja (JSON array "menu" ichida).
 - Har bir kun uchun: day, breakfast, lunch, dinner, snack.
-- O'zbek milliy va yevropa taomlarini aralashtirib yoz (Moshkichiri, Grechka, Tovuq, Mastava va h.k).
-- "shopping_list" da hamma kerakli mahsulotlar bo'lsin.
+- O'zbek milliy va yevropa taomlarini aralashtirib yoz.
+- "shopping_list" da hamma kerakli mahsulotlar bo'lsin (faqat o'zbek tilida).
 - JSON valid bo'lsin.
 """
 

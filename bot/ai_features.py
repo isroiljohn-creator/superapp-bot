@@ -89,19 +89,34 @@ def handle_shopping_list(message, bot, user_id=None):
         user_id = message.from_user.id
     user = db.get_user(user_id)
     
-    status_msg = bot.send_message(user_id, "⏳ <b>AI xaridlar ro'yxatini tuzmoqda...</b>", parse_mode="HTML")
+    # 1. Check for existing Menu Link
+    active_link = db.get_user_menu_link(user_id)
     
-    from core.ai import ai_generate_shopping_list
-    
-    response = ai_generate_shopping_list(user)
-    
-    if response:
-        try:
-            bot.edit_message_text(response, user_id, status_msg.message_id, parse_mode="HTML")
-        except Exception:
-            bot.edit_message_text(response, user_id, status_msg.message_id, parse_mode=None)
-    else:
-        bot.edit_message_text("❌ AI band. Keyinroq urining.", user_id, status_msg.message_id)
+    if not active_link:
+        bot.send_message(user_id, "⚠️ Sizda hali menyu yo'q.\n\nIltimos, avval <b>AI ovqatlanish rejasi</b>ni tuzing.", parse_mode="HTML")
+        return
+
+    # 2. Get Shopping List from Link
+    try:
+        import json
+        shopping_list = json.loads(active_link['shopping_list_json'])
+        
+        if not shopping_list:
+            bot.send_message(user_id, "⚠️ Xaridlar ro'yxati bo'sh.", parse_mode="HTML")
+            return
+            
+        # 3. Format and Send
+        txt = "🛒 <b>30 KUNLIK XARIDLAR RO'YXATI</b>\n\n"
+        txt += "<i>(Sizning joriy menyuingiz asosida)</i>\n\n"
+        
+        for item in shopping_list:
+            txt += f"▫️ {item}\n"
+            
+        bot.send_message(user_id, txt, parse_mode="HTML")
+        
+    except Exception as e:
+        print(f"Shopping List Error: {e}")
+        bot.send_message(user_id, "⚠️ Xatolik yuz berdi. Iltimos, qayta menyu tuzing.")
 
 @require_premium
 def handle_recipe_gen(message, bot, user_id=None):
