@@ -513,7 +513,8 @@ def register_all_handlers(bot):
             link = db.get_user_menu_link(call.from_user.id)
             if link:
                 bot.delete_message(call.message.chat.id, call.message.message_id)
-                workout.show_daily_menu(bot, call.from_user.id, link)
+                daily_idx = link['current_day_index']
+                workout.show_daily_menu(bot, call.from_user.id, link, override_day_idx=daily_idx)
             else:
                 bot.answer_callback_query(call.id, "Reja topilmadi.")
                 
