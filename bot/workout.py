@@ -102,28 +102,32 @@ def generate_ai_meal(message, bot, user_id=None):
     
     profile_key = f"{user.get('gender')};{user.get('goal')};{user.get('activity_level')};{user.get('allergies')};{age_band}".lower()
     
-    # 3. Check for existing Template
+    # 4. Generate New via AI
+    msg = bot.send_message(user_id, "🚀 **Jarayon boshlandi...**", parse_mode="Markdown")
+    
+    # Check for existing Template to delete
     existing_template = db.get_menu_template(profile_key)
     
     if existing_template:
-        # FORCE REFRESH: Delete the old template so we can save new valid AI data
-        print(f"DEBUG: Deleting old template {profile_key} to replace with fresh AI generation")
+        bot.edit_message_text("🧹 Eski ma'lumotlar tozalanmoqda...", user_id, msg.message_id)
+        print(f"DEBUG: Deleting old template {profile_key}")
         db.delete_menu_template(profile_key)
         
-    # 4. Generate New via AI
-    msg = bot.send_message(user_id, "🤖 **AI sizning 5 kunlik rejangizni tuzmoqda...**\n\nBu 1 daqiqa vaqt olishi mumkin. Sabr qiling ⏳", parse_mode="Markdown")
-    
     try:
+        bot.edit_message_text("🤖 AI bilan bog'lanilmoqda (bu 30-60 soniya olishi mumkin)...", user_id, msg.message_id)
         from core.ai import ai_generate_monthly_menu_json
         import json
         
+        # This function now raises exceptions if it fails
         data = ai_generate_monthly_menu_json(user)
         
         if not data:
-            bot.delete_message(user_id, msg.message_id)
-            bot.send_message(user_id, "❌ AI xatolik berdi yoki limit tugadi. Iltimos, keyinroq urinib ko'ring.")
+            # Should be unreachable if ai_generate raises exception, but safe fallback
+            bot.edit_message_text("❌ AI javob bermadi (bo'sh).", user_id, msg.message_id)
             return
 
+        bot.edit_message_text("💾 Natijalar bazaga saqlanmoqda...", user_id, msg.message_id)
+        
         # Save Template
         template_id = db.create_menu_template(
             profile_key,
@@ -135,11 +139,18 @@ def generate_ai_meal(message, bot, user_id=None):
         db.create_user_menu_link(user_id, template_id)
         
         bot.delete_message(user_id, msg.message_id)
-        bot.send_message(user_id, "✅ **Reja tayyor!** Endi har kuni shu yerdan ko'rishingiz mumkin.")
+        bot.send_message(user_id, "✅ **Reja tayyor!** Marhamat:")
         
         # Show Day 1
         new_link = db.get_user_menu_link(user_id)
         show_daily_menu(bot, user_id, new_link)
+            
+    except Exception as e:
+        print(f"ERROR in generate_ai_meal: {e}")
+        try:
+            bot.edit_message_text(f"❌ **XATOLIK:**\n\n`{str(e)[:200]}`", user_id, msg.message_id, parse_mode="Markdown")
+        except:
+            bot.send_message(user_id, f"❌ Xatolik: {str(e)[:200]}")
             
     except Exception as e:
         print(f"ERROR in generate_ai_meal: {e}")
