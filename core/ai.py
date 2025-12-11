@@ -368,19 +368,13 @@ def ai_generate_monthly_menu_json(user_profile):
 
     
     
+    
     # 1. System Prompt (Softened Role)
     system_prompt = """
 Siz foydali yordamchisiz.
-Vazifangiz: 5 kunlik taomlar ro'yxatini tuzish.
+Vazifangiz: 5 kunlik VARIATIV va FOYDALI taomlar ro'yxatini tuzish.
+Har bir kun har xil bo'lsin.
 Javob formati: FAQAT JSON.
-
-NAMUNA:
-{
-  "menu": [
-    { "day": 1, "breakfast": "Tuxum", "lunch": "Osh", "dinner": "Salat", "snack": "Olma" }
-  ],
-  "shopping_list": ["Tuxum", "Guruch"]
-}
 """
 
     # 2. User Prompt (Data)
@@ -392,7 +386,10 @@ Maqsad: {user_profile.get('goal')}
 {allergy_section}
 
 Talablar:
-- 5 kunlik reja.
+- 5 kunlik reja (JSON array "menu" ichida).
+- Har bir kun uchun: day, breakfast, lunch, dinner, snack.
+- O'zbek milliy va yevropa taomlarini aralashtirib yoz (Moshkichiri, Grechka, Tovuq, Mastava va h.k).
+- "shopping_list" da hamma kerakli mahsulotlar bo'lsin.
 - JSON valid bo'lsin.
 """
 
