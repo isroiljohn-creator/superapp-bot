@@ -128,9 +128,11 @@ class Database:
                     stats = {'date': today, 'calorie': 0, 'chat': 0}
                 
                 # Limits
+                # Limits
                 daily_limit = 0
-                if plan == 'vip' or plan == 'trial': daily_limit = 9999
-                elif plan == 'premium': daily_limit = 1
+                if plan == 'vip': daily_limit = 9999
+                elif plan == 'premium': daily_limit = 3
+                elif plan == 'trial': daily_limit = 1
                 else: daily_limit = 0
                 
                 current_usage = stats.get(feature_type, 0)
@@ -138,7 +140,13 @@ class Database:
                 if current_usage >= daily_limit:
                     if plan == 'free':
                          return False, "🔒 Bu funksiya faqat Premium/VIP da mavjud.", f"{current_usage}/{daily_limit}"
-                    return False, f"⚠️ Kunlik limit ({daily_limit} ta) tugadi. VIP tarifida cheksiz!", f"{current_usage}/{daily_limit}"
+                    
+                    msg = f"⚠️ Kunlik limit ({daily_limit} ta) tugadi.\n\n"
+                    if plan == 'premium':
+                        msg += "Ertaga qaytib keling yoki cheksiz ishlatish uchun VIP ga o'ting! 🚀"
+                    elif plan == 'trial':
+                         msg += "Sinov davrida kuniga 1 marta mumkin. To'liq imkoniyat uchun Premium oling."
+                    return False, msg, f"{current_usage}/{daily_limit}"
                 
                 return True, "OK", f"{current_usage}/{daily_limit}"
                 

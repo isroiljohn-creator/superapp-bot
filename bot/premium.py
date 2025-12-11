@@ -64,8 +64,8 @@ def handle_premium_info(message, bot):
         "1️⃣ **PREMIUM (49 000 so'm/oy)**\n"
         "✅ AI Menyu (oyiga 1 marta / 7 kunlik)\n"
         "✅ AI Mashqlar (oyiga 1 marta)\n"
-        "⚠️ Kaloriya tahlili (kuniga 1 marta)\n"
-        "⚠️ AI Chat (kuniga 1 marta)\n\n"
+        "⚠️ Kaloriya tahlili (kuniga 3 marta)\n"
+        "⚠️ AI Chat (kuniga 3 marta)\n\n"
         
         "2️⃣ **VIP (97 000 so'm/oy)**\n"
         "🔥 AI Menyu (oyiga 4 marta / 28 kunlik)\n"
