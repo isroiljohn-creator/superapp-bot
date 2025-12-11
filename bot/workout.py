@@ -85,10 +85,11 @@ def generate_ai_meal(message, bot, user_id=None):
         return
     
     # 1. Check if user already has an active menu link
-    active_link = db.get_user_menu_link(user_id)
-    if active_link:
-        show_daily_menu(bot, user_id, active_link)
-        return
+    # ACTIVE LINK CHECK DISABLED FOR DEBUGGING
+    # active_link = db.get_user_menu_link(user_id)
+    # if active_link:
+    #     show_daily_menu(bot, user_id, active_link)
+    #     return
 
     # 2. Build Profile Key
     # Key format: gender;goal;activity;age_band
