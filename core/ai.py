@@ -758,6 +758,8 @@ Talablar:
 - JSON valid bo'lsin.
 """
 
+    # ... (Prompt setup)
+
     # 3. Call AI
     import json
     try:
@@ -773,10 +775,18 @@ Talablar:
             
         if len(data["schedule"]) < 7:
              print("DEBUG: AI generated less than 7 days. Accepting partial but logging warning.")
+
+        # VALIDATE CONTENT
+        for day in data["schedule"]:
+            if "exercises" not in day or not day.get("exercises"):
+                day["exercises"] = "<i>Dam olish yoki yengil mashqlar</i>"
+            
+            # Fix 'focus' having weird suffixes if any
+            if "focus" in day:
+                day["focus"] = day["focus"].replace(" tuzat", "").replace(" mashqlari", "")
              
         return data
 
     except Exception as e:
         print(f"Error generating weekly workout JSON: {e}")
-        # Return fallback mock data to prevent crashes (or handle gracefully)
         return None
