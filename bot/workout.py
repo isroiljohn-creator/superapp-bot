@@ -48,8 +48,15 @@ def generate_ai_workout(message, bot, user_id=None):
         user_id = message.from_user.id
     user = db.get_user(user_id)
     
+    
     if not user:
         bot.send_message(user_id, "Iltimos, avval /start ni bosing.")
+        return
+
+    # 0. Check Limit
+    allowed, limit_msg = db.check_ai_gen_limit(user_id, 'workout')
+    if not allowed:
+        bot.send_message(user_id, limit_msg, parse_mode="Markdown")
         return
     
     # 1. Check if user already has an active workout link
@@ -130,6 +137,7 @@ def generate_ai_workout(message, bot, user_id=None):
         bot.send_message(user_id, "✅ Haftalik mashqlar rejasi tayyor! Marhamat:")
         
         new_link = db.get_user_workout_link(user_id)
+        db.increment_ai_usage(user_id, 'workout')
         show_daily_workout(bot, user_id, new_link, override_day_idx=1)
             
     except Exception as e:
@@ -231,6 +239,12 @@ def generate_ai_meal(message, bot, user_id=None):
     
     if not user:
         bot.send_message(user_id, "Iltimos, avval /start ni bosing.")
+        return
+
+    # 0. Check Limit
+    allowed, limit_msg = db.check_ai_gen_limit(user_id, 'menu')
+    if not allowed:
+        bot.send_message(user_id, limit_msg, parse_mode="Markdown")
         return
     
     # 1. Check if user already has an active menu link
@@ -343,6 +357,7 @@ def generate_ai_meal(message, bot, user_id=None):
         bot.send_message(user_id, "✅ Haftalik reja tayyor! Marhamat:")
         
         new_link = db.get_user_menu_link(user_id)
+        db.increment_ai_usage(user_id, 'menu')
         show_daily_menu(bot, user_id, new_link, override_day_idx=1)
             
     except Exception as e:

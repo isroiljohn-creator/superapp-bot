@@ -58,6 +58,11 @@ class User(Base):
     calorie_last_use_date = Column(String, nullable=True)
     calorie_daily_uses = Column(Integer, default=0)
     
+    # AI Generative Limits (Monthly)
+    ai_menu_count = Column(Integer, default=0) # Limit: 4/month
+    ai_workout_count = Column(Integer, default=0) # Limit: 4/month
+    ai_last_reset_month = Column(String, nullable=True) # Format: "YYYY-MM"
+    
     # Trial & Auto Renew
     trial_start = Column(String, nullable=True)
     trial_used = Column(Integer, default=0)

@@ -45,6 +45,59 @@ class Database:
                 print("Migrating: Creating user_menu_links table...")
                 UserMenuLink.__table__.create(bind=sync_engine)
 
+            # AI Limit Migration
+            if 'ai_menu_count' not in columns:
+                try:
+                    conn.execute(text("ALTER TABLE users ADD COLUMN ai_menu_count INTEGER DEFAULT 0"))
+                    conn.execute(text("ALTER TABLE users ADD COLUMN ai_workout_count INTEGER DEFAULT 0"))
+                    conn.execute(text("ALTER TABLE users ADD COLUMN ai_last_reset_month VARCHAR DEFAULT NULL"))
+                    conn.commit()
+                except Exception as e:
+                    print(f"Migration error (AI Limits): {e}")
+
+    def check_ai_gen_limit(self, user_id, type_key='menu'):
+        """
+        Checks monthly limit for AI generation (menu/workout).
+        Limit: 4 times per month.
+        Returns: (True, None) or (False, "Reason")
+        """
+        current_month = datetime.now().strftime("%Y-%m")
+        limit = 4
+        
+        with get_sync_db() as session:
+            user = session.query(User).filter(User.telegram_id == user_id).first()
+            if not user: return False, "Foydalanuvchi topilmadi"
+            
+            # Check for monthly reset
+            if user.ai_last_reset_month != current_month:
+                user.ai_last_reset_month = current_month
+                user.ai_menu_count = 0
+                user.ai_workout_count = 0
+                session.commit()
+            
+            # Check Limit
+            current_count = getattr(user, f"ai_{type_key}_count", 0)
+            
+            if current_count >= limit:
+                 return False, f"⚠️ **Oylik limit tugadi**\n\nSiz bu oyda {limit} marta {type_key} yaratib bo'ldingiz. Keyingi oyda yana urinib ko'ring yoki Premium oling."
+                 
+            # Note: We do NOT increment here. We increment ONLY after successful generation.
+            # But wait, if generation fails, we shouldn't count it.
+            # So incrementing should happen in the handler.
+            # But querying "check" implies "can I do it?".
+            
+            return True, f"{current_count}/{limit}"
+
+    def increment_ai_usage(self, user_id, type_key='menu'):
+        """Increments usage count after successful generation."""
+        with get_sync_db() as session:
+            user = session.query(User).filter(User.telegram_id == user_id).first()
+            if not user: return
+            
+            current_val = getattr(user, f"ai_{type_key}_count", 0)
+            setattr(user, f"ai_{type_key}_count", current_val + 1)
+            session.commit()
+
     def reset_db(self):
         from backend.database import sync_engine, Base
         from sqlalchemy import text
