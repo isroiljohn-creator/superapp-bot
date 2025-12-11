@@ -513,40 +513,45 @@ def register_all_handlers(bot):
 
     @bot.callback_query_handler(func=lambda call: call.data.startswith("menu_next_") or call.data.startswith("menu_prev_"))
     def callback_menu_nav(call):
+        """ULTRA-SIMPLE navigation - just show the next/prev day."""
         try:
-            # Format: menu_next_5 -> move to 6
-            # Format: menu_prev_5 -> move to 4
-            action, current_idx = call.data.rsplit('_', 1)
-            current_idx = int(current_idx)
+            # Extract day number from callback
+            parts = call.data.split("_")  # ["menu", "next/prev", "day_number"]
+            current_day = int(parts[2])
             
-            new_idx = current_idx + 1 if "next" in action else current_idx - 1
-            
-            # Update DB (Attempt to save)
-            updated_idx = db.update_menu_day(call.from_user.id, new_idx)
-            
-            # OPTIMISTIC NAVIGATION: 
-            # We trust the button math (new_idx) more than the DB return (which might be 1 if fails)
-            # This ensures the user SEES the next day even if DB is slow/stuck.
-            display_idx = new_idx
-            
-            # debug toast
-            bot.answer_callback_query(call.id, f"Navigatsiya: {current_idx} -> {display_idx} (DB: {updated_idx})")
-            
-            # Get latest data (for menu_json content)
-            link = db.get_user_menu_link(call.from_user.id)
-            if link:
-                bot.delete_message(call.message.chat.id, call.message.message_id)
-                workout.show_daily_menu(bot, call.from_user.id, link, override_day_idx=display_idx)
+            # Calculate new day
+            if "next" in call.data:
+                new_day = current_day + 1
             else:
-                bot.answer_callback_query(call.id, "Reja topilmadi.")
-                
-        except IndexError:
-             bot.answer_callback_query(call.id, "⚠️ Bu kun uchun ma'lumot yo'q. Qayta 'Regenerate' qiling.")
+                new_day = current_day - 1
+            
+            # Clamp to valid range
+            if new_day < 1:
+                new_day = 1
+            
+            # Get menu data
+            link = db.get_user_menu_link(call.from_user.id)
+            if not link:
+                bot.answer_callback_query(call.id, "Menyu topilmadi!")
+                return
+            
+            # Show popup with debug info
+            bot.answer_callback_query(call.id, f"📍 {current_day} → {new_day}")
+            
+            # Delete old message
+            try:
+                bot.delete_message(call.message.chat.id, call.message.message_id)
+            except:
+                pass
+            
+            # Show new day
+            workout.show_daily_menu(bot, call.from_user.id, link, override_day_idx=new_day)
+            
         except Exception as e:
-            print(f"Nav Error: {e}")
-            bot.answer_callback_query(call.id, f"Xatolik: {str(e)[:50]}")
-            print(f"Menu Nav Error: {e}")
-            bot.answer_callback_query(call.id, "Xatolik yuz berdi")
+            error_msg = f"Xatolik: {str(e)[:50]}"
+            print(f"Navigation Error: {e}")
+            bot.answer_callback_query(call.id, error_msg)
+            bot.send_message(call.from_user.id, f"❌ {error_msg}")
 
     @bot.callback_query_handler(func=lambda call: call.data == "menu_shopping")
     def callback_menu_shopping(call):
