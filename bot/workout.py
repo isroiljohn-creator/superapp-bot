@@ -120,17 +120,42 @@ def generate_ai_meal(message, bot, user_id=None):
         # print(f"DEBUG: Deleting old template {profile_key}")
         db.delete_menu_template(profile_key)
         
-    try:
-        bot.edit_message_text("🤖 AI 30 kunlik menyu tuzmoqda...", user_id, msg.message_id)
-        from core.ai import ai_generate_monthly_menu_json
-        import json
+        # Retry Loop for Robustness (Force 30 days)
+        max_retries = 3
+        data = None
         
-        # This function now raises exceptions if it fails
-        data = ai_generate_monthly_menu_json(user)
+        for attempt in range(max_retries):
+            try:
+                # print(f"DEBUG: Generation Attempt {attempt+1}/{max_retries}")
+                data = ai_generate_monthly_menu_json(user)
+                
+                if data and 'menu' in data and isinstance(data['menu'], list):
+                    item_count = len(data['menu'])
+                    # print(f"DEBUG: Attempt {attempt+1} got {item_count} days")
+                    
+                    if item_count >= 25: # Accept if at least 25 days (close enough to 30)
+                        break
+                    else:
+                        print(f"DEBUG: Rejecting incomplete menu ({item_count} items). Retrying...")
+                        if attempt < max_retries - 1:
+                            time.sleep(2) # Brief cooling
+                            continue
+                
+                # If structure is wrong, retry
+            except Exception as e:
+                print(f"DEBUG: Attempt {attempt+1} detailed error: {e}")
+                if attempt == max_retries - 1:
+                    bot.edit_message_text(f"❌ Xatolik yuz berdi: {str(e)[:100]}", user_id, msg.message_id)
+                    return
         
-        if not data:
-            bot.edit_message_text("❌ AI javob bermadi (bo'sh).", user_id, msg.message_id)
+        if not data or 'menu' not in data:
+            bot.edit_message_text("❌ AI to'liq javob bermadi. Iltimos, qayta urinib ko'ring.", user_id, msg.message_id)
             return
+
+        final_count = len(data['menu'])
+        if final_count < 5:
+             bot.edit_message_text(f"❌ AI faqat {final_count} kunlik reja tuzdi. Qayta urinib ko'ring.", user_id, msg.message_id)
+             return
 
         bot.edit_message_text("💾 Natijalar bazaga saqlanmoqda...", user_id, msg.message_id)
         
