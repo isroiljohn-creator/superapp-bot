@@ -66,16 +66,33 @@ def generate_ai_workout(message, bot, user_id=None):
         show_daily_workout(bot, user_id, active_link)
         return
 
-    # 2. Build Profile Key
-    # FORCE NEW KEY to bypass old text cache
-    profile_key = f"{user_id}_weekly_workout_v1"
+    # 2. Build Shared Profile Key (Deduplication)
+    # Group users by simple age bands to increase matches
+    age = user.get('age', 25)
+    age_band = "18-25"
+    if age > 45: age_band = "46+"
+    elif age > 35: age_band = "36-45"
+    elif age > 25: age_band = "26-35"
+    
+    # Key: workout_v2_Gender_Goal_Activity_AgeBand
+    profile_key = f"workout_v2_{user.get('gender')}_{user.get('goal')}_{user.get('activity_level')}_{age_band}".replace(" ", "_").lower()
 
-    # 3. Clean old template
+    # 3. Check for Existing Shared Template
     existing_template = db.get_workout_template(profile_key)
+    
     if existing_template:
-        bot.send_message(user_id, "🧹 Eski mashqlar tozalanmoqda...")
-        db.delete_workout_template(profile_key)
+        bot.send_message(user_id, "💡 Sizga mos tayyor reja topildi! Yuklanmoqda...")
+        db.create_user_workout_link(user_id, existing_template['id'])
         
+        new_link = db.get_user_workout_link(user_id)
+        # We assume cached plans are already "valid" usage, or maybe we discount usage? 
+        # Requirement says "reuse", implies saving cost.
+        # But for logic simplicity, we still count it as a "generation request" fulfilled.
+        db.increment_ai_usage(user_id, 'workout') 
+        show_daily_workout(bot, user_id, new_link, override_day_idx=1)
+        return
+
+    # If no template, generate new
     msg = bot.send_message(user_id, "⏳ Siz uchun 7 kunlik mashq rejasi tuzilmoqda... Biroz kuting.")
         
     try:
@@ -255,45 +272,29 @@ def generate_ai_meal(message, bot, user_id=None):
         show_daily_menu(bot, user_id, active_link)
         return
 
-    # 2. Build Profile Key
-    # Key format: gender;goal;activity;age_band
+    # 2. Build Shared Profile Key (Deduplication)
     age = user.get('age', 25)
     age_band = "18-25"
-    if age:
-        if age > 45: age_band = "46+"
-        elif age > 35: age_band = "36-45"
-        elif age > 25: age_band = "26-35"
+    if age > 45: age_band = "46+"
+    elif age > 35: age_band = "36-45"
+    elif age > 25: age_band = "26-35"
         
-    profile_key = f"{user.get('gender')};{user.get('goal')};{user.get('activity_level')};{user.get('allergies') or 'None'};{age_band}"
+    profile_key = f"menu_v2_{user.get('gender')}_{user.get('goal')}_{user.get('activity_level')}_{user.get('allergies')}_{age_band}".replace(" ", "_").lower()
     
-    msg = bot.send_message(user_id, "🚀 **Jarayon boshlandi...**\n\nBu 30 kunlik reja bo'lgani uchun 60 soniyagacha vaqt olishi mumkin.", parse_mode="Markdown")
-    
-    # 1. Gather User Data
-    user = {
-        'age': 25, 'gender': 'Erkak', 'goal': 'Ozish',
-        'activity_level': 'O\'rtacha', 'allergies': 'Yo\'q'
-    }
-    
-    # Try to fetch real user data
-    db_user = db.get_user(user_id)
-    if db_user:
-        # Assuming db.get_user returns object or dict. If object:
-        # Wait, get_user returns dict usually in this codebase context?
-        # Let's check db.get_user usage. Actually, db.get_user returns dict based on prior usage.
-        # But to be safe let's assume valid data retrieval or use text extraction if onboarding flow.
-        # For now, let's trust the onboarding data is stored.
-        # Simulating data extraction if needed...
-        user = db_user # Use actual user data if available
-        
-    # Get profile key
-    # FORCE NEW KEY to bypass old stuck data
-    profile_key = f"{user_id}_weekly_plan_v1"
-
-    # Clean old template
+    # 3. Check for Existing Shared Template
     existing_template = db.get_menu_template(profile_key)
+    
     if existing_template:
-        bot.edit_message_text("🧹 Eski ma'lumotlar tozalanmoqda...", user_id, msg.message_id)
-        db.delete_menu_template(profile_key)
+        bot.send_message(user_id, "💡 Sizga mos tayyor menyu topildi! Yuklanmoqda...")
+        db.create_user_menu_link(user_id, existing_template['id'])
+        
+        new_link = db.get_user_menu_link(user_id)
+        db.increment_ai_usage(user_id, 'menu')
+        show_daily_menu(bot, user_id, new_link, override_day_idx=1)
+        return
+
+    # If no template, generate new
+    msg = bot.send_message(user_id, "🚀 **Jarayon boshlandi...**\n\nSiz uchun yangi 7 kunlik menyu tuzilmoqda.", parse_mode="Markdown")
         
     try:
         # Retry Loop for Robustness (Force 30 days)
@@ -302,9 +303,8 @@ def generate_ai_meal(message, bot, user_id=None):
         
         for attempt in range(max_retries):
             try:
-                # print(f"DEBUG: Generation Attempt {attempt+1}/{max_retries}")
                 bot.edit_message_text(f"🤖 AI 7 kunlik menyu tuzmoqda ({attempt+1}-urinish)...", user_id, msg.message_id)
-                data = ai_generate_monthly_menu_json(user) # Should pass actual user dict!
+                data = ai_generate_monthly_menu_json(user)
                 
                 if data and 'menu' in data and isinstance(data['menu'], list):
                     item_count = len(data['menu'])
