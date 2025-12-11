@@ -339,6 +339,23 @@ Foydalanuvchiga 3 kunlik ovqatlanish rejasi tuzing.
     print(f"DEBUG: AI failed validation (len > 50). Using fallback for user {user_profile.get('name')}")
     return get_offline_menu(user_profile)
 
+
+MOCK_MENU_DATA = {
+  "menu": [
+    { "day": 1, "breakfast": "2 ta qaynatilgan tuxum, suli yormasi", "lunch": "Tovuq sho'rva, 1 tilim qora non", "dinner": "Dimlama (go'sht va sabzavotlar)", "snack": "1 ta olma" },
+    { "day": 2, "breakfast": "Tvorog va smetana, ko'k choy", "lunch": "Moshkichiri, salat", "dinner": "Grill tovuq ko'krak qismi", "snack": "Bir hovuch yong'oq" },
+    { "day": 3, "breakfast": "Omlet (2 tuxum, sut)", "lunch": "Mastava, qatiq", "dinner": "Baliq (duxovkada)", "snack": "Kefir" },
+    { "day": 4, "breakfast": "Grechka sut bilan", "lunch": "Suyuq lag'mon", "dinner": "Sabzavotli salat va tovuq", "snack": "Apelsin" },
+    { "day": 5, "breakfast": "Pishloqli buterbrod, kofe", "lunch": "No'xat shorva", "dinner": "Qaynatilgan mol go'shti, karam salat", "snack": "Quritilgan mevalar" }
+  ],
+  "shopping_list": [
+    "Tuxum (10 dona)", "Tovuq go'shti (1 kg)", "Mol go'shti (0.5 kg)", "Baliq (0.5 kg)",
+    "Suli yormasi", "Grechka", "Guruch", "Mosh",
+    "Sabzavotlar (Kartoshka, Piyoz, Sabzi, Karam)", "Mevalar (Olma, Apelsin)",
+    "Sut mahsulotlari (Tvorog, Smetana, Kefir, Sut)", "Non"
+  ]
+}
+
 def ai_generate_monthly_menu_json(user_profile):
     """Generates a 30-day structured meal plan + shopping list in JSON."""
     AI_USAGE_STATS["meal"] += 1
@@ -372,9 +389,11 @@ Talablar:
 """
     try:
         response_text = call_gemini(prompt)
+        
+        # --- FALLBACK MECHANISM ---
         if not response_text: 
-            print("DEBUG: Empty response from AI in ai_generate_monthly_menu_json")
-            return None
+            print("DEBUG: Empty response from AI. USING MOCK DATA.")
+            return MOCK_MENU_DATA
 
         print(f"DEBUG: AI Output: {response_text[:200]}...")
 
@@ -396,19 +415,19 @@ Talablar:
                 import ast
                 data = ast.literal_eval(clean_json)
             except:
-                print(f"DEBUG: Parsing completely failed. Raw Text: {clean_json}")
-                return None
+                print(f"DEBUG: Parsing completely failed. USING MOCK DATA. Raw Text: {clean_json}")
+                return MOCK_MENU_DATA
         
         # Validate structure
         if "menu" in data and "shopping_list" in data and len(data["menu"]) >= 1:
             return data
         else:
-            print(f"DEBUG: AI JSON missing keys. Keys found: {data.keys()}")
-            return None
+            print(f"DEBUG: AI JSON missing keys. Keys found: {data.keys()}. USING MOCK DATA.")
+            return MOCK_MENU_DATA
             
     except Exception as e:
-        print(f"DEBUG: JSON Generation failed: {e}")
-        return None
+        print(f"DEBUG: JSON Generation failed: {e}. USING MOCK DATA.")
+        return MOCK_MENU_DATA
         
 
 
