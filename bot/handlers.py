@@ -538,6 +538,18 @@ def register_all_handlers(bot):
             # Show popup with debug info
             bot.answer_callback_query(call.id, f"📍 {current_day} → {new_day}")
             
+            # EXPLICIT DEBUG MESSAGE
+            import json
+            menu_list = json.loads(link['menu_json'])
+            total = len(menu_list)
+            bot.send_message(
+                call.from_user.id, 
+                f"🔧 DEBUG:\n"
+                f"Hozir ko'rsatilmoqda: {new_day}-kun\n"
+                f"Jami: {total} kun\n"
+                f"Override parametri: {new_day}"
+            )
+            
             # Delete old message
             try:
                 bot.delete_message(call.message.chat.id, call.message.message_id)
