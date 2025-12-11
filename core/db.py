@@ -17,19 +17,19 @@ class Database:
         from sqlalchemy import inspect, text
         from backend.database import sync_engine
         
-        inspector = inspect(sync_engine)
-        columns = [c['name'] for c in inspector.get_columns('users')]
-        
-        with sync_engine.connect() as conn:
-            if 'onboarding_state' not in columns:
-                print("Migrating: Adding onboarding_state to users...")
-                try:
-                    conn.execute(text("ALTER TABLE users ADD COLUMN onboarding_state INTEGER DEFAULT 0"))
-                    conn.commit()
-                except Exception as e:
-        from sqlalchemy import text
         try:
+            inspector = inspect(sync_engine)
+            columns = [c['name'] for c in inspector.get_columns('users')]
+            
             with sync_engine.connect() as conn:
+                if 'onboarding_state' not in columns:
+                    print("Migrating: Adding onboarding_state to users...")
+                    try:
+                        conn.execute(text("ALTER TABLE users ADD COLUMN onboarding_state INTEGER DEFAULT 0"))
+                        conn.commit()
+                    except Exception as e:
+                        print(f"Migration error (onboarding_state): {e}")
+
                 # Add AI columns
                 try:
                     conn.execute(text("ALTER TABLE users ADD COLUMN ai_menu_count INTEGER DEFAULT 0"))
@@ -51,7 +51,7 @@ class Database:
                     conn.execute(text("UPDATE users SET plan_type='vip' WHERE is_premium=1 AND plan_type='free'"))
                     conn.commit()
                 except Exception as e:
-                    print(f"Migration Error: {e}")
+                    pass
                     
         except Exception as e:
             print(f"Schema Check Error: {e}")
