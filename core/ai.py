@@ -402,8 +402,8 @@ Talablar:
 
     
     # 3. Model Configuration
-    # Using 'gemini-1.5-flash' for better speed and fewer quota issues with large JSONs
-    model_name = 'gemini-1.5-flash'
+    # Using 'gemini-2.5-flash' as explicitly requested by user
+    model_name = 'gemini-2.5-flash'
     
     try:
         # print(f"DEBUG: Trying Menu Gen with {model_name}")
