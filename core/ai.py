@@ -384,13 +384,23 @@ Talablar:
     try:
         response_text = call_gemini(prompt)
         if not response_text: 
-            print("DEBUG: Empty response from AI")
+            print("DEBUG: Empty response from AI in ai_generate_monthly_menu_json")
             return None
 
-        # Clean markdown wrappers if present
-        clean_json = response_text.replace("```json", "").replace("```", "").strip()
-        print(f"DEBUG: AI Raw JSON (First 500 chars): {clean_json[:500]}")
+        print(f"DEBUG: AI Output: {response_text[:200]}...") # Print beginning to see if there's text
+
+        # Robust JSON extraction using Regex
+        import re
+        json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
         
+        if json_match:
+            clean_json = json_match.group(0)
+            print("DEBUG: Regex found JSON object.")
+        else:
+            print("DEBUG: Regex failed to find JSON object.")
+            # Fallback to simple cleanup
+            clean_json = response_text.replace("```json", "").replace("```", "").strip()
+
         data = json.loads(clean_json)
         
         # Validate structure
