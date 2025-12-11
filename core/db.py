@@ -674,9 +674,9 @@ class Database:
     def delete_menu_template(self, profile_key):
         from sqlalchemy import text
         try:
-            with self.ensure_sync_connection() as conn:
+            with get_sync_db() as session:
                 # 1. Find Template ID first
-                res = conn.execute(
+                res = session.execute(
                     text("SELECT id FROM menu_templates WHERE profile_key = :pk"),
                     {"pk": profile_key}
                 ).fetchone()
@@ -684,17 +684,18 @@ class Database:
                 if res:
                     template_id = res[0]
                     # 2. Delete Manual Links (Manual Cascade)
-                    conn.execute(
+                    session.execute(
                         text("DELETE FROM user_menu_links WHERE menu_template_id = :tid"),
                         {"tid": template_id}
                     )
                     
                     # 3. Delete Template
-                    conn.execute(
+                    # 3. Delete Template
+                    session.execute(
                         text("DELETE FROM menu_templates WHERE id = :tid"),
                         {"tid": template_id}
                     )
-                    conn.commit()
+                    # session.commit() handled by context manager on return/exit
                     return True
                 return False
         except Exception as e:
