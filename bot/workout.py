@@ -85,11 +85,12 @@ def generate_ai_meal(message, bot, user_id=None):
         return
     
     # 1. Check if user already has an active menu link
-    # ACTIVE LINK CHECK DISABLED FOR DEBUGGING
-    # active_link = db.get_user_menu_link(user_id)
-    # if active_link:
-    #     show_daily_menu(bot, user_id, active_link)
-    #     return
+    # RESTORED: Check for regular users
+    active_link = db.get_user_menu_link(user_id)
+    if active_link:
+        # Auto-open today's menu
+        show_daily_menu(bot, user_id, active_link)
+        return
 
     # 2. Build Profile Key
     # Key format: gender;goal;activity;age_band
@@ -99,22 +100,28 @@ def generate_ai_meal(message, bot, user_id=None):
         if age > 45: age_band = "46+"
         elif age > 35: age_band = "36-45"
         elif age > 25: age_band = "26-35"
+        
+    profile_key = f"{user.get('gender')};{user.get('goal')};{user.get('activity_level')};{user.get('allergies') or 'None'};{age_band}"
     
-    profile_key = f"{user.get('gender')};{user.get('goal')};{user.get('activity_level')};{user.get('allergies')};{age_band}".lower()
-    
+    # 3. Check for Existing TEMPLATE (to reuse AI result)
+    # DISABLING TEMPLATE REUSE FOR NOW TO FORCE FRESH 30-DAY GENERATION AS REQUESTED
+    # existing_template = db.get_menu_template(profile_key)
+    # if existing_template:
+    #      ...
+
     # 4. Generate New via AI
-    msg = bot.send_message(user_id, "🚀 **Jarayon boshlandi...**", parse_mode="Markdown")
+    msg = bot.send_message(user_id, "🚀 **Jarayon boshlandi...**\n\nBu 30 kunlik reja bo'lgani uchun 60 soniyagacha vaqt olishi mumkin.", parse_mode="Markdown")
     
-    # Check for existing Template to delete
+    # Check for existing Template to delete (Clean slate)
     existing_template = db.get_menu_template(profile_key)
     
     if existing_template:
         bot.edit_message_text("🧹 Eski ma'lumotlar tozalanmoqda...", user_id, msg.message_id)
-        print(f"DEBUG: Deleting old template {profile_key}")
+        # print(f"DEBUG: Deleting old template {profile_key}")
         db.delete_menu_template(profile_key)
         
     try:
-        bot.edit_message_text("🤖 AI bilan bog'lanilmoqda (bu 30-60 soniya olishi mumkin)...", user_id, msg.message_id)
+        bot.edit_message_text("🤖 AI 30 kunlik menyu tuzmoqda...", user_id, msg.message_id)
         from core.ai import ai_generate_monthly_menu_json
         import json
         
@@ -122,7 +129,6 @@ def generate_ai_meal(message, bot, user_id=None):
         data = ai_generate_monthly_menu_json(user)
         
         if not data:
-            # Should be unreachable if ai_generate raises exception, but safe fallback
             bot.edit_message_text("❌ AI javob bermadi (bo'sh).", user_id, msg.message_id)
             return
 
@@ -130,7 +136,7 @@ def generate_ai_meal(message, bot, user_id=None):
         
         # Save Template (Upsert Logic)
         try:
-            print(f"DEBUG: Attempting to create new template for {profile_key}")
+            # print(f"DEBUG: Attempting to create new template for {profile_key}")
             template_id = db.create_menu_template(
                 profile_key,
                 json.dumps(data['menu']),
@@ -138,15 +144,13 @@ def generate_ai_meal(message, bot, user_id=None):
             )
         except Exception as e:
             if "unique constraint" in str(e).lower() or "duplicate key" in str(e).lower() or "already exists" in str(e).lower():
-                print(f"DEBUG: Duplicate key found for {profile_key}. Updating existing template...")
+                # print(f"DEBUG: Duplicate key found for {profile_key}. Updating existing template...")
                 template_id = db.update_menu_template_content(
                     profile_key,
                     json.dumps(data['menu']),
                     json.dumps(data['shopping_list'])
                 )
                 if not template_id:
-                    # Should find it, but just in case
-                    # Try to get id again
                     exist = db.get_menu_template(profile_key)
                     template_id = exist['id']
             else:
@@ -159,9 +163,9 @@ def generate_ai_meal(message, bot, user_id=None):
         # Markdown asterisks removed to prevent errors
         bot.send_message(user_id, "✅ Reja tayyor! Marhamat:")
         
-        # Show Day 1
+        # Show Day 1 (Fresh start)
         new_link = db.get_user_menu_link(user_id)
-        show_daily_menu(bot, user_id, new_link)
+        show_daily_menu(bot, user_id, new_link, override_day_idx=1)
             
     except Exception as e:
         print(f"ERROR in generate_ai_meal: {e}")
@@ -175,29 +179,60 @@ def get_weekday_name(date_obj):
     days = ["Dushanba", "Seshanba", "Chorshanba", "Payshanba", "Juma", "Shanba", "Yakshanba"]
     return days[date_obj.weekday()]
 
-def show_daily_menu(bot, user_id, link_data):
-    """Render the menu for specific day index"""
+def show_daily_menu(bot, user_id, link_data, override_day_idx=None):
+    """Render the menu for specific day index. 
+    If override_day_idx is None, calculates based on date logic (Auto-progression).
+    """
     import json
-    from datetime import timedelta
+    from datetime import datetime, timedelta
     from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
     
-    day_idx = link_data['current_day_index']
-    menu_list = json.loads(link_data['menu_json'])
     start_date = link_data['start_date'] # datetime object
     
-    # Safe usage
+    # Logic: If no override, calculate specific day
+    if override_day_idx is None:
+        today = datetime.utcnow() # Assuming start_date is UTC
+        # Calculate difference + 1
+        # If start_date is today, diff is 0 days, so Day 1.
+        delta = today - start_date
+        real_day_idx = delta.days + 1
+        
+        # Cap logic if needed, or if plan expired
+        # If real_day_idx > 30, we can say "Finish" or just show 30.
+        # Let's show proper day
+        day_idx = real_day_idx
+    else:
+        day_idx = override_day_idx
+
+    # Load Menu
+    menu_list = json.loads(link_data['menu_json'])
+    total_days = len(menu_list)
+    
+    # Boundary checks
     if day_idx < 1: day_idx = 1
-    if day_idx > len(menu_list): day_idx = len(menu_list)
+    if day_idx > total_days: day_idx = total_days # Stop at last day
     
-    # Calculate Date
-    # day_idx 1 means start_date + 0 days
-    current_date = start_date + timedelta(days=day_idx-1)
-    weekday_name = get_weekday_name(current_date)
+    # Calculate Display Date for the *viewed* day
+    # viewed_date = start_date + (day_idx - 1) days
+    current_view_date = start_date + timedelta(days=day_idx-1)
+    weekday_name = get_weekday_name(current_view_date)
     
-    # Find day data (assuming standard array index = day-1)
+    # Format Date nicely (e.g. 12-Dek) if needed, but weekday + Day Number is good enough 
+    
+    # Save current position to DB if navigating?
+    # Actually, requirement says "Ertaga kirib 2-kun ochilsin".
+    # This implies usually we don't save navigation unless we want to resume navigation?
+    # But if we Auto-Progression on entry (override_day_idx=None), then saving user navigation state here
+    # is only for "Resume where I left off browsing".
+    # Let's update DB `current_day_index` to reflect what is being viewed currently.
+    db.update_menu_day(user_id, day_idx)
+
+    # Find day data
     day_data = None
-    if 0 <= day_idx-1 < len(menu_list):
-        day_data = menu_list[day_idx-1]
+    # menu_list is 0-indexed, day_idx is 1-indexed
+    idx = day_idx - 1
+    if 0 <= idx < total_days:
+        day_data = menu_list[idx]
     
     if not day_data:
         bot.send_message(user_id, "⚠️ Bu kun uchun ma'lumot yo'q.")
@@ -209,8 +244,9 @@ def show_daily_menu(bot, user_id, link_data):
         return str(t).replace("*", "").replace("_", "")
 
     # Format Message
-    # No markdown in headers to be safe, or explicit bold
-    txt = f"📅 {day_idx}-KUN ({weekday_name})\n\n"
+    txt = f"📅 {day_idx}-KUN ({weekday_name})\n"
+    # txt += f"Sanasi: {current_view_date.strftime('%d.%m')}\n\n"
+    txt += "\n"
     txt += f"🍳 Nonushta:\n{clean(day_data.get('breakfast', '-'))}\n\n"
     txt += f"🥗 Tushlik:\n{clean(day_data.get('lunch', '-'))}\n\n"
     txt += f"🍲 Kechki ovqat:\n{clean(day_data.get('dinner', '-'))}\n\n"
@@ -222,7 +258,7 @@ def show_daily_menu(bot, user_id, link_data):
     btns = []
     if day_idx > 1:
         btns.append(InlineKeyboardButton("⬅️ Oldingi", callback_data=f"menu_prev_{day_idx}"))
-    if day_idx < len(menu_list):
+    if day_idx < total_days:
         btns.append(InlineKeyboardButton("Keyingi ➡️", callback_data=f"menu_next_{day_idx}"))
         
     markup.row(*btns)
