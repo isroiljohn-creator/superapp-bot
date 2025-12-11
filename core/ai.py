@@ -339,6 +339,67 @@ Foydalanuvchiga 3 kunlik ovqatlanish rejasi tuzing.
     print(f"DEBUG: AI failed validation (len > 50). Using fallback for user {user_profile.get('name')}")
     return get_offline_menu(user_profile)
 
+def ai_generate_monthly_menu_json(user_profile):
+    """Generates a 30-day structured meal plan + shopping list in JSON."""
+    AI_USAGE_STATS["meal"] += 1
+    AI_USAGE_STATS["total_requests"] += 1
+
+    allergy_text = user_profile.get('allergies')
+    allergy_section = ""
+    if allergy_text and allergy_text.lower() not in ['yo\'q', 'no', 'none', 'yoq']:
+        allergy_section = f"DIQQAT: Foydalanuvchida {allergy_text} ga allergiya bor. Menyuda bular qat'iyan bo'lmasin!"
+
+    prompt = f"""
+Siz professional dietologsiz. Vazifangiz foydalanuvchi uchun 30 kunlik ovqatlanish rejasi va xaridlar ro'yxatini tuzish.
+Javob FAQAT va FAQAT toza JSON formatida bo'lishi shart. Hech qanday markdown (```json) yoki qo'shimcha so'z ishlatmang.
+
+Foydalanuvchi:
+Yosh: {user_profile.get('age')}, Jins: {user_profile.get('gender')}, Maqsad: {user_profile.get('goal')}
+{allergy_section}
+
+JSON strukturasi shunday bo'lishi SHART:
+{{
+  "menu": [
+    {{
+      "day": 1,
+      "breakfast": "...",
+      "lunch": "...",
+      "dinner": "...",
+      "snack": "..."
+    }},
+    ... (30 kunlik)
+  ],
+  "shopping_list": [
+    "Mahsulot 1 (miqdori)",
+    "Mahsulot 2 (miqdori)",
+    ... (To'liq 30 kunga yetadigan ro'yxat, kategoriyalarga bo'linmagan, shunchaki ro'yxat)
+  ]
+}}
+
+Talablar:
+1. O'zbekiston sharoitiga mos, hamyonbop mahsulotlar.
+2. Har hil kunlar uchun turlicha ovqatlar (30 kun bir xil bo'lmasin).
+3. JSON valid bo'lishi shart.
+"""
+    try:
+        response_text = call_gemini(prompt)
+        if not response_text: return None
+
+        # Clean markdown wrappers if present
+        clean_json = response_text.replace("```json", "").replace("```", "").strip()
+        data = json.loads(clean_json)
+        
+        # Validate structure
+        if "menu" in data and "shopping_list" in data and len(data["menu"]) >= 1:
+            return data
+        else:
+            print("DEBUG: AI JSON missing keys")
+            return None
+            
+    except Exception as e:
+        print(f"DEBUG: JSON Generation failed: {e}")
+        return None
+
 def ai_answer_question(question):
     """Answers a general fitness question using Gemini."""
     AI_USAGE_STATS["chat"] += 1

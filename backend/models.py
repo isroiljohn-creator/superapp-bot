@@ -40,6 +40,7 @@ class User(Base):
     orders = relationship("Order", back_populates="user")
     activity_logs = relationship("ActivityLog", back_populates="user")
     calorie_logs = relationship("CalorieLog", back_populates="user")
+    menu_link = relationship("UserMenuLink", uselist=False, back_populates="user")
 
     # Missing Columns from core/db.py
     last_checkin = Column(String, nullable=True) # Stored as text in legacy
@@ -151,6 +152,30 @@ class CalorieLog(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     
     user = relationship("User", back_populates="calorie_logs")
+
+class MenuTemplate(Base):
+    __tablename__ = "menu_templates"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    profile_key = Column(String, unique=True, index=True) # gender;goal;activity;allergies;age_band
+    menu_json = Column(Text) # JSON structure for 30 days
+    shopping_list_json = Column(Text) # JSON structure for shopping list
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    links = relationship("UserMenuLink", back_populates="template")
+
+class UserMenuLink(Base):
+    __tablename__ = "user_menu_links"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    menu_template_id = Column(Integer, ForeignKey("menu_templates.id"))
+    start_date = Column(DateTime, default=datetime.utcnow)
+    current_day_index = Column(Integer, default=1) # 1 to 30
+    is_active = Column(Boolean, default=True)
+    
+    user = relationship("User", back_populates="menu_link")
+    template = relationship("MenuTemplate", back_populates="links")
 
 class WorkoutCache(Base):
     __tablename__ = "workout_cache"

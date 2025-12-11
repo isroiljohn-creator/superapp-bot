@@ -1,5 +1,5 @@
 from backend.database import get_sync_db, init_db_sync
-from backend.models import User, DailyLog, Plan, Transaction, Feedback, Order, ActivityLog, CalorieLog, WorkoutCache, MenuCache, AdminLog
+from backend.models import User, DailyLog, Plan, Transaction, Feedback, Order, ActivityLog, CalorieLog, WorkoutCache, MenuCache, AdminLog, MenuTemplate, UserMenuLink
 from sqlalchemy import func, desc, and_, or_
 from datetime import datetime, timedelta
 import json
@@ -36,6 +36,14 @@ class Database:
                     conn.commit()
                 except Exception as e:
                     print(f"Migration error (onboarding_data): {e}")
+
+            if 'menu_templates' not in inspector.get_table_names():
+                print("Migrating: Creating menu_templates table...")
+                MenuTemplate.__table__.create(bind=sync_engine)
+
+            if 'user_menu_links' not in inspector.get_table_names():
+                print("Migrating: Creating user_menu_links table...")
+                UserMenuLink.__table__.create(bind=sync_engine)
 
     def reset_db(self):
         from backend.database import sync_engine, Base
@@ -649,6 +657,88 @@ class Database:
                 session.add(user)
                 return True
             return False
+
+    # --- Monthly Menu Logic ---
+
+    def get_menu_template(self, profile_key):
+        with get_sync_db() as session:
+            template = session.query(MenuTemplate).filter(MenuTemplate.profile_key == profile_key).first()
+            if template:
+                return {
+                    "id": template.id,
+                    "menu_json": template.menu_json,
+                    "shopping_list_json": template.shopping_list_json
+                }
+            return None
+
+    def create_menu_template(self, profile_key, menu_json, shopping_list_json):
+        with get_sync_db() as session:
+            template = MenuTemplate(
+                profile_key=profile_key,
+                menu_json=menu_json,
+                shopping_list_json=shopping_list_json
+            )
+            session.add(template)
+            session.commit()
+            return template.id
+
+    def get_user_menu_link(self, user_id):
+        with get_sync_db() as session:
+            pk = self._get_user_pk(session, user_id)
+            if not pk: return None
+            
+            link = session.query(UserMenuLink).filter(
+                UserMenuLink.user_id == pk,
+                UserMenuLink.is_active == True
+            ).first()
+            
+            if link:
+                menu = session.query(MenuTemplate).filter(MenuTemplate.id == link.menu_template_id).first()
+                if not menu: return None
+                
+                return {
+                    "id": link.id,
+                    "menu_template_id": link.menu_template_id,
+                    "current_day_index": link.current_day_index,
+                    "start_date": link.start_date,
+                    "menu_json": menu.menu_json,
+                    "shopping_list_json": menu.shopping_list_json
+                }
+            return None
+
+    def create_user_menu_link(self, user_id, template_id):
+        with get_sync_db() as session:
+            pk = self._get_user_pk(session, user_id)
+            if not pk: return
+            
+            # Deactivate old links
+            session.query(UserMenuLink).filter(UserMenuLink.user_id == pk).update({"is_active": False})
+            
+            link = UserMenuLink(
+                user_id=pk,
+                menu_template_id=template_id,
+                current_day_index=1,
+                is_active=True
+            )
+            session.add(link)
+            session.commit()
+
+    def update_menu_day(self, user_id, new_day_index):
+        with get_sync_db() as session:
+            pk = self._get_user_pk(session, user_id)
+            if not pk: return 1
+            
+            link = session.query(UserMenuLink).filter(
+                UserMenuLink.user_id == pk,
+                UserMenuLink.is_active == True
+            ).first()
+            
+            if link:
+                new_day_index = max(1, min(30, new_day_index))
+                link.current_day_index = new_day_index
+                session.commit()
+                return new_day_index
+            return 1
 
 db = Database()
 
