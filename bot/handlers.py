@@ -509,12 +509,11 @@ def register_all_handlers(bot):
             # Update DB
             updated_idx = db.update_menu_day(call.from_user.id, new_idx)
             
-            # Get latest data
+            # Get latest data (for menu_json content)
             link = db.get_user_menu_link(call.from_user.id)
             if link:
                 bot.delete_message(call.message.chat.id, call.message.message_id)
-                daily_idx = link['current_day_index']
-                workout.show_daily_menu(bot, call.from_user.id, link, override_day_idx=daily_idx)
+                workout.show_daily_menu(bot, call.from_user.id, link, override_day_idx=updated_idx)
             else:
                 bot.answer_callback_query(call.id, "Reja topilmadi.")
                 
