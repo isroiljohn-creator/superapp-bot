@@ -103,20 +103,13 @@ def generate_ai_meal(message, bot, user_id=None):
     profile_key = f"{user.get('gender')};{user.get('goal')};{user.get('activity_level')};{user.get('allergies')};{age_band}".lower()
     
     # 3. Check for existing Template
-    # EXISTING TEMPLATE CHECK DISABLED FOR DEBUGGING
-    # existing_template = db.get_menu_template(profile_key)
+    existing_template = db.get_menu_template(profile_key)
     
-    # if existing_template:
-    #     # Reuse template
-    #     msg = bot.send_message(user_id, "🔍 Sizga mos reja bazadan topildi! Yuklanmoqda...")
-    #     db.create_user_menu_link(user_id, existing_template['id'])
-    #     
-    #     # Reload link and show
-    #     new_link = db.get_user_menu_link(user_id)
-    #     bot.delete_message(user_id, msg.message_id)
-    #     show_daily_menu(bot, user_id, new_link)
-    #     return
-
+    if existing_template:
+        # FORCE REFRESH: Delete the old template so we can save new valid AI data
+        print(f"DEBUG: Deleting old template {profile_key} to replace with fresh AI generation")
+        db.delete_menu_template(profile_key)
+        
     # 4. Generate New via AI
     msg = bot.send_message(user_id, "🤖 **AI sizning 5 kunlik rejangizni tuzmoqda...**\n\nBu 1 daqiqa vaqt olishi mumkin. Sabr qiling ⏳", parse_mode="Markdown")
     
