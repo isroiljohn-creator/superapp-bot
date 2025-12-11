@@ -528,6 +528,69 @@ def register_all_handlers(bot):
             bot.answer_callback_query(call.id, error_msg)
             bot.send_message(call.from_user.id, f"❌ {error_msg}")
 
+    # =========================================================
+    # WORKOUT NAVIGATION (Mirrors Menu Navigation)
+    # =========================================================
+
+    @bot.callback_query_handler(func=lambda call: call.data == "workout_regenerate")
+    def callback_workout_regenerate(call):
+        """Regenerate workout plan logic."""
+        try:
+             # Deactivate active link
+            db.deactivate_all_user_workouts(call.from_user.id)
+            
+            # Delete message and restart generation
+            try:
+                bot.delete_message(call.message.chat.id, call.message.message_id)
+            except:
+                pass
+            
+            # Trigger fresh generation
+            workout.generate_ai_workout(call.message, bot, user_id=call.from_user.id)
+            bot.answer_callback_query(call.id, "✅ Jarayon boshlandi...")
+            
+        except Exception as e:
+            print(f"Workout Regen Error: {e}")
+            bot.answer_callback_query(call.id, "Xatolik yuz berdi")
+
+    @bot.callback_query_handler(func=lambda call: call.data.startswith("workout_next_") or call.data.startswith("workout_prev_"))
+    def callback_workout_nav(call):
+        """Workout navigation - just show the next/prev day."""
+        try:
+            # Extract day number
+            parts = call.data.split("_")  # ["workout", "next/prev", "day_number"]
+            current_day = int(parts[2])
+            
+            # Calculate new day
+            if "next" in call.data:
+                new_day = current_day + 1
+            else:
+                new_day = current_day - 1
+            
+            # Clamp to valid range (1-7)
+            if new_day < 1:
+                new_day = 1
+            # Note: Max cap is handled in show_daily_workout via JSON length
+            
+            # Get data
+            link = db.get_user_workout_link(call.from_user.id)
+            if not link:
+                bot.answer_callback_query(call.id, "Reja topilmadi.")
+                return
+            
+            # Delete old message
+            try:
+                bot.delete_message(call.message.chat.id, call.message.message_id)
+            except:
+                pass
+            
+            # Show new day
+            workout.show_daily_workout(bot, call.from_user.id, link, override_day_idx=new_day)
+            
+        except Exception as e:
+            print(f"Workout Nav Error: {e}")
+            bot.answer_callback_query(call.id, "Xatolik yuz berdi")
+
     @bot.callback_query_handler(func=lambda call: call.data == "menu_shopping")
     def callback_menu_shopping(call):
         try:

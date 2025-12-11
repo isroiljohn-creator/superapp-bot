@@ -796,5 +796,158 @@ class Database:
                 return new_day_index
             return 1
 
+
+    # =========================================================
+    # WORKOUT TEMPLATE METHODS (Mirrors Menu Template)
+    # =========================================================
+
+    def create_workout_template(self, profile_key, workout_json):
+        from backend.models import WorkoutTemplate
+        try:
+            with get_sync_db() as session:
+                new_template = WorkoutTemplate(
+                    profile_key=profile_key,
+                    workout_json=workout_json
+                )
+                session.add(new_template)
+                session.commit()
+                return new_template.id
+        except Exception as e:
+            # Handle unique constraint violation gracefully by trying update
+            print(f"Update fallback for workout: {e}")
+            return self.update_workout_template_content(profile_key, workout_json)
+
+    def update_workout_template_content(self, profile_key, workout_json):
+        from backend.models import WorkoutTemplate
+        try:
+            with get_sync_db() as session:
+                template = session.query(WorkoutTemplate).filter(WorkoutTemplate.profile_key == profile_key).first()
+                if template:
+                    template.workout_json = workout_json
+                    session.commit()
+                    return template.id
+                return None
+        except Exception as e:
+            print(f"Error updating workout template: {e}")
+            return None
+
+    def get_workout_template(self, profile_key):
+        from backend.models import WorkoutTemplate
+        try:
+            with get_sync_db() as session:
+                template = session.query(WorkoutTemplate).filter(WorkoutTemplate.profile_key == profile_key).first()
+                if template:
+                    return {
+                        "id": template.id,
+                        "profile_key": template.profile_key,
+                        "workout_json": template.workout_json
+                    }
+                return None
+        except Exception as e:
+            print(f"Error getting workout template: {e}")
+            return None
+
+    def delete_workout_template(self, profile_key):
+        from sqlalchemy import text
+        try:
+            with get_sync_db() as session:
+                # 1. Find Template ID first
+                res = session.execute(
+                    text("SELECT id FROM workout_templates WHERE profile_key = :pk"),
+                    {"pk": profile_key}
+                ).fetchone()
+                
+                if res:
+                    template_id = res[0]
+                    # 2. Delete Manual Links (Manual Cascade)
+                    session.execute(
+                        text("DELETE FROM user_workout_links WHERE workout_template_id = :tid"),
+                        {"tid": template_id}
+                    )
+                    # 3. Delete Template
+                    session.execute(
+                        text("DELETE FROM workout_templates WHERE id = :tid"),
+                        {"tid": template_id}
+                    )
+                    return True
+                return False
+        except Exception as e:
+            print(f"Error deleting workout template: {e}")
+            return False
+
+    def create_user_workout_link(self, user_id, workout_template_id):
+        from backend.models import UserWorkoutLink
+        with get_sync_db() as session:
+            pk = self._get_user_pk(session, user_id)
+            if not pk: return None
+            
+            # Deactivate old links
+            self.deactivate_all_user_workouts(user_id)
+            
+            new_link = UserWorkoutLink(
+                user_id=pk,
+                workout_template_id=workout_template_id,
+                current_day_index=1,
+                is_active=True
+            )
+            session.add(new_link)
+            session.commit()
+            return new_link.id
+
+    def deactivate_all_user_workouts(self, user_id):
+        from sqlalchemy import text
+        try:
+            with get_sync_db() as session:
+                pk = self._get_user_pk(session, user_id)
+                session.execute(
+                    text("UPDATE user_workout_links SET is_active = false WHERE user_id = :uid"),
+                    {"uid": pk}
+                )
+        except Exception as e:
+            print(f"Error deactivating workout links: {e}")
+
+    def get_user_workout_link(self, user_id):
+        from backend.models import UserWorkoutLink, WorkoutTemplate
+        with get_sync_db() as session:
+            pk = self._get_user_pk(session, user_id)
+            if not pk: return None
+            
+            link = session.query(UserWorkoutLink).filter(
+                UserWorkoutLink.user_id == pk,
+                UserWorkoutLink.is_active == True
+            ).order_by(UserWorkoutLink.id.desc()).first()
+            
+            if link:
+                work = session.query(WorkoutTemplate).filter(WorkoutTemplate.id == link.workout_template_id).first()
+                if not work: return None
+                
+                return {
+                    "id": link.id,
+                    "workout_template_id": link.workout_template_id,
+                    "current_day_index": link.current_day_index,
+                    "start_date": link.start_date,
+                    "workout_json": work.workout_json
+                }
+            return None
+
+    def update_workout_day(self, user_id, new_day_index):
+        from sqlalchemy import text
+        try:
+            with get_sync_db() as session:
+                pk = self._get_user_pk(session, user_id)
+                # Update latest active link
+                session.execute(
+                    text("""
+                        UPDATE user_workout_links 
+                        SET current_day_index = :day 
+                        WHERE user_id = :uid AND is_active = true
+                    """),
+                    {"day": new_day_index, "uid": pk}
+                )
+                return new_day_index
+        except Exception as e:
+            print(f"Error updating workout day: {e}")
+            return 1
+
 db = Database()
 

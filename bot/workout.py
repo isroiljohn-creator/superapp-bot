@@ -39,7 +39,11 @@ def handle_meal_plan(message, bot):
 
 @require_premium
 def generate_ai_workout(message, bot, user_id=None):
-    """Generate AI workout plan (for premium users)"""
+    """Generate AI workout plan (7-Day JSON System)"""
+    from core.ai import ai_generate_weekly_workout_json
+    import json
+    import time
+    
     if user_id is None:
         user_id = message.from_user.id
     user = db.get_user(user_id)
@@ -47,29 +51,170 @@ def generate_ai_workout(message, bot, user_id=None):
     if not user:
         bot.send_message(user_id, "Iltimos, avval /start ni bosing.")
         return
+    
+    # 1. Check if user already has an active workout link
+    active_link = db.get_user_workout_link(user_id)
+    if active_link:
+        # Auto-open today's workout
+        show_daily_workout(bot, user_id, active_link)
+        return
 
-    msg = bot.send_message(user_id, "⏳ Siz uchun maxsus mashqlar rejasi tuzilmoqda... Biroz kuting.")
-    
-    # Generate plan
-    print(f"DEBUG: Generating workout plan for user {user_id}...")
-    plan = ai_generate_workout(user)
-    print(f"DEBUG: Plan generated. Length: {len(plan) if plan else 0}")
-    
-    bot.delete_message(user_id, msg.message_id)
-    
-    from core.utils import safe_split_text, strip_html
-    
-    # Header is now included in ai_generate_workout response
-    full_text = plan
-    
-    chunks = safe_split_text(full_text)
-    
-    for chunk in chunks:
+    # 2. Build Profile Key
+    # FORCE NEW KEY to bypass old text cache
+    profile_key = f"{user_id}_weekly_workout_v1"
+
+    # 3. Clean old template
+    existing_template = db.get_workout_template(profile_key)
+    if existing_template:
+        bot.send_message(user_id, "🧹 Eski mashqlar tozalanmoqda...")
+        db.delete_workout_template(profile_key)
+        
+    msg = bot.send_message(user_id, "⏳ Siz uchun 7 kunlik mashq rejasi tuzilmoqda... Biroz kuting.")
+        
+    try:
+        # Retry Loop for Robustness
+        max_retries = 3
+        data = None
+        
+        for attempt in range(max_retries):
+            try:
+                bot.edit_message_text(f"🤖 AI 7 kunlik mashq rejasi tuzmoqda ({attempt+1}-urinish)...", user_id, msg.message_id)
+                data = ai_generate_weekly_workout_json(user)
+                
+                if data and 'schedule' in data and isinstance(data['schedule'], list):
+                    item_count = len(data['schedule'])
+                    
+                    if item_count >= 5: # Accept at least 5 days
+                        break
+                    else:
+                        if attempt < max_retries - 1:
+                            time.sleep(2)
+                            continue
+                            
+            except Exception as e:
+                print(f"workout_gen_attempt_error: {e}")
+                if attempt == max_retries - 1:
+                    bot.edit_message_text(f"❌ Xatolik: {str(e)[:100]}", user_id, msg.message_id)
+                    return
+        
+        if not data or 'schedule' not in data:
+            bot.edit_message_text(f"❌ AI javob bermadi.", user_id, msg.message_id)
+            return
+
+        final_count = len(data['schedule'])
+        if final_count < 5:
+             bot.edit_message_text(f"❌ Juda qisqa natija ({final_count} kun). Qayta urining.", user_id, msg.message_id)
+             return
+
+        bot.edit_message_text("💾 Bazaga saqlanmoqda...", user_id, msg.message_id)
+        
         try:
-            bot.send_message(user_id, chunk, parse_mode="HTML")
-        except Exception:
-            # Fallback to plain text (stripped) if HTML fails
-            bot.send_message(user_id, strip_html(chunk))
+            template_id = db.create_workout_template(
+                profile_key,
+                json.dumps(data['schedule'])
+            )
+        except Exception as e:
+            # Fallback update
+            template_id = db.update_workout_template_content(
+                profile_key,
+                json.dumps(data['schedule'])
+            )
+            if not template_id:
+                exist = db.get_workout_template(profile_key)
+                if exist: template_id = exist['id']
+                else: raise e
+        
+        db.create_user_workout_link(user_id, template_id)
+        
+        bot.delete_message(user_id, msg.message_id)
+        bot.send_message(user_id, "✅ Haftalik mashqlar rejasi tayyor! Marhamat:")
+        
+        new_link = db.get_user_workout_link(user_id)
+        show_daily_workout(bot, user_id, new_link, override_day_idx=1)
+            
+    except Exception as e:
+        print(f"Main Workout Gen Error: {e}")
+        try:
+            bot.edit_message_text(f"❌ Katta Xatolik: {str(e)[:100]}", user_id, msg.message_id)
+        except:
+             pass
+
+def show_daily_workout(bot, user_id, link_data, override_day_idx=None):
+    """Render the workout for specific day index."""
+    import json
+    from datetime import datetime, timedelta
+    from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
+    
+    start_date = link_data['start_date']
+    day_idx = link_data['current_day_index']
+    
+    # Safe date parsing
+    if isinstance(start_date, str):
+        try:
+            start_date = datetime.strptime(start_date, "%Y-%m-%d %H:%M:%S.%f")
+        except:
+             try:
+                 start_date = datetime.strptime(start_date, "%Y-%m-%d %H:%M:%S")
+             except:
+                 start_date = datetime.utcnow()
+
+    # Logic: If no override, use DB value. 
+    # (Simplified from menu logic, we trust DB or override)
+    if override_day_idx is not None:
+        day_idx = override_day_idx
+        
+    try:
+        # Load Workout
+        schedule = json.loads(link_data['workout_json'])
+        total_days = len(schedule)
+        
+        # Boundary checks
+        if day_idx < 1: day_idx = 1
+        if day_idx > total_days: 
+            day_idx = total_days
+        
+        db.update_workout_day(user_id, day_idx)
+
+        # Find day data
+        day_data = None
+        idx = day_idx - 1
+        if 0 <= idx < total_days:
+            day_data = schedule[idx]
+        
+        if not day_data:
+            bot.send_message(user_id, "⚠️ Bu kun uchun ma'lumot yo'q.")
+            return
+
+        # Format Message
+        # { "day": 1, "focus": "...", "exercises": "..." }
+        
+        txt = f"🏋️ **{day_idx}-KUN** (Jami {total_days} kun)\n"
+        txt += f"🎯 **Fokus:** {day_data.get('focus', 'Umumiy')}\n\n"
+        txt += f"{day_data.get('exercises', '-')}"
+            
+        # Buttons
+        markup = InlineKeyboardMarkup()
+        btns = []
+            
+        if day_idx > 1:
+            btns.append(InlineKeyboardButton("⬅️ Oldingi", callback_data=f"workout_prev_{day_idx}"))
+        
+        if day_idx < total_days:
+            btns.append(InlineKeyboardButton("Keyingi ➡️", callback_data=f"workout_next_{day_idx}"))
+            
+        markup.row(*btns)
+        
+        # Regenerate Button
+        if day_idx == total_days:
+             markup.row(InlineKeyboardButton("🔄 Yangi Reja Tuzish", callback_data="workout_regenerate"))
+        else:
+             markup.row(InlineKeyboardButton("🔄 Yangilash (Reset)", callback_data="workout_regenerate"))
+        
+        bot.send_message(user_id, txt, parse_mode="HTML", reply_markup=markup)
+
+    except Exception as e:
+        print(f"Show Workout Error: {e}")
+        bot.send_message(user_id, "❌ Mashqni ochishda xatolik.")
 
 from bot.premium import require_premium
 

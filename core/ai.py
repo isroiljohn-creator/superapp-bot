@@ -702,3 +702,81 @@ def ai_provide_psychological_support(reason):
     if response_text:
         return response_text
     return "Tushunaman, ba'zida shunday kunlar bo'ladi. O'zingizni ehtiyot qiling va chuqur nafas oling. 💚"
+
+def ai_generate_weekly_workout_json(user_profile):
+    """
+    Generates a 7-DAY Weekly Workout Plan in strict JSON format.
+    Mirrors the logic of the menu system.
+    """
+    AI_USAGE_STATS["workout"] += 1
+    AI_USAGE_STATS["total_requests"] += 1
+    
+    goal = user_profile.get('goal', 'Sog‘liq')
+    
+    # 1. System Prompt (JSON enforcer)
+    system_prompt = """
+Siz O'zbekistonda yashovchi professional fitness trenerisiz.
+Vazifangiz: 7 kunlik (HAFTALIK) mashqlar rejasini tuzish.
+Har bir kun har xil mushak guruhiga qaratilishi kerak (Split sistemasi).
+
+Javob formati: FAQAT JSON.
+
+QAT'IY QOIDALAR:
+1. Tilda aralashma bo'lmasin. FAQAT O'ZBEK TILI.
+2. Mashqlar uy sharoitida yoki zalda bajariladigan bo'lsin.
+3. Kunlik mashqlar "exercises" maydoniga HTML formatida yozilsin (chiroyli ro'yxat).
+
+Kutilgan JSON tuzilishi:
+{
+  "schedule": [
+    {
+      "day": 1,
+      "focus": "Ko'krak va Triceps",
+      "exercises": "<b>1. Otjimaniya:</b> 3x15\\n<b>2. Gantel press:</b> 3x12\\n..."
+    },
+    ... (jami 7 kun)
+  ]
+}
+
+DIQQAT: "schedule" arrayida roppa-rosa 7 ta element bo'lishi SHART. Kam bo'lmasin.
+"""
+
+    # 2. User Prompt (Context)
+    user_prompt = f"""
+Foydalanuvchi ma'lumotlari:
+Yosh: {user_profile.get('age')}
+Jins: {user_profile.get('gender')}
+Maqsad: {goal}
+Bo‘y: {user_profile.get('height')}
+Vazn: {user_profile.get('weight')}
+Faollik: {user_profile.get('activity_level', 'O’rtacha')}
+
+Talablar:
+- 7 kunlik reja (JSON array "schedule" ichida). 
+- DIQQAT: "schedule" array ichida roppa-rosa 7 ta element bo'lishi SHART.
+- Dam olish kunlarini ham kiriting (masalan, 4-kun: Dam olish va tiklanish).
+- JSON valid bo'lsin.
+"""
+
+    # 3. Call AI
+    import json
+    try:
+        response_text = ask_gemini(system_prompt, user_prompt)
+        # Clean markdown
+        response_text = response_text.replace("```json", "").replace("```", "").strip()
+        
+        data = json.loads(response_text)
+        
+        # Validate structure
+        if "schedule" not in data or not isinstance(data["schedule"], list):
+            raise Exception("Invalid JSON structure: missing 'schedule' list")
+            
+        if len(data["schedule"]) < 7:
+             print("DEBUG: AI generated less than 7 days. Accepting partial but logging warning.")
+             
+        return data
+
+    except Exception as e:
+        print(f"Error generating weekly workout JSON: {e}")
+        # Return fallback mock data to prevent crashes (or handle gracefully)
+        return None
