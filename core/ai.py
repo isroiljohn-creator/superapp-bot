@@ -400,7 +400,11 @@ Talablar:
 - DIQQAT: "menu" array ichida roppa-rosa 7 ta element bo'lishi SHART. Kam bo'lmasin.
 - Har bir kun uchun: day, breakfast, lunch, dinner, snack.
 - O'zbek milliy va yevropa taomlarini aralashtirib yoz.
-- "shopping_list" da hamma kerakli mahsulotlar bo'lsin (faqat o'zbek tilida).
+- "shopping_list" da FAQAT ENG ASOSIY 10-15 ta mahsulot bo'lsin.
+  - Uyda bor narsalarni (tuz, yog', un, shakar) YOZMA.
+  - Qimmat narsalarni YOZMA (Avokado, Losos, Kinoa kerak emas).
+  - Oddiy, hamyonbop va bozorbop mahsulotlarni yoz (Tuxum, Tovuq, Sabzi, Kartoshka).
+  - Ro'yxat "kunlarga bo'lingan" holda emas, umumiy bo'lsin, lekin ixcham.
 - JSON valid bo'lsin.
 """
 
