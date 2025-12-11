@@ -76,6 +76,10 @@ from bot.premium import require_premium
 @require_premium
 def generate_ai_meal(message, bot, user_id=None):
     """Generate AI meal plan (Monthly Menu System)"""
+    from core.ai import ai_generate_monthly_menu_json
+    import json
+    import time
+    
     if user_id is None:
         user_id = message.from_user.id
     user = db.get_user(user_id)
@@ -103,9 +107,6 @@ def generate_ai_meal(message, bot, user_id=None):
         
     profile_key = f"{user.get('gender')};{user.get('goal')};{user.get('activity_level')};{user.get('allergies') or 'None'};{age_band}"
     
-    if not user_id: 
-        user_id = message.from_user.id
-
     msg = bot.send_message(user_id, "🚀 **Jarayon boshlandi...**\n\nBu 30 kunlik reja bo'lgani uchun 60 soniyagacha vaqt olishi mumkin.", parse_mode="Markdown")
     
     # 1. Gather User Data
