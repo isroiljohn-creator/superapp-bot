@@ -156,7 +156,8 @@ def generate_ai_meal(message, bot, user_id=None):
         db.create_user_menu_link(user_id, template_id)
         
         bot.delete_message(user_id, msg.message_id)
-        bot.send_message(user_id, "✅ **Reja tayyor!** Marhamat:")
+        # Markdown asterisks removed to prevent errors
+        bot.send_message(user_id, "✅ Reja tayyor! Marhamat:")
         
         # Show Day 1
         new_link = db.get_user_menu_link(user_id)
@@ -165,25 +166,33 @@ def generate_ai_meal(message, bot, user_id=None):
     except Exception as e:
         print(f"ERROR in generate_ai_meal: {e}")
         try:
-            bot.edit_message_text(f"❌ **XATOLIK:**\n\n`{str(e)[:200]}`", user_id, msg.message_id, parse_mode="Markdown")
+            bot.edit_message_text(f"❌ XATOLIK: {str(e)[:200]}", user_id, msg.message_id)
         except:
             bot.send_message(user_id, f"❌ Xatolik: {str(e)[:200]}")
-            
-    except Exception as e:
-        print(f"ERROR in generate_ai_meal: {e}")
-        bot.send_message(user_id, f"❌ Xatolik: {str(e)[:100]}")
+
+def get_weekday_name(date_obj):
+    # 0=Mon, ... 3=Thu ...
+    days = ["Dushanba", "Seshanba", "Chorshanba", "Payshanba", "Juma", "Shanba", "Yakshanba"]
+    return days[date_obj.weekday()]
 
 def show_daily_menu(bot, user_id, link_data):
     """Render the menu for specific day index"""
     import json
+    from datetime import timedelta
     from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
     
     day_idx = link_data['current_day_index']
     menu_list = json.loads(link_data['menu_json'])
+    start_date = link_data['start_date'] # datetime object
     
     # Safe usage
     if day_idx < 1: day_idx = 1
     if day_idx > len(menu_list): day_idx = len(menu_list)
+    
+    # Calculate Date
+    # day_idx 1 means start_date + 0 days
+    current_date = start_date + timedelta(days=day_idx-1)
+    weekday_name = get_weekday_name(current_date)
     
     # Find day data (assuming standard array index = day-1)
     day_data = None
@@ -194,13 +203,19 @@ def show_daily_menu(bot, user_id, link_data):
         bot.send_message(user_id, "⚠️ Bu kun uchun ma'lumot yo'q.")
         return
 
+    # Clean function to remove markdown chars that break telegram
+    def clean(t):
+        if not t: return "-"
+        return str(t).replace("*", "").replace("_", "")
+
     # Format Message
-    txt = f"📅 **{day_data.get('day', day_idx)}-KUN MENYUSI**\n\n"
-    txt += f"🍳 **Nonushta:**\n{day_data.get('breakfast', '-')}\n\n"
-    txt += f"🥗 **Tushlik:**\n{day_data.get('lunch', '-')}\n\n"
-    txt += f"🍲 **Kechki ovqat:**\n{day_data.get('dinner', '-')}\n\n"
+    # No markdown in headers to be safe, or explicit bold
+    txt = f"📅 {day_idx}-KUN ({weekday_name})\n\n"
+    txt += f"🍳 Nonushta:\n{clean(day_data.get('breakfast', '-'))}\n\n"
+    txt += f"🥗 Tushlik:\n{clean(day_data.get('lunch', '-'))}\n\n"
+    txt += f"🍲 Kechki ovqat:\n{clean(day_data.get('dinner', '-'))}\n\n"
     if day_data.get('snack'):
-        txt += f"🍏 **Snack:**\n{day_data.get('snack')}"
+        txt += f"🍏 Snack:\n{clean(day_data.get('snack'))}"
         
     # Navigation Buttons
     markup = InlineKeyboardMarkup()
@@ -213,4 +228,5 @@ def show_daily_menu(bot, user_id, link_data):
     markup.row(*btns)
     markup.row(InlineKeyboardButton("🛒 Shopping List", callback_data="menu_shopping"))
     
-    bot.send_message(user_id, txt, parse_mode="Markdown", reply_markup=markup)
+    # Send without parse_mode or with HTML if needed, but plain text is safest for mixed content
+    bot.send_message(user_id, txt, reply_markup=markup)

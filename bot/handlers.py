@@ -398,13 +398,60 @@ def register_all_handlers(bot):
         except Exception as e:
             bot.reply_to(message, f"❌ Error: {e}")
 
-    # Debug callback LAST
-    @bot.callback_query_handler(func=lambda call: True)
-    def debug_callback(call):
-        print(f"DEBUG: Unhandled callback: {call.data}")
-        bot.answer_callback_query(call.id, "⚠️ Bu tugma hali ishlamayapti")
-        
-    # Global Fallback Handler (MUST BE LAST)
+            bot.answer_callback_query(call.id, "Xatolik yuz berdi")
+
+    @bot.callback_query_handler(func=lambda call: call.data.startswith("menu_next_") or call.data.startswith("menu_prev_"))
+    def callback_menu_nav(call):
+        try:
+            # Format: menu_next_5 -> move to 6
+            # Format: menu_prev_5 -> move to 4
+            action, current_idx = call.data.rsplit('_', 1)
+            current_idx = int(current_idx)
+            
+            new_idx = current_idx + 1 if "next" in action else current_idx - 1
+            
+            # Update DB
+            updated_idx = db.update_menu_day(call.from_user.id, new_idx)
+            
+            # Get latest data
+            link = db.get_user_menu_link(call.from_user.id)
+            if link:
+                bot.delete_message(call.message.chat.id, call.message.message_id)
+                workout.show_daily_menu(bot, call.from_user.id, link)
+            else:
+                bot.answer_callback_query(call.id, "Reja topilmadi.")
+                
+        except Exception as e:
+            print(f"Menu Nav Error: {e}")
+            bot.answer_callback_query(call.id, "Xatolik yuz berdi")
+
+    @bot.callback_query_handler(func=lambda call: call.data == "menu_shopping")
+    def callback_menu_shopping(call):
+        try:
+            link = db.get_user_menu_link(call.from_user.id)
+            if not link:
+                bot.answer_callback_query(call.id, "Reja topilmadi.")
+                return
+
+            import json
+            shopping_list = json.loads(link['shopping_list_json'])
+            
+            if not shopping_list:
+                bot.answer_callback_query(call.id, "Shopping list bo'sh.")
+                return
+                
+            txt = "🛒 **XARIDLAR RO'YXATI**\n\n"
+            for item in shopping_list:
+                txt += f"▫️ {item}\n"
+                
+            bot.send_message(call.from_user.id, txt, parse_mode="Markdown")
+            bot.answer_callback_query(call.id)
+            
+        except Exception as e:
+            print(f"Shopping List Error: {e}")
+            bot.answer_callback_query(call.id, "Xatolik yuz berdi")
+
+
     @bot.message_handler(content_types=['text', 'audio', 'document', 'photo', 'sticker', 'video', 'video_note', 'voice', 'location', 'contact'], func=lambda m: True)
     def fallback_handler(message):
         """
