@@ -397,53 +397,58 @@ Talablar:
 """
 
     
-    # Try 2.5 Flash first, then 1.5 Flash
-    menu_models = ['gemini-2.5-flash', 'gemini-1.5-flash']
+    # STRICTLY ONLY 2.5 FLASH AS REQUESTED
+    model_name = 'gemini-2.5-flash'
     
-    for model_name in menu_models:
+    try:
+        print(f"DEBUG: Trying Menu Gen with {model_name}")
+        
+        genai.configure(api_key=GEMINI_API_KEY)
+        curr_model = genai.GenerativeModel(model_name)
+        
+        full_text_prompt = f"{system_prompt}\n\nUser Input: {user_prompt}"
+        
         try:
-            print(f"DEBUG: Trying Menu Gen with {model_name}")
-            
-            # Temporary local configuration for this specific risky call
-            genai.configure(api_key=GEMINI_API_KEY)
-            curr_model = genai.GenerativeModel(model_name)
-            
-            # Direct generation to avoid global wrapper issues
-            full_text_prompt = f"{system_prompt}\n\nUser Input: {user_prompt}"
-            
             response = curr_model.generate_content(
                 full_text_prompt,
                 safety_settings=SAFETY_SETTINGS,
                 request_options={'timeout': 60}
             )
-            
-            response_text = response.text
-            
-            if not response_text: 
-                raise Exception("Empty response text")
+        except Exception as api_error:
+            # Catch API errors (429, 500, etc) and re-raise with clear message
+            print(f"DEBUG: API Error: {api_error}")
+            raise Exception(f"Google API Error: {api_error}")
 
-            print(f"DEBUG: AI Output ({model_name}): {response_text[:200]}...")
+        response_text = response.text
+        
+        # Check for safety blocking if text is empty but candidate exists
+        if not response_text:
+            if hasattr(response, 'prompt_feedback'):
+                 feedback = response.prompt_feedback
+                 print(f"DEBUG: Safety Feedback: {feedback}")
+                 raise Exception(f"Blocked by Safety Filters: {feedback}")
+            raise Exception("Empty response text from AI (No reason given)")
 
-            # Robust JSON extraction
-            import re
-            json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
-            clean_json = json_match.group(0) if json_match else response_text
+        print(f"DEBUG: AI Output ({model_name}): {response_text[:200]}...")
 
-            try:
-                import json
-                data = json.loads(clean_json)
-                return data
-            except:
-                import ast
-                data = ast.literal_eval(clean_json)
-                return data
+        # Robust JSON extraction
+        import re
+        json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
+        clean_json = json_match.group(0) if json_match else response_text
 
-        except Exception as e:
-            print(f"DEBUG: Model {model_name} failed: {e}")
-            continue # Try next model
-            
-    # If both fail
-    return None
+        try:
+            import json
+            data = json.loads(clean_json)
+            return data
+        except:
+            import ast
+            data = ast.literal_eval(clean_json)
+            return data
+
+    except Exception as e:
+        print(f"DEBUG: Model {model_name} failed: {e}")
+        # RE-RAISE THE EXACT ERROR so bot/workout.py displays it
+        raise e
         
 
 
