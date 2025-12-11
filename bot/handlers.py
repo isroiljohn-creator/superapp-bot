@@ -492,8 +492,26 @@ def register_all_handlers(bot):
     @bot.callback_query_handler(func=lambda call: call.data.startswith("menu_next_") or call.data.startswith("menu_prev_"))
     def callback_menu_nav(call):
         """ULTRA-SIMPLE navigation - just show the next/prev day."""
-            # Show popup with debug info
-            # bot.answer_callback_query(call.id, f"📍 {current_day} → {new_day}")
+        try:
+            # Extract day number from callback
+            parts = call.data.split("_")  # ["menu", "next/prev", "day_number"]
+            current_day = int(parts[2])
+            
+            # Calculate new day
+            if "next" in call.data:
+                new_day = current_day + 1
+            else:
+                new_day = current_day - 1
+            
+            # Clamp to valid range
+            if new_day < 1:
+                new_day = 1
+            
+            # Get menu data
+            link = db.get_user_menu_link(call.from_user.id)
+            if not link:
+                bot.answer_callback_query(call.id, "Menyu topilmadi!")
+                return
             
             # Delete old message
             try:
