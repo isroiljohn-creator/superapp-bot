@@ -68,7 +68,10 @@ def handle_premium_info(message, bot):
         f"• 3 oy: {p3} so'm (Chegirma bilan)\n\n"
         "To'lov turlari: Click, Payme, Uzum."
     )
-    bot.send_message(message.chat.id, text, parse_mode="Markdown")
+    markup = types.InlineKeyboardMarkup()
+    markup.add(types.InlineKeyboardButton("🛒 Sotib olish (Tarif tanlash)", callback_data="premium_buy"))
+    
+    bot.send_message(message.chat.id, text, reply_markup=markup, parse_mode="Markdown")
 
 def handle_premium_buy(message, bot):
     p1 = f"{PRICE_1_MONTH // 100:,}".replace(",", " ")
