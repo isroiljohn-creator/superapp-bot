@@ -514,6 +514,9 @@ def register_all_handlers(bot):
     @bot.callback_query_handler(func=lambda call: call.data.startswith("menu_next_") or call.data.startswith("menu_prev_"))
     def callback_menu_nav(call):
         """ULTRA-SIMPLE navigation - just show the next/prev day."""
+        # EXPLICIT LOG
+        print(f"🔍 NAV HANDLER CALLED: {call.data}")
+        
         try:
             # Extract day number from callback
             parts = call.data.split("_")  # ["menu", "next/prev", "day_number"]
