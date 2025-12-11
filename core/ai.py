@@ -396,33 +396,54 @@ Talablar:
 - JSON valid bo'lsin.
 """
 
-    try:
-        # Call ask_gemini directly
-        response_text = ask_gemini(system_prompt, user_prompt)
-        
-        if not response_text: 
-            return None # Will trigger global error handling in workout.py which shows the error
-
-        print(f"DEBUG: AI Output: {response_text[:200]}...")
-
-        # Robust JSON extraction
-        import re
-        json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
-        
-        clean_json = json_match.group(0) if json_match else response_text
-
-        # Try standard JSON
+    
+    # Try 2.5 Flash first, then 1.5 Flash
+    menu_models = ['gemini-2.5-flash', 'gemini-1.5-flash']
+    
+    for model_name in menu_models:
         try:
-            data = json.loads(clean_json)
-            return data
-        except:
-             # If parsing fails, return the raw text as a special error dict to debug
-             raise Exception(f"JSON Parse Failed. Raw: {clean_json[:100]}...")
+            print(f"DEBUG: Trying Menu Gen with {model_name}")
             
-    except Exception as e:
-        # TIMEOUT / API ERROR / SAFETY
-        # Re-raise so bot/workout.py shows the actual error to user
-        raise e
+            # Temporary local configuration for this specific risky call
+            genai.configure(api_key=GEMINI_API_KEY)
+            curr_model = genai.GenerativeModel(model_name)
+            
+            # Direct generation to avoid global wrapper issues
+            full_text_prompt = f"{system_prompt}\n\nUser Input: {user_prompt}"
+            
+            response = curr_model.generate_content(
+                full_text_prompt,
+                safety_settings=SAFETY_SETTINGS,
+                request_options={'timeout': 60}
+            )
+            
+            response_text = response.text
+            
+            if not response_text: 
+                raise Exception("Empty response text")
+
+            print(f"DEBUG: AI Output ({model_name}): {response_text[:200]}...")
+
+            # Robust JSON extraction
+            import re
+            json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
+            clean_json = json_match.group(0) if json_match else response_text
+
+            try:
+                import json
+                data = json.loads(clean_json)
+                return data
+            except:
+                import ast
+                data = ast.literal_eval(clean_json)
+                return data
+
+        except Exception as e:
+            print(f"DEBUG: Model {model_name} failed: {e}")
+            continue # Try next model
+            
+    # If both fail
+    return None
         
 
 
