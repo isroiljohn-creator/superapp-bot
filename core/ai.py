@@ -350,7 +350,7 @@ def ai_generate_monthly_menu_json(user_profile):
         allergy_section = f"DIQQAT: Foydalanuvchida {allergy_text} ga allergiya bor. Menyuda bular qat'iyan bo'lmasin!"
 
     prompt = f"""
-Siz professional dietologsiz. Vazifangiz foydalanuvchi uchun 30 kunlik ovqatlanish rejasi va xaridlar ro'yxatini tuzish.
+Siz professional dietologsiz. Vazifangiz foydalanuvchi uchun 5 kunlik ovqatlanish rejasi va xaridlar ro'yxatini tuzish.
 Javob FAQAT va FAQAT toza JSON formatida bo'lishi shart. Hech qanday markdown (```json) yoki qo'shimcha so'z ishlatmang.
 
 Foydalanuvchi:
@@ -367,37 +367,43 @@ JSON strukturasi shunday bo'lishi SHART:
       "dinner": "...",
       "snack": "..."
     }},
-    ... (30 kunlik)
+    ... (5 kunlik)
   ],
   "shopping_list": [
     "Mahsulot 1 (miqdori)",
     "Mahsulot 2 (miqdori)",
-    ... (To'liq 30 kunga yetadigan ro'yxat, kategoriyalarga bo'linmagan, shunchaki ro'yxat)
+    ... (To'liq 5 kunga yetadigan ro'yxat, kategoriyalarga bo'linmagan, shunchaki ro'yxat)
   ]
 }}
 
 Talablar:
 1. O'zbekiston sharoitiga mos, hamyonbop mahsulotlar.
-2. Har hil kunlar uchun turlicha ovqatlar (30 kun bir xil bo'lmasin).
+2. Har hil kunlar uchun turlicha ovqatlar (5 kun bir xil bo'lmasin).
 3. JSON valid bo'lishi shart.
 """
     try:
         response_text = call_gemini(prompt)
-        if not response_text: return None
+        if not response_text: 
+            print("DEBUG: Empty response from AI")
+            return None
 
         # Clean markdown wrappers if present
         clean_json = response_text.replace("```json", "").replace("```", "").strip()
+        print(f"DEBUG: AI Raw JSON (First 500 chars): {clean_json[:500]}")
+        
         data = json.loads(clean_json)
         
         # Validate structure
         if "menu" in data and "shopping_list" in data and len(data["menu"]) >= 1:
             return data
         else:
-            print("DEBUG: AI JSON missing keys")
+            print(f"DEBUG: AI JSON missing keys. Keys found: {data.keys()}")
             return None
             
     except Exception as e:
         print(f"DEBUG: JSON Generation failed: {e}")
+        import traceback
+        traceback.print_exc()
         return None
 
 def ai_answer_question(question):

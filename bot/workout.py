@@ -116,7 +116,7 @@ def generate_ai_meal(message, bot, user_id=None):
         return
 
     # 4. Generate New via AI
-    msg = bot.send_message(user_id, "🤖 **AI sizning 30 kunlik rejangizni tuzmoqda...**\n\nBu 1-2 daqiqa vaqt olishi mumkin. Sabr qiling ⏳", parse_mode="Markdown")
+    msg = bot.send_message(user_id, "🤖 **AI sizning 5 kunlik rejangizni tuzmoqda...**\n\nBu 1 daqiqa vaqt olishi mumkin. Sabr qiling ⏳", parse_mode="Markdown")
     
     try:
         from core.ai import ai_generate_monthly_menu_json
