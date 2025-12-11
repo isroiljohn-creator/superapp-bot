@@ -88,7 +88,7 @@ def register_all_handlers(bot):
     def menu_profile(message):
         profile.handle_profile(message, bot)
 
-    @bot.message_handler(func=lambda message: message.text == "💎 Premium")
+    @bot.message_handler(func=lambda message: message.text in ["💳 Obuna", "💎 Premium"])
     def menu_premium(message):
         premium.handle_premium_menu(message, bot)
 

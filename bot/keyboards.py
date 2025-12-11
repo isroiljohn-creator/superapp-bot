@@ -47,7 +47,7 @@ def main_menu_keyboard():
     markup.add(KeyboardButton("🤖 AI murabbiy"), KeyboardButton("📆 Kunlik odatlar"))
     
     # Row 2: Kaloriya tahlili (swapped) | Premium (swapped with Chellenjlar)
-    markup.add(KeyboardButton("🍽 Kaloriya tahlili"), KeyboardButton("💎 Premium"))
+    markup.add(KeyboardButton("🍽 Kaloriya tahlili"), KeyboardButton("💳 Obuna"))
     
     # Row 3: Chellenjlar (swapped with Premium) | Profil
     markup.add(KeyboardButton("🔥 Chellenjlar"), KeyboardButton("👤 Profil"))
