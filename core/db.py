@@ -85,6 +85,13 @@ class Database:
             user = session.query(User).filter(User.telegram_id == user_id).first()
             if not user: return False, "User not found", ""
 
+            # Lazy Expiration Check
+            if user.premium_until and user.premium_until < datetime.now():
+                if user.plan_type != 'free':
+                    user.plan_type = 'free'
+                    user.is_premium = False
+                    session.commit() # Commit downgrade
+            
             plan = user.plan_type or 'free'
             
             # 1. Menu/Workout Generation Limit
