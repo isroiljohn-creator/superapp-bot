@@ -367,11 +367,12 @@ def ai_generate_monthly_menu_json(user_profile):
         allergy_section = f"DIQQAT: Foydalanuvchida {allergy_text} ga allergiya bor. Menyuda bular qat'iyan bo'lmasin!"
 
     
-    # 1. System Prompt (Strict Role & Format)
+    
+    # 1. System Prompt (Softened Role)
     system_prompt = """
-Siz professional dietologsiz.
-Vazifangiz: 5 kunlik ovqatlanish rejasi va xaridlar ro'yxatini tuzish.
-Javob formati: FAQAT JSON (boshqa hech narsa yozma).
+Siz foydali yordamchisiz.
+Vazifangiz: 5 kunlik taomlar ro'yxatini tuzish.
+Javob formati: FAQAT JSON.
 
 NAMUNA:
 {
@@ -384,27 +385,23 @@ NAMUNA:
 
     # 2. User Prompt (Data)
     user_prompt = f"""
-Foydalanuvchi ma'lumotlari:
+Ma'lumotlar:
 Yosh: {user_profile.get('age')}
 Jins: {user_profile.get('gender')}
 Maqsad: {user_profile.get('goal')}
 {allergy_section}
 
 Talablar:
-- Menu arrayida 5 kunlik reja bo'lsin.
-- Har bir kun uchun: day, breakfast, lunch, dinner, snack.
-- Mahsulotlar O'zbekistonda bor bo'lsin.
-- JSON valid bo'lsin (stringlar "qo'shtirnoq" ichida).
+- 5 kunlik reja.
+- JSON valid bo'lsin.
 """
 
     try:
-        # Call ask_gemini directly to control system prompt
+        # Call ask_gemini directly
         response_text = ask_gemini(system_prompt, user_prompt)
         
-        # --- FALLBACK MECHANISM ---
         if not response_text: 
-            print("DEBUG: Empty response from AI. USING MOCK DATA.")
-            return MOCK_MENU_DATA
+            return None # Will trigger global error handling in workout.py which shows the error
 
         print(f"DEBUG: AI Output: {response_text[:200]}...")
 
@@ -412,33 +409,20 @@ Talablar:
         import re
         json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
         
-        if json_match:
-            clean_json = json_match.group(0)
-        else:
-            clean_json = response_text
+        clean_json = json_match.group(0) if json_match else response_text
 
         # Try standard JSON
         try:
             data = json.loads(clean_json)
-        except json.JSONDecodeError:
-            print("DEBUG: JSON Decode Error. Trying AST literal_eval...")
-            try:
-                import ast
-                data = ast.literal_eval(clean_json)
-            except:
-                print(f"DEBUG: Parsing completely failed. USING MOCK DATA. Raw Text: {clean_json}")
-                return MOCK_MENU_DATA
-        
-        # Validate structure
-        if "menu" in data and "shopping_list" in data and len(data["menu"]) >= 1:
             return data
-        else:
-            print(f"DEBUG: AI JSON missing keys. Keys found: {data.keys()}. USING MOCK DATA.")
-            return MOCK_MENU_DATA
+        except:
+             # If parsing fails, return the raw text as a special error dict to debug
+             raise Exception(f"JSON Parse Failed. Raw: {clean_json[:100]}...")
             
     except Exception as e:
-        print(f"DEBUG: JSON Generation failed: {e}. USING MOCK DATA.")
-        return MOCK_MENU_DATA
+        # TIMEOUT / API ERROR / SAFETY
+        # Re-raise so bot/workout.py shows the actual error to user
+        raise e
         
 
 
