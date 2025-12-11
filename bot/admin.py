@@ -530,18 +530,39 @@ def register_subscription_handlers(bot):
                 pass
                 
         elif action == "add":
-            msg = bot.send_message(call.message.chat.id, f"Necha kun qo'shmoqchisiz? (masalan: 30)", reply_markup=types.ForceReply())
-            bot.register_next_step_handler(msg, process_subs_days, bot, target_id)
+            # Choose Plan Type
+            markup = types.InlineKeyboardMarkup()
+            markup.add(types.InlineKeyboardButton("⭐️ Premium", callback_data=f"sub_plan_premium_{target_id}"))
+            markup.add(types.InlineKeyboardButton("👑 VIP", callback_data=f"sub_plan_vip_{target_id}"))
+            
+            bot.edit_message_text(
+                "Qaysi tarifni bermoqchisiz?",
+                call.message.chat.id,
+                call.message.message_id,
+                reply_markup=markup
+            )
 
-    def process_subs_days(message, bot, target_id):
+    @bot.callback_query_handler(func=lambda call: call.data.startswith("sub_plan_"))
+    def handle_sub_plan_selection(call):
+        if call.from_user.id not in ADMIN_IDS: return
+        
+        parts = call.data.split("_")
+        plan_type = parts[2] # premium or vip
+        target_id = int(parts[3])
+        
+        msg = bot.send_message(call.message.chat.id, f"<b>{plan_type.upper()}</b> tarifi uchun necha kun qo'shmoqchisiz? (masalan: 30)", parse_mode="HTML", reply_markup=types.ForceReply())
+        bot.register_next_step_handler(msg, process_subs_days, bot, target_id, plan_type)
+
+    def process_subs_days(message, bot, target_id, plan_type):
         try:
             days = int(message.text)
-            db.set_premium(target_id, days)
+            # Use new tiered setter
+            db.set_user_plan(target_id, plan_type, days)
             
-            bot.send_message(message.chat.id, f"✅ Foydalanuvchi ({target_id}) ga {days} kun Premium qo'shildi.")
+            bot.send_message(message.chat.id, f"✅ Foydalanuvchi ({target_id}) ga {days} kun <b>{plan_type.upper()}</b> tarifi qo'shildi.", parse_mode="HTML")
             
             try:
-                bot.send_message(target_id, f"🎉 Tabriklaymiz! Admin sizga {days} kunlik Premium obuna sovg'a qildi!")
+                bot.send_message(target_id, f"🎉 Tabriklaymiz! Admin sizga {days} kunlik **{plan_type.upper()}** obuna sovg'a qildi!", parse_mode="Markdown")
             except:
                 pass
                 
