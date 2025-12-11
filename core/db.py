@@ -671,6 +671,36 @@ class Database:
                 }
             return None
 
+    def delete_menu_template(self, profile_key):
+        from sqlalchemy import text
+        try:
+            with self.ensure_sync_connection() as conn:
+                # 1. Find Template ID first
+                res = conn.execute(
+                    text("SELECT id FROM menu_templates WHERE profile_key = :pk"),
+                    {"pk": profile_key}
+                ).fetchone()
+                
+                if res:
+                    template_id = res[0]
+                    # 2. Delete Manual Links (Manual Cascade)
+                    conn.execute(
+                        text("DELETE FROM user_menu_links WHERE menu_template_id = :tid"),
+                        {"tid": template_id}
+                    )
+                    
+                    # 3. Delete Template
+                    conn.execute(
+                        text("DELETE FROM menu_templates WHERE id = :tid"),
+                        {"tid": template_id}
+                    )
+                    conn.commit()
+                    return True
+                return False
+        except Exception as e:
+            print(f"Error deleting menu template: {e}")
+            return False
+
     def create_menu_template(self, profile_key, menu_json, shopping_list_json):
         with get_sync_db() as session:
             template = MenuTemplate(
