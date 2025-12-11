@@ -3,10 +3,10 @@ from core.db import db
 from core.ai import ai_provide_psychological_support
 from datetime import datetime
 
-# States for inputs
-STATE_STEPS_INPUT = "steps_input"
-STATE_SLEEP_INPUT = "sleep_input"
-STATE_MOOD_REASON = "mood_reason_input"
+# States for inputs (Must be Integers to match User.onboarding_state)
+STATE_STEPS_INPUT = 101
+STATE_SLEEP_INPUT = 102
+STATE_MOOD_REASON = 103
 
 # --- Water Tracker ---
 def handle_water_tracker(message, bot, user_id=None):
