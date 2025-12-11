@@ -22,35 +22,54 @@ class Database:
             columns = [c['name'] for c in inspector.get_columns('users')]
             
             with sync_engine.connect() as conn:
+                # 1. Onboarding State
                 if 'onboarding_state' not in columns:
-                    print("Migrating: Adding onboarding_state to users...")
                     try:
                         conn.execute(text("ALTER TABLE users ADD COLUMN onboarding_state INTEGER DEFAULT 0"))
                         conn.commit()
+                        print("Migrated: onboarding_state")
                     except Exception as e:
                         print(f"Migration error (onboarding_state): {e}")
 
-                # Add AI columns
-                try:
-                    conn.execute(text("ALTER TABLE users ADD COLUMN ai_menu_count INTEGER DEFAULT 0"))
-                    conn.execute(text("ALTER TABLE users ADD COLUMN ai_workout_count INTEGER DEFAULT 0"))
-                    conn.execute(text("ALTER TABLE users ADD COLUMN ai_last_reset_month VARCHAR DEFAULT NULL"))
-                except Exception:
-                    pass
+                # 2. AI Limits
+                if 'ai_menu_count' not in columns:
+                    try:
+                        conn.execute(text("ALTER TABLE users ADD COLUMN ai_menu_count INTEGER DEFAULT 0"))
+                        conn.commit()
+                    except Exception as e: print(e)
+                if 'ai_workout_count' not in columns:
+                    try:
+                        conn.execute(text("ALTER TABLE users ADD COLUMN ai_workout_count INTEGER DEFAULT 0"))
+                        conn.commit()
+                    except Exception as e: print(e)
+                if 'ai_last_reset_month' not in columns:
+                    try:
+                        conn.execute(text("ALTER TABLE users ADD COLUMN ai_last_reset_month VARCHAR DEFAULT NULL"))
+                        conn.commit()
+                    except Exception as e: print(e)
 
-                # Add Tier columns
-                try:
-                    conn.execute(text("ALTER TABLE users ADD COLUMN plan_type VARCHAR DEFAULT 'free'"))
-                    conn.execute(text("ALTER TABLE users ADD COLUMN daily_stats TEXT DEFAULT '{}'"))
-                except Exception:
-                    pass
+                # 3. Tier System
+                if 'plan_type' not in columns:
+                    try:
+                        conn.execute(text("ALTER TABLE users ADD COLUMN plan_type VARCHAR DEFAULT 'free'"))
+                        conn.commit()
+                        print("Migrated: plan_type")
+                    except Exception as e:
+                        print(f"Migration error (plan_type): {e}")
                 
-                # Migrate Legacy Premium to VIP?
-                # Using SQL: UPDATE users SET plan_type='vip' WHERE is_premium=1 AND plan_type='free'
+                if 'daily_stats' not in columns:
+                    try:
+                        conn.execute(text("ALTER TABLE users ADD COLUMN daily_stats TEXT DEFAULT '{}'"))
+                        conn.commit()
+                        print("Migrated: daily_stats")
+                    except Exception as e:
+                        print(f"Migration error (daily_stats): {e}")
+                
+                # 4. Migrate Legacy Premium to VIP
                 try:
                     conn.execute(text("UPDATE users SET plan_type='vip' WHERE is_premium=1 AND plan_type='free'"))
                     conn.commit()
-                except Exception as e:
+                except Exception:
                     pass
                     
         except Exception as e:
