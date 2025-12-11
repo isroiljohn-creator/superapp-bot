@@ -439,9 +439,24 @@ def register_all_handlers(bot):
             if not shopping_list:
                 bot.answer_callback_query(call.id, "Shopping list bo'sh.")
                 return
+              # Debugging: Show internal state
+            menu = json.loads(link['menu_json'])
+            total_days = len(menu)
+            day2_preview = "Yo'q"
+            if total_days >= 2:
+                day2_preview = menu[1].get('breakfast', 'N/A')
                 
-            txt = "🛒 **XARIDLAR RO'YXATI**\n\n"
-            for item in shopping_list:
+            debug_msg = (
+                f"🛠 DEBUG SERVER:\n"
+                f"Jami kunlar: {total_days}\n"
+                f"Joriy kun (DB): {link['current_day_index']}\n"
+                f"2-kun bor? {day2_preview}\n"
+            )
+            
+            # shopping list text logic...
+            s_list = json.loads(link['shopping_list_json'])
+            txt = f"{debug_msg}\n🛒 **Xaridlar ro'yxati:**\n\n"
+            for item in s_list:
                 txt += f"▫️ {item}\n"
                 
             bot.send_message(call.from_user.id, txt, parse_mode="Markdown")
