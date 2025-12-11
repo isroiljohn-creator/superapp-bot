@@ -150,7 +150,7 @@ def generate_ai_meal(message, bot, user_id=None):
                 if data and 'menu' in data and isinstance(data['menu'], list):
                     item_count = len(data['menu'])
                     
-                    if item_count >= 25: 
+                    if item_count >= 7: 
                         break
                     else:
                         if attempt < max_retries - 1:
@@ -195,7 +195,7 @@ def generate_ai_meal(message, bot, user_id=None):
         db.create_user_menu_link(user_id, template_id)
         
         bot.delete_message(user_id, msg.message_id)
-        bot.send_message(user_id, "✅ Reja tayyor! Marhamat:")
+        bot.send_message(user_id, "✅ Haftalik reja tayyor! Marhamat:")
         
         new_link = db.get_user_menu_link(user_id)
         show_daily_menu(bot, user_id, new_link, override_day_idx=1)
@@ -236,7 +236,7 @@ def show_daily_menu(bot, user_id, link_data, override_day_idx=None):
         day_idx = real_day_idx
     else:
         day_idx = override_day_idx
-
+        
     # Load Menu
     menu_list = json.loads(link_data['menu_json'])
     total_days = len(menu_list)
@@ -293,12 +293,20 @@ def show_daily_menu(bot, user_id, link_data, override_day_idx=None):
         
         if day_idx < total_days:
             btns.append(InlineKeyboardButton("Keyingi ➡️", callback_data=f"menu_next_{day_idx}"))
+        elif day_idx == total_days: # End of current plan (e.g. Day 7)
+            # Show "Generate Next Week" button
+            # We reuse 'menu_regenerate' logic but with label "Keyingi hafta" 
+            # OR make a specific 'menu_next_week' callback. 
+            # Simplest for User: The "Regenerate" button handles new week.
+            # But let's add a BIG button for continuity.
+            btns.append(InlineKeyboardButton("Keyingi Hafta (Yangi) 🔄", callback_data="menu_regenerate"))
             
         markup.row(*btns)
         
         # Add Shopping List and Regenerate Buttons
         markup.row(InlineKeyboardButton("🛒 Xaridlar ro'yxati", callback_data="menu_shopping"))
-        markup.row(InlineKeyboardButton("🔄 Yangi Reja Tuzish (Reset)", callback_data="menu_regenerate"))
+        if day_idx < total_days:
+             markup.row(InlineKeyboardButton("🔄 Haftani Yangilash (Reset)", callback_data="menu_regenerate"))
         
         bot.send_message(user_id, txt, parse_mode="Markdown", reply_markup=markup)
 

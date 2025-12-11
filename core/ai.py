@@ -372,7 +372,7 @@ def ai_generate_monthly_menu_json(user_profile):
     # 1. System Prompt (Softened Role)
     system_prompt = """
 Siz O'zbekistonda yashovchi foydali yordamchisiz.
-Vazifangiz: 30 kunlik VARIATIV va FOYDALI taomlar ro'yxatini tuzish.
+Vazifangiz: 7 kunlik (HAFTALIK) VARIATIV va FOYDALI taomlar ro'yxatini tuzish.
 Har bir kun har xil bo'lishi SHART.
 
 Javob formati: FAQAT JSON.
@@ -393,8 +393,8 @@ Maqsad: {user_profile.get('goal')}
 {allergy_section}
 
 Talablar:
-- 30 kunlik reja (JSON array "menu" ichida). 
-- DIQQAT: "menu" array ichida roppa-rosa 30 ta element bo'lishi SHART. Kam bo'lmasin.
+- 7 kunlik reja (JSON array "menu" ichida). 
+- DIQQAT: "menu" array ichida roppa-rosa 7 ta element bo'lishi SHART. Kam bo'lmasin.
 - Har bir kun uchun: day, breakfast, lunch, dinner, snack.
 - O'zbek milliy va yevropa taomlarini aralashtirib yoz.
 - "shopping_list" da hamma kerakli mahsulotlar bo'lsin (faqat o'zbek tilida).
