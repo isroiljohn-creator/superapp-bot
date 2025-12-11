@@ -477,6 +477,33 @@ Talablar:
         try:
             import json
             data = json.loads(clean_json)
+            
+            # ----------------------------------------------------------------
+            # ROBUST CLEANING (Fix "tuzat" and other AI glitches)
+            # ----------------------------------------------------------------
+            if "menu" in data and isinstance(data["menu"], list):
+                for day in data["menu"]:
+                     for meal in ["breakfast", "lunch", "dinner", "snack"]:
+                         if meal in day and isinstance(day[meal], str):
+                             # Remove "tuzat" or similar command leaks
+                             clean_text = day[meal].replace(" tuzat", "").replace(" yoz", "")
+                             
+                             # Ensure capitalization
+                             if clean_text:
+                                 clean_text = clean_text[0].upper() + clean_text[1:]
+                                 
+                             day[meal] = clean_text
+
+            if "shopping_list" in data and isinstance(data["shopping_list"], list):
+                new_list = []
+                for item in data["shopping_list"]:
+                    if isinstance(item, str):
+                        clean_item = item.replace(" tuzat", "").strip()
+                        if clean_item:
+                             new_list.append(clean_item)
+                data["shopping_list"] = new_list
+            # ----------------------------------------------------------------
+
             return data
         except:
             import ast
