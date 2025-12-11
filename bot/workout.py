@@ -256,7 +256,7 @@ def show_daily_menu(bot, user_id, link_data, override_day_idx=None):
         date_str = current_view_date.strftime("%d.%m.%Y")
         
         # Build Text
-        txt = f"📅 **{day_idx}-KUN** ({weekday_name}, {date_str})\n\n"
+        txt = f"📅 **{day_idx}-KUN** (Jami {total_days} kun) | {weekday_name}, {date_str}\n\n"
         
         if clamped:
              txt += f"⚠️ **DIQQAT:** Sizning rejangiz jami {total_days} kunlik. Davom etish uchun yangi reja tuzing.\n\n"

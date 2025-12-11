@@ -788,7 +788,8 @@ class Database:
             ).first()
             
             if link:
-                new_day_index = max(1, min(30, new_day_index))
+                # new_day_index = max(1, min(30, new_day_index))
+                new_day_index = max(1, new_day_index) # Relaxed limit
                 link.current_day_index = new_day_index
                 session.commit()
                 return new_day_index

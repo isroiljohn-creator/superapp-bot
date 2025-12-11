@@ -414,12 +414,41 @@ Talablar:
         
         full_text_prompt = f"{system_prompt}\n\nUser Input: {user_prompt}"
         
+        # Define Schema for Strict Output
+        generation_config = {
+            "response_mime_type": "application/json",
+            "response_schema": {
+                "type": "object",
+                "properties": {
+                    "menu": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "day": {"type": "integer"},
+                                "breakfast": {"type": "string"},
+                                "lunch": {"type": "string"},
+                                "dinner": {"type": "string"},
+                                "snack": {"type": "string"}
+                            },
+                            "required": ["day", "breakfast", "lunch", "dinner", "snack"]
+                        }
+                    },
+                    "shopping_list": {
+                        "type": "array",
+                        "items": {"type": "string"}
+                    }
+                },
+                "required": ["menu", "shopping_list"]
+            }
+        }
+
         try:
             response = curr_model.generate_content(
                 full_text_prompt,
                 safety_settings=SAFETY_SETTINGS,
-                generation_config={"response_mime_type": "application/json"},
-                request_options={'timeout': 120} # Increased timeout for 30-day generation
+                generation_config=generation_config,
+                request_options={'timeout': 120} 
             )
         except Exception as api_error:
             # Catch API errors (429, 500, etc) and re-raise with clear message
