@@ -144,7 +144,7 @@ def generate_ai_meal(message, bot, user_id=None):
         for attempt in range(max_retries):
             try:
                 # print(f"DEBUG: Generation Attempt {attempt+1}/{max_retries}")
-                bot.edit_message_text(f"🤖 AI 30 kunlik menyu tuzmoqda ({attempt+1}-urinish)...", user_id, msg.message_id)
+                bot.edit_message_text(f"🤖 AI 7 kunlik menyu tuzmoqda ({attempt+1}-urinish)...", user_id, msg.message_id)
                 data = ai_generate_monthly_menu_json(user) # Should pass actual user dict!
                 
                 if data and 'menu' in data and isinstance(data['menu'], list):
