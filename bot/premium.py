@@ -36,11 +36,11 @@ def handle_premium_menu(message, bot, user_id=None):
     yasha_points = user.get('yasha_points', user.get('points', 0))
 
     text = (
-        "💎 **Obuna bo'limi**\n\n"
+        "💳 **Obuna bo'limi**\n"
         f"- Tarifingiz: **{plan_type}**\n"
         f"- Tugash sanasi: **{until_date}**\n"
-        f"- Yasha coinlaringiz: **{yasha_points}**\n\n\n"
-        "🌟  **Premium va VIP tarifi imkoniyatlari:**\n"
+        f"- Yasha coinlaringiz: **{yasha_points}**\n\n"
+        "🌟 **Premium va VIP tarifi imkoniyatlari:**\n"
         "- Cheksiz AI maslahatlari\n"
         "- Foto orqali kaloriya aniqlash\n"
         "- Chellenjlarda 2x coinlar\n"
