@@ -94,7 +94,7 @@ class Database:
             
             plan = user.plan_type or 'free'
             
-            # 1. Menu/Workout Generation Limit
+            # 1. Menu Generation Limit
             if feature_type == 'menu_gen':
                 current_month = datetime.now().strftime("%Y-%m")
                 
@@ -105,7 +105,7 @@ class Database:
                     user.ai_last_reset_month = current_month
                     session.commit()
                 
-                usage = user.ai_menu_count + user.ai_workout_count
+                usage = user.ai_menu_count
                 
                 # Limits
                 if plan == 'vip': limit = 4
@@ -118,11 +118,33 @@ class Database:
                     if plan == 'premium':
                         msg += "\n\nPremium tarifida oyiga 1 marta AI menyu olish mumkin. Ko'proq imkoniyat uchun VIP ga o'ting."
                     elif plan == 'trial':
-                        msg += "\n\nSinov davri uchun limit tugadi. Davom etish uchun tarif tanlang."
+                         msg += "\n\nSinov davri uchun Menyular limiti (1 ta) tugadi. Davom etish uchun tarif tanlang."
                     elif plan == 'free':
-                        msg = "🔒 Bu funksiya faqat Premium/VIP da mavjud."
+                         msg = "🔒 Bu funksiya faqat Premium/VIP da mavjud."
                     return False, msg, f"{usage}/{limit}"
                     
+                return True, "OK", f"{usage}/{limit}"
+
+            # 2. Workout Generation Limit
+            elif feature_type == 'workout_gen':
+                usage = user.ai_workout_count
+                
+                # Limits (Same structure as menu)
+                if plan == 'vip': limit = 4
+                elif plan == 'premium': limit = 1
+                elif plan == 'trial': limit = 1
+                else: limit = 0
+                
+                if usage >= limit:
+                    msg = "⚠️ Sizning limitingiz tugadi."
+                    if plan == 'premium':
+                        msg += "\n\nPremium tarifida oyiga 1 marta AI mashq rejasi olish mumkin."
+                    elif plan == 'trial':
+                         msg += "\n\nSinov davri uchun Mashqlar limiti (1 ta) tugadi."
+                    elif plan == 'free':
+                         msg = "🔒 Bu funksiya faqat Premium/VIP da mavjud."
+                    return False, msg, f"{usage}/{limit}"
+
                 return True, "OK", f"{usage}/{limit}"
 
             # 2. Calorie / Chat (Daily Limits)
@@ -167,6 +189,8 @@ class Database:
             
             if feature_type == 'menu_gen':
                 user.ai_menu_count = (user.ai_menu_count or 0) + 1
+            elif feature_type == 'workout_gen':
+                user.ai_workout_count = (user.ai_workout_count or 0) + 1
             
             elif feature_type in ['calorie', 'chat']:
                 import json
@@ -194,11 +218,13 @@ class Database:
 
     # Legacy Wrapper to support existing calls, but warning: deprecated
     def check_ai_gen_limit(self, user_id, type_key='menu'):
-         allowed, msg, _ = self.check_tiered_limit(user_id, 'menu_gen')
+         key = 'menu_gen' if type_key == 'menu' else 'workout_gen'
+         allowed, msg, _ = self.check_tiered_limit(user_id, key)
          return allowed, msg
 
     def increment_ai_usage(self, user_id, type_key='menu'):
-        self.increment_tiered_usage(user_id, 'menu_gen')
+        key = 'menu_gen' if type_key == 'menu' else 'workout_gen'
+        self.increment_tiered_usage(user_id, key)
 
 
 
