@@ -32,8 +32,11 @@ def handle_premium_menu(message, bot, user_id=None):
     plan_type = user.get('plan_type', 'free').capitalize()
     if plan_type == 'Vip': plan_type = 'VIP'
     
-    # Use yasha_points if available, else points
-    yasha_points = user.get('yasha_points', user.get('points', 0))
+    # Use yasha_points if available and non-zero, else points
+    # This ensures backward compatibility until migration is complete
+    raw_yasha = user.get('yasha_points', 0)
+    raw_points = user.get('points', 0)
+    yasha_points = raw_yasha if raw_yasha > 0 else raw_points
 
     text = (
         "💳 <b>Obuna bo'limi</b>\n"

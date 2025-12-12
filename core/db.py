@@ -780,7 +780,10 @@ class Database:
                 User.telegram_id == user_id, 
                 User.points >= cost
             ).update(
-                {"points": User.points - cost}, 
+                {
+                    "points": User.points - cost,
+                    "yasha_points": User.yasha_points - cost
+                }, 
                 synchronize_session=False
             )
             
