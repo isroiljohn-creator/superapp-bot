@@ -188,9 +188,15 @@ class Database:
             if not user: return
             
             if feature_type == 'menu_gen':
-                user.ai_menu_count = (user.ai_menu_count or 0) + 1
+                session.query(User).filter(User.id == pk).update(
+                    {"ai_menu_count": User.ai_menu_count + 1},
+                    synchronize_session=False
+                )
             elif feature_type == 'workout_gen':
-                user.ai_workout_count = (user.ai_workout_count or 0) + 1
+                session.query(User).filter(User.id == pk).update(
+                    {"ai_workout_count": User.ai_workout_count + 1},
+                    synchronize_session=False
+                )
             
             elif feature_type in ['calorie', 'chat']:
                 import json

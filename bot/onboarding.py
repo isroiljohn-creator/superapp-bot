@@ -186,6 +186,10 @@ def process_gender(call, bot):
         return
     
     gender = call.data.replace("gender_", "")
+    if gender not in ["male", "female"]:
+        bot.answer_callback_query(call.id, "❌ Noto'g'ri qiymat.")
+        return
+
     manager.update_data(user_id, 'gender', gender)
     manager.set_state(user_id, STATE_HEIGHT)
     print(f"DEBUG: State updated to STATE_HEIGHT for {user_id}")

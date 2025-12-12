@@ -74,7 +74,7 @@ def handle_rewards(message, bot, user_id=None):
     if not user:
         bot.send_message(message.chat.id, "⚠️ Foydalanuvchi topilmadi. Iltimos /start ni bosing.")
         return
-    points = user.get('points', 0) # Use 'points' not 'yasha_points' as per DB schema
+    points = user.get('yasha_points', 0)
     
     breakdown = db.get_todays_points_breakdown(user_id)
     
