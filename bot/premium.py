@@ -56,20 +56,18 @@ def handle_premium_menu(message, bot, user_id=None):
 
 def handle_premium_info(message, bot):
     text = (
-        "<b>💎 PREMIUM — 49 000 so‘m / oy</b>\n"
-        "Sog‘lom odatlarni yo‘lga qo‘yish va rejali ishlash uchun ideal start.\n"
+        "<b>💎 PREMIUM — 49 000 so‘m / oy</b>\n\n"
         "✅ AI Menyu — oyiga 1 marta (7 kunlik)\n"
         "✅ AI Mashqlar rejasi — oyiga 1 marta\n"
         "⚠️ Kaloriya tahlili — kuniga 3 marta\n"
         "⚠️ AI Chat (savol-javob) — kuniga 3 marta\n\n"
         
-        "<b>👑 VIP — 97 000 so‘m / oy</b>\n"
-        "Natija tezroq bo‘lishini xohlaysizmi? Cheklovsiz rejim.\n"
-        "🔥 AI Menyu — oyiga 4 marta (28 kunlik)\n"
-        "🔥 Cheksiz kaloriya tahlili\n"
-        "🔥 Cheksiz AI Chat\n"
-        "🔥 Cheksiz retseptlar\n\n"
-        "💳 To‘lov: Click • Payme • Uzum"
+        "<b>👑 VIP — 97 000 so‘m / oy</b>\n\n"
+        "✅ AI Menyu — oyiga 4 marta (28 kunlik)\n"
+        "✅ Cheksiz kaloriya tahlili\n"
+        "✅ Cheksiz AI Chat\n"
+        "✅ Cheksiz retseptlar\n\n"
+        "<b>O'zingizga qulay tarifni tanlang👇🏻</b>"
     )
     markup = types.InlineKeyboardMarkup()
     markup.add(types.InlineKeyboardButton("💎 PREMIUM (49.000)", callback_data="select_premium"))
