@@ -68,6 +68,7 @@ def handle_premium_info(message, bot):
     markup = types.InlineKeyboardMarkup()
     markup.add(types.InlineKeyboardButton("💎 PREMIUM (49.000)", callback_data="select_premium"))
     markup.add(types.InlineKeyboardButton("👑 VIP (97.000)", callback_data="select_vip"))
+    markup.add(types.InlineKeyboardButton("📄 Ommaviy oferta", callback_data="premium_offer"))
     
     bot.send_message(message.chat.id, text, reply_markup=markup, parse_mode="HTML")
 
@@ -111,8 +112,16 @@ def handle_premium_info_detailed(message, bot):
     markup = types.InlineKeyboardMarkup()
     markup.add(types.InlineKeyboardButton("💎 PREMIUM (49.000)", callback_data="select_premium"))
     markup.add(types.InlineKeyboardButton("👑 VIP (97.000)", callback_data="select_vip"))
+    markup.add(types.InlineKeyboardButton("📄 Ommaviy oferta", callback_data="premium_offer"))
     
     bot.send_message(message.chat.id, text, reply_markup=markup, parse_mode="HTML")
+
+def handle_offer_download(message, bot):
+    try:
+        with open("assets/Yasha Bot offerta.pdf", "rb") as doc:
+            bot.send_document(message.chat.id, doc, caption="📄 **Ommaviy oferta**", parse_mode="Markdown")
+    except FileNotFoundError:
+        bot.send_message(message.chat.id, "⚠️ Hozircha fayl yuklanmagan.")
 
 def handle_premium_buy(message, bot):
     # This invokes the Simplified version (Original handle_premium_info)

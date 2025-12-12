@@ -345,6 +345,7 @@ def register_all_handlers(bot):
         if action == 'buy': premium.handle_premium_buy(call.message, bot)
         elif action == 'info': premium.handle_premium_info_detailed(call.message, bot)
         elif action == 'coins': gamification.handle_points_menu(call.message, bot, user_id=call.from_user.id)
+        elif action == 'offer': premium.handle_offer_download(call.message, bot)
         bot.answer_callback_query(call.id)
 
     # General utility handlers
