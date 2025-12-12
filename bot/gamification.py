@@ -13,12 +13,13 @@ def handle_points_menu(message, bot, user_id=None):
     points = user.get('yasha_points', 0)
     
     text = (
-        f"🟡 <b>Yasha Coin</b>\n\n"
-        f"Sizning coinlaringiz: <b>{points}</b> 🟡\n\n"
+        f"<b>🟡 Yasha coin</b>\n\n"
+        f"Sizning coinlaringiz: {points}\n\n"
         "Coinlarni qanday ishlash mumkin?\n"
-        "• Odatlar (suv, uyqu) → +1-5 coin\n"
-        "• Do'stlarni taklif qilish → +1 coin\n"
-        "• Chellenjlar → +50 coingacha"
+        "- Odatlar (suv, uyqu) → +1-5 coin\n"
+        "- Do'stlarni taklif qilish → +1 coin\n"
+        "- Chellenjlar → +50 coingacha\n\n"
+        "<b>Keyingi qadamni tanlang👇🏻</b>"
     )
     
     markup = points_inline_keyboard()
