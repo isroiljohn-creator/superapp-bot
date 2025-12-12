@@ -8,7 +8,7 @@ def handle_challenges_menu(message, bot):
         bot.send_photo(
             message.chat.id,
             photo,
-            caption="🔥 **Chellenjlar**\n\nQatnashing va yuting!",
+            caption="🔥 **Chellenjlar bo'limi**\n\nChellendjlarda qatnashing YASHA coinlar to'plang va ularni obunaga almashtiring\n\nLeaderboard menyusida boshqa foydalanuvchilar bilan bellashing👇🏻",
             reply_markup=challenges_inline_keyboard(),
             parse_mode="Markdown"
         )
