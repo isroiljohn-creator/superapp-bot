@@ -28,7 +28,7 @@ def handle_water_tracker(message, bot, user_id=None):
         f"💧 **Suv Balansi**\n\n"
         f"Bugungi maqsadingiz: 2500 ml\n"
         f"Ichildi: {current_ml} ml\n"
-        f"Joriy streak: {streak} kun 🔥\n\n"
+        f"🔥 Uzluksiz: {streak} kun\n\n"
         f"Suv ichdingizmi? Belgilang:",
         reply_markup=markup,
         parse_mode="Markdown"
@@ -68,7 +68,7 @@ def process_water_callback(call, bot):
         f"💧 **Suv Balansi**\n\n"
         f"Bugungi maqsadingiz: 2500 ml\n"
         f"Ichildi: {new_ml} ml\n"
-        f"Joriy streak: {streak} kun 🔥\n\n"
+        f"🔥 Uzluksiz: {streak} kun\n\n"
         f"Suv ichdingizmi? Belgilang:",
         call.message.chat.id,
         call.message.message_id,
