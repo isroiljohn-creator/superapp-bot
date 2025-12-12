@@ -266,7 +266,7 @@ def register_all_handlers(bot):
             challenges.complete_challenge(call, bot, 10)
         elif action == 'weekly': challenges.handle_weekly_challenge(call.message, bot)
         elif action == 'monthly': challenges.handle_monthly_challenge(call.message, bot)
-        elif action == 'friends': challenges.handle_friends_challenge(call.message, bot)
+        elif action == 'friends': challenges.handle_friends_challenge(call.message, bot, user_id=call.from_user.id)
         bot.answer_callback_query(call.id)
 
     # Calorie Callbacks

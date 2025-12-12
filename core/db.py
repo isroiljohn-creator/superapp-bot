@@ -355,6 +355,21 @@ class Database:
             if not pk: return 0
             return session.query(User).filter(User.referrer_id == pk).count()
 
+    def get_friends_leaderboard(self, user_id, limit=10):
+        """Get leaderboard of friends (referrals) + self"""
+        with get_sync_db() as session:
+            me = session.query(User).filter(User.telegram_id == user_id).first()
+            if not me: return []
+            
+            # Friends: People I referred OR Me
+            friends = session.query(User.full_name, User.points)\
+                .filter(or_(User.referrer_id == me.id, User.id == me.id))\
+                .order_by(desc(User.points))\
+                .limit(limit)\
+                .all()
+            
+            return friends
+
     def set_premium(self, user_id, days):
         with get_sync_db() as session:
             user = session.query(User).filter(User.telegram_id == user_id).first()
