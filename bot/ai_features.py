@@ -10,7 +10,7 @@ def handle_ai_tools_menu(message, bot):
         bot.send_photo(
             message.chat.id,
             photo,
-            caption="🎯 <b>Shaxsiy Murabbiy</b>\n\nQanday yordam bera olaman?",
+            caption="<b>🤖 AI shaxsiy murabbiy</b>\n\nMaqsadingizga tezroq yetishingizga yordam beraman.\nTayyormisiz? — Keyingi qadamni tanlang👇🏻",
             reply_markup=ai_inline_keyboard(),
             parse_mode="HTML"
         )
