@@ -71,8 +71,51 @@ def handle_premium_info(message, bot):
     
     bot.send_message(message.chat.id, text, reply_markup=markup, parse_mode="HTML")
 
+def handle_premium_info_detailed(message, bot):
+    text = (
+        "Bu yerda YASHA sizga qanchalik kuchli yordam berishini tanlaysiz. <b>Har bir tarif — boshqa daraja.</b>\n\n"
+        "<b>💎 PREMIUM — 49 000 so‘m / oy</b>\n\n"
+        "👉 Boshlash va tartibga tushish uchun ideal\n\n"
+        "Agar siz sog‘lom hayotni asta-sekin boshlamoqchi bo‘lsangiz — shu tarif yetarli.\n\n"
+        "<b>Nimalar kiradi:</b>\n"
+        "\t- ✅ AI Menyu — oyiga 1 marta (7 kunlik)\n"
+        "→ Vazningiz va maqsadingizga mos ovqatlanish rejasi\n"
+        "\t- ✅ AI Mashqlar — oyiga 1 marta\n"
+        "→ Uyda yoki zalda bajariladigan mashqlar\n"
+        "\t- ⚠️ Kaloriya tahlili — kuniga 3 marta\n"
+        "→ Nima yeyayotganingiz nazorat ostida\n"
+        "\t- ⚠️ AI Chat — kuniga 3 savol\n"
+        "→ Savollar cheklangan\n\n"
+        "<b>🔎 Kimlar uchun?</b>\n"
+        "Yangi boshlayotganlar va rejaga kirib olishni xohlaydiganlar.\n\n"
+        
+        "<b>👑 VIP — 97 000 so‘m / oy</b>\n\n"
+        "👉 Natija, tezlik va to‘liq nazorat uchun\n\n"
+        "Bu tarif — o‘zingizga real sarmoya. Hech qanday cheklovsiz.\n\n"
+        "<b>Nimalar kiradi:</b>\n"
+        "\t- 🔥 AI Menyu — oyiga 4 marta (28 kunlik)\n"
+        "→ Deyarli har hafta yangilanadi\n"
+        "\t- 🔥 Cheksiz kaloriya tahlili\n"
+        "→ Istagancha surat yuboring\n"
+        "\t- 🔥 Cheksiz AI Chat\n"
+        "→ Savolingiz tugamaydi\n"
+        "\t- 🔥 Cheksiz AI Retseptlar\n"
+        "→ Uyda bor mahsulotlardan mos ovqat\n\n"
+        "<b>🚀 Kimlar uchun?</b>\n"
+        "Tez natija xohlaydiganlar, ozish yoki formaga kirishni jiddiy olganlar.\n\n"
+        "⚖️ Qisqa taqqoslash\n"
+        "\t- <b>PREMIUM</b> — boshlash uchun\n"
+        "\t- <b>VIP</b> — maksimal natija uchun\n\n"
+        "<b>💳 To‘lov turlari:</b> Click · Payme · Uzum"
+    )
+    markup = types.InlineKeyboardMarkup()
+    markup.add(types.InlineKeyboardButton("💎 PREMIUM (49.000)", callback_data="select_premium"))
+    markup.add(types.InlineKeyboardButton("👑 VIP (97.000)", callback_data="select_vip"))
+    
+    bot.send_message(message.chat.id, text, reply_markup=markup, parse_mode="HTML")
+
 def handle_premium_buy(message, bot):
-    # Redirect to info since it now has the direct buy buttons
+    # This invokes the Simplified version (Original handle_premium_info)
     handle_premium_info(message, bot)
 from core.config import ADMIN_IDS, PRICE_1_MONTH, PRICE_3_MONTHS
 
