@@ -9,8 +9,8 @@ def phone_request_keyboard():
 def gender_keyboard():
     markup = InlineKeyboardMarkup()
     markup.row(
-        InlineKeyboardButton("Erkak 👨", callback_data="gender_male"),
-        InlineKeyboardButton("Ayol 👩", callback_data="gender_female")
+        InlineKeyboardButton("Erkak 🧑🏻‍🦱", callback_data="gender_male"),
+        InlineKeyboardButton("Ayol 👩🏻", callback_data="gender_female")
     )
     return markup
 
@@ -69,10 +69,10 @@ def plan_inline_keyboard():
 def habits_inline_keyboard():
     markup = InlineKeyboardMarkup(row_width=2)
     markup.add(
-        InlineKeyboardButton("💧 Suv ichish", callback_data="habit_water"),
-        InlineKeyboardButton("😴 Uyqu", callback_data="habit_sleep"),
-        InlineKeyboardButton("🙂 Kayfiyat", callback_data="habit_mood"),
-        InlineKeyboardButton("🚶 Qadamlar", callback_data="habit_steps"),
+        InlineKeyboardButton("💧 Suv trekeri", callback_data="habit_water"),
+        InlineKeyboardButton("😴 Uyqu trekeri", callback_data="habit_sleep"),
+        InlineKeyboardButton("🙂 Kayfiyat trekeri", callback_data="habit_mood"),
+        InlineKeyboardButton("🚶🏻 Qadamlar", callback_data="habit_steps"),
         InlineKeyboardButton("📊 Odatlar statistikasi", callback_data="habit_stats")
     )
     return markup
@@ -111,7 +111,7 @@ def challenges_inline_keyboard():
 def profile_inline_keyboard():
     markup = InlineKeyboardMarkup(row_width=2)
     markup.add(
-        InlineKeyboardButton("✏️ Ma’lumotlarni tahrirlash", callback_data="profile_edit"),
+        InlineKeyboardButton("✏️ Anketani yangilash", callback_data="profile_edit"),
         InlineKeyboardButton("📊 Sog‘liq statistikasi", callback_data="profile_stats"),
         InlineKeyboardButton("🎯 Maqsadni o‘zgartirish", callback_data="profile_change_goal")
     )
@@ -120,7 +120,7 @@ def profile_inline_keyboard():
 def premium_inline_keyboard():
     markup = InlineKeyboardMarkup()
     # Big button for Buy Premium
-    markup.row(InlineKeyboardButton("💳 Premium sotib olish", callback_data="premium_buy"))
+    markup.row(InlineKeyboardButton("💳 Tarifni almashtirish", callback_data="premium_buy"))
     # Two buttons in one row: Tariffs and Yasha Coin
     markup.row(
         InlineKeyboardButton("ℹ️ Tariflar", callback_data="premium_info"),
