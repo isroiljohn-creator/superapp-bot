@@ -256,6 +256,8 @@ def register_handlers(bot):
                 name = user['full_name']
                 username = user['username']
                 phone = user['phone'] or "N/A"
+                goal = user['goal'] or "N/A"
+                
                 # Goal Translation
                 goal_map = {
                     "weight_loss": "Ozish",
