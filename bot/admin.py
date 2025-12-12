@@ -384,15 +384,27 @@ def register_handlers(bot):
             return
             
         markup = types.InlineKeyboardMarkup()
-        markup.add(types.InlineKeyboardButton("👨 Erkaklar", callback_data="seg_gender_Erkak"))
-        markup.add(types.InlineKeyboardButton("👩 Ayollar", callback_data="seg_gender_Ayol"))
-        markup.add(types.InlineKeyboardButton("⚖️ Ozish", callback_data="seg_goal_Ozish"))
-        markup.add(types.InlineKeyboardButton("💪 Massa", callback_data="seg_goal_Massa"))
-        markup.add(types.InlineKeyboardButton("💎 Premium", callback_data="seg_premium_True"))
-        markup.add(types.InlineKeyboardButton("👤 Oddiy", callback_data="seg_premium_False"))
-        markup.add(types.InlineKeyboardButton("🪑 Kam harakat", callback_data="seg_activity_sedentary"))
-        markup.add(types.InlineKeyboardButton("🏃 O'rtacha", callback_data="seg_activity_moderate"))
-        markup.add(types.InlineKeyboardButton("🔥 Atlet", callback_data="seg_activity_athlete"))
+        # Gender
+        markup.row(
+            types.InlineKeyboardButton("👨 Erkaklar", callback_data="seg_gender_male"),
+            types.InlineKeyboardButton("👩 Ayollar", callback_data="seg_gender_female")
+        )
+        # Plan Status
+        markup.row(
+            types.InlineKeyboardButton("💎 Premium", callback_data="seg_premium_True"),
+            types.InlineKeyboardButton("👤 Bepul", callback_data="seg_premium_False")
+        )
+        # Goals
+        markup.add(types.InlineKeyboardButton("⚖️ Ozish", callback_data="seg_goal_weight_loss"))
+        markup.add(types.InlineKeyboardButton("💪 Mushak yig'ish", callback_data="seg_goal_muscle_gain"))
+        markup.add(types.InlineKeyboardButton("❤️ Sog'lom bo'lish", callback_data="seg_goal_health"))
+        
+        # Activity
+        markup.row(
+            types.InlineKeyboardButton("🪑 Kam harakat", callback_data="seg_activity_sedentary"),
+            types.InlineKeyboardButton("🏃 O'rtacha", callback_data="seg_activity_moderate")
+        )
+        markup.add(types.InlineKeyboardButton("🔥 Faol / Atlet", callback_data="seg_activity_athlete"))
         
         bot.send_message(message.chat.id, "Segmentni tanlang:", reply_markup=markup)
 
@@ -447,13 +459,9 @@ def process_broadcast(message, bot, segment):
         else:
             key, value = segment[0], segment[1]
             if key == "gender":
-                # Map Uzbek label to DB value
-                db_value = "male" if value == "Erkak" else "female"
-                users = db.get_users_by_segment(gender=db_value)
+                users = db.get_users_by_segment(gender=value)
             elif key == "goal":
-                # Map Uzbek label to DB value
-                db_value = "weight_loss" if value == "Ozish" else ("muscle_gain" if value == "Massa" else value)
-                users = db.get_users_by_segment(goal=db_value)
+                users = db.get_users_by_segment(goal=value)
             elif key == "premium":
                 is_prem = (value == "True")
                 users = db.get_users_by_segment(is_premium=is_prem)
