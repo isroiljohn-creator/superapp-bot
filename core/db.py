@@ -327,7 +327,10 @@ class Database:
         with get_sync_db() as session:
             # Atomic update
             session.query(User).filter(User.telegram_id == user_id).update(
-                {"points": User.points + points},
+                {
+                    "points": User.points + points,
+                    "yasha_points": User.yasha_points + points
+                },
                 synchronize_session=False
             )
 
@@ -655,6 +658,17 @@ class Database:
                     )
                     session.add(user)
                     session.flush() # Ensure user is attached
+                else:
+                    # User exists (created by ensure_user_exists), but might check if referrer needs to be set
+                    if referrer_id and not user.referrer_id:
+                         ref_user = session.query(User).filter(User.telegram_id == referrer_id).first()
+                         if ref_user and ref_user.id != user.id:
+                             user.referrer_id = ref_user.id
+                             # Ensure referral code is set if missing
+                    
+                    if not user.referral_code:
+                        user.referral_code = f"r{telegram_id}"
+
                 
                 # 2. Update Profile Data
                 for key, value in profile_data.items():

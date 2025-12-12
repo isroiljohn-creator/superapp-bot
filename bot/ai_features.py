@@ -68,6 +68,12 @@ def process_ai_qa(message, bot):
         from core.ai import ask_gemini
         response = ask_gemini(system_prompt, question)
         
+        # [SAFE LOGGING ADDITION]
+        try:
+            from core.ai_usage_logger import log_ai_usage
+            log_ai_usage(bot, user_id, "chat", 150)
+        except: pass
+        
         # Edit status message with response
         try:
             bot.edit_message_text(response, user_id, status_msg.message_id, parse_mode="HTML")
@@ -168,6 +174,12 @@ def process_recipe_input(message, bot):
     try:
         from core.ai import ask_gemini
         response = ask_gemini(system_prompt, ingredients)
+        
+        # [SAFE LOGGING ADDITION]
+        try:
+            from core.ai_usage_logger import log_ai_usage
+            log_ai_usage(bot, message.from_user.id, "recipe", 300)
+        except: pass
         
         try:
             bot.edit_message_text(response, message.chat.id, status_msg.message_id, parse_mode="HTML")

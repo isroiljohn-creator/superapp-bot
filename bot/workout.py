@@ -97,6 +97,12 @@ def generate_ai_workout(message, bot, user_id=None):
     msg = bot.send_message(user_id, "⏳ Siz uchun 7 kunlik mashg'ulotlar rejasini tuzyapman... Biroz kuting.")
         
     try:
+        # [SAFE LOGGING ADDITION]
+        try:
+            from core.ai_usage_logger import log_ai_usage
+            log_ai_usage(bot, user_id, "workout", 2500)
+        except: pass
+
         # Retry Loop for Robustness
         max_retries = 3
         data = None
@@ -297,6 +303,12 @@ def generate_ai_meal(message, bot, user_id=None):
     # If no template, generate new
     # If no template, generate new
     msg = bot.send_message(user_id, "🚀 **Jarayon boshlandi...**\n\n🥗 Siz uchun 7 kunlik ovqatlanish menyusini tuzyapman...", parse_mode="Markdown")
+        
+    # [SAFE LOGGING ADDITION]
+    try:
+        from core.ai_usage_logger import log_ai_usage
+        log_ai_usage(bot, user_id, "menu", 2000)
+    except: pass
         
     try:
         # Retry Loop for Robustness (Force 30 days)

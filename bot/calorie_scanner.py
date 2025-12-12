@@ -106,6 +106,12 @@ def handle_calorie_photo(message, bot):
     status_msg = bot.send_message(user_id, "🔍 <b>Rasm tahlil qilinmoqda...</b>\n\nBiroz kuting, AI hisoblamoqda...", parse_mode="HTML")
     
     try:
+        # [SAFE LOGGING ADDITION]
+        try:
+            from core.ai_usage_logger import log_ai_usage
+            log_ai_usage(bot, user_id, "scan", 1000)
+        except: pass
+
         file_info = bot.get_file(message.photo[-1].file_id)
         downloaded_file = bot.download_file(file_info.file_path)
         
@@ -130,6 +136,12 @@ def handle_calorie_text(message, bot):
     status_msg = bot.send_message(user_id, "🧮 <b>Hisoblanmoqda...</b>\n\nAI ma'lumotlarni qayta ishlamoqda...", parse_mode="HTML")
     
     try:
+        # [SAFE LOGGING ADDITION]
+        try:
+            from core.ai_usage_logger import log_ai_usage
+            log_ai_usage(bot, user_id, "scan", 500)
+        except: pass
+
         result = analyze_food_text(message.text)
         
         if result:

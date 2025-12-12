@@ -49,7 +49,7 @@ def handle_referral_link(message, bot, user_id=None):
     
     text = (
         "🔗 <b>Sizning referal havolangiz:</b>\n\n"
-        f"`{link}`\n\n"
+        f"{link}\n\n"
         "Bu havolani do'stlaringizga yuboring. Ular ro'yxatdan o'tsa, sizga +1 coin beriladi! 🟡"
     )
     
