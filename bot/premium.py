@@ -118,7 +118,7 @@ def handle_premium_info_detailed(message, bot):
 
 def handle_offer_download(message, bot):
     try:
-        with open("assets/Yasha Bot offerta.pdf", "rb") as doc:
+        with open("assets/offerta.pdf", "rb") as doc:
             bot.send_document(message.chat.id, doc, caption="📄 **Ommaviy oferta**", parse_mode="Markdown")
     except FileNotFoundError:
         bot.send_message(message.chat.id, "⚠️ Hozircha fayl yuklanmagan.")

@@ -68,7 +68,7 @@ text = text.replace("‘", "'").replace("’", "'")
 
 try:
     pdf.multi_cell(0, 10, text)
-    pdf.output("assets/Yasha Bot offerta.pdf")
+    pdf.output("assets/offerta.pdf")
     print("PDF Generated Successfully")
 except Exception as e:
     print(f"Error: {e}")
