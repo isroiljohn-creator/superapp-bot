@@ -73,8 +73,8 @@ def handle_premium_info(message, bot):
         "Qaysi tarifni tanlaysiz?👇🏻"
     )
     markup = types.InlineKeyboardMarkup()
-    markup.add(types.InlineKeyboardButton("⭐️ Premium olish (49k)", callback_data="select_premium"))
-    markup.add(types.InlineKeyboardButton("👑 VIP olish (97k)", callback_data="select_vip"))
+    markup.add(types.InlineKeyboardButton("💎 PREMIUM (49.000)", callback_data="select_premium"))
+    markup.add(types.InlineKeyboardButton("👑 VIP (97.000)", callback_data="select_vip"))
     
     bot.send_message(message.chat.id, text, reply_markup=markup, parse_mode="HTML")
 
