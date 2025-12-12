@@ -40,11 +40,7 @@ def handle_premium_menu(message, bot, user_id=None):
         f"- Tarifingiz: {plan_type}\n"
         f"- Tugash sanasi: {until_date}\n"
         f"- Yasha coinlaringiz: {yasha_points}\n\n"
-        "🌟 <b>Premium va VIP tarifi imkoniyatlari:</b>\n"
-        "- Cheksiz AI maslahatlari\n"
-        "- Foto orqali kaloriya aniqlash\n"
-        "- Chellenjlarda 2x coinlar\n"
-        "- Shaxsiy AI murabbiy"
+        "👇 <b>Quyidagi menyudan kerakli bo'limni tanlang:</b>"
     )
     
     markup = premium_inline_keyboard()
