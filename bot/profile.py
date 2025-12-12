@@ -54,17 +54,18 @@ def handle_profile(message, bot, user_id=None):
         display_activity = ACTIVITY_MAP.get(activity_raw, activity_raw)
 
         # Format profile text
+        # Format profile text
         text = (
-            f"👤 **Sizning Profilingiz**\n\n"
-            f"Ism: {esc(display_name)}\n"
-            f"Yosh: {esc(user.get('age', '-'))} yosh\n"
-            f"Jins: {esc(display_gender)}\n"
-            f"Bo'y: {esc(user.get('height', '-'))} sm\n"
-            f"Vazn: {esc(user.get('weight', '-'))} kg\n"
-            f"Faollik: {esc(display_activity)}\n"
-            f"Maqsad: {esc(display_goal)}\n"
-            f"Allergiya: {esc(user.get('allergies') or 'Yo‘q')}\n\n"
-            f"👇 Quyidagi menyudan tanlang:"
+            f"👤 **Sizning profilingiz**\n\n"
+            f"- Ism: {esc(display_name)}\n"
+            f"- Yosh: {esc(user.get('age', '-'))} yosh\n"
+            f"- Jins: {esc(display_gender)}\n"
+            f"- Bo'y: {esc(user.get('height', '-'))} sm\n"
+            f"- Vazn: {esc(user.get('weight', '-'))} kg\n"
+            f"- Faollik: {esc(display_activity)}\n"
+            f"- Maqsad: {esc(display_goal)}\n"
+            f"- Allergiya: {esc(user.get('allergies') or 'Yo‘q')}\n\n"
+            f"**Keyingi qadamni tanlang👇🏻**"
         )
         
         with open("assets/profil.png", "rb") as photo:
