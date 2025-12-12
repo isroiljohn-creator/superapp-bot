@@ -256,8 +256,19 @@ def register_handlers(bot):
                 name = user['full_name']
                 username = user['username']
                 phone = user['phone'] or "N/A"
-                goal = user['goal'] or "N/A"
+                # Goal Translation
+                goal_map = {
+                    "weight_loss": "Ozish",
+                    "muscle_gain": "Mushak",
+                    "health": "Sog'lom",
+                    "None": "-",
+                    None: "-"
+                }
                 
+                # Clean up data
+                if goal == "N/A": goal = "-"
+                formatted_goal = goal_map.get(goal, goal)
+
                 # Check premium
                 is_prem = ""
                 if user.get('premium_until'):
@@ -270,7 +281,9 @@ def register_handlers(bot):
                 import html
                 safe_name = html.escape(str(display_name))
                 
-                text += f"🆔 <code>{uid}</code> | {safe_name} | {goal} {is_prem}\n"
+                # Simplified format without excessive | and ID icon clutter if preferred, but user liked ID.
+                # Just tidying up the English terms.
+                text += f"🆔 <code>{uid}</code> | {safe_name} | {formatted_goal} {is_prem}\n"
             
             # Pagination Buttons
             markup = types.InlineKeyboardMarkup()
