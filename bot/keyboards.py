@@ -91,7 +91,7 @@ def ai_inline_keyboard():
 def points_inline_keyboard():
     markup = InlineKeyboardMarkup(row_width=2)
     markup.add(
-        InlineKeyboardButton("📊 Ballarim", callback_data="points_balance"),
+        InlineKeyboardButton("📊 Coinlarim", callback_data="points_balance"),
         InlineKeyboardButton("🎁 Mukofotlar", callback_data="points_rewards"),
         InlineKeyboardButton("📜 Qoidalar", callback_data="points_rules"),
         InlineKeyboardButton("⬅️ Orqaga", callback_data="back_premium")
