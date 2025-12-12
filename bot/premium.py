@@ -36,11 +36,11 @@ def handle_premium_menu(message, bot, user_id=None):
     yasha_points = user.get('yasha_points', user.get('points', 0))
 
     text = (
-        "💳 **Obuna bo'limi**\n"
+        "💳 <b>Obuna bo'limi</b>\n"
         f"- Tarifingiz: {plan_type}\n"
         f"- Tugash sanasi: {until_date}\n"
         f"- Yasha coinlaringiz: {yasha_points}\n\n"
-        "🌟 **Premium va VIP tarifi imkoniyatlari:**\n"
+        "🌟 <b>Premium va VIP tarifi imkoniyatlari:</b>\n"
         "- Cheksiz AI maslahatlari\n"
         "- Foto orqali kaloriya aniqlash\n"
         "- Chellenjlarda 2x coinlar\n"
@@ -52,18 +52,18 @@ def handle_premium_menu(message, bot, user_id=None):
     # If expired, show "Buy"
     
     with open("assets/premium.png", "rb") as photo:
-        bot.send_photo(user_id, photo, caption=text, reply_markup=markup, parse_mode="Markdown")
+        bot.send_photo(user_id, photo, caption=text, reply_markup=markup, parse_mode="HTML")
 
 def handle_premium_info(message, bot):
     text = (
-        "💎 **Tariflar**\n\n"
-        "1️⃣ **PREMIUM (49 000 so'm/oy)**\n"
+        "💎 <b>Tariflar</b>\n\n"
+        "1️⃣ <b>PREMIUM (49 000 so'm/oy)</b>\n"
         "✅ AI Menyu (oyiga 1 marta / 7 kunlik)\n"
         "✅ AI Mashqlar (oyiga 1 marta)\n"
         "⚠️ Kaloriya tahlili (kuniga 3 marta)\n"
         "⚠️ AI Chat (kuniga 3 marta)\n\n"
         
-        "2️⃣ **VIP (97 000 so'm/oy)**\n"
+        "👑 <b>VIP (97 000 so'm/oy)</b>\n"
         "🔥 AI Menyu (oyiga 4 marta / 28 kunlik)\n"
         "🔥 Cheksiz Kaloriya tahlili\n"
         "🔥 Cheksiz AI Chat\n"
@@ -74,7 +74,7 @@ def handle_premium_info(message, bot):
     markup.add(types.InlineKeyboardButton("⭐️ Premium olish (49k)", callback_data="select_premium"))
     markup.add(types.InlineKeyboardButton("👑 VIP olish (97k)", callback_data="select_vip"))
     
-    bot.send_message(message.chat.id, text, reply_markup=markup, parse_mode="Markdown")
+    bot.send_message(message.chat.id, text, reply_markup=markup, parse_mode="HTML")
 
 def handle_premium_buy(message, bot):
     # Redirect to info since it now has the direct buy buttons
@@ -104,10 +104,10 @@ def register_handlers(bot):
             bot.answer_callback_query(call.id)
             bot.send_message(
                 call.message.chat.id,
-                "⚠️ **To'lov tizimi hozircha sozlanmagan.**\n\n"
+                "⚠️ <b>To'lov tizimi hozircha sozlanmagan.</b>\n\n"
                 "Iltimos, admin bilan bog'laning yoki keyinroq urinib ko'ring.\n\n"
                 "📞 Qayta aloqa: @admin",
-                parse_mode="Markdown"
+                parse_mode="HTML"
             )
             return
         
@@ -171,7 +171,7 @@ def register_handlers(bot):
         # Set Auto-Renew flag
         db.update_user_profile(user_id, auto_renew=True)
         
-        bot.send_message(user_id, f"✅ **To'lov muvaffaqiyatli amalga oshirildi!**\n\nSizga {days} kunlik **{plan_type.upper()}** obuna faollashtirildi. 🎉\nBarcha imkoniyatlardan foydalanishingiz mumkin!", parse_mode="Markdown")
+        bot.send_message(user_id, f"✅ <b>To'lov muvaffaqiyatli amalga oshirildi!</b>\n\nSizga {days} kunlik <b>{plan_type.upper()}</b> obuna faollashtirildi. 🎉\nBarcha imkoniyatlardan foydalanishingiz mumkin!", parse_mode="HTML")
         
         # Notify Admins
         for admin_id in ADMIN_IDS:

@@ -13,8 +13,8 @@ def handle_points_menu(message, bot, user_id=None):
     points = user.get('yasha_points', 0)
     
     text = (
-        f"🟡 **Yasha Coin**\n\n"
-        f"Sizning balingiz: **{points}** 🟡\n\n"
+        f"🟡 <b>Yasha Coin</b>\n\n"
+        f"Sizning coinlaringiz: <b>{points}</b> 🟡\n\n"
         "Coinlarni qanday ishlash mumkin?\n"
         "• Odatlar (suv, uyqu) → +1-5 coin\n"
         "• Do'stlarni taklif qilish → +1 coin\n"
@@ -27,7 +27,7 @@ def handle_points_menu(message, bot, user_id=None):
     # If called from callback, maybe edit message? But for now send new.
     # Actually, if we want to be nice, we can try to edit if it's a callback message.
     # But let's stick to send_message for consistency with other menus unless requested.
-    bot.send_message(message.chat.id, text, reply_markup=markup, parse_mode="Markdown")
+    bot.send_message(message.chat.id, text, reply_markup=markup, parse_mode="HTML")
 
 def handle_referral_link(message, bot, user_id=None):
     if user_id is None:
@@ -47,13 +47,13 @@ def handle_referral_link(message, bot, user_id=None):
     link = f"https://t.me/{bot_username}?start={code}"
     
     text = (
-        "🔗 **Sizning referal havolangiz:**\n\n"
+        "🔗 <b>Sizning referal havolangiz:</b>\n\n"
         f"`{link}`\n\n"
         "Bu havolani do'stlaringizga yuboring. Ular ro'yxatdan o'tsa, sizga +1 coin beriladi! 🟡"
     )
     
     with open("assets/referal.png", "rb") as photo:
-        bot.send_photo(message.chat.id, photo, caption=text, parse_mode="Markdown")
+        bot.send_photo(message.chat.id, photo, caption=text, parse_mode="HTML")
 
 def handle_my_points(message, bot, user_id=None):
     if user_id is None:

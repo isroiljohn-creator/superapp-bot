@@ -38,10 +38,10 @@ def handle_profile(message, bot, user_id=None):
             "athlete": "Atlet"
         }
 
-        # Helper to escape Markdown special characters
+        # Helper to escape HTML special characters
         def esc(text):
             if not text: return "-"
-            return str(text).replace("_", "\\_").replace("*", "\\*").replace("`", "\\`").replace("[", "\\[")
+            return str(text).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
         # Get display values
         display_name = user.get('full_name') or user.get('username') or "Foydalanuvchi"
@@ -56,7 +56,7 @@ def handle_profile(message, bot, user_id=None):
         # Format profile text
         # Format profile text
         text = (
-            f"👤 **Sizning profilingiz**\n\n"
+            f"👤 <b>Sizning profilingiz</b>\n\n"
             f"- Ism: {esc(display_name)}\n"
             f"- Yosh: {esc(user.get('age', '-'))} yosh\n"
             f"- Jins: {esc(display_gender)}\n"
@@ -65,11 +65,11 @@ def handle_profile(message, bot, user_id=None):
             f"- Faollik: {esc(display_activity)}\n"
             f"- Maqsad: {esc(display_goal)}\n"
             f"- Allergiya: {esc(user.get('allergies') or 'Yo‘q')}\n\n"
-            f"**Keyingi qadamni tanlang👇🏻**"
+            f"<b>Keyingi qadamni tanlang👇🏻</b>"
         )
         
         with open("assets/profil.png", "rb") as photo:
-            bot.send_photo(user_id, photo, caption=text, reply_markup=profile_inline_keyboard(), parse_mode="Markdown")
+            bot.send_photo(user_id, photo, caption=text, reply_markup=profile_inline_keyboard(), parse_mode="HTML")
         
     except Exception as e:
         print(f"Profile Error: {e}")
@@ -89,7 +89,7 @@ def handle_edit_profile_command(message, bot):
         types.InlineKeyboardButton("Maqsad", callback_data="edit_field_goal"),
         types.InlineKeyboardButton("Allergiya", callback_data="edit_field_allergies")
     )
-    bot.send_message(message.chat.id, "✏️ **Nimani o'zgartirmoqchisiz?**", reply_markup=markup, parse_mode="Markdown")
+    bot.send_message(message.chat.id, "✏️ <b>Nimani o'zgartirmoqchisiz?</b>", reply_markup=markup, parse_mode="HTML")
 
 def handle_profile_stats(message, bot, user_id=None):
     if user_id is None:
@@ -101,12 +101,12 @@ def handle_profile_stats(message, bot, user_id=None):
         return
     # Simple stats for now
     text = (
-        "📊 **Sog'liq Statistikasi**\n\n"
+        "📊 <b>Sog'liq Statistikasi</b>\n\n"
         f"BMI (Tana Massasi Indeksi): {calculate_bmi(user.get('weight'), user.get('height'))}\n"
         f"Suv Streaki: {user.get('streak_water', 0)} kun\n"
         f"Yasha Coin: {user.get('yasha_points', 0)}"
     )
-    bot.send_message(message.chat.id, text, parse_mode="Markdown")
+    bot.send_message(message.chat.id, text, parse_mode="HTML")
 
 def calculate_bmi(weight, height):
     try:
@@ -118,7 +118,7 @@ def calculate_bmi(weight, height):
         return "-"
 
 def handle_change_goal_command(message, bot):
-    bot.send_message(message.chat.id, "🎯 **Yangi maqsadni tanlang:**", reply_markup=goal_keyboard(), parse_mode="Markdown")
+    bot.send_message(message.chat.id, "🎯 <b>Yangi maqsadni tanlang:</b>", reply_markup=goal_keyboard(), parse_mode="HTML")
 
 # Keep existing handle_edit_profile_menu for callback compatibility if needed, or remove if unused.
 # But handle_edit_profile_command replaces the entry point.

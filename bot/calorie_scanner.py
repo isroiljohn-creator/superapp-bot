@@ -20,9 +20,9 @@ def show_calorie_menu(message, bot):
         bot.send_photo(
             message.chat.id,
             photo,
-            caption="🍽 **Kaloriya Skaneri**\n\nKaloriyani qanday hisoblamoqchisiz?\nRasm yuborasizmi yoki mahsulot nomini yozasizmi?👇🏻",
+            caption="🍽 <b>Kaloriya Skaneri</b>\n\nKaloriyani qanday hisoblamoqchisiz?\nRasm yuborasizmi yoki mahsulot nomini yozasizmi?👇🏻",
             reply_markup=markup,
-            parse_mode="Markdown"
+            parse_mode="HTML"
         )
 
 def calorie_mode_callback(call, bot):
@@ -37,9 +37,9 @@ def calorie_mode_callback(call, bot):
         
         bot.send_message(
             user_id,
-            "🚫 **Limit tugadi**\n\nKaloriya skaneri Premium paketiga kiradi. Siz bugungi bepul limitdan foydalanib bo‘ldingiz. 💚",
+            "🚫 <b>Limit tugadi</b>\n\nKaloriya skaneri Premium paketiga kiradi. Siz bugungi bepul limitdan foydalanib bo‘ldingiz. 💚",
             reply_markup=markup,
-            parse_mode="Markdown"
+            parse_mode="HTML"
         )
         bot.answer_callback_query(call.id)
 def handle_calorie_mode(call, bot):
@@ -103,7 +103,7 @@ def register_handlers(bot):
 def handle_calorie_photo(message, bot):
     user_id = message.from_user.id
     
-    status_msg = bot.send_message(user_id, "🔍 **Rasm tahlil qilinmoqda...**\n\nBiroz kuting, AI hisoblamoqda...", parse_mode="Markdown")
+    status_msg = bot.send_message(user_id, "🔍 <b>Rasm tahlil qilinmoqda...</b>\n\nBiroz kuting, AI hisoblamoqda...", parse_mode="HTML")
     
     try:
         file_info = bot.get_file(message.photo[-1].file_id)
@@ -127,7 +127,7 @@ def handle_calorie_photo(message, bot):
 def handle_calorie_text(message, bot):
     user_id = message.from_user.id
     
-    status_msg = bot.send_message(user_id, "🧮 **Hisoblanmoqda...**\n\nAI ma'lumotlarni qayta ishlamoqda...", parse_mode="Markdown")
+    status_msg = bot.send_message(user_id, "🧮 <b>Hisoblanmoqda...</b>\n\nAI ma'lumotlarni qayta ishlamoqda...", parse_mode="HTML")
     
     try:
         result = analyze_food_text(message.text)

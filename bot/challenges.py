@@ -8,9 +8,9 @@ def handle_challenges_menu(message, bot):
         bot.send_photo(
             message.chat.id,
             photo,
-            caption="🔥 **Chellenjlar bo'limi**\n\nChellendjlarda qatnashing **YASHA coinlar** to'plang va ularni obunaga almashtiring\n\n**Leaderboard** menyusida boshqa foydalanuvchilar bilan bellashing👇🏻",
+            caption="🔥 <b>Chellenjlar bo'limi</b>\n\nChellendjlarda qatnashing <b>YASHA coinlar</b> to'plang va ularni obunaga almashtiring\n\n<b>Leaderboard</b> menyusida boshqa foydalanuvchilar bilan bellashing👇🏻",
             reply_markup=challenges_inline_keyboard(),
-            parse_mode="Markdown"
+            parse_mode="HTML"
         )
 
 def handle_weekly_challenge(message, bot):
@@ -48,7 +48,7 @@ def show_leaderboard_message(message, bot):
         clean_name = name if name else "Foydalanuvchi"
         text += f"{medal} {clean_name} — {points or 0} coin\n"
         
-    bot.send_message(message.chat.id, text, parse_mode="Markdown")
+    bot.send_message(message.chat.id, text, parse_mode="HTML")
 
 def handle_daily_challenge(call, bot):
     # Static challenge for MVP
@@ -82,4 +82,4 @@ def show_leaderboard(call, bot):
         clean_name = name if name else "Foydalanuvchi"
         text += f"{medal} {clean_name} — {points or 0} ball\n"
         
-    bot.edit_message_text(text, call.message.chat.id, call.message.message_id, parse_mode="Markdown")
+    bot.edit_message_text(text, call.message.chat.id, call.message.message_id, parse_mode="HTML")
