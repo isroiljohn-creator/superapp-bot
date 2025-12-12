@@ -37,9 +37,9 @@ def handle_premium_menu(message, bot, user_id=None):
 
     text = (
         "💳 **Obuna bo'limi**\n"
-        f"- Tarifingiz: **{plan_type}**\n"
-        f"- Tugash sanasi: **{until_date}**\n"
-        f"- Yasha coinlaringiz: **{yasha_points}**\n\n"
+        f"- Tarifingiz: {plan_type}\n"
+        f"- Tugash sanasi: {until_date}\n"
+        f"- Yasha coinlaringiz: {yasha_points}\n\n"
         "🌟 **Premium va VIP tarifi imkoniyatlari:**\n"
         "- Cheksiz AI maslahatlari\n"
         "- Foto orqali kaloriya aniqlash\n"
