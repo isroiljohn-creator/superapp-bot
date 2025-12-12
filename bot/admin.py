@@ -176,16 +176,34 @@ def register_handlers(bot):
             gender_stats = stats.get('gender', {})
             goal_stats = stats.get('goal', {})
             
+            # Translations
+            gender_map = {
+                "male": "👨 Erkak",
+                "female": "👩 Ayol",
+                None: "❓ Ro'yxatdan o'tmagan"
+            }
+            goal_map = {
+                "weight_loss": "📉 Ozish",
+                "muscle_gain": "💪 Mushak yig'ish",
+                "health": "❤️ Sog'lom bo'lish",
+                None: "❓ Ro'yxatdan o'tmagan"
+            }
+
             # Dynamic formatting for gender
             gender_text = ""
             for k, v in gender_stats.items():
-                gender_text += f"- {k}: {v}\n"
+                # Handle None key or string "None"
+                if k == "None": k = None
+                label = gender_map.get(k, k if k else "❓ Ro'yxatdan o'tmagan")
+                gender_text += f"- {label}: {v}\n"
             if not gender_text: gender_text = "Ma'lumot yo'q"
 
             # Dynamic formatting for goal
             goal_text = ""
             for k, v in goal_stats.items():
-                goal_text += f"- {k}: {v}\n"
+                if k == "None": k = None
+                label = goal_map.get(k, k if k else "❓ Ro'yxatdan o'tmagan")
+                goal_text += f"- {label}: {v}\n"
             if not goal_text: goal_text = "Ma'lumot yo'q"
             
             text = (
