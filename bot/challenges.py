@@ -65,10 +65,12 @@ def show_leaderboard_message(message, bot):
             bot.send_message(message.chat.id, "🏆 **O'zbekiston Reytingi**\n\nHozircha ma'lumot yo'q. Birinchi bo'ling!", parse_mode="Markdown")
             return
 
+        import html
         text = "🏆 **O'zbekiston Reytingi (TOP 10)**\n\n"
         for i, (name, points) in enumerate(leaders, 1):
             medal = "🥇" if i==1 else "🥈" if i==2 else "🥉" if i==3 else f"{i}."
-            clean_name = name if name else f"Foydalanuvchi {i}"
+            raw_name = name if name else f"Foydalanuvchi {i}"
+            clean_name = html.escape(str(raw_name))
             safe_points = points if points else 0
             text += f"{medal} <b>{clean_name}</b> — {safe_points} coin\n"
             
@@ -108,10 +110,12 @@ def show_leaderboard(call, bot):
             bot.answer_callback_query(call.id, "Ma'lumot topilmadi")
             return
 
+        import html
         text = "🏆 **O'zbekiston Reytingi (TOP 10)**\n\n"
         for i, (name, points) in enumerate(leaders, 1):
             medal = "🥇" if i==1 else "🥈" if i==2 else "🥉" if i==3 else f"{i}."
-            clean_name = name if name else f"User {i}"
+            raw_name = name if name else f"User {i}"
+            clean_name = html.escape(str(raw_name))
             safe_points = points if points else 0
             text += f"{medal} <b>{clean_name}</b> — {safe_points} coin\n"
             
