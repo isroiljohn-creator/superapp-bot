@@ -1,6 +1,7 @@
 from telebot import types
 from core.db import db
 from core.ai import ai_provide_psychological_support
+from core.utils import parse_callback
 from datetime import datetime
 
 # States for inputs (Must be Integers to match User.onboarding_state)
