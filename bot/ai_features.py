@@ -159,13 +159,19 @@ def process_recipe_input(message, bot):
     
     Vazifa: Foydalanuvchi kiritgan mahsulotlardan foydalanib, uning maqsadiga mos 1 ta sog'lom va mazali retsept taklif qiling.
     
+    QAT'IY QOIDALAR (Strict Rules):
+    1. Foydalanuvchi yozmagan asosiy mahsulotlarni (go'sht, tuxum, sabzavotlar, sut kabi) o'zingdan qo'shib yozma!
+    2. Faqat suv, tuz, yog', murch, shakar kabi eng oddiy "uyda har doim bor" narsalarni bor deb hisobla.
+    3. Agar berilgan mahsulotlardan tuzuk ovqat chiqmasa, shuni to'g'ri tushuntir ("Bu mahsulotlardan faqat ... qilish mumkin" yoki "To'yimli taom uchun yana ... kerak").
+    4. Xayoliy retsept to'qima. Bor narsadan maksimal foydalan.
+    
     FORMAT TALABLARI:
-    - Maksimal 900 belgi.
+    - Maksimal 1000 belgi.
     - Markdown ishlata ko'rmang (* yoki _).
     - Faqat HTML teglar: <b>, <i>.
     - Struktura:
       * <b>Taom Nomi</b>
-      * <b>Masalliqlar</b> (Ro'yxat)
+      * <b>Masalliqlar</b> (Faqat bor narsalar + suv/yog'/ziravor)
       * <b>Tayyorlash</b> (3-6 qadam)
       * <b>Foydali maslahat</b> (1 gap)
     - O'zbek tilida.
