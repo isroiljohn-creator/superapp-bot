@@ -182,7 +182,7 @@ def handle_mood_tracker(message, bot, user_id=None):
     )
 
 
-def handle_mood_track(call, bot): # Added bot parameter for consistency with other handlers
+def process_mood_callback(call, bot): # keys: track_mood_
     user_id = call.from_user.id
     today = datetime.now().strftime("%Y-%m-%d")
 
