@@ -89,6 +89,9 @@ class DailyLog(Base):
     steps = Column(Integer, default=0) # Legacy name
     calories_consumed = Column(Integer, default=0)
     
+    stages_reward_claimed = Column(Boolean, default=False) # DEPRECATED? No, new flag.
+    steps_reward_claimed = Column(Boolean, default=False)
+    
     # Legacy columns
     water_ml = Column(Integer, default=0)
     sleep_hours = Column(Float, default=0)

@@ -105,33 +105,27 @@ def process_steps_input(message, bot):
     
     # Fetch previous log to check if points already awarded
     log = db.get_daily_log(user_id, today)
-    old_steps = log.get('steps', 0) if log else 0
+    reward_claimed = log.get('steps_reward_claimed', False) if log else False
     
+    # Update steps count regardless
     db.update_daily_log(user_id, today, steps=steps)
     
-    # Calculate points: 5 points per 10k steps
-    new_milestones = steps // 10000
-    old_milestones = old_steps // 10000
-    
-    milestones_crossed = new_milestones - old_milestones
-    
-    if milestones_crossed > 0:
-        points_earned = milestones_crossed * 5
-        db.add_points(user_id, points_earned)
-        
-        msg = f"✅ **Qoyilmaqom!**\n\nSiz {steps} qadam yurdingiz.\n"
-        msg += f"🎉 Sizga +{points_earned} ball berildi"
-        if milestones_crossed > 1:
-            msg += f" ({milestones_crossed} x 5)!"
-        else:
-            msg += "!"
+    # Logic: 10,000 steps = 10 points (Once per day)
+    if steps >= 10000:
+        if not reward_claimed:
+            # First time crossing 10k today
+            db.add_points(user_id, 10)
+            db.update_daily_log(user_id, today, steps_reward_claimed=True)
             
-        bot.send_message(user_id, msg, parse_mode="Markdown")
-    else:
-        if steps >= 10000:
-             bot.send_message(user_id, f"✅ Qabul qilindi: {steps} qadam.\nBugungi {new_milestones}0,000 lik marrani ushlab turibsiz! 💪")
+            msg = f"🎉 **Tabriklaymiz!**\n\nSiz {steps} qadam yurdingiz va kunlik marrani bajardingiz!\n"
+            msg += f"✅ **+10 ball berildi**"
+            bot.send_message(user_id, msg, parse_mode="Markdown")
         else:
-             bot.send_message(user_id, f"✅ Qabul qilindi: {steps} qadam.\n10,000 ga yetkazishga harakat qiling! 💪")
+            # Already claimed
+            bot.send_message(user_id, f"✅ Qabul qilindi: {steps} qadam.\nSiz bugungi kunlik mukofotni olib bo'lgansiz. Ertaga ko'rishguncha! 💪")
+    else:
+        # Less than 10k
+        bot.send_message(user_id, f"✅ Qabul qilindi: {steps} qadam.\n10,000 ga yetkazishga harakat qiling! (Mukofot: 10 ball) 💪")
         
     from bot import onboarding
     onboarding.manager.clear_user(user_id)
