@@ -184,9 +184,9 @@ def register_handlers(bot):
                 None: "Ro'yxatdan o'tmagan"
             }
             goal_map = {
-                "weight_loss": "Ozish",
-                "muscle_gain": "Mushak yig'ish",
-                "health": "Sog'lom bo'lish",
+                "weight_loss": "Vazn tashlash 🔻",
+                "muscle_gain": "Vazn olish 🔺",
+                "health": "Vaznni ushlab turish ❤️",
                 None: "Ro'yxatdan o'tmagan"
             }
 
@@ -260,9 +260,9 @@ def register_handlers(bot):
                 
                 # Goal Translation
                 goal_map = {
-                    "weight_loss": "Ozish",
-                    "muscle_gain": "Mushak",
-                    "health": "Sog'lom",
+                    "weight_loss": "Vazn tashlash 🔻",
+                    "muscle_gain": "Vazn olish 🔺",
+                    "health": "Vazn saqlash ❤️",  # Shortened for list view
                     "None": "-",
                     None: "-"
                 }
@@ -395,9 +395,9 @@ def register_handlers(bot):
             types.InlineKeyboardButton("👤 Bepul", callback_data="seg_premium_False")
         )
         # Goals
-        markup.add(types.InlineKeyboardButton("⚖️ Ozish", callback_data="seg_goal_weight_loss"))
-        markup.add(types.InlineKeyboardButton("💪 Mushak yig'ish", callback_data="seg_goal_muscle_gain"))
-        markup.add(types.InlineKeyboardButton("❤️ Sog'lom bo'lish", callback_data="seg_goal_health"))
+        markup.add(types.InlineKeyboardButton("🔻 Vazn tashlash", callback_data="seg_goal_weight_loss"))
+        markup.add(types.InlineKeyboardButton("🔺 Vazn olish", callback_data="seg_goal_muscle_gain"))
+        markup.add(types.InlineKeyboardButton("❤️ Vaznni ushlab turish", callback_data="seg_goal_health"))
         
         # Activity
         markup.row(
