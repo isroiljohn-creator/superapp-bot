@@ -599,36 +599,37 @@ def analyze_food_image(image_data):
     models_to_try = ['gemini-2.5-flash', 'gemini-1.5-flash']
     
     prompt = """
-    The photo shows a meal or drink.
-    You must estimate:
-    - dish name / main components
-    - approximate portion size (be conservative)
-    - total kcal
-    - protein / fat / carbs
+    You are an AI NUTRITIONIST with access to a vast database of food products.
+    The photo shows a meal, drink, or packaged product.
 
-    STRICT RULES:
-    1. LIQUIDS: If you see a bottle (Cola, Juice, Water) or glass, measure in ML (not grams). 
-       - 0.5L bottle = 500ml (~210 kcal for Cola). 
-       - Glass = 200-250ml. 
-       - Water = 0 kcal.
-    2. PACKAGED FOOD: If you see a label/wrapper (Snickers, Bread, Chips), read the label if possible or use standard values for that package size.
-    3. PORTIONS: Compare size to standard plate, spoon, or hand. Don't overestimate.
-    4. UNCERTAINTY: If unsure, give a range or lower bound.
+    YOUR GOAL: Provide 99% ACCURATE nutrition data.
 
-    Respond in short Uzbek text, max ~800 characters, formatted like:
+    STRICT ANALYSIS PROTOCOL:
+    1. 🔍 SCAN TEXT: First, read ANY text on the package (Brand, Name, "0.5L", "100g", "Sugar Free").
+    2. 🏭 IDENTIFY PRODUCT: If it's a known brand (Coca-Cola, Snickers, Lays, Nestlé, etc.), verify the exact product variant.
+    3. 📏 PRECISE VOLUME/WEIGHT: 
+       - If you see "0.5L", use exactly 500ml.
+       - If it's a standard can, use 330ml.
+       - If it's a standard bottle, use 500ml, 1L, or 1.5L based on visual size.
+       - DO NOT GUESS if written on the label. USE THE LABEL DATA.
+    4. 📚 OFFICIAL DATA: Use the official nutrition facts for that specific product (e.g. Coca-Cola Classic = 42kcal/100ml).
+    5. 🧮 CALCULATION:
+       - Example: Coca-Cola 0.5L -> 500ml * 0.42 = 210 kcal. (Show this math mentally and output final result).
+
+    OUTPUT FORMAT (Uzbek):
     🍽 <b>Kaloriya Tahlili</b>
 
-    🥘 <b>Ovqat:</b> ...
-    📏 <b>Porsiya:</b> ...
+    🥘 <b>Mahsulot:</b> [Aniq Brend va Nomi]
+    📏 <b>Hajmi:</b> [Aniq o'lchov, masalan 0.5 L]
 
-    🔥 <b>Jami:</b> ... kkal
+    🔥 <b>Jami:</b> [Aniq hisob] kkal
 
-    📊 <b>BJU:</b>
+    📊 <b>BJU (100g da emas, butun porsiyada):</b>
     🥩 Oqsil: ... g
     🥑 Yog‘: ... g
     🍞 Uglevod: ... g
 
-    <i>Bu taxminiy hisob. Aniqroq bo'lishi uchun mahsulot vaznini yozishingiz mumkin.</i> ✅
+    <i>Qadoqdagi ma'lumotlar va standartlarga asoslanib hisoblandi.</i> ✅
     """
 
     # Ensure config is set (idempotent if already set globally, but good to be sure)
