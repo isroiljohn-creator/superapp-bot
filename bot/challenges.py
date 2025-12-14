@@ -121,7 +121,9 @@ def show_leaderboard(call, bot):
             safe_points = points if points else 0
             text += f"{medal} <b>{clean_name}</b> — {safe_points} coin\n"
             
-        bot.edit_message_text(text, call.message.chat.id, call.message.message_id, parse_mode="HTML")
+        # Cannot edit text of a photo message, so we delete and send new
+        bot.delete_message(call.message.chat.id, call.message.message_id)
+        bot.send_message(call.message.chat.id, text, parse_mode="HTML")
     except Exception as e:
         print(f"Leaderboard Callback Error: {e}")
         try:
