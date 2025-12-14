@@ -25,9 +25,9 @@ def handle_profile(message, bot, user_id=None):
         }
         
         GOAL_MAP = {
-            "weight_loss": "Ozish",
-            "muscle_gain": "Mushak yig'ish",
-            "health": "Sog'lom bo'lish"
+            "weight_loss": "Vazn tashlash 🔻",
+            "muscle_gain": "Vazn olish 🔺",
+            "health": "Vaznni ushlab turish ❤️"
         }
         
         ACTIVITY_MAP = {

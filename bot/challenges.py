@@ -58,15 +58,24 @@ def handle_friends_challenge(message, bot, user_id=None):
     bot.send_message(message.chat.id, text, reply_markup=markup, parse_mode="HTML")
 
 def show_leaderboard_message(message, bot):
-    leaders = db.get_top_users(limit=10)
-    
-    text = "🏆 **O'zbekiston Reytingi (TOP 10)**\n\n"
-    for i, (name, points) in enumerate(leaders, 1):
-        medal = "🥇" if i==1 else "🥈" if i==2 else "🥉" if i==3 else f"{i}."
-        clean_name = name if name else "Foydalanuvchi"
-        text += f"{medal} {clean_name} — {points or 0} coin\n"
+    try:
+        leaders = db.get_top_users(limit=10)
         
-    bot.send_message(message.chat.id, text, parse_mode="HTML")
+        if not leaders:
+            bot.send_message(message.chat.id, "🏆 **O'zbekiston Reytingi**\n\nHozircha ma'lumot yo'q. Birinchi bo'ling!", parse_mode="Markdown")
+            return
+
+        text = "🏆 **O'zbekiston Reytingi (TOP 10)**\n\n"
+        for i, (name, points) in enumerate(leaders, 1):
+            medal = "🥇" if i==1 else "🥈" if i==2 else "🥉" if i==3 else f"{i}."
+            clean_name = name if name else f"Foydalanuvchi {i}"
+            safe_points = points if points else 0
+            text += f"{medal} <b>{clean_name}</b> — {safe_points} coin\n"
+            
+        bot.send_message(message.chat.id, text, parse_mode="HTML")
+    except Exception as e:
+        print(f"Leaderboard Error: {e}")
+        bot.send_message(message.chat.id, "⚠️ Reytingni yuklashda xatolik.", parse_mode="HTML")
 
 def handle_daily_challenge(call, bot):
     # Static challenge for MVP
@@ -92,12 +101,21 @@ def complete_challenge(call, bot, points):
     )
 
 def show_leaderboard(call, bot):
-    leaders = db.get_top_users(limit=10)
-    
-    text = "🏆 **O'zbekiston Reytingi (TOP 10)**\n\n"
-    for i, (name, points) in enumerate(leaders, 1):
-        medal = "🥇" if i==1 else "🥈" if i==2 else "🥉" if i==3 else f"{i}."
-        clean_name = name if name else "Foydalanuvchi"
-        text += f"{medal} {clean_name} — {points or 0} ball\n"
+    try:
+        leaders = db.get_top_users(limit=10)
         
-    bot.edit_message_text(text, call.message.chat.id, call.message.message_id, parse_mode="HTML")
+        if not leaders:
+            bot.answer_callback_query(call.id, "Ma'lumot topilmadi")
+            return
+
+        text = "🏆 **O'zbekiston Reytingi (TOP 10)**\n\n"
+        for i, (name, points) in enumerate(leaders, 1):
+            medal = "🥇" if i==1 else "🥈" if i==2 else "🥉" if i==3 else f"{i}."
+            clean_name = name if name else f"User {i}"
+            safe_points = points if points else 0
+            text += f"{medal} <b>{clean_name}</b> — {safe_points} coin\n"
+            
+        bot.edit_message_text(text, call.message.chat.id, call.message.message_id, parse_mode="HTML")
+    except Exception as e:
+        print(f"Leaderboard Callback Error: {e}")
+        bot.answer_callback_query(call.id, "Xatolik yuz berdi")

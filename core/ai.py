@@ -25,7 +25,7 @@ def get_offline_workout(user_profile):
     
     header = f"⚠️ <b>AI hozircha band, {name}!</b>\nAmmo sizning maqsadingiz ({goal}) uchun maxsus offline rejani tayyorlab berdim:"
     
-    if "Ozish" in goal:
+    if "Ozish" in goal or "weight_loss" in goal or "Vazn tashlash" in goal:
         return f"""{header}
 
 <b>Dushanba (Butun tana):</b>
@@ -46,7 +46,7 @@ def get_offline_workout(user_profile):
 3. Yelka pressi - 3x12
 4. Yon tomonga gantel ko‘tarish - 3x15
 """
-    elif "Massa" in goal:
+    elif "Massa" in goal or "muscle_gain" in goal or "Vazn olish" in goal:
         return f"""{header}
 
 <b>Dushanba (Ko‘krak va Triceps):</b>
@@ -95,7 +95,7 @@ def get_offline_menu(user_profile):
     
     header = f"⚠️ <b>AI hozircha band, {name}!</b>\nAmmo sizning maqsadingiz ({goal}) uchun maxsus offline rejani tayyorlab berdim:"
     
-    if "Ozish" in goal:
+    if "Ozish" in goal or "weight_loss" in goal or "Vazn tashlash" in goal:
         return f"""{header}
 
 <b>Nonushta:</b>
@@ -113,7 +113,7 @@ def get_offline_menu(user_profile):
 - Yashil sabzavotlar
 - 1 stakan kefir
 """
-    elif "Massa" in goal:
+    elif "Massa" in goal or "muscle_gain" in goal or "Vazn olish" in goal:
         return f"""{header}
 
 <b>Nonushta:</b>

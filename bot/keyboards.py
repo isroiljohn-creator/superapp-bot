@@ -16,9 +16,9 @@ def gender_keyboard():
 
 def goal_keyboard():
     markup = InlineKeyboardMarkup()
-    markup.add(InlineKeyboardButton("Ozish 🏃‍♂️", callback_data="goal_weight_loss"))
-    markup.add(InlineKeyboardButton("Massa olish 💪", callback_data="goal_muscle_gain"))
-    markup.add(InlineKeyboardButton("Sog‘liqni tiklash 🧘", callback_data="goal_health"))
+    markup.add(InlineKeyboardButton("Vazn tashlash 🔻", callback_data="goal_weight_loss"))
+    markup.add(InlineKeyboardButton("Vazn olish 🔺", callback_data="goal_muscle_gain"))
+    markup.add(InlineKeyboardButton("Vaznni ushlab turish ❤️", callback_data="goal_health"))
     return markup
 
 def activity_level_keyboard():
