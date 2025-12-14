@@ -109,15 +109,28 @@ def process_steps_input(message, bot):
     db.update_daily_log(user_id, today, steps=steps)
     
     # Calculate points: 5 points per 10k steps
-    # Only award if we crossed a 10k threshold we hadn't crossed before
-    # For simplicity, let's just cap it at 10k for now (single reward)
-    # If user had < 10000 and now has >= 10000, award 5 points.
+    new_milestones = steps // 10000
+    old_milestones = old_steps // 10000
     
-    if old_steps < 10000 and steps >= 10000:
-        db.add_points(user_id, 5)
-        bot.send_message(user_id, f"✅ **Qoyilmaqom!**\n\nSiz {steps} qadam yurdingiz.\nSizga +5 ball berildi! 🎉", parse_mode="Markdown")
+    milestones_crossed = new_milestones - old_milestones
+    
+    if milestones_crossed > 0:
+        points_earned = milestones_crossed * 5
+        db.add_points(user_id, points_earned)
+        
+        msg = f"✅ **Qoyilmaqom!**\n\nSiz {steps} qadam yurdingiz.\n"
+        msg += f"🎉 Sizga +{points_earned} ball berildi"
+        if milestones_crossed > 1:
+            msg += f" ({milestones_crossed} x 5)!"
+        else:
+            msg += "!"
+            
+        bot.send_message(user_id, msg, parse_mode="Markdown")
     else:
-        bot.send_message(user_id, f"✅ Qabul qilindi: {steps} qadam.\n10,000 ga yetkazishga harakat qiling! 💪")
+        if steps >= 10000:
+             bot.send_message(user_id, f"✅ Qabul qilindi: {steps} qadam.\nBugungi {new_milestones}0,000 lik marrani ushlab turibsiz! 💪")
+        else:
+             bot.send_message(user_id, f"✅ Qabul qilindi: {steps} qadam.\n10,000 ga yetkazishga harakat qiling! 💪")
         
     from bot import onboarding
     onboarding.manager.clear_user(user_id)
