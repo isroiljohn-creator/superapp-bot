@@ -62,11 +62,11 @@ def show_leaderboard_message(message, bot):
         leaders = db.get_top_users(limit=10)
         
         if not leaders:
-            bot.send_message(message.chat.id, "🏆 **O'zbekiston Reytingi**\n\nHozircha ma'lumot yo'q. Birinchi bo'ling!", parse_mode="Markdown")
+            bot.send_message(message.chat.id, "🏆 <b>O'zbekiston Reytingi</b>\n\nHozircha ma'lumot yo'q. Birinchi bo'ling!", parse_mode="HTML")
             return
 
         import html
-        text = "🏆 **O'zbekiston Reytingi (TOP 10)**\n\n"
+        text = "🏆 <b>O'zbekiston Reytingi (TOP 10)</b>\n\n"
         for i, (name, points) in enumerate(leaders, 1):
             medal = "🥇" if i==1 else "🥈" if i==2 else "🥉" if i==3 else f"{i}."
             raw_name = name if name else f"Foydalanuvchi {i}"
@@ -113,7 +113,7 @@ def show_leaderboard(call, bot):
             return
 
         import html
-        text = "🏆 **O'zbekiston Reytingi (TOP 10)**\n\n"
+        text = "🏆 <b>O'zbekiston Reytingi (TOP 10)</b>\n\n"
         for i, (name, points) in enumerate(leaders, 1):
             medal = "🥇" if i==1 else "🥈" if i==2 else "🥉" if i==3 else f"{i}."
             raw_name = name if name else f"User {i}"
