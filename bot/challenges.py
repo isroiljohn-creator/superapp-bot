@@ -76,8 +76,10 @@ def show_leaderboard_message(message, bot):
             
         bot.send_message(message.chat.id, text, parse_mode="HTML")
     except Exception as e:
-        print(f"Leaderboard Error: {e}")
-        bot.send_message(message.chat.id, "⚠️ Reytingni yuklashda xatolik.", parse_mode="HTML")
+        import traceback
+        traceback.print_exc()
+        error_msg = f"⚠️ Reytingni yuklashda xatolik: {str(e)}"
+        bot.send_message(message.chat.id, error_msg, parse_mode="HTML")
 
 def handle_daily_challenge(call, bot):
     # Static challenge for MVP
@@ -122,4 +124,4 @@ def show_leaderboard(call, bot):
         bot.edit_message_text(text, call.message.chat.id, call.message.message_id, parse_mode="HTML")
     except Exception as e:
         print(f"Leaderboard Callback Error: {e}")
-        bot.answer_callback_query(call.id, "Xatolik yuz berdi")
+        bot.answer_callback_query(call.id, f"Xatolik: {str(e)[:50]}") # Telegram limits alert text
