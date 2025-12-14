@@ -599,13 +599,22 @@ def analyze_food_image(image_data):
     models_to_try = ['gemini-2.5-flash', 'gemini-1.5-flash']
     
     prompt = """
-    The photo shows a meal.
+    The photo shows a meal or drink.
     You must estimate:
     - dish name / main components
-    - approximate portion size
+    - approximate portion size (be conservative)
     - total kcal
     - protein / fat / carbs
-    
+
+    STRICT RULES:
+    1. LIQUIDS: If you see a bottle (Cola, Juice, Water) or glass, measure in ML (not grams). 
+       - 0.5L bottle = 500ml (~210 kcal for Cola). 
+       - Glass = 200-250ml. 
+       - Water = 0 kcal.
+    2. PACKAGED FOOD: If you see a label/wrapper (Snickers, Bread, Chips), read the label if possible or use standard values for that package size.
+    3. PORTIONS: Compare size to standard plate, spoon, or hand. Don't overestimate.
+    4. UNCERTAINTY: If unsure, give a range or lower bound.
+
     Respond in short Uzbek text, max ~800 characters, formatted like:
     🍽 <b>Kaloriya Tahlili</b>
 
@@ -619,7 +628,7 @@ def analyze_food_image(image_data):
     🥑 Yog‘: ... g
     🍞 Uglevod: ... g
 
-    <i>Bu taxminiy hisob, lekin kunlik nazorat uchun yetarli.</i> ✅
+    <i>Bu taxminiy hisob. Aniqroq bo'lishi uchun mahsulot vaznini yozishingiz mumkin.</i> ✅
     """
 
     # Ensure config is set (idempotent if already set globally, but good to be sure)
