@@ -124,4 +124,7 @@ def show_leaderboard(call, bot):
         bot.edit_message_text(text, call.message.chat.id, call.message.message_id, parse_mode="HTML")
     except Exception as e:
         print(f"Leaderboard Callback Error: {e}")
-        bot.answer_callback_query(call.id, f"Xatolik: {str(e)[:50]}") # Telegram limits alert text
+        try:
+            bot.answer_callback_query(call.id, "Xatolik yuz berdi. Pastga qarang 👇")
+        except: pass
+        bot.send_message(call.message.chat.id, f"⚠️ **Xatolik tafsilotlari:**\n\n`{str(e)}`", parse_mode="Markdown")
