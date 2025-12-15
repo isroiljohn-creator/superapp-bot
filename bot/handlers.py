@@ -62,7 +62,6 @@ def register_all_handlers(bot):
             markup.add(
                 types.InlineKeyboardButton("📊 Analytics", callback_data="admin_analytics_btn"),
                 types.InlineKeyboardButton("🚩 Feature Flags", callback_data="admin_flags_btn"),
-                types.InlineKeyboardButton("📢 Broadcast", callback_data="admin_broadcast_btn"),
                 types.InlineKeyboardButton("📦 Backup", callback_data="admin_backup_btn"),
                 types.InlineKeyboardButton("✍️ Matnlar", callback_data="admin_content_btn")
             )
