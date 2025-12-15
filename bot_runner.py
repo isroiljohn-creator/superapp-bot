@@ -30,7 +30,7 @@ def main():
         import subprocess
         # Run "alembic upgrade head"
         # We capture output to avoid spamming logs unless error
-        result = subprocess.run(["alembic", "upgrade", "head"], capture_output=True, text=True)
+        result = subprocess.run(["alembic", "upgrade", "003_add_missing_cols"], capture_output=True, text=True)
         if result.returncode == 0:
             print("✅ Migratsiyalar muvaffaqiyatli yakunlandi.")
         else:
