@@ -856,6 +856,9 @@ def analyze_food_text(text):
             if "deadline" in str(e).lower() or "timeout" in str(e).lower():
                 return "⚠️ Kechirasiz, AI javob berishga ulgurmadi. Iltimos, qaytadan urinib ko'ring."
             print(f"Gemini Text Error: {e}")
+    except Exception as e:
+        print(f"Analyze Text Error: {e}")
+        return None
 
 def ai_generate_fridge_recipe(user_profile, available_ingredients):
     """
