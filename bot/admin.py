@@ -799,22 +799,160 @@ def register_content_handlers(bot):
         key = call.data.replace("content_edit_", "")
         current_val = content_manager.get(key)
         
-        text = f"🔑 **Kalit:** `{key}`\n\n📄 **Hozirgi matn:**\n{current_val}\n\n✏️ Yangi matnni yuboring:"
-        msg = bot.send_message(call.message.chat.id, text, parse_mode="Markdown", reply_markup=types.ForceReply())
-        bot.register_next_step_handler(msg, process_content_update, bot, key)
+        msg = bot.send_message(call.message.chat.id, f"📝 <b>{key}</b>\n\nHozirgi matn:\n<pre>{current_val}</pre>\n\nYangi matnni yuboring:", parse_mode="HTML")
+        bot.register_next_step_handler(msg, process_content_edit, bot, key)
 
-    def process_content_update(message, bot, key):
-        new_val = message.text
-        if new_val.startswith("/"):
-            bot.send_message(message.chat.id, "❌ Bekor qilindi.")
+    def process_content_edit(message, bot, key):
+        new_text = message.text
+        if not new_text:
+            bot.send_message(message.chat.id, "❌ Matn bo'lishi kerak.")
             return
             
-        else:
-            try:
-                content_manager.set(key, new_val)
-                bot.send_message(message.chat.id, f"✅ '{key}' muvaffaqiyatli yangilandi!")
-            except Exception as e:
-                bot.send_message(message.chat.id, f"❌ Saqlashda xatolik: {e}")
+        content_manager.update(key, new_text)
+        bot.send_message(message.chat.id, "✅ Saqlandi!")
+
+# --- Phase 7: Observability Extensions ---
+
+    @bot.message_handler(commands=['analytics'])
+    def admin_analytics_cmd(message):
+        if message.from_user.id not in ADMIN_IDS: return
+        
+        try:
+            stats = db.get_analytics_summary()
+            
+            text = (
+                "📊 <b>Mini Analytics</b> (24h)\n\n"
+                f"👥 DAU (Active Users): <b>{stats['dau']}</b>\n"
+                f"🚨 Error Rate: <b>{stats['error_rate_24h']}%</b> ({stats['errors_24h']}/{stats['total_events_24h']})\n"
+                f"🕒 Server Time: {datetime.datetime.utcnow().strftime('%H:%M')}\n"
+            )
+            
+            bot.send_message(message.chat.id, text, parse_mode="HTML")
+        except Exception as e:
+            bot.send_message(message.chat.id, f"❌ Xatolik: {e}")
+
+    @bot.message_handler(commands=['flags'])
+    def admin_flags_cmd(message):
+        if message.from_user.id not in ADMIN_IDS: return
+        
+        flags = db.get_all_feature_flags()
+        
+        text = "🚩 <b>Feature Flags</b>\n\n"
+        markup = types.InlineKeyboardMarkup()
+        
+        for f in flags:
+            status = "✅ ON" if f['enabled'] else "🔴 OFF"
+            if f['rollout_percent'] > 0 and f['rollout_percent'] < 100:
+                status += f" ({f['rollout_percent']}%)"
+                
+            text += f"▪️ <b>{f['key']}</b>: {status}\n"
+            markup.add(types.InlineKeyboardButton(f"{f['key']} : {status}", callback_data=f"flag_edit_{f['key']}"))
+            
+        markup.add(types.InlineKeyboardButton("➕ Yangi Flag", callback_data="flag_new"))
+        markup.add(types.InlineKeyboardButton("🔄 Yangilash", callback_data="flag_refresh"))
+        
+        bot.send_message(message.chat.id, text, parse_mode="HTML", reply_markup=markup)
+
+    @bot.callback_query_handler(func=lambda call: call.data.startswith("flag_"))
+    def handle_flag_actions(call):
+        if call.from_user.id not in ADMIN_IDS: return
+        
+        action = call.data
+        
+        if action == "flag_refresh":
+            bot.delete_message(call.message.chat.id, call.message.message_id)
+            admin_flags_cmd(call.message)
+            return
+            
+        # Edit Flag
+        if action.startswith("flag_edit_"):
+            key = action.replace("flag_edit_", "")
+            flag = db.get_feature_flag(key)
+            
+            text = f"⚙️ <b>{key}</b> sozlamalari:\n"
+            text += f"Status: {'✅ Enabled' if flag['enabled'] else '🔴 Disabled'}\n"
+            text += f"Rollout: {flag['rollout_percent']}%\n"
+            
+            markup = types.InlineKeyboardMarkup()
+            # Toggle
+            toggle_txt = "🔴 O'chirish" if flag['enabled'] else "✅ Yoqish"
+            markup.add(types.InlineKeyboardButton(toggle_txt, callback_data=f"flag_toggle_{key}"))
+            
+            # Rollout
+            markup.row(
+                types.InlineKeyboardButton("0%", callback_data=f"flag_roll_{key}_0"),
+                types.InlineKeyboardButton("10%", callback_data=f"flag_roll_{key}_10"),
+                types.InlineKeyboardButton("50%", callback_data=f"flag_roll_{key}_50"),
+                types.InlineKeyboardButton("100%", callback_data=f"flag_roll_{key}_100")
+            )
+            markup.add(types.InlineKeyboardButton("🔙 Orqaga", callback_data="flag_refresh"))
+            
+            bot.edit_message_text(text, call.message.chat.id, call.message.message_id, reply_markup=markup, parse_mode="HTML")
+            return
+
+        # Toggle Action
+        if action.startswith("flag_toggle_"):
+            key = action.replace("flag_toggle_", "")
+            flag = db.get_feature_flag(key)
+            # Toggle boolean
+            new_status = not flag['enabled']
+            db.set_feature_flag(key, new_status)
+            
+            # Refresh view
+            # call.data = f"flag_edit_{key}" # check this hack... no, easier to just recall logic
+            # Just re-render the edit view
+            flag['enabled'] = new_status # Optimistic update for UI
+            
+            text = f"⚙️ <b>{key}</b> sozlamalari:\n"
+            text += f"Status: {'✅ Enabled' if flag['enabled'] else '🔴 Disabled'}\n"
+            text += f"Rollout: {flag['rollout_percent']}%\n"
+            
+            markup = types.InlineKeyboardMarkup()
+            toggle_txt = "🔴 O'chirish" if flag['enabled'] else "✅ Yoqish"
+            markup.add(types.InlineKeyboardButton(toggle_txt, callback_data=f"flag_toggle_{key}"))
+            markup.row(
+                 types.InlineKeyboardButton("0%", callback_data=f"flag_roll_{key}_0"),
+                 types.InlineKeyboardButton("10%", callback_data=f"flag_roll_{key}_10"),
+                 types.InlineKeyboardButton("50%", callback_data=f"flag_roll_{key}_50"),
+                 types.InlineKeyboardButton("100%", callback_data=f"flag_roll_{key}_100")
+            )
+            markup.add(types.InlineKeyboardButton("🔙 Orqaga", callback_data="flag_refresh"))
+            
+            bot.edit_message_text(text, call.message.chat.id, call.message.message_id, reply_markup=markup, parse_mode="HTML")
+            return
+            
+        # Rollout Action
+        if action.startswith("flag_roll_"):
+            parts = action.split("_") # flag, roll, key, percent
+            # key might contain underscores? logic: flag_roll_{key}_{percent}. 
+            # Last part is percent.
+            percent = int(parts[-1])
+            key = "_".join(parts[2:-1])
+            
+            flag = db.get_feature_flag(key)
+            # Enable if > 0 implicitly? User said "enabled=true bo'lsa rollout ishlaydi".
+            # So if we set rollout, we probably want to enable it too, or keep current.
+            # Let's just set rollout.
+            
+            db.set_feature_flag(key, flag['enabled'], percent)
+            
+            # Re-render
+            flag['rollout_percent'] = percent
+            text = f"⚙️ <b>{key}</b> sozlamalari:\n"
+            text += f"Status: {'✅ Enabled' if flag['enabled'] else '🔴 Disabled'}\n"
+            text += f"Rollout: {flag['rollout_percent']}%\n"
+            
+            markup = types.InlineKeyboardMarkup()
+            toggle_txt = "🔴 O'chirish" if flag['enabled'] else "✅ Yoqish"
+            markup.add(types.InlineKeyboardButton(toggle_txt, callback_data=f"flag_toggle_{key}"))
+            markup.row(
+                 types.InlineKeyboardButton("0%", callback_data=f"flag_roll_{key}_0"),
+                 types.InlineKeyboardButton("10%", callback_data=f"flag_roll_{key}_10"),
+                 types.InlineKeyboardButton("50%", callback_data=f"flag_roll_{key}_50"),
+                 types.InlineKeyboardButton("100%", callback_data=f"flag_roll_{key}_100")
+            )
+            markup.add(types.InlineKeyboardButton("🔙 Orqaga", callback_data="flag_refresh"))
+            bot.edit_message_text(text, call.message.chat.id, call.message.message_id, reply_markup=markup, parse_mode="HTML")
 
     @bot.message_handler(commands=['seed'])
     def admin_seed_content(message):

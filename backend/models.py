@@ -251,6 +251,30 @@ class BotContent(Base):
     key = Column(String, primary_key=True)
     value = Column(Text, nullable=False)
     description = Column(String, nullable=True)
-    category = Column(String, default="general") # e.g., 'premium', 'onboarding'
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+class FeatureFlag(Base):
+    __tablename__ = "feature_flags"
+    
+    key = Column(String, primary_key=True)
+    enabled = Column(Boolean, default=False)
+    rollout_percent = Column(Integer, default=0)
+    allowlist = Column(Text, default="[]") # JSON list of user_ids
+    denylist = Column(Text, default="[]") # JSON list of user_ids
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+class AdminEvent(Base):
+    __tablename__ = "admin_events"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(BigInteger, index=True, nullable=True)
+    event_type = Column(String, index=True)
+    success = Column(Boolean, default=True)
+    latency_ms = Column(Float, nullable=True)
+    meta = Column(Text, nullable=True) # JSON
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+    
+    # Composite indexes will be handled in migration manually or via Index() here if needed.
+    # But Alembic handles Index() better if declared.
+    # Let's keep it simple here and rely on migration for specific composite indexes.
 

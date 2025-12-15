@@ -792,11 +792,57 @@ class Database:
             
             # 1. Get User Streaks
             user = session.query(User).filter(User.id == pk).first()
-            streaks = {
-                "water": user.streak_water or 0,
-                "sleep": user.streak_sleep or 0,
-                "mood": user.streak_mood or 0
+    # --- Observability ---
+    def log_admin_event(self, event_type, user_id=None, success=True, latency_ms=None, meta=None):
+        """Structured logging to DB"""
+        from backend.models import AdminEvent
+        import json
+        with get_sync_db() as session:
+            try:
+                meta_str = json.dumps(meta) if meta else None
+                event = AdminEvent(
+                    user_id=user_id,
+                    event_type=event_type,
+                    success=success,
+                    latency_ms=latency_ms,
+                    meta=meta_str
+                )
+                session.add(event)
+                session.commit()
+            except Exception as e:
+                print(f"Failed to log event: {e}")
+
+    # --- Feature Flags ---
+    def get_feature_flag(self, key):
+        """Get raw flag data"""
+        from backend.models import FeatureFlag
+        with get_sync_db() as session:
+            flag = session.query(FeatureFlag).filter(FeatureFlag.key == key).first()
+            if not flag: return None
+            
+            return {
+                "key": flag.key,
+                "enabled": flag.enabled,
+                "rollout_percent": flag.rollout_percent,
+                "allowlist": flag.allowlist,
+                "denylist": flag.denylist
             }
+
+    def set_feature_flag(self, key, enabled, rollout_percent=None):
+        """Create or Update flag"""
+        from backend.models import FeatureFlag
+        with get_sync_db() as session:
+            flag = session.query(FeatureFlag).filter(FeatureFlag.key == key).first()
+            if not flag:
+                flag = FeatureFlag(key=key)
+                session.add(flag)
+            
+            flag.enabled = enabled
+            if rollout_percent is not None:
+                flag.rollout_percent = rollout_percent
+            
+            session.commit()
+
             
             # 2. Get Last 7 Days Logs
             start_date = (datetime.now() - timedelta(days=7)).strftime("%Y-%m-%d")
