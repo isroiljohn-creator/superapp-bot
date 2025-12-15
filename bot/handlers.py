@@ -784,30 +784,29 @@ def register_all_handlers(bot):
     
     @bot.callback_query_handler(func=lambda call: call.data == "menu_swap_vip")
     def callback_menu_swap(call):
-        # Simply re-trigger generation for now, or show construction message
-        # Ideally: Show "Yangi taom" vs "Yangi retsept same meal"
-        # User goal: Just wants difference. Let's redirect to meal selection or regenerate.
-        
-        # Check VIP
-        if not db.is_premium(call.from_user.id): # VIP check ideally
-             bot.answer_callback_query(call.id, "💎 Bu funksiya faqat Premium/VIP uchun!", show_alert=True)
-             return
-
-        bot.answer_callback_query(call.id, "🔄 Taom almashtirilmoqda...")
-        workout.generate_ai_meal(call.message, bot, user_id=call.from_user.id) # Re-run generation logic which asks for prompt again or auto-generates
-        bot.answer_callback_query(call.id, "✅ Jarayon boshlandi...")
-        
-        # Deactivate active link so generate_ai_meal sees clean state
-        db.deactivate_all_user_menus(call.from_user.id)
-        
-        # Delete message and restart generation
         try:
-            bot.delete_message(call.message.chat.id, call.message.message_id)
-        except:
-            pass
-        
-        # Trigger fresh generation
-        workout.generate_ai_meal(call.message, bot, user_id=call.from_user.id)
+            # Simply re-trigger generation for now, or show construction message
+            # Ideally: Show "Yangi taom" vs "Yangi retsept same meal"
+            # User goal: Just wants difference. Let's redirect to meal selection or regenerate.
+            
+            # Check VIP
+            if not db.is_premium(call.from_user.id): # VIP check ideally
+                 bot.answer_callback_query(call.id, "💎 Bu funksiya faqat Premium/VIP uchun!", show_alert=True)
+                 return
+
+            bot.answer_callback_query(call.id, "🔄 Taom almashtirilmoqda...")
+            
+            # Deactivate active link so generate_ai_meal sees clean state
+            db.deactivate_all_user_menus(call.from_user.id)
+            
+            # Delete message and restart generation
+            try:
+                bot.delete_message(call.message.chat.id, call.message.message_id)
+            except:
+                pass
+            
+            # Trigger fresh generation
+            workout.generate_ai_meal(call.message, bot, user_id=call.from_user.id)
 
         except Exception as e:
             print(f"Regen Error: {e}")
