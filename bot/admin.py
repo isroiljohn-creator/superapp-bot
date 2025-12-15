@@ -1376,7 +1376,7 @@ CONTENT_CATEGORIES = {
     "💎 Premium": ["premium_title", "premium_desc", "premium_price", "premium_subscribe", "premium_active", "premium_required"],
     "🏋️ Mashqlar": ["workout_title", "workout_menu", "workout_ai_generating", "workout_ai_success", "workout_ai_error", "workout_daily_empty"],
     "🥗 Ovqatlanish": ["nutrition_title", "nutrition_menu", "nutrition_ai_generating", "nutrition_ai_success", "nutrition_ai_error", "nutrition_daily_empty"],
-    "👤 Profil": ["profile_title", "profile_view", "profile_edit", "profile_updated"],
+    "👤 Profil matnlari": ["profile_title", "profile_view", "profile_edit", "profile_updated"],
     "🎮 Gamifikatsiya": ["gamification_title", "points_earned", "level_up", "daily_streak", "challenge_complete"],
     "🔗 Referral": ["referral_title", "referral_desc", "referral_link"],
     "📸 Kaloriya": ["calorie_title", "calorie_prompt", "calorie_analyzing", "calorie_result"],
