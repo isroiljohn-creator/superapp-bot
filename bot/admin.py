@@ -598,12 +598,16 @@ def register_subscription_handlers(bot):
             bot.answer_callback_query(call.id)
         except: pass
         
-        parts = call.data.split("_")
-        plan_type = parts[2] # premium or vip
-        target_id = int(parts[3])
-        
-        msg = bot.send_message(call.message.chat.id, f"<b>{plan_type.upper()}</b> tarifi uchun necha kun qo'shmoqchisiz? (masalan: 30)", parse_mode="HTML", reply_markup=types.ForceReply())
-        bot.register_next_step_handler(msg, process_subs_days, bot, target_id, plan_type)
+        try:
+            parts = call.data.split("_")
+            plan_type = parts[2] # premium or vip
+            target_id = int(parts[3])
+            
+            msg = bot.send_message(call.message.chat.id, f"<b>{plan_type.upper()}</b> tarifi uchun necha kun qo'shmoqchisiz? (masalan: 30)", parse_mode="HTML", reply_markup=types.ForceReply())
+            bot.register_next_step_handler(msg, process_subs_days, bot, target_id, plan_type)
+        except Exception as e:
+            bot.send_message(call.message.chat.id, f"❌ Xatolik: {e}")
+            print(f"Sub Plan Select Error: {e}")
 
     def process_subs_days(message, bot, target_id, plan_type):
         try:
