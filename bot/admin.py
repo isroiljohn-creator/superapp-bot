@@ -630,6 +630,35 @@ def register_subscription_handlers(bot):
             bot.send_message(message.chat.id, f"❌ Xatolik yuz berdi: {e}")
             print(f"Sub Add Error: {e}")
 
+    @bot.message_handler(commands=['gift_all'])
+    def admin_gift_all_start(message):
+        if message.from_user.id not in ADMIN_IDS: return
+        
+        # Parse args
+        # /gift_all 5
+        parts = message.text.split()
+        days = 5
+        if len(parts) > 1 and parts[1].isdigit():
+            days = int(parts[1])
+            
+        msg = bot.send_message(
+            message.chat.id, 
+            f"⚠️ **DIQQAT! KATTA OPERATSIYA**\n\nSiz **BARCHA** foydalanuvchilarga {days} kunlik Premium (Trial) bermoqchisiz.\n\nTasdiqlash uchun **TASDIQLAYMAN** deb yozing.",
+            parse_mode="Markdown"
+        )
+        bot.register_next_step_handler(msg, process_gift_all_confirm, bot, days)
+
+    def process_gift_all_confirm(message, bot, days):
+        if message.text == "TASDIQLAYMAN":
+            status = bot.send_message(message.chat.id, "⏳ Bajarilmoqda... Bu biroz vaqt olishi mumkin.")
+            try:
+                count = db.gift_premium_to_all(days=days, plan_type="trial")
+                bot.edit_message_text(f"✅ Muvaffaqiyatli! {count} ta foydalanuvchiga {days} kunlik Premium berildi.", message.chat.id, status.message_id)
+            except Exception as e:
+                bot.edit_message_text(f"❌ Xatolik: {e}", message.chat.id, status.message_id)
+        else:
+            bot.send_message(message.chat.id, "❌ Bekor qilindi.")
+
 def register_content_handlers(bot):
     @bot.message_handler(func=lambda message: "Matnlarni tahrirlash" in message.text and message.from_user.id in ADMIN_IDS)
     def admin_content_start(message):

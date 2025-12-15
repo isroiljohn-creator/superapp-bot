@@ -238,6 +238,37 @@ class Database:
                 user.premium_until = now + timedelta(days=days)
             
             session.commit()
+            
+    def gift_premium_to_all(self, days=5, plan_type="trial"):
+        """
+        Gifts premium to ALL users.
+        - If already premium: extends by 'days'.
+        - If free: gives 'days' starting now.
+        """
+        count = 0
+        with get_sync_db() as session:
+            users = session.query(User).all()
+            now = datetime.now()
+            
+            for user in users:
+                user.is_premium = True
+                
+                # Careful not to overwrite a paid plan with 'trial' identifier if user is already premium
+                # But here we just want to give access. Let's keep existing plan_type if strictly premium,
+                # or overwrite if it was None.
+                if not user.plan_type:
+                    user.plan_type = plan_type
+                
+                if user.premium_until and user.premium_until > now:
+                    user.premium_until = user.premium_until + timedelta(days=days)
+                else:
+                    user.premium_until = now + timedelta(days=days)
+                    user.plan_type = plan_type # Ensure they get marked as trial if they were expired
+                
+                count += 1
+            
+            session.commit()
+        return count
 
     # Legacy Wrapper to support existing calls, but warning: deprecated
     def check_ai_gen_limit(self, user_id, type_key='menu'):
