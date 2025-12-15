@@ -179,7 +179,7 @@ def get_profile_key(profile):
     age = int(profile.get('age', 25))
     age_band = f"{age // 5 * 5}-{(age // 5 * 5) + 4}"
     
-    return f"{profile.get('gender')}|{profile.get('goal')}|{profile.get('activity_level')}|{profile.get('allergies')}|{age_band}|v2"
+    return f"{profile.get('gender')}|{profile.get('goal')}|{profile.get('activity_level')}|{profile.get('allergies')}|{age_band}|v3"
 
 # Usage Stats
 AI_USAGE_STATS = {
