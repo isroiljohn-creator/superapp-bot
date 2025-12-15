@@ -583,10 +583,20 @@ def register_subscription_handlers(bot):
                 call.message.message_id,
                 reply_markup=markup
             )
+        
+        # STOP LOADING SPINNER
+        try:
+            bot.answer_callback_query(call.id)
+        except: pass
 
     @bot.callback_query_handler(func=lambda call: call.data.startswith("sub_plan_"))
     def handle_sub_plan_selection(call):
         if call.from_user.id not in ADMIN_IDS: return
+        
+        # STOP LOADING SPINNER
+        try:
+            bot.answer_callback_query(call.id)
+        except: pass
         
         parts = call.data.split("_")
         plan_type = parts[2] # premium or vip
@@ -597,6 +607,10 @@ def register_subscription_handlers(bot):
 
     def process_subs_days(message, bot, target_id, plan_type):
         try:
+            if not message.text.isdigit():
+                bot.send_message(message.chat.id, "❌ Son kiritishingiz kerak.")
+                return
+
             days = int(message.text)
             # Use new tiered setter
             db.set_user_plan(target_id, plan_type, days)
@@ -608,8 +622,9 @@ def register_subscription_handlers(bot):
             except:
                 pass
                 
-        except ValueError:
-            bot.send_message(message.chat.id, "❌ Son kiritishingiz kerak.")
+        except Exception as e:
+            bot.send_message(message.chat.id, f"❌ Xatolik yuz berdi: {e}")
+            print(f"Sub Add Error: {e}")
 
 def register_content_handlers(bot):
     @bot.message_handler(func=lambda message: "Matnlarni tahrirlash" in message.text and message.from_user.id in ADMIN_IDS)
