@@ -330,17 +330,17 @@ Foydalanuvchi profili:
 
 🍽 [X]-kun uchun sog'lom menyu — [XXXX] kcal
 
-🥣 Nonushta
-• [Taom nomi va asosiy masalliqlar]
-- Tayyorlash: [Qisqa va tushunarli retsept - masalan: "Tuxumni qaynatib, non bilan qo'shib yeng"]
+🥣 Nonushta: [Qisqa taom nomi]
+• [Ingredient 1 + miqdori]
+- Tayyorlash: [Qisqa va tushunarli retsept]
 
-🍛 Tushlik
-• [Taom nomi va asosiy masalliqlar]
-• [Qo'shimcha salat yoki ichimlik]
-- Tayyorlash: [Qisqa va tushunarli retsept - masalan: "Go'shtni qovurib, sabzavotlar bilan dimlang"]
+🍛 Tushlik: [Qisqa taom nomi]
+• [Ingredient 1 + miqdori]
+• [Qo'shimcha]
+- Tayyorlash: [Qisqa va tushunarli retsept]
 
-🥗 Kechki ovqat
-• [Taom nomi va asosiy masalliqlar]
+🥗 Kechki ovqat: [Qisqa taom nomi]
+• [Ingredient 1 + miqdori]
 - Tayyorlash: [Qisqa va tushunarli retsept]
 
 💬 [Qisqa motivatsion gap 1 gap]
