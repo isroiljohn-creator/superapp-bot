@@ -30,7 +30,15 @@ def main():
         import subprocess
         # Run "alembic upgrade head"
         # We capture output to avoid spamming logs unless error
-        result = subprocess.run(["alembic", "upgrade", "003_add_missing_cols"], capture_output=True, text=True)
+        # Debug: List files in versions
+        import os
+        print(f"📂 Alembic Versions: {os.listdir('alembic/versions')}")
+        
+        # Run "alembic upgrade head" - Revert to head to see multiple heads error again with file list
+        # Or try to run "alembic heads" first
+        subprocess.run(["alembic", "heads"], check=False)
+        
+        result = subprocess.run(["alembic", "upgrade", "head"], capture_output=True, text=True)
         if result.returncode == 0:
             print("✅ Migratsiyalar muvaffaqiyatli yakunlandi.")
         else:
