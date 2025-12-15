@@ -1203,14 +1203,24 @@ def register_content_handlers(bot):
         bot.register_next_step_handler(msg, process_content_edit, bot, key)
 
     def process_content_edit(message, bot, key):
-        new_text = message.text
-        if not new_text:
-            bot.send_message(message.chat.id, "❌ Matn bo'lishi kerak.")
+        # Admin check
+        if message.from_user.id not in ADMIN_IDS:
             return
-            
-        content_manager.update(key, new_text)
-        label = CONTENT_LABELS.get(key, key)
-        bot.send_message(message.chat.id, f"✅ <b>{label}</b> saqlandi!", parse_mode="HTML")
+        
+        try:
+            new_text = message.text
+            if not new_text:
+                bot.send_message(message.chat.id, "❌ Matn bo'lishi kerak.")
+                return
+                
+            content_manager.update(key, new_text)
+            label = CONTENT_LABELS.get(key, key)
+            bot.send_message(message.chat.id, f"✅ <b>{label}</b> saqlandi!", parse_mode="HTML")
+        except Exception as e:
+            print(f"Content edit error: {e}")
+            import traceback
+            traceback.print_exc()
+            bot.send_message(message.chat.id, f"❌ Xatolik: {str(e)[:100]}")
 
 # --- Phase 7: Observability Extensions ---
 
