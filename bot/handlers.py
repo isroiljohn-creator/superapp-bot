@@ -1,5 +1,5 @@
 from bot import onboarding, gamification, admin, feedback, premium, profile, templates, workout
-from bot.keyboards import main_menu_keyboard
+from bot.keyboards import main_menu_keyboard, ai_coach_submenu_keyboard, challenges_submenu_keyboard, help_submenu_keyboard
 from bot import trackers, ai_features, challenges, calorie_scanner
 from core.observability import track_latency # IMPORTED
 
@@ -82,7 +82,8 @@ def register_all_handlers(bot):
         pass
 
     # --- Main Menu Navigation ---
-    @bot.message_handler(func=lambda message: message.text == "⬅️ Asosiy menyu")
+    # --- Main Menu Navigation ---
+    @bot.message_handler(func=lambda message: message.text == "⬅️ Asosiy menyu" or message.text == "⬅️ Orqaga")
     def back_to_main(message):
         bot.send_message(message.chat.id, "🏠 Asosiy menyu", reply_markup=main_menu_keyboard(user_id=message.from_user.id))
 
@@ -90,35 +91,113 @@ def register_all_handlers(bot):
     def back_to_premium(message):
         premium.handle_premium_menu(message, bot)
 
-    @bot.message_handler(func=lambda message: message.text == "📆 Kunlik odatlar")
+    @bot.message_handler(func=lambda message: "Kunlik odatlar" in message.text)
     def menu_habits(message):
         trackers.handle_habits_menu(message, bot)
 
     @bot.message_handler(func=lambda message: message.text == "🤖 AI murabbiy")
     def menu_ai(message):
-        ai_features.handle_ai_tools_menu(message, bot)
+        bot.send_message(message.chat.id, "Bugun nima qilamiz?", reply_markup=ai_coach_submenu_keyboard())
 
-    @bot.message_handler(func=lambda message: message.text == "🔗 Referal")
+    # Moved Referral to Challenges submenu, but keeping handler for backward/direct access if needed
+    @bot.message_handler(func=lambda message: message.text == "🔗 Referal" or message.text == "👥 Do‘st chaqirish")
     def menu_referral(message):
         gamification.handle_referral_link(message, bot)
 
     @bot.message_handler(func=lambda message: message.text == "🔥 Chellenjlar")
     def menu_challenges(message):
-        challenges.handle_challenges_menu(message, bot)
+        bot.send_message(message.chat.id, "🔥 Bugungi Chellenjlar", reply_markup=challenges_submenu_keyboard())
 
     @bot.message_handler(func=lambda message: message.text == "👤 Profil")
     def menu_profile(message):
         profile.handle_profile(message, bot)
+        
+    @bot.message_handler(func=lambda message: message.text == "💚 YASHA Plus")
+    def menu_yasha_plus(message):
+        # Soft paywall message
+        bot.send_message(message.chat.id, "🚀 YASHA Plus bilan natija 2x tezroq\nBugun Plus bilan menyu tuzing!", reply_markup=premium.premium_inline_keyboard())
 
     @bot.message_handler(func=lambda message: message.text in ["💳 Obuna", "💎 Premium"])
     def menu_premium(message):
         premium.handle_premium_menu(message, bot)
 
-    @bot.message_handler(func=lambda message: message.text == "📩 Qayta aloqa")
-    def menu_feedback(message):
+    @bot.message_handler(func=lambda message: message.text == "📩 Yordam" or message.text == "📩 Qayta aloqa")
+    def menu_help(message):
+        bot.send_message(message.chat.id, "Nima tushunarsiz bo'ldi?", reply_markup=help_submenu_keyboard())
+
+    # --- Submenu Button Handlers ---
+
+    # AI Coach Submenu
+    @bot.message_handler(func=lambda message: message.text == "🏋️ Mashq qilaman")
+    def sub_workout(message):
+        workout.generate_ai_workout(message, bot)
+        
+    @bot.message_handler(func=lambda message: message.text == "🥗 Nima yeyman?" or message.text == "🔥 AI retsept tuzsin")
+    def sub_meal(message):
+        workout.generate_ai_meal(message, bot)
+        
+    @bot.message_handler(func=lambda message: message.text == "🛒 Nima xarid qilay?")
+    def sub_shopping(message):
+        try:
+             link = db.get_user_menu_link(message.from_user.id)
+             if not link:
+                 bot.reply_to(message, "🛒 Avval menyu tuzing (AI Menyu), keyin xarid ro'yxatini ko'rishingiz mumkin.")
+                 return
+             import json
+             raw_list = json.loads(link['shopping_list_json'])
+             if not raw_list:
+                 bot.reply_to(message, "🛒 Ro'yxat bo'sh.")
+                 return
+             
+             # Format list
+             text = "🛒 <b>Xaridlar Ro'yxati</b>\n\n"
+             for category, items in raw_list.items():
+                 text += f"<b>{category}:</b>\n"
+                 for item in items:
+                     text += f"▫️ {item}\n"
+                 text += "\n"
+             bot.send_message(message.chat.id, text, parse_mode="HTML")
+        except Exception as e:
+            bot.reply_to(message, "Xatolik: Ro'yxatni yuklab bo'lmadi.")
+
+    @bot.message_handler(func=lambda message: message.text == "❓ Murabbiyga savolim bor")
+    def sub_qa(message):
+        ai_features.handle_ai_qa(message, bot)
+
+    # Challenges Submenu
+    @bot.message_handler(func=lambda message: message.text == "🔥 Bugungi chellenj")
+    def sub_challenge_daily(message):
+        text = (
+            "🔥 <b>Bugungi Chellenj: 100 ta O'tirib-turish (Squats)</b>\n\n"
+            "Bajarib bo'lgach, 'Bajardim' tugmasini bosing.\n"
+            "Mukofot: +10 ball"
+        )
+        markup = types.InlineKeyboardMarkup()
+        markup.add(types.InlineKeyboardButton("✅ Bajardim (+10 ball)", callback_data="challenge_complete_daily"))
+        bot.send_message(message.chat.id, text, reply_markup=markup, parse_mode="HTML")
+
+    @bot.message_handler(func=lambda message: message.text == "🏆 Reyting")
+    def sub_leaderboard(message):
+        challenges.show_leaderboard_message(message, bot)
+
+    # Help Submenu
+    @bot.message_handler(func=lambda message: message.text == "🏋️ Mashqlar bo'yicha")
+    def help_workout_info(message):
+        bot.send_message(message.chat.id, "Mashq rejasi bo'yicha savollarni yozing yoki videolarni kuting. Hozircha AI murabbiy yordam bera oladi.")
+
+    @bot.message_handler(func=lambda message: message.text == "🥗 Menyu bo'yicha")
+    def help_meal_info(message):
+         bot.send_message(message.chat.id, "Menyu bo'yicha savollaringizni AI murabbiyga bering. U retseptlar va o'zgartirishlar kiritib bera oladi.")
+         
+    @bot.message_handler(func=lambda message: message.text == "💳 Obuna bo'yicha")
+    def help_premium_info(message):
+        premium.handle_premium_info_detailed(message, bot)
+
+    @bot.message_handler(func=lambda message: message.text == "🤖 Bot ishlamayapti")
+    def help_bug_report(message):
         feedback.handle_feedback_start(message, bot)
 
-    # --- Sub-Menu Handlers ---
+    # --- Sub-Menu Handlers (Legacy / Direct Callbacks) ---
 
     # Plan
     @bot.message_handler(func=lambda message: message.text == "🤖 AI mashg‘ulot rejasi" or message.text == "🏋️ AI mashq rejasi")

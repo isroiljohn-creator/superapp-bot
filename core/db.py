@@ -1420,6 +1420,38 @@ class Database:
                 }
             return None
 
+    def get_daily_habit_progress(self, user_id):
+        """
+        Calculate completed habits for today (Water, Workout, Steps, Sleep).
+        Returns a tuple: (completed_count, total_count)
+        """
+        today = datetime.utcnow().strftime('%Y-%m-%d')
+        total_habits = 4 # Water, Workout, Steps, Calories/Sleep? Let's use 4: Water, Workout, Steps, Calories
+        
+        try:
+            with get_sync_db() as session:
+                pk = self._get_user_pk(session, user_id)
+                if not pk: return (0, total_habits)
+                
+                log = session.query(DailyLog).filter(
+                    DailyLog.user_id == pk,
+                    DailyLog.date == today
+                ).first()
+                
+                if not log:
+                    return (0, total_habits)
+                
+                completed = 0
+                if log.water_drank: completed += 1
+                if log.workout_done: completed += 1
+                if (log.steps or 0) >= 5000: completed += 1 # Basic goal
+                if (log.calories_consumed or 0) > 0: completed += 1 # Basic tracking
+                
+                return (completed, total_habits)
+        except Exception as e:
+            print(f"Error getting habit progress: {e}")
+            return (0, total_habits)
+
     def create_user_menu_link(self, user_id, template_id):
         with get_sync_db() as session:
             pk = self._get_user_pk(session, user_id)

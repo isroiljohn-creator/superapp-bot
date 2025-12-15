@@ -20,7 +20,7 @@ def show_calorie_menu(message, bot):
         bot.send_photo(
             message.chat.id,
             photo,
-            caption="<b>🍽 Kaloriya tahlili</b>\n\nKaloriyani qanday hisoblamoqchisiz?\n\nRasm yuborasizmi yoki mahsulot nomini yozasizmi?👇🏻",
+            caption="<b>🍽 Kaloriya tahlili</b>\n\nRasm yuboring, taxminiy hisoblaymiz 👇🏻",
             reply_markup=markup,
             parse_mode="HTML"
         )

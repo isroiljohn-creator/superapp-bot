@@ -56,22 +56,32 @@ def main_menu_keyboard(is_admin=False, user_id=None):
         real_admin = user_id in ADMIN_IDS
     elif is_admin: # This handles backward compatibility for is_admin=True
         real_admin = True
+    
+    # Calculate habit progress if user_id is present
+    habit_text = "📅 Kunlik odatlar"
+    if user_id:
+        try:
+            from core.db import db
+            completed, total = db.get_daily_habit_progress(user_id)
+            habit_text = f"📅 Kunlik odatlar ({completed}/{total})"
+        except Exception as e:
+            print(f"Error getting habit progress for menu: {e}")
         
-    # Row 1: AI murabbiy | Kunlik odatlar
-    markup.add(KeyboardButton("🤖 AI murabbiy"), KeyboardButton("📆 Kunlik odatlar"))
+    # Row 1: AI murabbiy (Full width or prominent)
+    markup.add(KeyboardButton("🤖 AI murabbiy"))
     
-    # Row 2: Kaloriya tahlili | Premium
-    markup.add(KeyboardButton("🍽 Kaloriya tahlili"), KeyboardButton("💳 Obuna"))
+    # Row 2: Kunlik odatlar | Kaloriya tahlili
+    markup.add(KeyboardButton(habit_text), KeyboardButton("🍽 Kaloriya tahlili"))
     
-    # Row 3: Chellenjlar | Profil
-    markup.add(KeyboardButton("🔥 Chellenjlar"), KeyboardButton("👤 Profil"))
+    # Row 3: YASHA Plus | Profil
+    markup.add(KeyboardButton("💚 YASHA Plus"), KeyboardButton("👤 Profil"))
     
-    # Row 4: Referal | Qayta aloqa
-    markup.add(KeyboardButton("🔗 Referal"), KeyboardButton("📩 Qayta aloqa"))
+    # Row 4: Chellenjlar | Yordam (Serving separate help menu now)
+    markup.add(KeyboardButton("🔥 Chellenjlar"), KeyboardButton("📩 Yordam"))
     
     # Row 5: Admin Button (if admin)
-    if is_admin:
-        markup.add(KeyboardButton("👨‍💻 Dasturchi"))
+    if real_admin:
+        markup.add(KeyboardButton("👨‍💻 Dasturchi"), KeyboardButton("🗑 AI Bazani Tozalash"))
     
     return markup
 
@@ -150,4 +160,27 @@ def gamification_keyboard():
     markup = InlineKeyboardMarkup()
     markup.add(InlineKeyboardButton("Mashq qildim ✅", callback_data="daily_workout_done"))
     markup.add(InlineKeyboardButton("Suv ichdim 💧", callback_data="daily_water_done"))
+    return markup
+
+def ai_coach_submenu_keyboard():
+    """Submenu for '🤖 AI murabbiy'"""
+    markup = ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
+    markup.add(KeyboardButton("🏋️ Mashq qilaman"), KeyboardButton("🥗 Nima yeyman?"))
+    markup.add(KeyboardButton("🔥 AI retsept tuzsin"), KeyboardButton("🛒 Nima xarid qilay?"))
+    markup.add(KeyboardButton("❓ Murabbiyga savolim bor"), KeyboardButton("⬅️ Orqaga"))
+    return markup
+
+def challenges_submenu_keyboard():
+    """Submenu for '🔥 Chellenjlar'"""
+    markup = ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
+    markup.add(KeyboardButton("🔥 Bugungi chellenj"), KeyboardButton("🏆 Reyting"))
+    markup.add(KeyboardButton("👥 Do‘st chaqirish"), KeyboardButton("⬅️ Orqaga"))
+    return markup
+
+def help_submenu_keyboard():
+    """Submenu for '📩 Yordam'"""
+    markup = ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
+    markup.add(KeyboardButton("🏋️ Mashqlar bo'yicha"), KeyboardButton("🥗 Menyu bo'yicha"))
+    markup.add(KeyboardButton("💳 Obuna bo'yicha"), KeyboardButton("🤖 Bot ishlamayapti"))
+    markup.add(KeyboardButton("⬅️ Orqaga"))
     return markup
