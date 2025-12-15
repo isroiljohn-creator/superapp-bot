@@ -1669,6 +1669,19 @@ class Database:
             print(f"ERROR: Failed to clear meals: {e}")
             return 0
     
+    def clear_user_meals(self, user_id):
+        """Delete all AI-generated meals for a specific user"""
+        try:
+            with get_sync_db() as session:
+                from backend.models import UserMeal
+                count = session.query(UserMeal).filter(UserMeal.user_id == user_id).count()
+                session.query(UserMeal).filter(UserMeal.user_id == user_id).delete()
+                session.commit()
+                return count
+        except Exception as e:
+            print(f"ERROR: Failed to clear user meals: {e}")
+            return 0
+    
     def clear_all_daily_plans(self):
         """Delete all daily plans"""
         try:

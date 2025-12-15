@@ -324,7 +324,30 @@ def register_handlers(bot):
         if message.from_user.id not in ADMIN_IDS:
             return
         
-        # Confirmation markup
+        # Show cleanup options
+        markup = types.InlineKeyboardMarkup(row_width=1)
+        markup.add(
+            types.InlineKeyboardButton("🗑 Barcha menyularni o'chirish", callback_data="clear_all_meals"),
+            types.InlineKeyboardButton("👤 ID bo'yicha tozalash", callback_data="clear_user_meals")
+        )
+        markup.add(types.InlineKeyboardButton("❌ Bekor qilish", callback_data="cancel_clear_ai"))
+        
+        text = (
+            "🗑 <b>AI Menyu Bazasini Tozalash</b>\n\n"
+            "Variantni tanlang:"
+        )
+        
+        bot.send_message(message.chat.id, text, reply_markup=markup, parse_mode="HTML")
+    
+    @bot.callback_query_handler(func=lambda call: call.data == "clear_all_meals")
+    def confirm_clear_all_meals(call):
+        if call.from_user.id not in ADMIN_IDS:
+            bot.answer_callback_query(call.id, "Huquq yo'q", show_alert=True)
+            return
+        
+        bot.answer_callback_query(call.id)
+        
+        # Confirmation for all meals
         markup = types.InlineKeyboardMarkup(row_width=2)
         markup.add(
             types.InlineKeyboardButton("✅ Ha, tozala", callback_data="confirm_clear_ai"),
@@ -332,15 +355,29 @@ def register_handlers(bot):
         )
         
         text = (
-            "🗑 <b>AI Menyu Bazasini Tozalash</b>\n\n"
+            "🗑 <b>Barcha Menyularni O'chirish</b>\n\n"
             "⚠️ <b>OGOHLANTIRISH:</b>\n"
-            "Bu barcha foydalanuvchilar tomonidan generatsiya qilingan AI menyularni o'chiradi:\n\n"
+            "Bu <b>BARCHA</b> foydalanuvchilar tomonidan generatsiya qilingan AI menyularni o'chiradi!\n\n"
             "• 🥗 Barcha AI-generatsiya qilingan meal rejalari\n\n"
             "Bu amal <b>QAYTARIB BO'LMAYDI!</b>\n\n"
             "Davom etishni xohlaysizmi?"
         )
         
-        bot.send_message(message.chat.id, text, reply_markup=markup, parse_mode="HTML")
+        bot.edit_message_text(text, call.message.chat.id, call.message.message_id, reply_markup=markup, parse_mode="HTML")
+    
+    @bot.callback_query_handler(func=lambda call: call.data == "clear_user_meals")
+    def prompt_user_id_for_cleanup(call):
+        if call.from_user.id not in ADMIN_IDS:
+            bot.answer_callback_query(call.id, "Huquq yo'q", show_alert=True)
+            return
+        
+        bot.answer_callback_query(call.id)
+        msg = bot.send_message(
+            call.message.chat.id,
+            "👤 Foydalanuvchi ID-sini kiriting:\n\nMasalan: 123456789",
+            reply_markup=types.ForceReply()
+        )
+        bot.register_next_step_handler(msg, process_user_id_cleanup, bot)
     
     @bot.callback_query_handler(func=lambda call: call.data == "confirm_clear_ai")
     def confirm_clear_ai_callback(call):
@@ -375,6 +412,76 @@ def register_handlers(bot):
         if call.from_user.id not in ADMIN_IDS: return
         bot.answer_callback_query(call.id)
         bot.edit_message_text("❌ Bekor qilindi.", call.message.chat.id, call.message.message_id)
+    
+    def process_user_id_cleanup(message, bot):
+        """Process user ID and clean their AI meal data"""
+        if message.from_user.id not in ADMIN_IDS:
+            return
+        
+        try:
+            user_id = int(message.text.strip())
+            
+            # Check if user exists
+            user = db.get_user(user_id)
+            if not user:
+                bot.send_message(message.chat.id, f"❌ ID {user_id} bilan foydalanuvchi topilmadi.")
+                return
+            
+            # Confirm deletion
+            markup = types.InlineKeyboardMarkup(row_width=2)
+            markup.add(
+                types.InlineKeyboardButton("✅ Ha, tozala", callback_data=f"confirm_clear_user_{user_id}"),
+                types.InlineKeyboardButton("❌ Bekor qilish", callback_data="cancel_clear_ai")
+            )
+            
+            user_name = user.get('full_name', 'Noma\'lum')
+            text = (
+                f"👤 <b>Foydalanuvchi ma'lumotlarini o'chirish</b>\n\n"
+                f"ID: <code>{user_id}</code>\n"
+                f"Ism: {user_name}\n\n"
+                f"⚠️ Bu foydalanuvchining <b>BARCHA</b> AI menyulari o'chiriladi!\n\n"
+                f"Davom etasizmi?"
+            )
+            
+            bot.send_message(message.chat.id, text, reply_markup=markup, parse_mode="HTML")
+            
+        except ValueError:
+            bot.send_message(message.chat.id, "❌ Noto'g'ri format. Faqat raqam kiriting.")
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            bot.send_message(message.chat.id, f"❌ Xatolik: {str(e)[:100]}")
+    
+    @bot.callback_query_handler(func=lambda call: call.data.startswith("confirm_clear_user_"))
+    def confirm_clear_user_callback(call):
+        if call.from_user.id not in ADMIN_IDS:
+            bot.answer_callback_query(call.id, "Huquq yo'q", show_alert=True)
+            return
+        
+        bot.answer_callback_query(call.id, "Tozalanmoqda...")
+        
+        try:
+            user_id = int(call.data.replace("confirm_clear_user_", ""))
+            
+            # Clear user's AI meals
+            deleted_count = db.clear_user_meals(user_id)
+            
+            text = (
+                f"✅ <b>Foydalanuvchi Menyulari Tozalandi!</b>\n\n"
+                f"👤 User ID: <code>{user_id}</code>\n"
+                f"🥗 O'chirilgan menyular: {deleted_count} ta\n\n"
+                f"Foydalanuvchining barcha AI menyulari o'chirildi."
+            )
+            
+            bot.edit_message_text(text, call.message.chat.id, call.message.message_id, parse_mode="HTML")
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            bot.edit_message_text(
+                f"❌ Xatolik: {str(e)[:100]}",
+                call.message.chat.id,
+                call.message.message_id
+            )
     # Helper function for flags interface (defined early for scope)
     def show_flags_interface(chat_id):
         """Helper to display flags interface - works for both commands and callbacks"""
