@@ -1016,64 +1016,190 @@ def register_subscription_handlers(bot):
             bot.send_message(message.chat.id, "❌ Bekor qilindi.")
 
 def register_content_handlers(bot):
+    # Content key to human-readable label mapping
+    CONTENT_LABELS = {
+        # Onboarding
+        "welcome_message": "👋 Xush kelibsiz xabari",
+        "onboarding_name": "📝 Ism so'rash",
+        "onboarding_age": "🎂 Yosh so'rash",
+        "onboarding_gender": "👥 Jins so'rash",
+        "onboarding_height": "📏 Bo'y so'rash",
+        "onboarding_weight": "⚖️ Vazn so'rash",
+        "onboarding_goal": "🎯 Maqsad so'rash",
+        "onboarding_activity": "🏃 Faollik so'rash",
+        "onboarding_complete": "✅ Ro'yxat tugallandi",
+        
+        # Main Menu
+        "main_menu_title": "🏠 Asosiy menyu sarlavhasi",
+        "main_menu_desc": "🏠 Asosiy menyu matni",
+        
+        # Premium
+        "premium_title": "💎 Premium sarlavha",
+        "premium_desc": "💎 Premium tavsifi",
+        "premium_price": "💰 Premium narxi",
+        "premium_subscribe": "💳 Obuna qilish matni",
+        "premium_active": "✅ Premium faol",
+        "premium_required": "⚠️ Premium kerak xabari",
+        
+        # Workout
+        "workout_title": "🏋️ Mashqlar sarlavhasi",
+        "workout_menu": "🏋️ Mashqlar menyu",
+        "workout_ai_generating": "⏳ AI mashq yaratyapti",
+        "workout_ai_success": "✅ Mashq tayyor",
+        "workout_ai_error": "❌ Mashq xatolik",
+        "workout_daily_empty": "📋 Bugungi reja yo'q",
+        
+        # Nutrition
+        "nutrition_title": "🥗 Ovqat sarlavhasi",
+        "nutrition_menu": "🥗 Ovqat menyu",
+        "nutrition_ai_generating": "⏳ AI ovqat yaratyapti",
+        "nutrition_ai_success": "✅ Ovqat tayyor",
+        "nutrition_ai_error": "❌ Ovqat xatolik",
+        "nutrition_daily_empty": "📋 Bugungi ovqat yo'q",
+        
+        # Profile
+        "profile_title": "👤 Profil sarlavhasi",
+        "profile_view": "📊 Profil ko'rish",
+        "profile_edit": "✏️ Profil tahrirlash",
+        "profile_updated": "✅ Profil yangilandi",
+        
+        # Gamification
+        "gamification_title": "🎮 Motivatsiya sarlavhasi",
+        "points_earned": "🎉 Ball olish",
+        "level_up": "🎊 Daraja oshish",
+        "daily_streak": "🔥 Kunlik seriya",
+        "challenge_complete": "🏆 Chellenj tugadi",
+        
+        # Referral
+        "referral_title": "🔗 Referral sarlavhasi",
+        "referral_desc": "🔗 Referral tavsifi",
+        "referral_link": "🔗 Referral havola",
+        
+        # Calorie
+        "calorie_title": "📸 Kaloriya sarlavhasi",
+        "calorie_prompt": "📸 Rasm so'rash",
+        "calorie_analyzing": "🔍 Tahlil jarayoni",
+        "calorie_result": "📊 Natija",
+        
+        # Errors
+        "error_generic": "❌ Umumiy xatolik",
+        "error_invalid_input": "⚠️ Noto'g'ri ma'lumot",
+        "success_generic": "✅ Muvaffaqiyat",
+        "loading": "⏳ Yuklanmoqda",
+        "please_wait": "⏰ Kuting",
+        
+        # Admin
+        "admin_panel_title": "👨‍💼 Admin panel",
+        "admin_stats_title": "📊 Statistika",
+        "admin_users_title": "👥 Foydalanuvchilar",
+        "admin_broadcast_title": "📨 Umumiy xabar",
+    }
+    
+    # Categories
+    CONTENT_CATEGORIES = {
+        "👋 Onboarding": ["welcome_message", "onboarding_name", "onboarding_age", "onboarding_gender", 
+                          "onboarding_height", "onboarding_weight", "onboarding_goal", "onboarding_activity", "onboarding_complete"],
+        "🏠 Asosiy menyu": ["main_menu_title", "main_menu_desc"],
+        "💎 Premium": ["premium_title", "premium_desc", "premium_price", "premium_subscribe", "premium_active", "premium_required"],
+        "🏋️ Mashqlar": ["workout_title", "workout_menu", "workout_ai_generating", "workout_ai_success", "workout_ai_error", "workout_daily_empty"],
+        "🥗 Ovqatlanish": ["nutrition_title", "nutrition_menu", "nutrition_ai_generating", "nutrition_ai_success", "nutrition_ai_error", "nutrition_daily_empty"],
+        "👤 Profil": ["profile_title", "profile_view", "profile_edit", "profile_updated"],
+        "🎮 Gamifikatsiya": ["gamification_title", "points_earned", "level_up", "daily_streak", "challenge_complete"],
+        "🔗 Referral": ["referral_title", "referral_desc", "referral_link"],
+        "📸 Kaloriya": ["calorie_title", "calorie_prompt", "calorie_analyzing", "calorie_result"],
+        "⚠️ Xatolar": ["error_generic", "error_invalid_input", "success_generic", "loading", "please_wait"],
+        "👨‍💼 Admin": ["admin_panel_title", "admin_stats_title", "admin_users_title", "admin_broadcast_title"],
+    }
+    
     @bot.callback_query_handler(func=lambda call: call.data == "admin_content_btn")
     def admin_content_callback(call):
         if call.from_user.id not in ADMIN_IDS: return
+        bot.answer_callback_query(call.id)
+        
+        # Show categories
+        markup = types.InlineKeyboardMarkup(row_width=2)
+        for category_name in CONTENT_CATEGORIES.keys():
+            markup.add(types.InlineKeyboardButton(category_name, callback_data=f"content_cat_{category_name}"))
+        
+        markup.add(types.InlineKeyboardButton("🔍 Qidirish", callback_data="content_search"))
+            
+        bot.send_message(call.message.chat.id, "✍️ <b>Matnlarni boshqarish</b>\n\nKategoriyani tanlang:", reply_markup=markup, parse_mode="HTML")
+
+    @bot.callback_query_handler(func=lambda call: call.data.startswith("content_cat_"))
+    def show_category_content(call):
+        if call.from_user.id not in ADMIN_IDS: return
+        bot.answer_callback_query(call.id)
+        
+        category = call.data.replace("content_cat_", "")
+        keys = CONTENT_CATEGORIES.get(category, [])
         
         markup = types.InlineKeyboardMarkup(row_width=1)
-        markup.add(types.InlineKeyboardButton("🔍 Qidirish", callback_data="content_search"))
+        for key in keys:
+            label = CONTENT_LABELS.get(key, key)
+            markup.add(types.InlineKeyboardButton(label, callback_data=f"content_edit_{key}"))
         
-        all_content = content_manager.get_all()
-        for key in list(all_content.keys())[:5]:
-            markup.add(types.InlineKeyboardButton(f"📝 {key}", callback_data=f"content_edit_{key}"))
-            
-        bot.send_message(call.message.chat.id, "Matnlarni boshqarish. Qidiruvdan foydalaning yoki ro'yxatdan tanlang:", reply_markup=markup)
-        bot.answer_callback_query(call.id)
+        markup.add(types.InlineKeyboardButton("⬅️ Ortga", callback_data="admin_content_btn"))
+        
+        bot.edit_message_text(
+            f"✍️ <b>{category}</b>\n\nMatnni tanlang:",
+            call.message.chat.id,
+            call.message.message_id,
+            reply_markup=markup,
+            parse_mode="HTML"
+        )
 
     @bot.message_handler(func=lambda message: "Matnlarni tahrirlash" in message.text and message.from_user.id in ADMIN_IDS)
     def admin_content_start(message):
-        # List categories or show keys
-        # For simplicity, let's show keys directly or search
-        markup = types.InlineKeyboardMarkup(row_width=1)
+        # Show categories
+        markup = types.InlineKeyboardMarkup(row_width=2)
+        for category_name in CONTENT_CATEGORIES.keys():
+            markup.add(types.InlineKeyboardButton(category_name, callback_data=f"content_cat_{category_name}"))
         
-        # We can group by category if we had many, but for now list all or search
         markup.add(types.InlineKeyboardButton("🔍 Qidirish", callback_data="content_search"))
-        
-        # Add some common keys manually or fetch top ones
-        all_content = content_manager.get_all()
-        for key in list(all_content.keys())[:5]:
-            markup.add(types.InlineKeyboardButton(f"📝 {key}", callback_data=f"content_edit_{key}"))
             
-        bot.send_message(message.chat.id, "Matnlarni boshqarish. Qidiruvdan foydalaning yoki ro'yxatdan tanlang:", reply_markup=markup)
+        bot.send_message(message.chat.id, "✍️ <b>Matnlarni boshqarish</b>\n\nKategoriyani tanlang:", reply_markup=markup, parse_mode="HTML")
 
     @bot.callback_query_handler(func=lambda call: call.data == "content_search")
     def admin_content_search_prompt(call):
         if call.from_user.id not in ADMIN_IDS: return
-        msg = bot.send_message(call.message.chat.id, "Kalit so'zni kiriting (masalan: welcome):", reply_markup=types.ForceReply())
+        bot.answer_callback_query(call.id)
+        msg = bot.send_message(call.message.chat.id, "🔍 Matn nomini kiriting:", reply_markup=types.ForceReply())
         bot.register_next_step_handler(msg, process_content_search, bot)
 
     def process_content_search(message, bot):
         query = message.text.lower()
-        all_content = content_manager.get_all()
-        matches = [k for k in all_content.keys() if query in k.lower()]
+        
+        # Search in both keys and labels
+        matches = []
+        for key, label in CONTENT_LABELS.items():
+            if query in key.lower() or query in label.lower():
+                matches.append(key)
         
         if not matches:
             bot.send_message(message.chat.id, "❌ Hech narsa topilmadi.")
             return
             
         markup = types.InlineKeyboardMarkup(row_width=1)
-        for key in matches[:10]: # Limit to 10
-            markup.add(types.InlineKeyboardButton(f"📝 {key}", callback_data=f"content_edit_{key}"))
+        for key in matches[:15]:
+            label = CONTENT_LABELS.get(key, key)
+            markup.add(types.InlineKeyboardButton(label, callback_data=f"content_edit_{key}"))
             
-        bot.send_message(message.chat.id, f"🔍 '{query}' bo'yicha natijalar:", reply_markup=markup)
+        bot.send_message(message.chat.id, f"🔍 Topilgan matnlar:", reply_markup=markup)
 
     @bot.callback_query_handler(func=lambda call: call.data.startswith("content_edit_"))
     def admin_content_edit_prompt(call):
         if call.from_user.id not in ADMIN_IDS: return
+        bot.answer_callback_query(call.id)
+        
         key = call.data.replace("content_edit_", "")
         current_val = content_manager.get(key)
+        label = CONTENT_LABELS.get(key, key)
         
-        msg = bot.send_message(call.message.chat.id, f"📝 <b>{key}</b>\n\nHozirgi matn:\n<pre>{current_val}</pre>\n\nYangi matnni yuboring:", parse_mode="HTML")
+        msg = bot.send_message(
+            call.message.chat.id, 
+            f"✍️ <b>{label}</b>\n\n📋 Hozirgi matn:\n<pre>{current_val}</pre>\n\n✏️ Yangi matnni yuboring:", 
+            parse_mode="HTML"
+        )
         bot.register_next_step_handler(msg, process_content_edit, bot, key)
 
     def process_content_edit(message, bot, key):
@@ -1083,7 +1209,8 @@ def register_content_handlers(bot):
             return
             
         content_manager.update(key, new_text)
-        bot.send_message(message.chat.id, "✅ Saqlandi!")
+        label = CONTENT_LABELS.get(key, key)
+        bot.send_message(message.chat.id, f"✅ <b>{label}</b> saqlandi!", parse_mode="HTML")
 
 # --- Phase 7: Observability Extensions ---
 
