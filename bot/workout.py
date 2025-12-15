@@ -586,11 +586,21 @@ def show_daily_menu(bot, user_id, link_data, override_day_idx=None):
             if isinstance(m, dict):
                 # New Schema
                 title = m.get('title', 'Taom')
-                kcal = m.get('kcal', '')
+                kcal = m.get('kcal')
+                try:
+                    kcal = int(kcal) if kcal else None
+                except: kcal = None
+                
                 time_m = m.get('time_minutes', '')
                 
-                s = f"<b>{title}</b> ({kcal} kcal)\n"
-                s += "<i>Tarkibi:</i> " + ", ".join(m.get('ingredients', [])) + "\n"
+                s = f"<b>{title}</b>"
+                if kcal:
+                    s += f" ({kcal} kcal)"
+                s += "\n"
+                
+                ings = m.get('ingredients', [])
+                if ings:
+                    s += "<i>Tarkibi:</i> " + ", ".join(ings) + "\n"
                 
                 steps = m.get('preparation_steps', [])
                 if steps:
@@ -600,7 +610,9 @@ def show_daily_menu(bot, user_id, link_data, override_day_idx=None):
                         
                 meta = []
                 if time_m: meta.append(f"⏱ {time_m} daq")
-                if m.get('cost_level'): meta.append(f"💰 {m.get('cost_level')}")
+                cost = m.get('cost_level')
+                if cost and cost != "N/A": meta.append(f"💰 {cost}")
+                
                 if meta: s += "\n" + " | ".join(meta)
                 return s
             return "-"

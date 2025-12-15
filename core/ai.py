@@ -179,7 +179,7 @@ def get_profile_key(profile):
     age = int(profile.get('age', 25))
     age_band = f"{age // 5 * 5}-{(age // 5 * 5) + 4}"
     
-    return f"{profile.get('gender')}|{profile.get('goal')}|{profile.get('activity_level')}|{profile.get('allergies')}|{age_band}|v3"
+    return f"{profile.get('gender')}|{profile.get('goal')}|{profile.get('activity_level')}|{profile.get('allergies')}|{age_band}|v4"
 
 # Usage Stats
 AI_USAGE_STATS = {
@@ -439,6 +439,8 @@ CRITICAL RULES:
    - time_minutes, cost_level, place (uy/kocha)
 3. Recipes must be realistic for a home kitchen.
 4. Total calories must match the target range.
+5. 'kcal' field is MANDATORY for EVERY meal (breakfast, lunch, dinner, snack). It must be an INTEGER (e.g. 450, not '450 kcal').
+6. Snack MUST be a structured object with calculated calories.
 """
 
     # 2. User Prompt (Data)
@@ -455,6 +457,7 @@ Maqsad: {user_profile.get('goal')}
 Talablar:
 - 7 kunlik reja (JSON array "menu" ichida). 
 - **micro_advice**: Har kun uchun 1-2 gapdan iborat qisqa, motivatsion coach maslahati (faqat o'zbekcha). (Masalan: "Bugun 1% yaxshi bo‘lsang bo‘ldi.", "Suv ichishni unutma!").
+- **kcal**: Har bir ovqat (snack uchun ham) albatta kaloriya (integer) hisoblansin.
 
 - **shopping_list**: OBYEKT bo'lishi shart. Quyidagi kategoriyalarga bo'lingan:
     - protein (Go'sht, tuxum...)
