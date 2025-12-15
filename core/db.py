@@ -696,15 +696,15 @@ class Database:
         with get_sync_db() as session:
             from sqlalchemy import func
             
-            # Count referrals by grouping users by referred_by
+            # Count referrals by grouping users by referrer_id
             # Get users who have referred others
             referral_stats = session.query(
-                User.referred_by.label('referrer_id'),
+                User.referrer_id.label('referrer_id'),
                 func.count(User.id).label('referral_count')
             ).filter(
-                User.referred_by != None
+                User.referrer_id != None
             ).group_by(
-                User.referred_by
+                User.referrer_id
             ).order_by(
                 func.count(User.id).desc()
             ).limit(limit).all()
@@ -1238,43 +1238,7 @@ class Database:
             breakdown["total"] = sum(breakdown.values())
             return breakdown
 
-    def redeem_points(self, user_id, cost, reward_type, reward_value):
-        with get_sync_db() as session:
-            # Atomic check and deduct
-            # Returns number of rows updated (1 if success, 0 if condition failed)
-            rows = session.query(User).filter(
-                User.telegram_id == user_id, 
-                User.points >= cost
-            ).update(
-                {
-                    "points": User.points - cost,
-                    "yasha_points": User.yasha_points - cost
-                }, 
-                synchronize_session=False
-            )
-            
-            if rows == 0:
-                return False, "Ballar yetarli emas"
-            
-            # Fetch user to grant reward (points already deducted in DB, but session object might be stale if we used synchronize_session=False)
-            # We need to refresh or just query again
-            user = session.query(User).filter(User.telegram_id == user_id).first()
-            
-            # Grant Reward
-            if reward_type == "premium_days":
-                days = int(reward_value)
-                now = datetime.now()
-                current_until = user.premium_until
-                
-                if current_until and current_until > now:
-                    new_until = current_until + timedelta(days=days)
-                else:
-                    new_until = now + timedelta(days=days)
-                
-                user.premium_until = new_until
-                user.is_premium = True
-                
-            return True, "Muvaffaqiyatli"
+
 
     def update_streak(self, user_id, type):
         with get_sync_db() as session:
