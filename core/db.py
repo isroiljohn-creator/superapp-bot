@@ -960,7 +960,6 @@ class Database:
             if user:
                 if type == 'water':
                     user.streak_water = (user.streak_water or 0) + 1
-                elif type == 'sleep':
                 elif type == 'mood':
                     user.streak_mood = (user.streak_mood or 0) + 1
 
