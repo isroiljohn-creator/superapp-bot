@@ -286,36 +286,41 @@ def register_handlers(bot):
     def admin_broadcast_callback(call):
         try:
             if call.from_user.id in ADMIN_IDS:
-                 admin_broadcast_start(call.message)
                  bot.answer_callback_query(call.id)
+                 # Create a pseudo-message object for admin_broadcast_start
+                 class PseudoMessage:
+                     def __init__(self, chat_id, from_user):
+                         self.chat = type('obj', (object,), {'id': chat_id})
+                         self.from_user = from_user
+                 
+                 pseudo_msg = PseudoMessage(call.message.chat.id, call.from_user)
+                 admin_broadcast_start(pseudo_msg)
             else:
                  bot.answer_callback_query(call.id, "Huquq yo'q", show_alert=True)
         except Exception as e:
-            print(f"Callback Error: {e}")
+            print(f"Callback Error broadcast: {e}")
+            import traceback
+            traceback.print_exc()
             bot.answer_callback_query(call.id, "Xatolik")
              
     @bot.callback_query_handler(func=lambda call: call.data == "admin_backup_btn")
     def admin_backup_callback(call):
         try:
             if call.from_user.id in ADMIN_IDS:
-                 bot.answer_callback_query(call.id, "Backup boshlandi...")
-                 bot.send_message(call.message.chat.id, "📦 <b>Backup boshlanmoqda...</b>", parse_mode="HTML")
+                 bot.answer_callback_query(call.id)
                  
-                 # Import and run backup
-                 try:
-                     import sys
-                     import os # Added import os here
-                     sys.path.insert(0, '/app/scripts') if os.path.exists('/app/scripts') else sys.path.insert(0, 'scripts')
-                     from backup_db import create_backup
-                     
-                     success = create_backup()
-                     
-                     if success:
-                         bot.send_message(call.message.chat.id, "✅ <b>Backup muvaffaqiyatli!</b>\n\nDatabase backup yaratildi va saqlandi.", parse_mode="HTML")
-                     else:
-                         bot.send_message(call.message.chat.id, "❌ <b>Backup xatolik!</b>\n\nBackup yaratishda muammo bo'ldi. Loglarni tekshiring.", parse_mode="HTML")
-                 except Exception as e:
-                     bot.send_message(call.message.chat.id, f"❌ <b>Xatolik:</b>\n\n{str(e)[:200]}", parse_mode="HTML")
+                 # Railway doesn't have pg_dump, show manual backup instructions
+                 text = (
+                     "📦 <b>Database Backup</b>\n\n"
+                     "<b>Avtomatik backup:</b>\n"
+                     "Har kuni 03:00 da avtomatik backup yaratiladi.\n\n"
+                     "<b>Qo'lda backup:</b>\n"
+                     "1. Railway dashboard → Data → Export\n"
+                     "2. Yoki pg_dump local ishlatish:\n"
+                     "<code>pg_dump $DATABASE_URL > backup.sql</code>\n\n"
+                     "⚠️ Railway containerida pg_dump o'rnatilmagan."
+                 )
+                 bot.send_message(call.message.chat.id, text, parse_mode="HTML")
             else:
                  bot.answer_callback_query(call.id, "Huquq yo'q", show_alert=True)
         except Exception as e:
