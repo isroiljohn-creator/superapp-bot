@@ -591,12 +591,15 @@ def register_subscription_handlers(bot):
 
     @bot.callback_query_handler(func=lambda call: call.data.startswith("sub_plan_"))
     def handle_sub_plan_selection(call):
-        if call.from_user.id not in ADMIN_IDS: return
-        
-        # STOP LOADING SPINNER
+        # 1. STOP SPINNER IMMEDIATELY
         try:
             bot.answer_callback_query(call.id)
         except: pass
+        
+        # 2. Check Auth
+        if call.from_user.id not in ADMIN_IDS: 
+            print(f"DEBUG: Unauthorized access attempt to sub_plan by {call.from_user.id}")
+            return
         
         try:
             parts = call.data.split("_")
