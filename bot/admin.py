@@ -289,8 +289,8 @@ def register_handlers(bot):
         try:
             if call.from_user.id in ADMIN_IDS:
                  bot.answer_callback_query(call.id)
-                 # Call the full flags interface
-                 admin_flags_cmd(call.message)
+                 # Call the helper function with chat_id
+                 show_flags_interface(call.message.chat.id)
             else:
                  bot.answer_callback_query(call.id, "Huquq yo'q", show_alert=True)
         except Exception as e:
@@ -899,10 +899,8 @@ def register_content_handlers(bot):
         except Exception as e:
             bot.send_message(message.chat.id, f"❌ Xatolik: {e}")
 
-    @bot.message_handler(commands=['flags'])
-    def admin_flags_cmd(message):
-        if message.from_user.id not in ADMIN_IDS: return
-        
+    def show_flags_interface(chat_id):
+        """Helper to display flags interface - works for both commands and callbacks"""
         flags = db.get_all_feature_flags()
         
         text = "🚩 <b>Feature Flags</b>\n\n"
@@ -919,7 +917,12 @@ def register_content_handlers(bot):
         markup.add(types.InlineKeyboardButton("➕ Yangi Flag", callback_data="flag_new"))
         markup.add(types.InlineKeyboardButton("🔄 Yangilash", callback_data="flag_refresh"))
         
-        bot.send_message(message.chat.id, text, parse_mode="HTML", reply_markup=markup)
+        bot.send_message(chat_id, text, parse_mode="HTML", reply_markup=markup)
+
+    @bot.message_handler(commands=['flags'])
+    def admin_flags_cmd(message):
+        if message.from_user.id not in ADMIN_IDS: return
+        show_flags_interface(message.chat.id)
 
     @bot.callback_query_handler(func=lambda call: call.data.startswith("flag_"))
     def handle_flag_actions(call):
@@ -932,7 +935,7 @@ def register_content_handlers(bot):
         if action == "flag_refresh":
             bot.answer_callback_query(call.id)
             bot.delete_message(call.message.chat.id, call.message.message_id)
-            admin_flags_cmd(call.message)
+            show_flags_interface(call.message.chat.id)
             return
             
         # Edit Flag
