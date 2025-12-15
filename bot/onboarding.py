@@ -170,11 +170,17 @@ def process_name(message, bot):
     if manager.get_state(user_id) != STATE_NAME:
         return
     
-    if not message.text:
-        bot.send_message(user_id, "Iltimos, ismingizni matn ko'rinishida yozing:")
+    # Validation: Ensure text message
+    if not message.text or message.content_type != 'text':
+        bot.send_message(user_id, "⚠️ Iltimos, ismingizni matn ko'rinishida yozing (masalan: Ali).")
         return
 
     name = message.text.strip()
+    # Simple prohibited words filter (basic)
+    if len(name) > 50 or any(x in name.lower() for x in ['admin', 'bot', 'support']):
+         bot.send_message(user_id, "⚠️ Iltimos, haqiqiy ismingizni kiriting.")
+         return
+
     manager.update_data(user_id, 'name', name)
     manager.set_state(user_id, STATE_AGE)
     
@@ -188,7 +194,11 @@ def process_age(message, bot):
     if manager.get_state(user_id) != STATE_AGE:
         return
     
-    if not message.text or not message.text.isdigit():
+    if not message.text or message.content_type != 'text':
+        bot.send_message(user_id, "⚠️ Iltimos, yoshingizni faqat raqam bilan yozing (masalan: 25).")
+        return
+        
+    if not message.text.isdigit():
         bot.send_message(user_id, "Iltimos, yoshingizni raqamda kiriting:")
         return
     

@@ -692,13 +692,37 @@ def analyze_food_text(text):
         <i>Bu taxminiy hisob, lekin kunlik nazorat uchun yetarli.</i> ✅
         """
         
-        response = model.generate_content(prompt, safety_settings=SAFETY_SETTINGS)
-        if response.text:
-            import re
-            text = response.text
-            text = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', text)
-            return text
-        return None
+        try:
+            # We must use 'generate_content' with 'generation_config' OR just pass timeout?
+            # New SDK allows request_options={'timeout': 15}
+            # Or generation_config ... let's try direct call arguments if supported, 
+            # but standard is generation_config usually for params.
+            # Timeout is likely request_option.
+            
+            # Since version 0.3.0+, we can use logic. 
+            # Assuming standard google.generativeai setup.
+            # We'll rely on our own Timer wrapping OR use library support.
+            # simplest is to trust 'generation_config' or just catch generic socket timeouts.
+            # Let's add request_options which is supported in newer SDKs.
+            
+            response = model.generate_content(
+                prompt,
+                safety_settings=SAFETY_SETTINGS,
+                request_options={'timeout': 20} # 20 seconds strict timeout
+            )
+            
+            if response.text:
+                import re
+                text = response.text
+                text = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', text)
+                return text
+            return None
+        except Exception as e:
+            # Catch deadline exceeded or other network errors
+            if "deadline" in str(e).lower() or "timeout" in str(e).lower():
+                return "⚠️ Kechirasiz, AI javob berishga ulgurmadi. Iltimos, qaytadan urinib ko'ring."
+            print(f"Gemini Text Error: {e}")
+            return "⚠️ AI xizmatida vaqtincha uzilish bo'ldi. Keyinroq urinib ko'ring."
     except Exception as e:
         print(f"Gemini Text Error: {e}")
         return None

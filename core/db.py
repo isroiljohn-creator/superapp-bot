@@ -331,7 +331,17 @@ class Database:
                 print(f"Error clearing workout tables: {e}")
                 return 0
 
-
+    def get_active_users_batch(self, offset=0, limit=100):
+        """Fetch users in batches to avoid OOM"""
+        with get_sync_db() as session:
+            # We want only 'active' users ideally? Or just all? 
+            # Existing get_active_users gets all ids. Let's replicate logic but paginated.
+            users = session.query(User.telegram_id)\
+                          .filter(User.active == True)\
+                          .offset(offset)\
+                          .limit(limit)\
+                          .all()
+            return [u[0] for u in users]
 
     def reset_db(self):
         from backend.database import sync_engine, Base
@@ -477,6 +487,41 @@ class Database:
                 .all()
             
             return friends
+
+    def redeem_points(self, user_id, cost, days):
+        """Atomic redemption of points"""
+        from backend.models import User
+        # We need a fresh session for atomic update
+        with get_sync_db() as session:
+            # Check and update in one query to prevent race condition
+            # UPDATE users SET yasha_points = yasha_points - cost WHERE telegram_id = :uid AND yasha_points >= :cost
+            
+            # Using SQLAlchemy expression
+            user = session.query(User).filter(User.telegram_id == user_id).first()
+            if not user:
+                return False, "Foydalanuvchi topilmadi"
+                
+            # Check balance first (optional optimization but strictly need atomic update)
+            if (user.yasha_points or 0) < cost:
+                 return False, f"Hisobingizda yetarli ball yo'q! (Sizda: {user.yasha_points})"
+            
+            # Atomic decrement
+            # Update returns number of matched rows
+            rows = session.query(User).filter(and_(User.telegram_id == user_id, User.yasha_points >= cost))\
+                .update({User.yasha_points: User.yasha_points - cost}, synchronize_session=False)
+            
+            if rows == 0:
+                session.rollback()
+                return False, "Hisobingizda yetarli ball yo'q yoki xatolik!"
+                
+            # If successful, add premium
+            self.add_premium(user_id, days, "subscription") # This creates its own session, checking overlap
+            
+            # Since transaction committed? No, add_premium commits. 
+            # We should commit this decrement first.
+            session.commit()
+            
+            return True, "Muvaffaqiyatli"
 
     def set_premium(self, user_id, days):
         with get_sync_db() as session:

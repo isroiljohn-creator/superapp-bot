@@ -488,31 +488,59 @@ def process_broadcast(message, bot, segment):
         count = 0
         blocked = 0
         
-        status_msg = bot.send_message(message.chat.id, f"🚀 Xabar yuborish boshlandi... (Jami: {len(users)})")
-        
-        for i, user in enumerate(users):
-            try:
-                bot.copy_message(user[0], message.chat.id, message.message_id)
-                count += 1
-            except Exception as e:
-                # If blocked, mark inactive
-                if "forbidden" in str(e).lower() or "blocked" in str(e).lower():
-                    db.set_user_active(user[0], False)
-                    blocked += 1
-                # print(f"Failed to send to {user[0]}: {e}")
+        while True:
+            if BROADCAST_STOP:
+                bot.send_message(message.chat.id, "🛑 Yuborish to'xtatildi!")
+                return
+
+            # Fetch batch
+            users_batch_data = []
+            if target_segment == "all":
+                users_batch_data = db.get_active_users_batch(offset=offset, limit=BATCH_SIZE)
+            else:
+                key, value = target_segment[0], target_segment[1]
+                if key == "gender":
+                    users_batch_data = db.get_users_by_segment_batch(gender=value, offset=offset, limit=BATCH_SIZE)
+                elif key == "goal":
+                    users_batch_data = db.get_users_by_segment_batch(goal=value, offset=offset, limit=BATCH_SIZE)
+                elif key == "premium":
+                    is_prem = (value == "True")
+                    users_batch_data = db.get_users_by_segment_batch(is_premium=is_prem, offset=offset, limit=BATCH_SIZE)
+                elif key == "activity":
+                    users_batch_data = db.get_users_by_segment_batch(activity_level=value, offset=offset, limit=BATCH_SIZE)
+
+            if not users_batch_data:
+                break # No more users in this segment or overall
             
-            # Rate limit: 20 messages per second max (Telegram limit is ~30)
-            import time
-            time.sleep(0.05)
-            
-            # Update status every 20 users
-            if i % 20 == 0:
+            # Process batch
+            for user_id in users_batch_data:
+                if BROADCAST_STOP:
+                    break
+                    
                 try:
-                    bot.edit_message_text(f"🚀 Yuborilmoqda... {i}/{len(users)}", message.chat.id, status_msg.message_id)
-                except:
-                    pass
-        
-        bot.send_message(message.chat.id, f"✅ Xabar yuborish yakunlandi.\n\n✅ Muvaffaqiyatli: {count}\n🚫 Bloklaganlar: {blocked}")
+                    if photo:
+                        bot.send_photo(user_id, photo, caption=message.caption)
+                    else:
+                        bot.send_message(user_id, message.text)
+                    success += 1
+                except Exception as e:
+                    # If blocked, mark inactive
+                    if "forbidden" in str(e).lower() or "blocked" in str(e).lower():
+                        db.set_user_active(user_id, False)
+                    failed += 1
+                    # print(f"Failed to send to {user_id}: {e}")
+                
+            # Update status every batch
+            elapsed = int(time.time() - start_time)
+            try:
+                bot.edit_message_text(f"⏳ Yuborilmoqda...\n✅: {success}\n❌: {failed}\n⏱: {elapsed}s", message.chat.id, status_msg.message_id)
+            except: pass
+            
+            offset += BATCH_SIZE
+            import time
+            time.sleep(1) # Sleep between batches to be nice to API limits
+            
+        bot.send_message(message.chat.id, f"🏁 Tugadi!\n✅ Muvaffaqiyatli: {success}\n❌ Yetib bormadi: {failed}")
         
     except Exception as e:
         print(f"Error in process_broadcast: {e}")
