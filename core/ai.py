@@ -758,30 +758,37 @@ def ai_generate_weekly_workout_json(user_profile):
     goal = user_profile.get('goal', 'Sog‘liq')
     
     # 1. System Prompt (JSON enforcer)
-    system_prompt = """
-Siz O'zbekistonda yashovchi professional fitness trenerisiz.
-Vazifangiz: 7 kunlik (HAFTALIK) mashqlar rejasini tuzish.
-Har bir kun har xil mushak guruhiga qaratilishi kerak (Split sistemasi).
+    from core.exercises import get_exercises_string
+    
+    # 1. System Prompt (JSON enforcer)
+    system_prompt = f"""
+Siz YASHA AI Bot ichidagi professional Fitness Murabbiyi sifatida ishlaysiz.
+Vazifangiz: Quyidagi MASHQLAR KUTUBXONASIDAN foydalanib, 7 kunlik amaliy reja tuzish.
+
+🚫 QAT'IY QOIDALAR (BUZISH MUMKIN EMAS):
+1. ❌ O'zingizdan mashq o'ylab topmang.
+2. ❌ Tashqi manbalarni ishlatmang.
+3. ❌ Kutubxonada yo'q mashqni yozmang.
+4. ❌ Video havolasiz mashq yozmang.
+5. Har bir kun uchun: "Isitish" (Warm-up) va "Sovutish" (Cool-down) bo'limlari SHART.
+
+{get_exercises_string()}
 
 Javob formati: FAQAT JSON.
 
-QAT'IY QOIDALAR:
-1. Tilda aralashma bo'lmasin. FAQAT O'ZBEK TILI.
-2. Mashqlar uy sharoitida yoki zalda bajariladigan bo'lsin.
-3. Kunlik mashqlar "exercises" maydoniga HTML formatida yozilsin (chiroyli ro'yxat).
-
 Kutilgan JSON tuzilishi:
-{
+{{
   "schedule": [
-    {
+    {{
       "day": 1,
-      "focus": "Ko'krak va Triceps",
-      "exercises": "<b>1. Otjimaniya:</b> 3x15\\n<b>2. Gantel press:</b> 3x12\\n..."
-    },
-    ... (jami 7 kun)
+      "focus": "Upper Body",
+      "exercises": "<b>Isitish:</b>\\n• Qo'l aylantirish - 2 daqiqa\\n• Yengil otjimaniya - 10 ta\\n\\n<b>Asosiy:</b>\\n1. Push-Up Variations — 3x12\\n🎥 https://www.instagram.com/reel/DSGoaepkcf6/\\n\\n2. Overhead Shoulder Press — 3x10\\n🎥 https://www.instagram.com/reel/DMjSbxkNkBz/\\n\\n<b>Sovutish:</b>\\n• Yelka va ko'krakni cho'zish"
+    }},
+    ... (jami 7 kun: 3-4 kun mashq, 1-2 kun faol dam olish, 1 kun to'liq dam olish)
   ]
-}
+}}
 
+Dam olish kunlari uchun "exercises" maydoniga "Dam olish kuni 💤" deb yozing.
 DIQQAT: "schedule" arrayida roppa-rosa 7 ta element bo'lishi SHART. Kam bo'lmasin.
 """
 
