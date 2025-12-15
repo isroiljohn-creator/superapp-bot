@@ -5,7 +5,6 @@ from core.ai import ai_generate_workout, ai_generate_menu
 from bot.keyboards import plan_inline_keyboard
 from bot.premium import require_premium
 from core.flags import is_flag_enabled
-from core.context import build_context_for_ai
 import traceback
 
 # Simple in-memory lock
