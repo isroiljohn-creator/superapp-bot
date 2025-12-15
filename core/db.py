@@ -578,6 +578,162 @@ class Database:
                 })
                 
             return users_list, total_count
+    
+    def get_premium_users_paginated(self, page=1, page_size=20):
+        """Get users with active premium subscription"""
+        with get_sync_db() as session:
+            from datetime import datetime
+            offset = (page - 1) * page_size
+            
+            # Get total count of premium users
+            total_count = session.query(User).filter(User.premium_until > datetime.now()).count()
+            
+            # Get paginated premium users
+            users = session.query(User).filter(User.premium_until > datetime.now())\
+                .order_by(User.id.desc()).limit(page_size).offset(offset).all()
+            
+            users_list = []
+            for user in users:
+                users_list.append({
+                    "id": user.id,
+                    "telegram_id": user.telegram_id,
+                    "full_name": user.full_name,
+                    "username": user.username,
+                    "phone": user.phone,
+                    "goal": user.goal,
+                    "gender": user.gender,
+                    "age": user.age,
+                    "height": user.height,
+                    "weight": user.weight,
+                    "activity_level": user.activity_level,
+                    "premium_until": user.premium_until
+                })
+                
+            return users_list, total_count
+    
+    def get_vip_users_paginated(self, page=1, page_size=20):
+        """Get VIP users (users with 1000+ points or top tier)"""
+        with get_sync_db() as session:
+            offset = (page - 1) * page_size
+            
+            # Get users with high points (1000+)
+            total_count = session.query(User).filter(User.points >= 1000).count()
+            
+            users = session.query(User).filter(User.points >= 1000)\
+                .order_by(User.points.desc()).limit(page_size).offset(offset).all()
+            
+            users_list = []
+            for user in users:
+                users_list.append({
+                    "id": user.id,
+                    "telegram_id": user.telegram_id,
+                    "full_name": user.full_name,
+                    "username": user.username,
+                    "phone": user.phone,
+                    "goal": user.goal,
+                    "gender": user.gender,
+                    "age": user.age,
+                    "height": user.height,
+                    "weight": user.weight,
+                    "activity_level": user.activity_level,
+                    "premium_until": user.premium_until
+                })
+                
+            return users_list, total_count
+    
+    def get_free_users_paginated(self, page=1, page_size=20):
+        """Get free users (no active premium)"""
+        with get_sync_db() as session:
+            from datetime import datetime
+            offset = (page - 1) * page_size
+            
+            # Users with no premium or expired premium
+            total_count = session.query(User).filter(
+                (User.premium_until == None) | (User.premium_until <= datetime.now())
+            ).count()
+            
+            users = session.query(User).filter(
+                (User.premium_until == None) | (User.premium_until <= datetime.now())
+            ).order_by(User.id.desc()).limit(page_size).offset(offset).all()
+            
+            users_list = []
+            for user in users:
+                users_list.append({
+                    "id": user.id,
+                    "telegram_id": user.telegram_id,
+                    "full_name": user.full_name,
+                    "username": user.username,
+                    "phone": user.phone,
+                    "goal": user.goal,
+                    "gender": user.gender,
+                    "age": user.age,
+                    "height": user.height,
+                    "weight": user.weight,
+                    "activity_level": user.activity_level,
+                    "premium_until": user.premium_until
+                })
+                
+            return users_list, total_count
+    
+    def get_top_referrers(self, limit=10):
+        """Get top referrers by referral count"""
+        with get_sync_db() as session:
+            # Get users with most referrals
+            users = session.query(User).filter(User.referral_count > 0)\
+                .order_by(User.referral_count.desc()).limit(limit).all()
+            
+            users_list = []
+            for user in users:
+                users_list.append({
+                    "id": user.id,
+                    "telegram_id": user.telegram_id,
+                    "full_name": user.full_name,
+                    "username": user.username,
+                    "phone": user.phone,
+                    "goal": user.goal,
+                    "gender": user.gender,
+                    "age": user.age,
+                    "height": user.height,
+                    "weight": user.weight,
+                    "activity_level": user.activity_level,
+                    "premium_until": user.premium_until,
+                    "referral_count": user.referral_count
+                })
+                
+            return users_list
+    
+    def get_incomplete_users_paginated(self, page=1, page_size=20):
+        """Get users who haven't completed onboarding (missing profile data)"""
+        with get_sync_db() as session:
+            offset = (page - 1) * page_size
+            
+            # Users missing key profile fields
+            total_count = session.query(User).filter(
+                (User.age == None) | (User.height == None) | (User.weight == None) | (User.goal == None)
+            ).count()
+            
+            users = session.query(User).filter(
+                (User.age == None) | (User.height == None) | (User.weight == None) | (User.goal == None)
+            ).order_by(User.id.desc()).limit(page_size).offset(offset).all()
+            
+            users_list = []
+            for user in users:
+                users_list.append({
+                    "id": user.id,
+                    "telegram_id": user.telegram_id,
+                    "full_name": user.full_name,
+                    "username": user.username,
+                    "phone": user.phone,
+                    "goal": user.goal,
+                    "gender": user.gender,
+                    "age": user.age,
+                    "height": user.height,
+                    "weight": user.weight,
+                    "activity_level": user.activity_level,
+                    "premium_until": user.premium_until
+                })
+                
+            return users_list, total_count
 
     def get_users_by_segment(self, gender=None, goal=None, activity_level=None, age_min=None, age_max=None, is_premium=None):
         with get_sync_db() as session:
