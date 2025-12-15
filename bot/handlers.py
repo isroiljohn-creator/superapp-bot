@@ -38,6 +38,9 @@ def register_all_handlers(bot):
     except AttributeError:
         # Fallback for older versions or if method missing
         print("Warning: register_middleware_handler not found. Logging might be limited.")
+    # --- Admin Handlers (Priority) ---
+    admin.register_handlers(bot)
+
     # --- Calorie Handlers ---
     @bot.message_handler(func=lambda message: message.text == "🍽 Kaloriya tahlili (premium)" or message.text == "🍽 Kaloriya skaneri" or message.text == "🍽 Kaloriya tahlili")
     def calorie_handler(message):
@@ -210,7 +213,8 @@ def register_all_handlers(bot):
     onboarding.register_handlers(bot)
     # menu.register_handlers(bot) # Removed
     gamification.register_handlers(bot)
-    admin.register_handlers(bot)
+    gamification.register_handlers(bot)
+    feedback.register_handlers(bot)
     feedback.register_handlers(bot)
     premium.register_handlers(bot)
     profile.register_handlers(bot)
