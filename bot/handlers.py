@@ -85,9 +85,7 @@ def register_all_handlers(bot):
     # --- Main Menu Navigation ---
     @bot.message_handler(func=lambda message: message.text == "⬅️ Asosiy menyu")
     def back_to_main(message):
-        # Admin check
-        is_admin = message.from_user.id in ADMIN_IDS
-        bot.send_message(message.chat.id, "🏠 Asosiy menyu", reply_markup=main_menu_keyboard(is_admin=is_admin))
+        bot.send_message(message.chat.id, "🏠 Asosiy menyu", reply_markup=main_menu_keyboard(user_id=message.from_user.id))
 
     @bot.message_handler(func=lambda message: message.text == "⬅️ Premium menyu")
     def back_to_premium(message):

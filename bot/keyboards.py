@@ -40,9 +40,22 @@ def allergy_keyboard():
     )
     return markup
 
-def main_menu_keyboard(is_admin=False):
+def main_menu_keyboard(is_admin=False, user_id=None):
+    """
+    Generate Main Menu Reply Keyboard.
+    Args:
+        is_admin (bool): Legacy override.
+        user_id (int): If provided, checks against ADMIN_IDS.
+    """
     markup = ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
     
+    # Calculate admin status securely
+    real_admin = False
+    if user_id:
+        real_admin = user_id in ADMIN_IDS
+    elif is_admin: # This handles backward compatibility for is_admin=True
+        real_admin = True
+        
     # Row 1: AI murabbiy | Kunlik odatlar
     markup.add(KeyboardButton("🤖 AI murabbiy"), KeyboardButton("📆 Kunlik odatlar"))
     

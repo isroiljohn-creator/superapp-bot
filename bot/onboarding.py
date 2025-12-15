@@ -65,7 +65,7 @@ def start_onboarding(message, bot):
         bot.send_message(
             user_id, 
             "Asosiy menyuga qaytdingiz, pastdagi tugmalar orqali keyingi qadamni tanlang👇🏻", 
-            reply_markup=main_menu_keyboard(is_admin=is_admin)
+            reply_markup=main_menu_keyboard(user_id=user_id)
         )
         return
     
@@ -471,7 +471,7 @@ def finish_onboarding(user_id, message, bot):
         bot.send_message(
             user_id,
             welcome_text,
-            reply_markup=main_menu_keyboard(is_admin=(user_id in ADMIN_IDS)),
+            reply_markup=main_menu_keyboard(user_id=user_id),
             parse_mode=None # Disabled formatting
         )
         
