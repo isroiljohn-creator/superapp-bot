@@ -537,7 +537,7 @@ def register_handlers(bot):
             types.KeyboardButton("⏸ Ro'yxatdan o'tmagan"),
             types.KeyboardButton("👥 Barcha")
         )
-        markup.add(types.KeyboardButton("⬅️ Orqaga"))
+        markup.add(types.KeyboardButton("🔙 Admin Panelga"))
         
         bot.send_message(
             message.chat.id, 
@@ -572,7 +572,7 @@ def register_handlers(bot):
         show_user_list_page(message.chat.id, 1, bot, category="all")
     
     # Orqaga button - return to admin panel
-    @bot.message_handler(func=lambda m: m.text == "⬅️ Orqaga" and m.from_user.id in ADMIN_IDS)
+    @bot.message_handler(func=lambda m: m.text == "🔙 Admin Panelga" and m.from_user.id in ADMIN_IDS)
     def back_to_admin_panel(message):
         admin_panel(message)
     
@@ -587,7 +587,7 @@ def register_handlers(bot):
             types.KeyboardButton("📨 Umumiy xabar"),
             types.KeyboardButton("🎯 Segment xabar")
         )
-        markup.add(types.KeyboardButton("⬅️ Orqaga"))
+        markup.add(types.KeyboardButton("🔙 Admin Panelga"))
         
         bot.send_message(
             message.chat.id,
@@ -1406,7 +1406,7 @@ def register_content_handlers(bot):
         
         # Add search and back buttons
         markup.add(types.KeyboardButton("🔍 Qidirish"))
-        markup.add(types.KeyboardButton("⬅️ Orqaga"))
+        markup.add(types.KeyboardButton("🔙 Admin Panelga"))
             
         bot.send_message(call.message.chat.id, "✍️ <b>Matnlarni boshqarish</b>\n\nKategoriyani tanlang:", reply_markup=markup, parse_mode="HTML")
 
