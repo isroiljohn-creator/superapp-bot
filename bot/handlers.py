@@ -795,16 +795,19 @@ def register_all_handlers(bot):
 
         bot.answer_callback_query(call.id, "🔄 Taom almashtirilmoqda...")
         workout.generate_ai_meal(call.message, bot, user_id=call.from_user.id) # Re-run generation logic which asks for prompt again or auto-generates
-            bot.answer_callback_query(call.id, "✅ Jarayon boshlandi...")
-            
-            # Deactivate active link so generate_ai_meal sees clean state
-            db.deactivate_all_user_menus(call.from_user.id)
-            
-            # Delete message and restart generation
+        bot.answer_callback_query(call.id, "✅ Jarayon boshlandi...")
+        
+        # Deactivate active link so generate_ai_meal sees clean state
+        db.deactivate_all_user_menus(call.from_user.id)
+        
+        # Delete message and restart generation
+        try:
             bot.delete_message(call.message.chat.id, call.message.message_id)
-            
-            # Trigger fresh generation
-            workout.generate_ai_meal(call.message, bot, user_id=call.from_user.id)
+        except:
+            pass
+        
+        # Trigger fresh generation
+        workout.generate_ai_meal(call.message, bot, user_id=call.from_user.id)
 
         except Exception as e:
             print(f"Regen Error: {e}")
