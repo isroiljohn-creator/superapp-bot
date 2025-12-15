@@ -78,10 +78,11 @@ def send_retention_message(bot, user_id, name, days):
             msg = f"2 hafta bo'ldi... 😔 Men hali ham shu yerdaman. Sizning maqsadingiz ham shu yerdami? Kel, bugun yangidan boshlaymiz."
             
         if msg:
-            # Founder Tone Check?
+            # Apply Founder Tone if enabled
             if is_flag_enabled("founder_tone", user_id):
-                # Make it more direct? The above are already quite "Coach-like".
-                pass
+                # Add direct founder signature/intro
+                founder_intro = "👋 Isroil Jalolov.\n\nYasha Bot yaratuvchisiman. Sizga juda muhim gap aytmoqchiman:\n\n"
+                msg = founder_intro + msg
                 
             bot.send_message(user_id, msg)
             # Log it
@@ -110,6 +111,10 @@ def run_weekly_report_check(bot):
             uid = user['telegram_id']
             name = user['full_name']
             
+            # Check progress_insights flag per user
+            if not is_flag_enabled("progress_insights", uid):
+                continue
+            
             # 1. Calculate Stats (Last 7 days)
             active_days = 0
             try:
@@ -137,16 +142,16 @@ def run_weekly_report_check(bot):
             if variant == 1:
                 # Iliq va rag'batlantiruvchi
                 msg = (
-                    f"🧾 **So‘nggi 7 kun natijalari**\n\n"
-                    f"Sen bu hafta {active_days} kun faol bo‘lding.\n"
+                    f"🧾 **So'nggi 7 kun natijalari**\n\n"
+                    f"Sen bu hafta {active_days} kun faol bo'lding.\n"
                     "Suv ichish, ovqat va mashqlar — bularning barchasi tanangda ishlayapti.\n\n"
-                    "Katta natija birdan bo‘lmaydi, lekin sen to‘g‘ri yo‘ldasan. Davom etamiz 💪"
+                    "Katta natija birdan bo'lmaydi, lekin sen to'g'ri yo'ldasan. Davom etamiz 💪"
                 )
             elif variant == 2:
                 # Psixologik
                 msg = (
                     "🔄 **Haftalik xulosa**\n\n"
-                    "Ko‘pchilik 3-kunda tashlaydi.\n"
+                    "Ko'pchilik 3-kunda tashlaydi.\n"
                     "Sen esa davom etding.\n\n"
                     "Bu — intizom belgisi. Natija shundan keyin keladi."
                 )
@@ -155,10 +160,16 @@ def run_weekly_report_check(bot):
                 msg = (
                     "📊 **1 haftalik hisobot**\n\n"
                     f"• Faol kunlar: {active_days}/7\n"
-                    "• Dam olish: reja bo‘yicha\n\n"
-                    "Shunday davom etsang, 1 oyda sezilarli farq bo‘ladi.\n"
+                    "• Dam olish: reja bo'yicha\n\n"
+                    "Shunday davom etsang, 1 oyda sezilarli farq bo'ladi.\n"
                     "Men yoningdaman 🤝"
                 )
+            
+            # Apply founder_tone if enabled
+            if is_flag_enabled("founder_tone", uid):
+                # Make it more direct and personal from founder
+                founder_prefix = f"👋 {name}, Isroil'dan salom.\n\n"
+                msg = founder_prefix + msg
             
             try:
                 bot.send_message(uid, msg, parse_mode="Markdown")
