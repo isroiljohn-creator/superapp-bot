@@ -374,7 +374,7 @@ def register_handlers(bot):
 
     def show_user_list_page(chat_id, page, bot, message_id=None):
         try:
-            PAGE_SIZE = 20
+            PAGE_SIZE = 10  # Reduced for more detailed view
             users, total_count = db.get_users_paginated(page, PAGE_SIZE)
             
             if not users:
@@ -387,45 +387,58 @@ def register_handlers(bot):
 
             total_pages = (total_count + PAGE_SIZE - 1) // PAGE_SIZE
             
-            text = f"👥 <b>Foydalanuvchilar (Jami: {total_count})</b>\nSahifa: {page}/{total_pages}\n\n"
+            text = f"👥 <b>Foydalanuvchilar</b> (Jami: {total_count})\nSahifa: {page}/{total_pages}\n\n"
             
-            for user in users:
+            for i, user in enumerate(users, 1):
                 uid = user['telegram_id']
-                name = user['full_name']
+                name = user['full_name'] or "N/A"
                 username = user['username']
                 phone = user['phone'] or "N/A"
                 goal = user['goal'] or "N/A"
+                gender = user['gender'] or "N/A"
+                age = user['age'] or "N/A"
+                height = user['height'] or "N/A"
+                weight = user['weight'] or "N/A"
+                activity = user['activity_level'] or "N/A"
                 
-                # Goal Translation
+                # Translations
                 goal_map = {
                     "weight_loss": "Vazn tashlash 🔻",
                     "muscle_gain": "Vazn olish 🔺",
-                    "health": "Vazn saqlash ❤️",  # Shortened for list view
-                    "None": "-",
-                    None: "-"
+                    "health": "Vazn saqlash ❤️",
+                    "N/A": "-"
+                }
+                gender_map = {"male": "👨 Erkak", "female": "👩 Ayol", "N/A": "-"}
+                activity_map = {
+                    "sedentary": "Kam harakatli",
+                    "light": "Yengil faol",
+                    "active": "Faol",
+                    "athlete": "Atlet",
+                    "N/A": "-"
                 }
                 
-                # Clean up data
-                if goal == "N/A": goal = "-"
                 formatted_goal = goal_map.get(goal, goal)
+                formatted_gender = gender_map.get(gender, gender)
+                formatted_activity = activity_map.get(activity, activity)
 
-                # Check premium
+                # Premium check
                 is_prem = ""
                 if user.get('premium_until'):
                     from datetime import datetime
                     if user['premium_until'] > datetime.now():
-                        is_prem = "💎"
+                        is_prem = " 💎 Premium"
                 
-                display_name = f"@{username}" if username else (name if name else "Noma'lum")
+                display_name = f"@{username}" if username else name
                 
-                import html
-                safe_name = html.escape(str(display_name))
-                
-                # Simplified format without excessive | and ID icon clutter if preferred, but user liked ID.
-                # Just tidying up the English terms.
-                text += f"🆔 <code>{uid}</code> | {safe_name} | {formatted_goal} {is_prem}\n"
+                # Compact but comprehensive display
+                text += f"<b>{i}. {display_name}</b>{is_prem}\n"
+                text += f"   🆔 ID: <code>{uid}</code>\n"
+                text += f"   📱 Tel: {phone}\n"
+                text += f"   🎯 Maqsad: {formatted_goal}\n"
+                text += f"   {formatted_gender} | {age} yosh | {height}cm / {weight}kg\n"
+                text += f"   🏃 Faollik: {formatted_activity}\n\n"
             
-            # Pagination Buttons
+            # Pagination + Search Buttons
             markup = types.InlineKeyboardMarkup()
             row = []
             if page > 1:
@@ -436,6 +449,9 @@ def register_handlers(bot):
             if row:
                 markup.row(*row)
             
+            # Add ID Search button
+            markup.add(types.InlineKeyboardButton("🔍 ID bo'yicha qidirish", callback_data="admin_search_user_id"))
+            
             if message_id:
                 bot.edit_message_text(text, chat_id, message_id, reply_markup=markup, parse_mode="HTML")
             else:
@@ -443,10 +459,13 @@ def register_handlers(bot):
                 
         except Exception as e:
             print(f"Error in user list: {e}")
+            import traceback
+            traceback.print_exc()
+            error_text = f"❌ Xatolik: {str(e)[:100]}"
             if message_id:
-                bot.send_message(chat_id, f"❌ Xatolik: {e}")
+                bot.send_message(chat_id, error_text)
             else:
-                bot.send_message(chat_id, f"❌ Xatolik: {e}")
+                bot.send_message(chat_id, error_text)
 
     @bot.callback_query_handler(func=lambda call: call.data.startswith("admin_users_page_"))
     def handle_user_pagination(call):
@@ -467,6 +486,81 @@ def register_handlers(bot):
         except Exception as e:
             print(f"Pagination error: {e}")
             bot.answer_callback_query(call.id, "Xatolik yuz berdi")
+    
+    @bot.callback_query_handler(func=lambda call: call.data == "admin_search_user_id")
+    def handle_search_user_id(call):
+        if call.from_user.id not in ADMIN_IDS:
+            bot.answer_callback_query(call.id, "Huquq yo'q", show_alert=True)
+            return
+        
+        bot.answer_callback_query(call.id)
+        msg = bot.send_message(
+            call.message.chat.id,
+            "🔍 <b>Foydalanuvchini ID bo'yicha qidirish</b>\n\nTelegram ID ni kiriting:",
+            parse_mode="HTML",
+            reply_markup=types.ForceReply()
+        )
+        bot.register_next_step_handler(msg, process_user_id_search, bot)
+    
+    def process_user_id_search(message, bot):
+        """Handle ID search input"""
+        if message.from_user.id not in ADMIN_IDS:
+            return
+        
+        try:
+            user_id = int(message.text.strip())
+            user = db.get_user(user_id)
+            
+            if not user:
+                bot.send_message(message.chat.id, f"❌ Foydalanuvchi ID <code>{user_id}</code> topilmadi.", parse_mode="HTML")
+                return
+            
+            # Display full user profile
+            name = user.get('full_name', 'N/A')
+            username = user.get('username', 'N/A')
+            phone = user.get('phone', 'N/A')
+            goal = user.get('goal', 'N/A')
+            gender = user.get('gender', 'N/A')
+            age = user.get('age', 'N/A')
+            height = user.get('height', 'N/A')
+            weight = user.get('weight', 'N/A')
+            activity = user.get('activity_level', 'N/A')
+            premium_until = user.get('premium_until')
+            
+            # Translations
+            goal_map = {"weight_loss": "Vazn tashlash", "muscle_gain": "Vazn olish", "health": "Vazn saqlash", "N/A": "-"}
+            gender_map = {"male": "Erkak", "female": "Ayol", "N/A": "-"}
+            activity_map = {"sedentary": "Kam harakatli", "light": "Yengil faol", "active": "Faol", "athlete": "Atlet", "N/A": "-"}
+            
+            premium_status = "Yo'q"
+            if premium_until:
+                from datetime import datetime
+                if premium_until > datetime.now():
+                    premium_status = f"✅ {premium_until.strftime('%Y-%m-%d')}"
+            
+            text = (
+                f"👤 <b>Foydalanuvchi profili</b>\n\n"
+                f"🆔 ID: <code>{user_id}</code>\n"
+                f"👤 Ism: {name}\n"
+                f"📝 Username: @{username if username != 'N/A' else '-'}\n"
+                f"📱 Telefon: {phone}\n\n"
+                f"<b>Profil ma'lumotlari:</b>\n"
+                f"🎯 Maqsad: {goal_map.get(goal, goal)}\n"
+                f"👥 Jins: {gender_map.get(gender, gender)}\n"
+                f"🎂 Yosh: {age} yosh\n"
+                f"📏 Bo'y: {height} cm\n"
+                f"⚖️ Vazn: {weight} kg\n"
+                f"🏃 Faollik: {activity_map.get(activity, activity)}\n\n"
+                f"💎 Premium: {premium_status}"
+            )
+            
+            bot.send_message(message.chat.id, text, parse_mode="HTML")
+            
+        except ValueError:
+            bot.send_message(message.chat.id, "❌ Noto'g'ri format. Faqat raqam kiriting.")
+        except Exception as e:
+            print(f"Search error: {e}")
+            bot.send_message(message.chat.id, f"❌ Xatolik: {str(e)[:100]}")
 
     @bot.message_handler(func=lambda message: "Premium foydalanuvchilar" in message.text)
     def admin_premium_list(message):
