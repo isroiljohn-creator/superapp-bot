@@ -30,19 +30,8 @@ def main():
         import subprocess
         # Run "alembic upgrade head"
         # We capture output to avoid spamming logs unless error
-        # Debug: List files in versions
-        import os
-        print(f"📂 Alembic Versions: {os.listdir('alembic/versions')}")
-        
-        # Run "alembic upgrade head" - Revert to head to see multiple heads error again with file list
-        if '003_add_stages_reward_claimed.py' in os.listdir('alembic/versions'):
-             with open('alembic/versions/003_add_stages_reward_claimed.py', 'r') as f:
-                 print(f"📄 Content of 003:\n{f.read()}")
-
-        # Or try to run "alembic heads" first
-        subprocess.run(["alembic", "heads"], check=False)
-        
-        result = subprocess.run(["alembic", "upgrade", "head"], capture_output=True, text=True)
+        # Run "alembic upgrade head"
+        subprocess.run(["alembic", "upgrade", "head"], capture_output=True, text=True)
         if result.returncode == 0:
             print("✅ Migratsiyalar muvaffaqiyatli yakunlandi.")
         else:

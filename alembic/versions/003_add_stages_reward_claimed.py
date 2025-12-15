@@ -1,7 +1,7 @@
 """Add stages_reward_claimed to daily_logs
 
-Revision ID: 002_add_missing_cols
-Revises: 001_initial
+Revision ID: 003_add_missing_cols
+Revises: 002_atomic_limits
 Create Date: 2025-12-15 21:55:00.000000
 
 """
@@ -13,8 +13,8 @@ from sqlalchemy.engine.reflection import Inspector
 
 
 # revision identifiers, used by Alembic.
-revision: str = '002_add_missing_cols'
-down_revision: Union[str, None] = '001_initial'
+revision: str = '003_add_missing_cols'
+down_revision: Union[str, None] = '002_atomic_limits'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
