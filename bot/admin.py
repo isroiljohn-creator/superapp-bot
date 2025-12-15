@@ -242,7 +242,9 @@ def register_handlers(bot):
             bot.send_message(message.chat.id, text, parse_mode="HTML")
             
         except Exception as e:
+            import traceback
             print(f"ERROR in admin_stats: {e}")
+            print(f"Traceback: {traceback.format_exc()}")
             bot.send_message(message.chat.id, f"❌ Xatolik: {str(e)}")
 
     # --- CALLBACK BRIDGES FOR DEV MENU ---
