@@ -678,27 +678,41 @@ class Database:
     def get_top_referrers(self, limit=10):
         """Get top referrers by referral count"""
         with get_sync_db() as session:
-            # Get users with most referrals
-            users = session.query(User).filter(User.referral_count > 0)\
-                .order_by(User.referral_count.desc()).limit(limit).all()
+            from sqlalchemy import func
+            
+            # Count referrals by grouping users by referred_by
+            # Get users who have referred others
+            referral_stats = session.query(
+                User.referred_by.label('referrer_id'),
+                func.count(User.id).label('referral_count')
+            ).filter(
+                User.referred_by != None
+            ).group_by(
+                User.referred_by
+            ).order_by(
+                func.count(User.id).desc()
+            ).limit(limit).all()
             
             users_list = []
-            for user in users:
-                users_list.append({
-                    "id": user.id,
-                    "telegram_id": user.telegram_id,
-                    "full_name": user.full_name,
-                    "username": user.username,
-                    "phone": user.phone,
-                    "goal": user.goal,
-                    "gender": user.gender,
-                    "age": user.age,
-                    "height": user.height,
-                    "weight": user.weight,
-                    "activity_level": user.activity_level,
-                    "premium_until": user.premium_until,
-                    "referral_count": user.referral_count
-                })
+            for stat in referral_stats:
+                # Get the referrer user details
+                referrer = session.query(User).filter(User.telegram_id == stat.referrer_id).first()
+                if referrer:
+                    users_list.append({
+                        "id": referrer.id,
+                        "telegram_id": referrer.telegram_id,
+                        "full_name": referrer.full_name,
+                        "username": referrer.username,
+                        "phone": referrer.phone,
+                        "goal": referrer.goal,
+                        "gender": referrer.gender,
+                        "age": referrer.age,
+                        "height": referrer.height,
+                        "weight": referrer.weight,
+                        "activity_level": referrer.activity_level,
+                        "premium_until": referrer.premium_until,
+                        "referral_count": stat.referral_count
+                    })
                 
             return users_list
     
