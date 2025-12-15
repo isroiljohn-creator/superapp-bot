@@ -1216,34 +1216,45 @@ def register_content_handlers(bot):
         if call.from_user.id not in ADMIN_IDS: return
         bot.answer_callback_query(call.id)
         
-        # Show categories
-        markup = types.InlineKeyboardMarkup(row_width=2)
-        for category_name in CONTENT_CATEGORIES.keys():
-            markup.add(types.InlineKeyboardButton(category_name, callback_data=f"content_cat_{category_name}"))
+        # Show categories with ReplyKeyboard
+        markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
         
-        markup.add(types.InlineKeyboardButton("🔍 Qidirish", callback_data="content_search"))
+        # Add category buttons
+        categories = list(CONTENT_CATEGORIES.keys())
+        for i in range(0, len(categories), 2):
+            if i + 1 < len(categories):
+                markup.add(
+                    types.KeyboardButton(categories[i]),
+                    types.KeyboardButton(categories[i+1])
+                )
+            else:
+                markup.add(types.KeyboardButton(categories[i]))
+        
+        # Add search and back buttons
+        markup.add(types.KeyboardButton("🔍 Qidirish"))
+        markup.add(types.KeyboardButton("⬅️ Orqaga"))
             
         bot.send_message(call.message.chat.id, "✍️ <b>Matnlarni boshqarish</b>\n\nKategoriyani tanlang:", reply_markup=markup, parse_mode="HTML")
 
-    @bot.callback_query_handler(func=lambda call: call.data.startswith("content_cat_"))
-    def show_category_content(call):
-        if call.from_user.id not in ADMIN_IDS: return
-        bot.answer_callback_query(call.id)
-        
-        category = call.data.replace("content_cat_", "")
+    # Category selection handlers
+    @bot.message_handler(func=lambda m: m.text in CONTENT_CATEGORIES.keys() and m.from_user.id in ADMIN_IDS)
+    def show_category_content_msg(message):
+        category = message.text
         keys = CONTENT_CATEGORIES.get(category, [])
         
+        if not keys:
+            bot.send_message(message.chat.id, "❌ Bu kategoriyada matnlar yo'q.")
+            return
+        
+        # Show content items as inline buttons (for selection)
         markup = types.InlineKeyboardMarkup(row_width=1)
         for key in keys:
             label = CONTENT_LABELS.get(key, key)
             markup.add(types.InlineKeyboardButton(label, callback_data=f"content_edit_{key}"))
         
-        markup.add(types.InlineKeyboardButton("⬅️ Ortga", callback_data="admin_content_btn"))
-        
-        bot.edit_message_text(
+        bot.send_message(
+            message.chat.id,
             f"✍️ <b>{category}</b>\n\nMatnni tanlang:",
-            call.message.chat.id,
-            call.message.message_id,
             reply_markup=markup,
             parse_mode="HTML"
         )
@@ -1254,16 +1265,14 @@ def register_content_handlers(bot):
         markup = types.InlineKeyboardMarkup(row_width=2)
         for category_name in CONTENT_CATEGORIES.keys():
             markup.add(types.InlineKeyboardButton(category_name, callback_data=f"content_cat_{category_name}"))
-        
         markup.add(types.InlineKeyboardButton("🔍 Qidirish", callback_data="content_search"))
             
         bot.send_message(message.chat.id, "✍️ <b>Matnlarni boshqarish</b>\n\nKategoriyani tanlang:", reply_markup=markup, parse_mode="HTML")
 
-    @bot.callback_query_handler(func=lambda call: call.data == "content_search")
-    def admin_content_search_prompt(call):
-        if call.from_user.id not in ADMIN_IDS: return
-        bot.answer_callback_query(call.id)
-        msg = bot.send_message(call.message.chat.id, "🔍 Matn nomini kiriting:", reply_markup=types.ForceReply())
+    # Search button handler
+    @bot.message_handler(func=lambda m: m.text == "🔍 Qidirish" and m.from_user.id in ADMIN_IDS)
+    def admin_content_search_prompt_msg(message):
+        msg = bot.send_message(message.chat.id, "🔍 Matn nomini kiriting:", reply_markup=types.ForceReply())
         bot.register_next_step_handler(msg, process_content_search, bot)
 
     def process_content_search(message, bot):
