@@ -390,16 +390,16 @@ def register_handlers(bot):
             text = f"👥 <b>Foydalanuvchilar</b> (Jami: {total_count})\nSahifa: {page}/{total_pages}\n\n"
             
             for i, user in enumerate(users, 1):
-                uid = user['telegram_id']
-                name = user['full_name'] or "N/A"
-                username = user['username']
-                phone = user['phone'] or "N/A"
-                goal = user['goal'] or "N/A"
-                gender = user['gender'] or "N/A"
-                age = user['age'] or "N/A"
-                height = user['height'] or "N/A"
-                weight = user['weight'] or "N/A"
-                activity = user['activity_level'] or "N/A"
+                uid = user.get('telegram_id', 'N/A')
+                name = user.get('full_name') or "N/A"
+                username = user.get('username')
+                phone = user.get('phone') or "N/A"
+                goal = user.get('goal') or "N/A"
+                gender = user.get('gender') or "N/A"
+                age = user.get('age') or "N/A"
+                height = user.get('height') or "N/A"
+                weight = user.get('weight') or "N/A"
+                activity = user.get('activity_level') or "N/A"
                 
                 # Translations
                 goal_map = {
