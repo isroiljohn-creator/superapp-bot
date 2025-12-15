@@ -284,6 +284,27 @@ def register_handlers(bot):
             print(f"Callback Error: {e}")
             bot.answer_callback_query(call.id, "Xatolik")
              
+    # Helper function for flags interface (defined early for scope)
+    def show_flags_interface(chat_id):
+        """Helper to display flags interface - works for both commands and callbacks"""
+        flags = db.get_all_feature_flags()
+        
+        text = "🚩 <b>Feature Flags</b>\n\n"
+        markup = types.InlineKeyboardMarkup()
+        
+        for f in flags:
+            status = "✅ ON" if f['enabled'] else "🔴 OFF"
+            if f['rollout_percent'] > 0 and f['rollout_percent'] < 100:
+                status += f" ({f['rollout_percent']}%)"
+                
+            text += f"▪️ <b>{f['key']}</b>: {status}\n"
+            markup.add(types.InlineKeyboardButton(f"{f['key']} : {status}", callback_data=f"flag_edit_{f['key']}"))
+            
+        markup.add(types.InlineKeyboardButton("➕ Yangi Flag", callback_data="flag_new"))
+        markup.add(types.InlineKeyboardButton("🔄 Yangilash", callback_data="flag_refresh"))
+        
+        bot.send_message(chat_id, text, parse_mode="HTML", reply_markup=markup)
+
     @bot.callback_query_handler(func=lambda call: call.data == "admin_flags_btn")
     def admin_flags_callback(call):
         try:
@@ -902,8 +923,10 @@ def register_content_handlers(bot):
         except Exception as e:
             bot.send_message(message.chat.id, f"❌ Xatolik: {e}")
 
-    def show_flags_interface(chat_id):
-        """Helper to display flags interface - works for both commands and callbacks"""
+    @bot.message_handler(commands=['flags'])
+    def admin_flags_cmd(message):
+        if message.from_user.id not in ADMIN_IDS: return
+        
         flags = db.get_all_feature_flags()
         
         text = "🚩 <b>Feature Flags</b>\n\n"
@@ -920,12 +943,7 @@ def register_content_handlers(bot):
         markup.add(types.InlineKeyboardButton("➕ Yangi Flag", callback_data="flag_new"))
         markup.add(types.InlineKeyboardButton("🔄 Yangilash", callback_data="flag_refresh"))
         
-        bot.send_message(chat_id, text, parse_mode="HTML", reply_markup=markup)
-
-    @bot.message_handler(commands=['flags'])
-    def admin_flags_cmd(message):
-        if message.from_user.id not in ADMIN_IDS: return
-        show_flags_interface(message.chat.id)
+        bot.send_message(message.chat.id, text, parse_mode="HTML", reply_markup=markup)
 
     @bot.callback_query_handler(func=lambda call: call.data.startswith("flag_"))
     def handle_flag_actions(call):
