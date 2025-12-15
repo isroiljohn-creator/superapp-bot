@@ -69,7 +69,7 @@ class Database:
 
                 if 'steps_reward_claimed' not in inspector.get_columns('daily_logs'):
                     try:
-                        conn.execute(text("ALTER TABLE daily_logs ADD COLUMN steps_reward_claimed BOOLEAN DEFAULT 0"))
+                        conn.execute(text("ALTER TABLE daily_logs ADD COLUMN steps_reward_claimed BOOLEAN DEFAULT FALSE"))
                         conn.commit()
                         print("Migrated: steps_reward_claimed")
                     except Exception as e:

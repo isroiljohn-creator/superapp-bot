@@ -552,7 +552,7 @@ def register_subscription_handlers(bot):
         except Exception as e:
             bot.send_message(message.chat.id, f"❌ Xatolik: {e}")
 
-    @bot.callback_query_handler(func=lambda call: call.data.startswith("sub_"))
+    @bot.callback_query_handler(func=lambda call: call.data.startswith("sub_add_") or call.data.startswith("sub_remove_"))
     def handle_sub_action(call):
         if call.from_user.id not in ADMIN_IDS:
             return
