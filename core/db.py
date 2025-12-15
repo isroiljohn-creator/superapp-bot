@@ -569,6 +569,11 @@ class Database:
                     "username": user.username,
                     "phone": user.phone,
                     "goal": user.goal,
+                    "gender": user.gender,
+                    "age": user.age,
+                    "height": user.height,
+                    "weight": user.weight,
+                    "activity_level": user.activity_level,
                     "premium_until": user.premium_until
                 })
                 
