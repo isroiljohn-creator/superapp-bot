@@ -664,7 +664,7 @@ def register_subscription_handlers(bot):
         # Parse args
         # /gift_all 5
         parts = message.text.split()
-        days = 5
+        days = 7
         if len(parts) > 1 and parts[1].isdigit():
             days = int(parts[1])
             

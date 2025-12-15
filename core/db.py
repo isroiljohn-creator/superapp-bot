@@ -239,7 +239,7 @@ class Database:
             
             session.commit()
             
-    def gift_premium_to_all(self, days=5, plan_type="trial"):
+    def gift_premium_to_all(self, days=7, plan_type="trial"):
         """
         Gifts premium to ALL users.
         - If already premium: extends by 'days'.
