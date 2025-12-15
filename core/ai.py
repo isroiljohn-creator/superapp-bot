@@ -299,45 +299,63 @@ def ai_generate_menu(user_profile):
     allergy_text = user_profile.get('allergies')
     allergy_section = ""
     if allergy_text and allergy_text.lower() not in ['yo\'q', 'no', 'none', 'yoq']:
-        allergy_section = f"\n\n⚠️ ⚠️ ⚠️ JUDA MUHIM ⚠️ ⚠️ ⚠️\nFoydalanuvchida {allergy_text} ga ALLERGIYA BOR!\nTavsiya qilingan ovqatlarda BU MAHSULOTLAR BO'LMASLIGI KERAK!\nAlternativ mahsulotlar tavsiya qiling.\n"
+        allergy_section = f"\n\n⚠️ ⚠️ ⚠️ JUDA MUHIM ⚠️ ⚠️ ⚠️\nFoydalanuvchida {allergy_text} ga ALLERGIYA BOR!\nTavsiya qilingan ovatlarda BU MAHSULOTLAR BO'LMASLIGI KERAK!\nAlternativ mahsulotlar tavsiya qiling.\n"
+    
+    # Map goals to Uzbek
+    goal_map = {
+        "weight_loss": "Vazn tashlash",
+        "muscle_gain": "Vazn olish",
+        "health": "Sog'lomlikni saqlash"
+    }
+    goal_uz = goal_map.get(user_profile.get('goal'), user_profile.get('goal', 'Sog\'lomlik'))
     
     prompt = f"""
-Siz Telegram uchun ovqatlanish bo'yicha qisqa, silliq, o'qilishi oson matn yozadigan dietologsiz.
+Siz professional dietolog va Telegram uchun kunlik ovqat menyularini tuzasiz.
 
 Foydalanuvchi profili:
-Yosh: {user_profile.get('age')}
-Jins: {user_profile.get('gender')}
-Bo'y: {user_profile.get('height')}
-Vazn: {user_profile.get('weight')}
-Faollik darajasi: {user_profile.get('activity_level', 'Belgilanmagan')}
-Maqsad: {user_profile.get('goal')}{allergy_section}
+- Yosh: {user_profile.get('age')}
+- Jins: {user_profile.get('gender')}
+- Maqsad: {goal_uz}
+- Bo'y: {user_profile.get('height')} sm
+- Vazn: {user_profile.get('weight')} kg
+- Faollik: {user_profile.get('activity_level', 'O\'rtacha')}
+{allergy_section}
 
 🎯 Vazifa:
-Foydalanuvchiga 3 kunlik ovqatlanish rejasi tuzing.
+3 KUNLIK ovqatlanish rejasi tuzing (har kun uchun 1 menyu).
 
-📌 MUHIM SHARTLAR:
-1. O'zbekiston bozoriga mos mahsulotlar bo'lsin (avokado, qimmat baliqlar o'rniga — tuxum, tovuq, mol go'shti, mahalliy mevalar).
-2. Xaridlar ro'yxatini YOZMANG (bu alohida so'raladi).
-3. Agar foydalanuvchida allergiya yoki kasallik bo'lsa, menyuni shunga qarab qat'iy moslang!
+📋 FORMAT (MUTLAQ SHART):
 
-📌 FORMAT TALABLARI:
-- Hech qanday HTML (<p>, <br>, <ul>, <li>) ishlatma.
-- Muhim joylarni ajratish uchun **yulduzcha** (markdown) ishlat.
-- Emojilarni kam ishlat — faqat kun nomlarida yoki sarlavhalarda.
-- Har kun quyidagicha bo'lsin:
+🍽 [X]-kun uchun sog'lom menyu — [XXXX] kcal
 
-**1-kun**
-- Nonushta: ...
-- Tushlik: ...
-- Kechki: ...
-- Snack: ...
+🥣 Nonushta
+• [Ingredient 1 + miqdori]
+• [Ingredient 2 + miqdori]
+- Tayyorlash: [Qisqa ketma-ketlik 1-2 gap]
 
-- 3 kunda ham struktura bir xil bo'lsin.
+🍛 Tushlik
+• [Ingredient 1 + miqdori]
+• [Ingredient 2 + miqdori]  
+- Tayyorlash: [Qisqa ketma-ketlik 1-2 gap]
 
-🧩 Matn juda uzun chiqmasin. Maksimal 1500 belgi.
+🥗 Kechki ovqat
+• [Ingredient 1 + miqdori]
+• [Ingredient 2 + miqdori]
+- Tayyorlash: [Qisqa ketma-ketlik 1-2 gap]
 
-📢 Javob faqat matn ko'rinishida bo'lsin.
-"""
+💬 [Qisqa motivatsion gap 1 gap]
+
+⚠️ MUHIM QOIDALAR:
+1. Har kungi kaloriya {goal_uz} maqsadiga mos kelishi kerak
+2. O'zbek oshxonasiga mos mahsulotlar (guruch, tovuq, tuxum, sabzavotlar)
+3. Tayyorlash ketma-ketligi JUDA QISQA bo'lsin (1-2 gap maks)
+4. Motivatsion gap SIFATLI va AI-ga o'xshamasin
+5. Inglizcha so'zlarni ishlatmang - faqat O'zbek tili
+6. Emoji ishlatish: 🍽, 🥣, 🍛, 🥗, 💬
+7. 3 kun uchun 3 xil menyu
+8. Qimmat mahsulotlar emas, oddiy va arzon
+
+Javob faqat matn ko'rinishida"""
 
     response_text = call_gemini(prompt)
     
