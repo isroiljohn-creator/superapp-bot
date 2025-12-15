@@ -415,6 +415,11 @@ def register_handlers(bot):
     @bot.message_handler(func=lambda m: m.text == "👥 Barcha" and m.from_user.id in ADMIN_IDS)
     def show_all_users(message):
         show_user_list_page(message.chat.id, 1, bot, category="all")
+    
+    # Orqaga button - return to admin panel
+    @bot.message_handler(func=lambda m: m.text == "⬅️ Orqaga" and m.from_user.id in ADMIN_IDS)
+    def back_to_admin_panel(message):
+        admin_panel(message)
 
     def show_user_list_page(chat_id, page, bot, message_id=None, category="all"):
         try:
