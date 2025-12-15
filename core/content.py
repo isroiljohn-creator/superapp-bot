@@ -32,7 +32,7 @@ class ContentManager:
             return default
         return val if val is not None else default
 
-    def set(self, key, value, description=None, category="general"):
+    def set(self, key, value, description=None):
         """Update text in DB and Cache"""
         try:
             with get_sync_db() as session:
@@ -40,9 +40,8 @@ class ContentManager:
                 if content:
                     content.value = value
                     if description: content.description = description
-                    if category: content.category = category
                 else:
-                    content = BotContent(key=key, value=value, description=description, category=category)
+                    content = BotContent(key=key, value=value, description=description)
                     session.add(content)
                 
                 # Update cache immediately
