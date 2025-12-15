@@ -234,8 +234,8 @@ def show_daily_workout(bot, user_id, link_data, override_day_idx=None):
         # If the AI returns English, map it. If it returns Uzbek, keep it.
         final_focus = tr_map.get(focus_uu, focus_uu)
         
-        txt = f"🏋️ **{day_idx}-KUN** (Jami {total_days} kun)\n"
-        txt += f"🎯 **Fokus:** {final_focus}\n\n"
+        txt = f"🏋️ <b>{day_idx}-KUN</b> (Jami {total_days} kun)\n"
+        txt += f"🎯 <b>Fokus:</b> {final_focus}\n\n"
         
         exercises_text = day_data.get('exercises', '-')
         
