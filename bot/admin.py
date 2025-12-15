@@ -253,13 +253,33 @@ def register_handlers(bot):
     def admin_analytics_callback(call):
         try:
             if call.from_user.id in ADMIN_IDS:
-                 # Call logic manually
-                 admin_stats(call.message)
                  bot.answer_callback_query(call.id)
+                 
+                 # Show technical analytics (different from Statistika)
+                 stats = db.get_stats()
+                 import datetime
+                 
+                 text = (
+                     "📊 <b>Technical Analytics</b>\n\n"
+                     f"🤖 Timestamp: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M')}\n"
+                     f"👥 Total: {stats.get('total', 0)}\n"
+                     f"✅ Active: {stats.get('active', 0)}\n"
+                     f"💎 Premium: {stats.get('premium', 0)}\n\n"
+                     "<b>Top UTM Sources:</b>\n"
+                 )
+                 
+                 utm_stats = stats.get('utm', {})
+                 for k, v in list(utm_stats.items())[:5]:
+                     source = k if k else "Organic"
+                     text += f"- {source}: {v}\n"
+                 
+                 bot.send_message(call.message.chat.id, text, parse_mode="HTML")
             else:
                  bot.answer_callback_query(call.id, "Huquq yo'q", show_alert=True)
         except Exception as e:
-            print(f"Callback Error: {e}")
+            print(f"Callback Error analytics: {e}")
+            import traceback
+            traceback.print_exc()
             bot.answer_callback_query(call.id, "Xatolik")
 
     @bot.callback_query_handler(func=lambda call: call.data == "admin_broadcast_btn")
