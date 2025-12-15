@@ -505,16 +505,62 @@ def register_handlers(bot):
         bot.send_message(message.chat.id, text, parse_mode="HTML")
 
     @bot.message_handler(func=lambda message: "Umumiy xabar" in message.text)
-    def admin_broadcast_start(message):
+    def admin_broadcast_simple(message):
+        """Simple broadcast - just send to all users"""
         if message.from_user.id not in ADMIN_IDS:
             return
         
-        print(f"DEBUG: Admin broadcast started by {message.from_user.id}")
+        print(f"DEBUG: Simple broadcast by {message.from_user.id}")
         try:
-            msg = bot.send_message(message.chat.id, "Xabarni yuboring (matn, rasm, video, ovozli xabar):", reply_markup=types.ForceReply())
+            msg = bot.send_message(
+                message.chat.id, 
+                "📨 <b>Umumiy xabar</b>\n\nBarcha foydalanuvchilarga xabar yuboring:\n(matn, rasm, video)", 
+                reply_markup=types.ForceReply(),
+                parse_mode="HTML"
+            )
             bot.register_next_step_handler(msg, process_broadcast, bot, "all")
         except Exception as e:
             bot.send_message(message.chat.id, f"❌ Xatolik: {e}")
+    
+    # Advanced broadcast with segment options (for Developer menu)
+    def admin_broadcast_start(message):
+        """Advanced broadcast - with segment selection"""
+        if message.from_user.id not in ADMIN_IDS:
+            return
+        
+        print(f"DEBUG: Advanced broadcast by {message.from_user.id}")
+        try:
+            # Show segment selection
+            markup = types.InlineKeyboardMarkup()
+            markup.add(types.InlineKeyboardButton("👥 Barcha foydalanuvchilar", callback_data="broadcast_all"))
+            markup.add(types.InlineKeyboardButton("💎 Premium foydalanuvchilar", callback_data="broadcast_premium"))
+            markup.add(types.InlineKeyboardButton("🆓 Bepul foydalanuvchilar", callback_data="broadcast_free"))
+            
+            bot.send_message(
+                message.chat.id,
+                "📢 <b>Broadcast</b>\n\nQaysi segmentga xabar yubormoqchisiz?",
+                reply_markup=markup,
+                parse_mode="HTML"
+            )
+        except Exception as e:
+            bot.send_message(message.chat.id, f"❌ Xatolik: {e}")
+    
+    # Broadcast segment selection callbacks
+    @bot.callback_query_handler(func=lambda call: call.data.startswith("broadcast_"))
+    def handle_broadcast_segment(call):
+        if call.from_user.id not in ADMIN_IDS:
+            bot.answer_callback_query(call.id, "Huquq yo'q", show_alert=True)
+            return
+        
+        segment = call.data.replace("broadcast_", "")  # all, premium, or free
+        bot.answer_callback_query(call.id)
+        
+        msg = bot.send_message(
+            call.message.chat.id,
+            f"📤 Xabarni yuboring ({segment} segment uchun):",
+            reply_markup=types.ForceReply()
+        )
+        bot.register_next_step_handler(msg, process_broadcast, bot, segment)
 
     @bot.message_handler(func=lambda message: "Segment xabar" in message.text)
     def admin_segment_start(message):
