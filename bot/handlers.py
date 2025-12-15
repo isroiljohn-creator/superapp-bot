@@ -5,6 +5,7 @@ from core.observability import track_latency # IMPORTED
 
 from core.db import db
 
+from telebot import types
 from core.config import ADMIN_IDS
 
 def register_all_handlers(bot):
