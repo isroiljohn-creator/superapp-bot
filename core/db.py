@@ -975,6 +975,11 @@ class Database:
         with get_sync_db() as session:
             user = session.query(User).filter(User.telegram_id == user_id).first()
             if user:
+                user.onboarding_state = int(state)
+                session.commit()
+
+    def get_onboarding_data(self, user_id):
+        with get_sync_db() as session:
             user = session.query(User).filter(User.telegram_id == user_id).first()
             if user and user.onboarding_data:
                 try:
