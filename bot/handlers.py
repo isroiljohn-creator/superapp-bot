@@ -1,5 +1,5 @@
 from bot import onboarding, gamification, admin, feedback, premium, profile, templates, workout
-from bot.keyboards import main_menu_keyboard, ai_coach_submenu_keyboard, challenges_submenu_keyboard, help_submenu_keyboard
+from bot.keyboards import main_menu_keyboard, ai_coach_submenu_keyboard, challenges_submenu_keyboard, help_submenu_keyboard, ai_coach_inline_keyboard
 from bot import trackers, ai_features, challenges, calorie_scanner
 from core.observability import track_latency # IMPORTED
 
@@ -97,7 +97,7 @@ def register_all_handlers(bot):
 
     @bot.message_handler(func=lambda message: message.text == "🤖 AI murabbiy")
     def menu_ai(message):
-        bot.send_message(message.chat.id, "Bugun nima qilamiz?", reply_markup=ai_coach_submenu_keyboard())
+        bot.send_message(message.chat.id, "🤖 <b>AI Murabbiy</b>\n\nBugun nima qilamiz? Quyidagilardan birini tanlang 👇", reply_markup=ai_coach_inline_keyboard(), parse_mode="HTML")
 
     # Moved Referral to Challenges submenu, but keeping handler for backward/direct access if needed
     @bot.message_handler(func=lambda message: message.text == "🔗 Referal" or message.text == "👥 Do‘st chaqirish")
@@ -127,7 +127,57 @@ def register_all_handlers(bot):
 
     # --- Submenu Button Handlers ---
 
-    # AI Coach Submenu
+    # AI Coach Inline Callback Handler
+    @bot.callback_query_handler(func=lambda call: call.data.startswith('ai_sub_'))
+    def ai_coach_callback(call):
+        action = call.data.replace('ai_sub_', '')
+        
+        if action == 'workout':
+            # Call generation with explicit user_id
+            workout.generate_ai_workout(call.message, bot, user_id=call.from_user.id)
+            bot.answer_callback_query(call.id)
+            
+        elif action == 'meal' or action == 'recipe':
+            # Call generation with explicit user_id
+            workout.generate_ai_meal(call.message, bot, user_id=call.from_user.id)
+            bot.answer_callback_query(call.id)
+            
+        elif action == 'shopping':
+            try:
+                 link = db.get_user_menu_link(call.from_user.id)
+                 if not link:
+                     bot.answer_callback_query(call.id, "Avval menyu tuzing", show_alert=True)
+                     return
+                 
+                 import json
+                 raw_list = json.loads(link['shopping_list_json'])
+                 if not raw_list:
+                     bot.answer_callback_query(call.id, "Ro'yxat bo'sh", show_alert=True)
+                     return
+                 
+                 # Format list
+                 text = "🛒 <b>Xaridlar Ro'yxati</b>\n\n"
+                 for category, items in raw_list.items():
+                     text += f"<b>{category}:</b>\n"
+                     for item in items:
+                         text += f"▫️ {item}\n"
+                     text += "\n"
+                 bot.send_message(call.from_user.id, text, parse_mode="HTML")
+                 bot.answer_callback_query(call.id)
+            except Exception as e:
+                bot.answer_callback_query(call.id, "Xatolik yuz berdi")
+
+        elif action == 'qa':
+            # QA handler might expect message.text. It starts a conversation state usually?
+            # Let's check handle_ai_qa implementation first. 
+            # Assuming handle_ai_qa asks for input via state.
+            ai_features.handle_ai_qa(call.message, bot) # Check if this works for callback message
+            bot.answer_callback_query(call.id)
+            
+        elif action == 'close':
+            bot.delete_message(call.message.chat.id, call.message.message_id)
+
+    # AI Coach Submenu (Legacy Text Handlers - kept for backward compatibility if needed, or remove)
     @bot.message_handler(func=lambda message: message.text == "🏋️ Mashq qilaman")
     def sub_workout(message):
         workout.generate_ai_workout(message, bot)

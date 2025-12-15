@@ -159,11 +159,26 @@ def gamification_keyboard():
     return markup
 
 def ai_coach_submenu_keyboard():
-    """Submenu for '🤖 AI murabbiy'"""
+    """Reply Submenu for '🤖 AI murabbiy' (Legacy - kept for fallback)"""
     markup = ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
     markup.add(KeyboardButton("🏋️ Mashq qilaman"), KeyboardButton("🥗 Nima yeyman?"))
     markup.add(KeyboardButton("🔥 AI retsept tuzsin"), KeyboardButton("🛒 Nima xarid qilay?"))
     markup.add(KeyboardButton("❓ Murabbiyga savolim bor"), KeyboardButton("⬅️ Orqaga"))
+    return markup
+
+def ai_coach_inline_keyboard():
+    """Inline Submenu for '🤖 AI murabbiy'"""
+    markup = InlineKeyboardMarkup(row_width=2)
+    markup.add(
+        InlineKeyboardButton("🏋️ Mashq qilaman", callback_data="ai_sub_workout"),
+        InlineKeyboardButton("🥗 Nima yeyman?", callback_data="ai_sub_meal")
+    )
+    markup.add(
+        InlineKeyboardButton("🔥 AI retsept tuzsin", callback_data="ai_sub_recipe"),
+        InlineKeyboardButton("🛒 Nima xarid qilay?", callback_data="ai_sub_shopping")
+    )
+    markup.add(InlineKeyboardButton("❓ Murabbiyga savolim bor", callback_data="ai_sub_qa"))
+    markup.add(InlineKeyboardButton("❌ Yopish", callback_data="ai_sub_close"))
     return markup
 
 def challenges_submenu_keyboard():
