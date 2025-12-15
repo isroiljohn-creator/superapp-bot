@@ -299,6 +299,17 @@ class Database:
             session.commit()
             return True
 
+    def clear_all_workout_caches(self):
+        """Deletes all entries from the WorkoutCache table."""
+        with get_sync_db() as session:
+            try:
+                deleted = session.query(WorkoutCache).delete()
+                session.commit()
+                return deleted
+            except Exception as e:
+                print(f"Error clearing workout cache: {e}")
+                return 0
+
 
 
     def reset_db(self):

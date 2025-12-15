@@ -640,6 +640,24 @@ def register_subscription_handlers(bot):
             bot.send_message(message.chat.id, f"❌ Xatolik yuz berdi: {e}")
             print(f"Sub Add Error: {e}")
 
+    @bot.message_handler(commands=['clear_workouts'])
+    def admin_clear_workouts_start(message):
+        if message.from_user.id not in ADMIN_IDS: return
+        
+        msg = bot.send_message(
+            message.chat.id, 
+            "⚠️ <b>DIQQAT!</b>\n\nBu buyruq BARCHA foydalanuvchilarning eski AI mashq rejalarini o'chirib yuboradi.\nUlarga yangi mashqlar kerak bo'lganda qaytadan generatsiya qilishadi.\n\nDavom etish uchun <code>TASDIQLAYMAN</code> deb yozing:",
+            parse_mode="HTML"
+        )
+        bot.register_next_step_handler(msg, process_clear_workouts_confirmation, bot)
+
+    def process_clear_workouts_confirmation(message, bot):
+        if message.text == "TASDIQLAYMAN":
+            count = db.clear_all_workout_caches()
+            bot.send_message(message.chat.id, f"✅ Bajarildi! {count} ta eski mashq rejasi o'chirib yuborildi.")
+        else:
+            bot.send_message(message.chat.id, "❌ Bekor qilindi. Tasdiqlash kodi noto'g'ri.")
+
     @bot.message_handler(commands=['gift_all'])
     def admin_gift_all_start(message):
         if message.from_user.id not in ADMIN_IDS: return
