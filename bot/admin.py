@@ -543,7 +543,6 @@ def register_subscription_handlers(bot):
                 "Amalni tanlang:"
             )
             
-            markup.add(types.InlineKeyboardMarkup().add(types.InlineKeyboardButton("➕ Obuna qo'shish", callback_data=f"sub_add_{target_id}")))
             markup = types.InlineKeyboardMarkup()
             markup.add(types.InlineKeyboardButton("➕ Obuna qo'shish", callback_data=f"sub_add_{target_id}"))
             markup.add(types.InlineKeyboardButton("➖ Obunani o'chirish", callback_data=f"sub_remove_{target_id}"))
