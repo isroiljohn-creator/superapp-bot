@@ -25,8 +25,6 @@ def register_handlers(bot):
             types.KeyboardButton("👥 Foydalanuvchilar"),
             types.KeyboardButton("📨 Umumiy xabar"),
             types.KeyboardButton("🎯 Segment xabar"),
-            types.KeyboardButton("💎 Premium foydalanuvchilar"),
-            types.KeyboardButton("🏷 Referallar"),
             types.KeyboardButton("💳 Obunalar"),
             types.KeyboardButton("👨‍💻 Dasturchi")
         )
@@ -370,20 +368,21 @@ def register_handlers(bot):
         if message.from_user.id not in ADMIN_IDS:
             return
         
-        # Show category submenu
-        markup = types.InlineKeyboardMarkup(row_width=2)
+        # Show category submenu with ReplyKeyboard
+        markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
         markup.add(
-            types.InlineKeyboardButton("💎 Premium", callback_data="users_cat_premium"),
-            types.InlineKeyboardButton("👑 VIP", callback_data="users_cat_vip")
+            types.KeyboardButton("💎 Premium"),
+            types.KeyboardButton("👑 VIP")
         )
         markup.add(
-            types.InlineKeyboardButton("🆓 Bepul", callback_data="users_cat_free"),
-            types.InlineKeyboardButton("🔗 TOP 10 Referallar", callback_data="users_cat_top_ref")
+            types.KeyboardButton("🆓 Bepul"),
+            types.KeyboardButton("🔗 TOP 10 Referallar")
         )
         markup.add(
-            types.InlineKeyboardButton("⏸ Ro'yxatdan o'tmagan", callback_data="users_cat_incomplete"),
-            types.InlineKeyboardButton("👥 Barcha", callback_data="users_cat_all")
+            types.KeyboardButton("⏸ Ro'yxatdan o'tmagan"),
+            types.KeyboardButton("👥 Barcha")
         )
+        markup.add(types.KeyboardButton("⬅️ Orqaga"))
         
         bot.send_message(
             message.chat.id, 
@@ -391,6 +390,31 @@ def register_handlers(bot):
             reply_markup=markup,
             parse_mode="HTML"
         )
+    
+    # Category message handlers
+    @bot.message_handler(func=lambda m: m.text == "💎 Premium" and m.from_user.id in ADMIN_IDS)
+    def show_premium_users(message):
+        show_user_list_page(message.chat.id, 1, bot, category="premium")
+    
+    @bot.message_handler(func=lambda m: m.text == "👑 VIP" and m.from_user.id in ADMIN_IDS)
+    def show_vip_users(message):
+        show_user_list_page(message.chat.id, 1, bot, category="vip")
+    
+    @bot.message_handler(func=lambda m: m.text == "🆓 Bepul" and m.from_user.id in ADMIN_IDS)
+    def show_free_users(message):
+        show_user_list_page(message.chat.id, 1, bot, category="free")
+    
+    @bot.message_handler(func=lambda m: m.text == "🔗 TOP 10 Referallar" and m.from_user.id in ADMIN_IDS)
+    def show_top_referrers(message):
+        show_user_list_page(message.chat.id, 1, bot, category="top_ref")
+    
+    @bot.message_handler(func=lambda m: m.text == "⏸ Ro'yxatdan o'tmagan" and m.from_user.id in ADMIN_IDS)
+    def show_incomplete_users(message):
+        show_user_list_page(message.chat.id, 1, bot, category="incomplete")
+    
+    @bot.message_handler(func=lambda m: m.text == "👥 Barcha" and m.from_user.id in ADMIN_IDS)
+    def show_all_users(message):
+        show_user_list_page(message.chat.id, 1, bot, category="all")
 
     def show_user_list_page(chat_id, page, bot, message_id=None, category="all"):
         try:
