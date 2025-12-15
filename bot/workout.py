@@ -581,10 +581,34 @@ def show_daily_menu(bot, user_id, link_data, override_day_idx=None):
             return
 
         # Format Meals
-        txt += f"🍳 <b>Nonushta:</b>\n{day_data.get('breakfast', '-')}\n\n"
-        txt += f"🍏 <b>Snack (Tamaddi):</b>\n{day_data.get('snack', '-')}\n\n"
-        txt += f"🥗 <b>Tushlik:</b>\n{day_data.get('lunch', '-')}\n\n"
-        txt += f"🍲 <b>Kechki ovqat:</b>\n{day_data.get('dinner', '-')}\n\n"
+        def _fmt(m):
+            if isinstance(m, str): return m
+            if isinstance(m, dict):
+                # New Schema
+                title = m.get('title', 'Taom')
+                kcal = m.get('kcal', '')
+                time_m = m.get('time_minutes', '')
+                
+                s = f"<b>{title}</b> ({kcal} kcal)\n"
+                s += "<i>Tarkibi:</i> " + ", ".join(m.get('ingredients', [])) + "\n"
+                
+                steps = m.get('preparation_steps', [])
+                if steps:
+                    s += "\n<i>Tayyorlanishi:</i>\n"
+                    for i, step in enumerate(steps, 1):
+                        s += f"{i}. {step}\n"
+                        
+                meta = []
+                if time_m: meta.append(f"⏱ {time_m} daq")
+                if m.get('cost_level'): meta.append(f"💰 {m.get('cost_level')}")
+                if meta: s += "\n" + " | ".join(meta)
+                return s
+            return "-"
+
+        txt += f"🍳 <b>Nonushta:</b>\n{_fmt(day_data.get('breakfast'))}\n\n"
+        txt += f"🍏 <b>Snack (Tamaddi):</b>\n{_fmt(day_data.get('snack'))}\n\n"
+        txt += f"🥗 <b>Tushlik:</b>\n{_fmt(day_data.get('lunch'))}\n\n"
+        txt += f"🍲 <b>Kechki ovqat:</b>\n{_fmt(day_data.get('dinner'))}\n\n"
         
         # Micro Advice (Coach Layer)
         advice = day_data.get('micro_advice')
@@ -614,6 +638,9 @@ def show_daily_menu(bot, user_id, link_data, override_day_idx=None):
         # Action Buttons
         markup.row(
             InlineKeyboardButton("🛒 Shopping List", callback_data="menu_shopping"),
+            InlineKeyboardButton("🥦 Muzlatgichdan retsept", callback_data="menu_fridge")
+        )
+        markup.row(
             InlineKeyboardButton("🔄 Almashtirish (VIP)", callback_data="menu_swap_vip")
         )
         

@@ -419,19 +419,26 @@ def ai_generate_monthly_menu_json(user_profile):
     
     
     
-    # 1. System Prompt (Softened Role)
+    # 1. System Prompt (Rich Nutritional Role)
     system_prompt = """
-Siz O'zbekistonda yashovchi foydali yordamchisiz.
-Vazifangiz: 7 kunlik (HAFTALIK) VARIATIV va FOYDALI taomlar ro'yxatini tuzish.
-Har bir kun har xil bo'lishi SHART.
+You are a professional Uzbek nutritionist, home chef, and supportive fitness coach.
+Your task is to generate a 7-day meal plan in STRICT JSON format.
 
-Javob formati: FAQAT JSON.
+CONTEXT:
+- Diet style: Simple Uzbek home food
+- Budget: Affordable
+- Ingredients must be available in Uzbekistan
+- Tone: Warm, motivating, human (like a caring coach)
 
-QAT'IY QOIDALAR:
-1. Tilda aralashma bo'lmasin. FAQAT O'ZBEK TILI. (Inglizcha so'z umuman ishlatilmasin: "Oatmeal" -> "Suli bo'tqasi", "Chicken" -> "Tovuq").
-2. Mahsulotlar O'ZBEK BOZORIDA topiladigan bo'lsin.
-3. Milliy taomlarni (yog'siz variantlarini) qo'shish tavsiya etiladi (Moshkichiri, Mastava, Shurva).
-4. Taomlar takrorlanmasin (yoki kam takrorlansin).
+CRITICAL RULES:
+1. OUTPUT MUST BE VALID JSON ONLY.
+2. Each meal (breakfast, lunch, dinner) MUST be an OBJECT with:
+   - title
+   - ingredients (array)
+   - preparation_steps (array of strings)
+   - time_minutes, cost_level, place (uy/kocha)
+3. Recipes must be realistic for a home kitchen.
+4. Total calories must match the target range.
 """
 
     # 2. User Prompt (Data)
@@ -486,10 +493,55 @@ Talablar:
                             "type": "object",
                             "properties": {
                                 "day": {"type": "integer"},
-                                "breakfast": {"type": "string"},
-                                "lunch": {"type": "string"},
-                                "dinner": {"type": "string"},
-                                "snack": {"type": "string"},
+                                "total_kcal": {"type": "integer"},
+                                "breakfast": {
+                                    "type": "object",
+                                    "properties": {
+                                        "title": {"type": "string"},
+                                        "kcal": {"type": "integer"},
+                                        "ingredients": {"type": "array", "items": {"type": "string"}},
+                                        "preparation_steps": {"type": "array", "items": {"type": "string"}},
+                                        "time_minutes": {"type": "integer"},
+                                        "cost_level": {"type": "string"},
+                                        "place": {"type": "string"}
+                                    },
+                                    "required": ["title", "ingredients", "preparation_steps"]
+                                },
+                                "lunch": {
+                                    "type": "object",
+                                    "properties": {
+                                        "title": {"type": "string"},
+                                        "kcal": {"type": "integer"},
+                                        "ingredients": {"type": "array", "items": {"type": "string"}},
+                                        "preparation_steps": {"type": "array", "items": {"type": "string"}},
+                                        "time_minutes": {"type": "integer"},
+                                        "cost_level": {"type": "string"},
+                                        "place": {"type": "string"}
+                                    },
+                                    "required": ["title", "ingredients", "preparation_steps"]
+                                },
+                                "dinner": {
+                                    "type": "object",
+                                    "properties": {
+                                        "title": {"type": "string"},
+                                        "kcal": {"type": "integer"},
+                                        "ingredients": {"type": "array", "items": {"type": "string"}},
+                                        "preparation_steps": {"type": "array", "items": {"type": "string"}},
+                                        "time_minutes": {"type": "integer"},
+                                        "cost_level": {"type": "string"},
+                                        "place": {"type": "string"}
+                                    },
+                                    "required": ["title", "ingredients", "preparation_steps"]
+                                },
+                                "snack": {
+                                    "type": "object",
+                                    "properties": {
+                                        "title": {"type": "string"},
+                                        "kcal": {"type": "integer"},
+                                        "ingredients": {"type": "array", "items": {"type": "string"}},
+                                        "preparation_steps": {"type": "array", "items": {"type": "string"}}
+                                    }
+                                },
                                 "micro_advice": {"type": "string", "description": "1-2 short sentences of coach advice"}
                             },
                             "required": ["day", "breakfast", "lunch", "dinner", "snack"]
@@ -572,6 +624,8 @@ Talablar:
                 data["shopping_list"] = new_list
             # ----------------------------------------------------------------
 
+            # ----------------------------------------------------------------
+
             # SAVE TO CACHE
             try:
                 # Ensure it's valid data before saving
@@ -584,6 +638,10 @@ Talablar:
             except Exception as e:
                  print(f"Cache Save Error: {e}")
 
+            return data
+        except:
+            import ast
+            data = ast.literal_eval(clean_json)
             return data
         except:
             import ast
@@ -798,10 +856,38 @@ def analyze_food_text(text):
             if "deadline" in str(e).lower() or "timeout" in str(e).lower():
                 return "⚠️ Kechirasiz, AI javob berishga ulgurmadi. Iltimos, qaytadan urinib ko'ring."
             print(f"Gemini Text Error: {e}")
-            return "⚠️ AI xizmatida vaqtincha uzilish bo'ldi. Keyinroq urinib ko'ring."
-    except Exception as e:
-        print(f"Gemini Text Error: {e}")
-        return None
+
+def ai_generate_fridge_recipe(user_profile, available_ingredients):
+    """
+    Generates 1-2 simple recipes based on available ingredients.
+    Output is plain text (not JSON) for speed and flexibility.
+    """
+    AI_USAGE_STATS["meal"] += 1
+    AI_USAGE_STATS["total_requests"] += 1
+    
+    prompt = f"""
+Siz professional oshpaz va fitness murabbiysiz.
+Foydalanuvchi uyida bor mahsulotlardan 1-2 ta retsept so'radi.
+
+Foydalanuvchi maqsadi: {user_profile.get('goal')}
+Bor mahsulotlar: {available_ingredients}
+
+Vazifa:
+Faqat berilgan mahsulotlardan (va tuz/yog'/suv kabi oddiy narsalardan) foydalanib, 1 yoki 2 ta oddiy va foydali retsept yozing.
+
+Qoidalar:
+1. Retsept nomini yozing.
+2. Kerakli masalliqlarni ro'yxat qiling.
+3. Tayyorlash jarayonini qadamma-qadam (1, 2, 3...) tushunarli yozing.
+4. Murabbiy sifatida qisqa maslahat bering.
+5. Faqat O'zbek tilida.
+6. Format chiroyli va o'qishli bo'lsin (Markdown).
+
+Namuna:
+🍳 **Tuxumli kartoshka**
+...
+"""
+    return call_gemini(prompt)
 
 def format_gemini_text(raw_text, title):
     """Cleans and formats AI output."""

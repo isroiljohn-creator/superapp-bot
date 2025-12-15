@@ -812,6 +812,53 @@ def register_all_handlers(bot):
             print(f"Regen Error: {e}")
             bot.answer_callback_query(call.id, "Xatolik yuz berdi")
 
+    # =========================================================
+    # FRIDGE RECIPE HANDLERS
+    # =========================================================
+
+    @bot.callback_query_handler(func=lambda call: call.data == "menu_fridge")
+    def callback_start_fridge_recipe(call):
+        try:
+            bot.delete_message(call.message.chat.id, call.message.message_id)
+            msg = bot.send_message(
+                call.message.chat.id, 
+                "🥦 **Muzlatgichda nima bor?**\n\nBor mahsulotlarni vergul bilan yozib yuboring.\nMasalan: _Tuxum, pomidor, kartoshka_",
+                parse_mode="Markdown"
+            )
+            bot.register_next_step_handler(msg, handle_fridge_input, bot)
+        except Exception as e:
+             print(f"Fridge Start Error: {e}")
+
+    def handle_fridge_input(message, bot):
+        try:
+            ingredients = message.text
+            if not ingredients or len(ingredients) < 3:
+                bot.send_message(message.chat.id, "Iltimos, mahsulotlarni to'g'ri yozing.")
+                return
+
+            user = db.get_user(message.from_user.id)
+            if not user: return
+            
+            gen_msg = bot.send_message(message.chat.id, "👨‍🍳 **Shef-oshpaz o'ylamoqda...**\n\nRetsept tuzilmoqda...")
+            
+            # Call AI
+            from core.ai import ai_generate_fridge_recipe
+            recipe_text = ai_generate_fridge_recipe(user, ingredients)
+            
+            bot.delete_message(message.chat.id, gen_msg.message_id)
+            
+            if recipe_text:
+                bot.send_message(message.chat.id, recipe_text, parse_mode="HTML")
+                
+                # Show Main Menu again after recipe
+                bot.send_message(message.chat.id, "Yana nimadir kerakmi?", reply_markup=main_menu_keyboard(user_id=message.from_user.id))
+            else:
+                bot.send_message(message.chat.id, "⚠️ Uzr, bu mahsulotlardan retsept topa olmadim.")
+
+        except Exception as e:
+            print(f"Fridge Input Error: {e}")
+            bot.send_message(message.chat.id, "❌ Xatolik yuz berdi.")
+
     # --- FALLBACK HANDLER (MUST BE LAST) ---
     @bot.message_handler(content_types=['text', 'audio', 'document', 'photo', 'sticker', 'video', 'video_note', 'voice', 'location', 'contact'], func=lambda m: True)
     def fallback_handler(message):
