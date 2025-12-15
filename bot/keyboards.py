@@ -1,4 +1,5 @@
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardMarkup, KeyboardButton, WebAppInfo
+from core.config import ADMIN_IDS
 
 def phone_request_keyboard():
     """Request phone number from user"""
