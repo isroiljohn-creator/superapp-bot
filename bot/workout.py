@@ -620,4 +620,4 @@ def show_daily_menu(bot, user_id, link_data, override_day_idx=None):
 
     except Exception as e:
         print(f"Show Menu Error: {e}")
-        bot.send_message(user_id, "❌ Menyu ochishda xatolik.")
+        bot.send_message(user_id, f"❌ Menyu ochishda xatolik: {str(e)[:100]}")

@@ -74,8 +74,9 @@ def register_all_handlers(bot):
     # --- Main Menu Navigation ---
     @bot.message_handler(func=lambda message: message.text == "⬅️ Asosiy menyu")
     def back_to_main(message):
-        is_adm = message.from_user.id in ADMIN_IDS
-        bot.send_message(message.chat.id, "🏠 Asosiy menyu", reply_markup=main_menu_keyboard(is_admin=is_adm))
+        # Admin check
+        is_admin = message.from_user.id in ADMIN_IDS
+        bot.send_message(message.chat.id, "🏠 Asosiy menyu", reply_markup=main_menu_keyboard(is_admin=is_admin))
 
     @bot.message_handler(func=lambda message: message.text == "⬅️ Premium menyu")
     def back_to_premium(message):
@@ -585,31 +586,7 @@ def register_all_handlers(bot):
             print(f"Workout Nav Error: {e}")
             bot.answer_callback_query(call.id, "Xatolik yuz berdi")
 
-    @bot.callback_query_handler(func=lambda call: call.data == "menu_shopping")
-    def callback_menu_shopping(call):
-        try:
-            link = db.get_user_menu_link(call.from_user.id)
-            if not link:
-                bot.answer_callback_query(call.id, "Reja topilmadi.")
-                return
 
-            import json
-            shopping_list = json.loads(link['shopping_list_json'])
-            
-            if not shopping_list:
-                bot.answer_callback_query(call.id, "Shopping list bo'sh.")
-                return
-                
-            txt = "🛒 **30 KUNLIK XARIDLAR RO'YXATI**\n\n"
-            for item in shopping_list:
-                txt += f"▫️ {item}\n"
-                
-            bot.send_message(call.from_user.id, txt, parse_mode="Markdown")
-            bot.answer_callback_query(call.id)
-            
-        except Exception as e:
-            print(f"Shopping List Error: {e}")
-            bot.answer_callback_query(call.id, "Xatolik yuz berdi")
 
     @bot.callback_query_handler(func=lambda call: call.data == "menu_regenerate")
     def callback_menu_regenerate(call):
