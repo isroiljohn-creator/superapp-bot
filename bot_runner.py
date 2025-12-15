@@ -104,7 +104,9 @@ def main():
     while True:
         try:
             bot.remove_webhook() # Ensure we are in polling mode
-            bot.infinity_polling(timeout=20, long_polling_timeout=20)
+            # Use non_stop=False so that exceptions (like 409) bubble up to our try/except block.
+            # infinity_polling swallows them, which prevents our Kill Switch from working.
+            bot.polling(non_stop=False, timeout=20, long_polling_timeout=20)
         except (ReadTimeout, ConnectionError) as e:
             print(f"⚠️ Tarmoq xatoligi (qayta ulanish 5s): {e}")
             time.sleep(5)
