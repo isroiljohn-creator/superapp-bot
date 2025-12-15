@@ -23,8 +23,7 @@ def register_handlers(bot):
         markup.add(
             types.KeyboardButton("📊 Statistika"),
             types.KeyboardButton("👥 Foydalanuvchilar"),
-            types.KeyboardButton("📨 Umumiy xabar"),
-            types.KeyboardButton("🎯 Segment xabar"),
+            types.KeyboardButton("📤 Xabar yuborish"),
             types.KeyboardButton("💳 Obunalar"),
             types.KeyboardButton("👨‍💻 Dasturchi")
         )
@@ -420,6 +419,26 @@ def register_handlers(bot):
     @bot.message_handler(func=lambda m: m.text == "⬅️ Orqaga" and m.from_user.id in ADMIN_IDS)
     def back_to_admin_panel(message):
         admin_panel(message)
+    
+    # Xabar yuborish submenu
+    @bot.message_handler(func=lambda message: "Xabar yuborish" in message.text)
+    def messaging_menu(message):
+        if message.from_user.id not in ADMIN_IDS:
+            return
+        
+        markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=1)
+        markup.add(
+            types.KeyboardButton("📨 Umumiy xabar"),
+            types.KeyboardButton("🎯 Segment xabar")
+        )
+        markup.add(types.KeyboardButton("⬅️ Orqaga"))
+        
+        bot.send_message(
+            message.chat.id,
+            "📤 <b>Xabar yuborish</b>\n\nXabar turini tanlang:",
+            reply_markup=markup,
+            parse_mode="HTML"
+        )
 
     def show_user_list_page(chat_id, page, bot, message_id=None, category="all"):
         try:
