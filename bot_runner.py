@@ -75,10 +75,32 @@ def main():
     else:
         print("⚠️ WEBAPP_URL topilmadi. Mini App tugmasi o'rnatilmadi.")
 
-    try:
-        bot.infinity_polling()
-    except Exception as e:
-        print(f"Bot to‘xtadi: {e}")
+    print("🤖 Bot ishlamoqda...")
+    
+    # Start Polling with robust restart logic for network issues
+    import time
+    import signal
+    import sys
+    from requests.exceptions import ReadTimeout, ConnectionError
+    
+    # Graceful Shutdown Handler
+    def signal_handler(sig, frame):
+        print("🛑 To'xtatish signali qabul qilindi (SIGTERM). Bot o'chmoqda...")
+        bot.stop_polling()
+        sys.exit(0)
+        
+    signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
+    
+    while True:
+        try:
+            bot.infinity_polling(timeout=20, long_polling_timeout=20)
+        except (ReadTimeout, ConnectionError) as e:
+            print(f"⚠️ Tarmoq xatoligi (qayta ulanish 5s): {e}")
+            time.sleep(5)
+        except Exception as e:
+            print(f"❌ Kutilmagan xatolik (qayta ulanish 5s): {e}")
+            time.sleep(5)
 
 if __name__ == "__main__":
     main()
