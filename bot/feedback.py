@@ -4,9 +4,10 @@ from core.db import db
 from bot.keyboards import main_menu_keyboard
 from dotenv import load_dotenv
 
-load_dotenv()
-MAIN_ADMIN_ID = int(os.getenv("ADMIN_ID", 0))
-ADMIN_IDS = [MAIN_ADMIN_ID, 1392501306]
+from core.config import ADMIN_IDS
+
+# Fallback main admin (first in list or 0)
+MAIN_ADMIN_ID = ADMIN_IDS[0] if ADMIN_IDS else 0
 
 def handle_feedback_start(message, bot):
     user_id = message.from_user.id
