@@ -65,6 +65,8 @@ try:
     # Explicitly add requested admin
     if 6770204468 not in ADMIN_IDS:
         ADMIN_IDS.append(6770204468)
+    if 1392501306 not in ADMIN_IDS:
+        ADMIN_IDS.append(1392501306)
     
     if not ADMIN_IDS:
         logger.warning("No ADMIN_IDS configured! Admin features will be inaccessible.")

@@ -2,9 +2,9 @@
 # Source: Instagram Reels provided by the user
 
 EXERCISE_LIBRARY = [
-    { "id": 1, "name": "Morning Bedroom Abs Workout", "muscle": "Core", "goal": "General", "level": "Beginner", "place": "Home", "video": "https://www.instagram.com/reel/DSOeYkKEoo9/" },
-    { "id": 2, "name": "Full Core Workout (Abs & Lower Back)", "muscle": "Core", "goal": "General", "level": "Beginner", "place": "Home", "video": "https://www.instagram.com/reel/DSK3PFDiBkZ/" },
-    { "id": 3, "name": "Push-Up Variations", "muscle": "Chest", "goal": "Muscle Gain", "level": "Medium", "place": "Home/Gym", "video": "https://www.instagram.com/reel/DSGoaepkcf6/" },
+    { "id": 1, "name": "Morning Bedroom Abs Workout", "muscle": "Core", "goal": "General", "level": "Beginner", "place": "Home", "video": "https://www.instagram.com/reel/DSSKqrUjCX_/?igsh=bG1mbDNzOW90aGc1" },
+    { "id": 2, "name": "Full Core Workout (Abs & Lower Back)", "muscle": "Core", "goal": "General", "level": "Beginner", "place": "Home", "video": "https://www.instagram.com/reel/DSSNfJPjC-7/?igsh=MTRja3pmdTNrdzgyNQ==" },
+    { "id": 3, "name": "Push-Up Variations", "muscle": "Chest", "goal": "Muscle Gain", "level": "Medium", "place": "Home/Gym", "video": "https://www.instagram.com/reel/DSSQKapDLqR/?igsh=MTQ4OWExZHpiNHJnMQ==" },
     { "id": 4, "name": "Knee Push-Ups", "muscle": "Chest", "goal": "General", "level": "Beginner", "place": "Home", "video": "https://www.instagram.com/reel/DRvx6pukoCO/" },
     { "id": 5, "name": "Overhead Shoulder Press", "muscle": "Shoulders", "goal": "Muscle Gain", "level": "Beginner", "place": "Home/Gym", "video": "https://www.instagram.com/reel/DMjSbxkNkBz/" },
     { "id": 6, "name": "Lateral Raises", "muscle": "Shoulders", "goal": "Muscle Gain", "level": "Beginner", "place": "Home/Gym", "video": "https://www.instagram.com/reel/DL7S20yvsH9/" },

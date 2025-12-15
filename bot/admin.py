@@ -8,6 +8,10 @@ from core.utils import safe_handler
 from core.config import ADMIN_IDS
 print(f"DEBUG: Loaded ADMIN_IDS: {ADMIN_IDS}")
 
+# Globals
+BROADCAST_STOP = False
+BATCH_SIZE = 50
+
 def register_handlers(bot):
     @bot.message_handler(commands=['admin'])
     def admin_panel(message):
@@ -459,7 +463,19 @@ def register_handlers(bot):
         msg = bot.send_message(call.message.chat.id, f"Tanlangan segment: {segment[0]}={segment[1]}. Xabarni yuboring:", reply_markup=types.ForceReply())
         bot.register_next_step_handler(msg, process_broadcast, bot, segment)
 
+import threading
+
 def process_broadcast(message, bot, segment):
+    # Wrapper to run broadcast in background
+    thread = threading.Thread(target=_broadcast_worker, args=(message, bot, segment))
+    thread.daemon = True # Daemonize to not block shutdown if stuck
+    thread.start()
+    bot.send_message(message.chat.id, "🚀 Xabar yuborish fonda boshlandi. Menyu orqali ishlatishda davom etishingiz mumkin.")
+
+def _broadcast_worker(message, bot, segment):
+    """
+    Worker function running in a separate thread.
+    """
     try:
         # Check if user cancelled
         if message.text and message.text.startswith("/"):
@@ -485,9 +501,21 @@ def process_broadcast(message, bot, segment):
             bot.send_message(message.chat.id, "❌ Foydalanuvchilar topilmadi.")
             return
 
-        count = 0
-        blocked = 0
+        msg = bot.send_message(message.chat.id, "⏳ Yuborish boshlanmoqda...")
+        status_msg_id = msg.message_id
         
+        success = 0
+        failed = 0
+        offset = 0
+        start_time = time.time()
+        
+        photo = None
+        if message.content_type == 'photo':
+            photo = message.photo[-1].file_id
+
+        # Use batch processing
+        target_segment = segment # 'all' or list
+
         while True:
             if BROADCAST_STOP:
                 bot.send_message(message.chat.id, "🛑 Yuborish to'xtatildi!")
@@ -533,7 +561,7 @@ def process_broadcast(message, bot, segment):
             # Update status every batch
             elapsed = int(time.time() - start_time)
             try:
-                bot.edit_message_text(f"⏳ Yuborilmoqda...\n✅: {success}\n❌: {failed}\n⏱: {elapsed}s", message.chat.id, status_msg.message_id)
+                bot.edit_message_text(f"⏳ Yuborilmoqda...\n✅: {success}\n❌: {failed}\n⏱: {elapsed}s", message.chat.id, status_msg_id)
             except: pass
             
             offset += BATCH_SIZE

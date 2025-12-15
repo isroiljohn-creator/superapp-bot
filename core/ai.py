@@ -11,9 +11,16 @@ model = None
 if GEMINI_API_KEY:
     try:
         genai.configure(api_key=GEMINI_API_KEY)
-        # Using 2.5 Flash as requested by user
-        model = genai.GenerativeModel('gemini-2.5-flash')
-        print("DEBUG: Gemini AI initialized successfully.")
+        # Configurable model with fallback
+        model_name = os.getenv("GEMINI_MODEL", "gemini-2.0-flash-exp")
+        try:
+            model = genai.GenerativeModel(model_name)
+        except:
+             # Fallback if specific model fails (e.g. deprecation)
+            print(f"Warning: Model {model_name} failed, falling back to gemini-1.5-flash")
+            model = genai.GenerativeModel("gemini-1.5-flash")
+            
+        print(f"DEBUG: Gemini AI initialized successfully using {model_name}.")
     except Exception as e:
         print(f"Error initializing Gemini: {e}")
 else:

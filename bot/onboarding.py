@@ -190,15 +190,23 @@ def process_name(message, bot):
 
 def process_age(message, bot):
     user_id = message.from_user.id
+    print(f"DEBUG: process_age called for {user_id}, state: {manager.get_state(user_id)}")
     
     if manager.get_state(user_id) != STATE_AGE:
+        try:
+             # Clean up old message if button click
+             bot.delete_message(message.chat.id, message.message_id) 
+        except: pass
         return
-    
-    if not message.text or message.content_type != 'text':
-        bot.send_message(user_id, "⚠️ Iltimos, yoshingizni faqat raqam bilan yozing (masalan: 25).")
+
+    # Check content type FIRST
+    if message.content_type != 'text' or not message.text:
+        bot.send_message(user_id, "Iltimos, yoshingizni raqamda kiriting (matn):")
         return
         
     if not message.text.isdigit():
+        bot.send_message(user_id, "⚠️ Iltimos, yoshingizni faqat raqam bilan yozing (masalan: 25).")
+        return
         bot.send_message(user_id, "Iltimos, yoshingizni raqamda kiriting:")
         return
     
@@ -252,7 +260,11 @@ def process_height(message, bot):
     if manager.get_state(user_id) != STATE_HEIGHT:
         return
     
-    if not message.text or not message.text.isdigit():
+    if message.content_type != 'text' or not message.text:
+        bot.send_message(user_id, "Iltimos, bo'yingizni raqamda kiriting (sm):")
+        return
+
+    if not message.text.isdigit():
         bot.send_message(user_id, "Iltimos, bo'yingizni raqamda kiriting (sm):")
         return
     
@@ -275,8 +287,9 @@ def process_weight(message, bot):
         return
     
     try:
-        if not message.text:
+        if message.content_type != 'text' or not message.text:
             raise ValueError
+
         weight = float(message.text)
         if weight < 20 or weight > 300:
             raise ValueError

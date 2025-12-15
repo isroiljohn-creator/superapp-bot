@@ -28,6 +28,16 @@ AsyncSessionLocal = sessionmaker(
 sync_engine = create_engine(SYNC_DB_URL, echo=False, pool_pre_ping=True)
 SyncSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=sync_engine)
 
+# Enable WAL Mode for SQLite Sync Engine
+from sqlalchemy import event
+if "sqlite" in SYNC_DB_URL:
+    @event.listens_for(sync_engine, "connect")
+    def set_sqlite_pragma(dbapi_connection, connection_record):
+        cursor = dbapi_connection.cursor()
+        cursor.execute("PRAGMA journal_mode=WAL")
+        cursor.execute("PRAGMA synchronous=NORMAL")
+        cursor.close()
+
 Base = declarative_base()
 
 # Async Dependency
