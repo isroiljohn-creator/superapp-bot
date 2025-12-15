@@ -728,6 +728,73 @@ def register_all_handlers(bot):
     @bot.callback_query_handler(func=lambda call: call.data == "menu_regenerate")
     def callback_menu_regenerate(call):
         try:
+            # Logic for regeneration...
+            pass 
+        except:
+            pass
+
+    # =========================================================
+    # REWARDS & COIN SHOP HANDLERS
+    # =========================================================
+
+    @bot.callback_query_handler(func=lambda call: call.data in ["redeem_prem_7", "redeem_prem_30"])
+    def callback_redeem_premium(call):
+        try:
+            user_id = call.from_user.id
+            user = db.get_user(user_id)
+            if not user:
+                return
+
+            points = user.get('yasha_points', 0)
+            
+            cost = 0
+            days = 0
+            
+            if call.data == "redeem_prem_7":
+                cost = 100
+                days = 7
+            elif call.data == "redeem_prem_30":
+                cost = 500
+                days = 30
+                
+            if points < cost:
+                bot.answer_callback_query(call.id, f"❌ Ballar yetarli emas ({points}/{cost})", show_alert=True)
+                return
+            
+            # Deduct points
+            db.update_user_points(user_id, -cost)
+            
+            # Grant premium
+            db.set_premium(user_id, days)
+            
+            bot.delete_message(call.message.chat.id, call.message.message_id)
+            bot.send_message(
+                call.message.chat.id, 
+                f"🎉 **Tabriklaymiz!**\n\nSiz {cost} ball evaziga {days} kunlik Premium obuna oldingiz!\n\nHozir barcha imkoniyatlardan foydalanishingiz mumkin. ✅",
+                parse_mode="Markdown"
+            )
+            
+        except Exception as e:
+            print(f"Redeem Error: {e}")
+            bot.answer_callback_query(call.id, "Xatolik yuz berdi")
+
+    # =========================================================
+    # MEAL SWAP HANDLER (VIP)
+    # =========================================================
+    
+    @bot.callback_query_handler(func=lambda call: call.data == "menu_swap_vip")
+    def callback_menu_swap(call):
+        # Simply re-trigger generation for now, or show construction message
+        # Ideally: Show "Yangi taom" vs "Yangi retsept same meal"
+        # User goal: Just wants difference. Let's redirect to meal selection or regenerate.
+        
+        # Check VIP
+        if not db.is_premium(call.from_user.id): # VIP check ideally
+             bot.answer_callback_query(call.id, "💎 Bu funksiya faqat Premium/VIP uchun!", show_alert=True)
+             return
+
+        bot.answer_callback_query(call.id, "🔄 Taom almashtirilmoqda...")
+        workout.generate_ai_meal(call.message, bot, user_id=call.from_user.id) # Re-run generation logic which asks for prompt again or auto-generates
             bot.answer_callback_query(call.id, "✅ Jarayon boshlandi...")
             
             # Deactivate active link so generate_ai_meal sees clean state

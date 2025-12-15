@@ -135,9 +135,9 @@ def challenges_inline_keyboard():
 def profile_inline_keyboard():
     markup = InlineKeyboardMarkup(row_width=2)
     markup.add(
-        InlineKeyboardButton("✏️ Anketani yangilash", callback_data="profile_edit"),
-        InlineKeyboardButton("📊 Sog‘liq statistikasi", callback_data="profile_stats"),
-        InlineKeyboardButton("🎯 Maqsadni o‘zgartirish", callback_data="profile_change_goal")
+        InlineKeyboardButton("1. ✏️ Anketani yangilash", callback_data="profile_edit"),
+        InlineKeyboardButton("2. 📊 Sog‘liq statistikasi", callback_data="profile_stats"),
+        InlineKeyboardButton("3. 🎯 Maqsadni o‘zgartirish", callback_data="profile_change_goal")
     )
     return markup
 
@@ -171,7 +171,7 @@ def ai_coach_inline_keyboard():
     markup = InlineKeyboardMarkup(row_width=2)
     markup.add(
         InlineKeyboardButton("🏋️ Mashq rejasi", callback_data="ai_sub_workout"),
-        InlineKeyboardButton("🥗 Ovqatlanish menyusi", callback_data="ai_sub_meal")
+        InlineKeyboardButton("🥗 Ovqat menyusi", callback_data="ai_sub_meal")
     )
     markup.add(
         InlineKeyboardButton("🔥 AI retsept", callback_data="ai_sub_recipe"),
