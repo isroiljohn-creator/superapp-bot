@@ -394,6 +394,10 @@ def process_allergy_details(message, bot):
 
     allergy_details = message.text.strip()
     
+    if len(allergy_details) > 200:
+        bot.send_message(user_id, "⚠️ Iltimos, qisqaroq yozing (maksimal 200 belgi).")
+        return
+    
     bot.send_message(user_id, "⏳ Ma'lumotlar saqlanmoqda...")
     
     manager.update_data(user_id, 'allergies', allergy_details)

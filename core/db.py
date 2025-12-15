@@ -1,6 +1,6 @@
 from backend.database import get_sync_db, init_db_sync
 from backend.models import User, DailyLog, Plan, Transaction, Feedback, Order, ActivityLog, CalorieLog, WorkoutCache, MenuCache, AdminLog, MenuTemplate, UserMenuLink, WorkoutTemplate, UserWorkoutLink
-from sqlalchemy import func, desc, and_, or_
+from sqlalchemy import func, desc, and_, or_, case
 from datetime import datetime, timedelta
 import json
 
@@ -10,101 +10,9 @@ class Database:
 
     def init_db(self):
         init_db_sync()
-        self.check_schema()
+        # self.check_schema() # Deprecated: Use Alembic
 
-    def check_schema(self):
-        """Auto-migration to add missing columns"""
-        from sqlalchemy import inspect, text
-        from backend.database import sync_engine
-        
-        try:
-            inspector = inspect(sync_engine)
-            columns = [c['name'] for c in inspector.get_columns('users')]
-            
-            with sync_engine.connect() as conn:
-                # 1. Onboarding State
-                if 'onboarding_state' not in columns:
-                    try:
-                        conn.execute(text("ALTER TABLE users ADD COLUMN onboarding_state INTEGER DEFAULT 0"))
-                        conn.commit()
-                        print("Migrated: onboarding_state")
-                    except Exception as e:
-                        print(f"Migration error (onboarding_state): {e}")
-
-                # 2. AI Limits
-                if 'ai_menu_count' not in columns:
-                    try:
-                        conn.execute(text("ALTER TABLE users ADD COLUMN ai_menu_count INTEGER DEFAULT 0"))
-                        conn.commit()
-                    except Exception as e: print(e)
-                if 'ai_workout_count' not in columns:
-                    try:
-                        conn.execute(text("ALTER TABLE users ADD COLUMN ai_workout_count INTEGER DEFAULT 0"))
-                        conn.commit()
-                    except Exception as e: print(e)
-                if 'ai_last_reset_month' not in columns:
-                    try:
-                        conn.execute(text("ALTER TABLE users ADD COLUMN ai_last_reset_month VARCHAR DEFAULT NULL"))
-                        conn.commit()
-                    except Exception as e: print(e)
-
-                # 3. Tier System
-                if 'plan_type' not in columns:
-                    try:
-                        conn.execute(text("ALTER TABLE users ADD COLUMN plan_type VARCHAR DEFAULT 'free'"))
-                        conn.commit()
-                        print("Migrated: plan_type")
-                    except Exception as e:
-                        print(f"Migration error (plan_type): {e}")
-                
-                if 'daily_stats' not in columns:
-                    try:
-                        conn.execute(text("ALTER TABLE users ADD COLUMN daily_stats TEXT DEFAULT '{}'"))
-                        conn.commit()
-                        print("Migrated: daily_stats")
-                    except Exception as e:
-                        print(f"Migration error (daily_stats): {e}")
-                    except Exception as e:
-                        print(f"Migration error (daily_stats): {e}")
-
-                # UTM Tracking
-                if 'utm_raw' not in columns:
-                    try:
-                        conn.execute(text("ALTER TABLE users ADD COLUMN utm_raw VARCHAR DEFAULT NULL"))
-                        conn.commit()
-                    except Exception as e: print(e)
-                if 'utm_source' not in columns:
-                    try:
-                        conn.execute(text("ALTER TABLE users ADD COLUMN utm_source VARCHAR DEFAULT NULL"))
-                        conn.commit()
-                    except Exception as e: print(e)
-                if 'utm_campaign' not in columns:
-                    try:
-                        conn.execute(text("ALTER TABLE users ADD COLUMN utm_campaign VARCHAR DEFAULT NULL"))
-                        conn.commit()
-                    except Exception as e: print(e)
-
-                # Fix: Check columns properly (inspector returns list of dicts)
-                existing_columns_logs = [c['name'] for c in inspector.get_columns('daily_logs')]
-                if 'steps_reward_claimed' not in existing_columns_logs:
-                    try:
-                        conn.execute(text("ALTER TABLE daily_logs ADD COLUMN steps_reward_claimed BOOLEAN DEFAULT FALSE"))
-                        conn.commit()
-                        print("Migrated: steps_reward_claimed")
-                    except Exception as e:
-                        # Ignore if exists (race condition)
-                        if "already exists" not in str(e):
-                             print(f"Migration error (steps_reward_claimed): {e}")
-                
-                # 4. Migrate Legacy Premium to VIP
-                try:
-                    conn.execute(text("UPDATE users SET plan_type='vip' WHERE is_premium=1 AND plan_type='free'"))
-                    conn.commit()
-                except Exception:
-                    pass
-                    
-        except Exception as e:
-            print(f"Schema Check Error: {e}")
+    # check_schema removed in favor of Alembic
 
     def check_tiered_limit(self, user_id, feature_type):
         """
@@ -179,23 +87,30 @@ class Database:
                 return True, "OK", f"{usage}/{limit}"
 
             # 2. Calorie / Chat (Daily Limits)
+            # 2. Daily Limits (Calorie & Chat) - Atomic Column Based
             elif feature_type in ['calorie', 'chat']:
-                import json
                 today = datetime.now().strftime("%Y-%m-%d")
-                stats = json.loads(user.daily_stats or '{}')
                 
-                if stats.get('date') != today:
-                    stats = {'date': today, 'calorie': 0, 'chat': 0}
-                
-                # Limits
-                # Limits
+                # Default values
                 daily_limit = 0
                 if plan == 'vip': daily_limit = 9999
                 elif plan == 'premium': daily_limit = 3
                 elif plan == 'trial': daily_limit = 1
                 else: daily_limit = 0
                 
-                current_usage = stats.get(feature_type, 0)
+                current_usage = 0
+                last_use = None
+                
+                if feature_type == 'chat':
+                    current_usage = user.chat_daily_uses or 0
+                    last_use = user.chat_last_use_date
+                elif feature_type == 'calorie':
+                    current_usage = user.calorie_daily_uses or 0
+                    last_use = user.calorie_last_use_date
+                
+                # Reset if new day
+                if last_use != today:
+                    current_usage = 0
                 
                 if current_usage >= daily_limit:
                     if plan == 'free':
@@ -229,16 +144,26 @@ class Database:
                     synchronize_session=False
                 )
             
-            elif feature_type in ['calorie', 'chat']:
-                import json
+            elif feature_type == 'chat':
                 today = datetime.now().strftime("%Y-%m-%d")
-                stats = json.loads(user.daily_stats or '{}')
-                
-                if stats.get('date') != today:
-                    stats = {'date': today, 'calorie': 0, 'chat': 0}
-                    
-                stats[feature_type] = stats.get(feature_type, 0) + 1
-                user.daily_stats = json.dumps(stats)
+                # Atomic increment or reset
+                session.query(User).filter(User.id == pk).update({
+                    "chat_daily_uses": case(
+                        (User.chat_last_use_date == today, User.chat_daily_uses + 1),
+                        else_=1
+                    ),
+                    "chat_last_use_date": today
+                }, synchronize_session=False)
+
+            elif feature_type == 'calorie':
+                today = datetime.now().strftime("%Y-%m-%d")
+                session.query(User).filter(User.id == pk).update({
+                    "calorie_daily_uses": case(
+                        (User.calorie_last_use_date == today, User.calorie_daily_uses + 1),
+                        else_=1
+                    ),
+                    "calorie_last_use_date": today
+                }, synchronize_session=False)
             
             session.commit()
 
@@ -262,34 +187,26 @@ class Database:
             
     def gift_premium_to_all(self, days=7, plan_type="trial"):
         """
-        Gifts premium to ALL users.
+        Gifts premium to ALL users Atomically.
         - If already premium: extends by 'days'.
-        - If free: gives 'days' starting now.
+        - If free/expired: gives 'days' starting now and sets plan_type.
         """
-        count = 0
         with get_sync_db() as session:
-            users = session.query(User).all()
             now = datetime.now()
             
-            for user in users:
-                user.is_premium = True
-                
-                # Careful not to overwrite a paid plan with 'trial' identifier if user is already premium
-                # But here we just want to give access. Let's keep existing plan_type if strictly premium,
-                # or overwrite if it was None.
-                if not user.plan_type:
-                    user.plan_type = plan_type
-                
-                if user.premium_until and user.premium_until > now:
-                    user.premium_until = user.premium_until + timedelta(days=days)
-                else:
-                    user.premium_until = now + timedelta(days=days)
-                    user.plan_type = plan_type # Ensure they get marked as trial if they were expired
-                
-                count += 1
+            # Atomic Bulk Update
+            row_count = session.query(User).update({
+                "premium_until": func.greatest(func.coalesce(User.premium_until, now), now) + timedelta(days=days),
+                "is_premium": True,
+                "plan_type": case(
+                    # If currently valid premium and plan is set, keep it. Else set to new plan.
+                    (and_(User.premium_until > now, User.plan_type != None), User.plan_type),
+                    else_=plan_type
+                )
+            }, synchronize_session=False)
             
             session.commit()
-        return count
+            return row_count
 
     # Legacy Wrapper to support existing calls, but warning: deprecated
     def check_ai_gen_limit(self, user_id, type_key='menu'):
@@ -358,7 +275,7 @@ class Database:
                 conn.commit()
             print("DEBUG: Schema reset via CASCADE")
         except Exception as e:
-            print(f"DEBUG: CASCADE drop failed (likely SQLite), using drop_all: {e}")
+            print(f"DEBUG: CASCADE drop failed: {e}")
             Base.metadata.drop_all(bind=sync_engine)
             
         Base.metadata.create_all(bind=sync_engine)
@@ -529,19 +446,23 @@ class Database:
 
     def set_premium(self, user_id, days):
         with get_sync_db() as session:
-            user = session.query(User).filter(User.telegram_id == user_id).first()
-            if not user: return
-            
+            # Atomic update using SQL functions
+            # premium_until = GREATEST(premium_until, now()) + days
             now = datetime.now()
-            current_until = user.premium_until
             
-            if current_until and current_until > now:
-                new_until = current_until + timedelta(days=days)
-            else:
-                new_until = now + timedelta(days=days)
+            # Note: func.greatest is standard SQL. 
+            # We use coalesce to handle NULL (treat as now)
+            # But GREATEST(NULL, now) returns NULL in some SQL? user.premium_until might be Null.
+            # COALESCE(premium_until, now) 
             
-            user.premium_until = new_until
-            user.is_premium = True
+            # Logic: If existing future, add to it. If past or null, add to now.
+            # GREATEST(COALESCE(premium_until, now), now) + days
+            
+            session.query(User).filter(User.telegram_id == user_id).update({
+                "premium_until": func.greatest(func.coalesce(User.premium_until, now), now) + timedelta(days=days),
+                "is_premium": True
+            }, synchronize_session=False)
+            session.commit()
 
     def is_premium(self, user_id):
         with get_sync_db() as session:
@@ -671,6 +592,23 @@ class Database:
                     query = query.filter(or_(User.premium_until == None, User.premium_until <= now))
             
             return query.all()
+
+    def get_users_by_segment_batch(self, gender=None, goal=None, activity_level=None, is_premium=None, offset=0, limit=100):
+        with get_sync_db() as session:
+            query = session.query(User.telegram_id).filter(User.active == True)
+            
+            if gender: query = query.filter(User.gender == gender)
+            if goal: query = query.filter(User.goal.like(f"%{goal}%"))
+            if activity_level: query = query.filter(User.activity_level == activity_level)
+            
+            if is_premium is not None:
+                now = datetime.now()
+                if is_premium:
+                    query = query.filter(User.premium_until > now)
+                else:
+                    query = query.filter(or_(User.premium_until == None, User.premium_until <= now))
+            
+            return [u.telegram_id for u in query.offset(offset).limit(limit).all()]
 
     def get_top_users(self, limit=20):
         with get_sync_db() as session:
@@ -831,16 +769,20 @@ class Database:
                 user.trial_start = now.isoformat()
                 user.trial_used = 1
                 
-                # 4. Award Referral Points
+                # 4. Award Referral Points (Atomic Update)
                 if user.referrer_id:
-                    referrer = session.query(User).filter(User.id == user.referrer_id).first()
-                    if referrer:
-                        referrer.points = (referrer.points or 0) + 1
-                        referrer.yasha_points = (referrer.yasha_points or 0) + 1
+                    session.query(User).filter(User.id == user.referrer_id).update(
+                        {
+                            "points": func.coalesce(User.points, 0) + 1,
+                            "yasha_points": func.coalesce(User.yasha_points, 0) + 1
+                        },
+                        synchronize_session=False
+                    )
                         
                 return True
             except Exception as e:
                 print(f"DB Error in complete_onboarding: {e}")
+                session.rollback()
                 raise e
 
     def get_weekly_stats(self, user_id):

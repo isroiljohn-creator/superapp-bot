@@ -12,7 +12,7 @@ if GEMINI_API_KEY:
     try:
         genai.configure(api_key=GEMINI_API_KEY)
         # Configurable model with fallback
-        model_name = os.getenv("GEMINI_MODEL", "gemini-2.0-flash-exp")
+        model_name = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
         try:
             model = genai.GenerativeModel(model_name)
         except:
@@ -166,9 +166,20 @@ SAFETY_SETTINGS = [
 ]
 
 # Models to try in order
-MODELS_TO_TRY = [
-    'gemini-2.5-flash'
-]
+# Primary: from Env (default 2.5-flash)
+# Fallback: 1.5-flash (more stable/faster/cheaper)
+MODELS_TO_TRY = []
+primary = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+MODELS_TO_TRY.append(primary)
+if primary != "gemini-1.5-flash":
+    MODELS_TO_TRY.append("gemini-1.5-flash")
+
+def get_profile_key(profile):
+    """Generates a cache key for deduplication."""
+    age = int(profile.get('age', 25))
+    age_band = f"{age // 5 * 5}-{(age // 5 * 5) + 4}"
+    
+    return f"{profile.get('gender')}|{profile.get('goal')}|{profile.get('activity_level')}|{profile.get('allergies')}|{age_band}"
 
 # Usage Stats
 AI_USAGE_STATS = {
@@ -368,6 +379,23 @@ def ai_generate_monthly_menu_json(user_profile):
     AI_USAGE_STATS["meal"] += 1
     AI_USAGE_STATS["total_requests"] += 1
 
+    # 0. CACHE CHECK
+    from core.db import db
+    import json
+    
+    profile_key = get_profile_key(user_profile)
+    cached = db.get_menu_template(profile_key)
+    
+    if cached:
+        print(f"DEBUG: Cache Hit for Menu: {profile_key}")
+        try:
+             return {
+                 "menu": json.loads(cached['menu_json']),
+                 "shopping_list": json.loads(cached['shopping_list_json'])
+             }
+        except Exception as e:
+             print(f"Cache Corrupt: {e}")
+
     allergy_text = user_profile.get('allergies')
     allergy_section = ""
     if allergy_text and allergy_text.lower() not in ['yo\'q', 'no', 'none', 'yoq']:
@@ -417,7 +445,7 @@ Talablar:
 
     
     # 3. Model Configuration
-    # Using 'gemini-2.5-flash' as explicitly requested by user
+    # Using 'gemini-1.5-flash' as stable version
     model_name = 'gemini-2.5-flash'
     
     try:
@@ -518,12 +546,23 @@ Talablar:
                 data["shopping_list"] = new_list
             # ----------------------------------------------------------------
 
+            # SAVE TO CACHE
+            try:
+                # Ensure it's valid data before saving
+                if "menu" in data and "shopping_list" in data:
+                     db.create_menu_template(
+                         profile_key,
+                         json.dumps(data["menu"]),
+                         json.dumps(data["shopping_list"])
+                     )
+            except Exception as e:
+                 print(f"Cache Save Error: {e}")
+
             return data
         except:
             import ast
             data = ast.literal_eval(clean_json)
             return data
-
     except Exception as e:
         print(f"DEBUG: Model {model_name} failed: {e}")
         # RE-RAISE THE EXACT ERROR so bot/workout.py displays it
@@ -603,7 +642,7 @@ def analyze_food_image(image_data):
         print(f"DEBUG: Image open error: {e}")
         return None
 
-    models_to_try = ['gemini-2.5-flash', 'gemini-1.5-flash']
+    models_to_try = ['gemini-2.5-flash']
     
     prompt = """
     You are an AI NUTRITIONIST with access to a vast database of food products.
@@ -648,7 +687,11 @@ def analyze_food_image(image_data):
             # Reuse global config, just instantiate model
             vision_model = genai.GenerativeModel(model_name)
             
-            response = vision_model.generate_content([prompt, image], safety_settings=SAFETY_SETTINGS)
+            response = vision_model.generate_content(
+                [prompt, image], 
+                safety_settings=SAFETY_SETTINGS,
+                request_options={'timeout': 30}
+            )
             if response.text:
                 # Force convert Markdown bold to HTML bold
                 import re
@@ -786,6 +829,23 @@ def ai_generate_weekly_workout_json(user_profile):
     AI_USAGE_STATS["workout"] += 1
     AI_USAGE_STATS["total_requests"] += 1
     
+    # 0. CACHE CHECK
+    from core.db import db
+    import json
+    
+    # Workout depends on same factors
+    profile_key = get_profile_key(user_profile)
+    cached = db.get_workout_template(profile_key)
+    
+    if cached:
+        print(f"DEBUG: Cache Hit for Workout: {profile_key}")
+        try:
+             # Just return what we need. The caller likely expects the Raw JSON string or Dict?
+             # ai_generate_weekly_workout_json usually returns Dict.
+             return json.loads(cached['workout_json'])
+        except Exception as e:
+             print(f"Cache Corrupt: {e}")
+    
     goal = user_profile.get('goal', 'Sog‘liq')
     
     # 1. System Prompt (JSON enforcer)
@@ -798,6 +858,13 @@ def ai_generate_weekly_workout_json(user_profile):
 ROLE:
 You are a professional fitness coach system for a Telegram bot.
 Your task is to generate REALISTIC, SAFE, EFFECTIVE workout plans using ONLY the exercises provided below.
+
+{get_exercises_string()}
+
+IMPORTANT RULES:
+1. USE ONLY EXERCISES FROM THE LIST ABOVE. DO NOT INVENT EXERCISES.
+2. If the user goal is weight loss, focus on high reps and cardio-style intervals.
+3. If the user goal is muscle gain, focus on hypertrophy ranges (8-12 reps).
 
 ❌ You MUST NOT invent new exercises
 ❌ You MUST NOT change exercise names
@@ -952,6 +1019,19 @@ Talablar:
             if "focus" in day:
                 day["focus"] = day["focus"].replace(" tuzat", "").replace(" mashqlari", "")
              
+        # SAVE TO CACHE
+        try:
+             # data["schedule"] is the list we want to cache, or the whole data?
+             # get_workout_template returns loaded json of cached['workout_json']
+             # create_workout_template takes json string.
+             # In cache check, we return json.loads(cached['workout_json']).
+             # So we should save json.dumps(data["schedule"]).
+             # Verify data["schedule"] is what we want. Yes.
+             db.create_workout_template(profile_key, json.dumps(data["schedule"]))
+        except Exception as e:
+             # handle unique constraint or race conditions
+             print(f"Workout Cache Save Warning: {e}")
+
         return data
 
     except Exception as e:

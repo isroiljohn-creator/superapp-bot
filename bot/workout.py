@@ -3,6 +3,10 @@ from core.ai import ai_generate_workout, ai_generate_menu
 from bot.keyboards import plan_inline_keyboard
 from bot.premium import require_premium
 
+# Simple in-memory lock
+GENERATION_LOCKS = set()
+
+
 def handle_plan_menu(message, bot):
     bot.send_message(
         message.chat.id,
@@ -58,118 +62,129 @@ def generate_ai_workout(message, bot, user_id=None):
     if not allowed:
         bot.send_message(user_id, limit_msg, parse_mode="Markdown")
         return
-    
-    # 1. Check if user already has an active workout link
-    active_link = db.get_user_workout_link(user_id)
-    if active_link:
-        # Auto-open today's workout
-        show_daily_workout(bot, user_id, active_link)
+
+    # 0.5 Check Lock
+    if user_id in GENERATION_LOCKS:
+        bot.send_message(user_id, "⏳ Sabr qiling, reja tuzilmoqda...")
         return
-
-    # 2. Build Shared Profile Key (Deduplication)
-    # Group users by simple age bands to increase matches
-    age = user.get('age', 25)
-    age_band = "18-25"
-    if age > 45: age_band = "46+"
-    elif age > 35: age_band = "36-45"
-    elif age > 25: age_band = "26-35"
-    
-    # Key: workout_v2_Gender_Goal_Activity_AgeBand
-    profile_key = f"workout_v2_{user.get('gender')}_{user.get('goal')}_{user.get('activity_level')}_{age_band}".replace(" ", "_").lower()
-
-    # 3. Check for Existing Shared Template
-    existing_template = db.get_workout_template(profile_key)
-    
-    if existing_template:
-        bot.send_message(user_id, "💡 Sizga mos tayyor reja topildi! Yuklanmoqda...")
-        db.create_user_workout_link(user_id, existing_template['id'])
         
-        new_link = db.get_user_workout_link(user_id)
-        # We assume cached plans are already "valid" usage, or maybe we discount usage? 
-        # Requirement says "reuse", implies saving cost.
-        # But for logic simplicity, we still count it as a "generation request" fulfilled.
-        db.increment_ai_usage(user_id, 'workout') 
-        show_daily_workout(bot, user_id, new_link, override_day_idx=1)
-        return
-
-    # If no template, generate new
-    # If no template, generate new
-    msg = bot.send_message(user_id, "⏳ Siz uchun 7 kunlik mashg'ulotlar rejasini tuzyapman... Biroz kuting.")
-        
+    GENERATION_LOCKS.add(user_id)
     try:
-        # [SAFE LOGGING ADDITION]
-        try:
-            from core.ai_usage_logger import log_ai_usage
-            log_ai_usage(bot, user_id, "workout", 2500)
-        except: pass
-
-        # Retry Loop for Robustness
-        max_retries = 3
-        data = None
-        
-        for attempt in range(max_retries):
-            try:
-                bot.edit_message_text(f"🧘‍♀️ Siz uchun 7 kunlik mashg'ulotlar rejasini tuzyapman...", user_id, msg.message_id)
-                data = ai_generate_weekly_workout_json(user)
-                
-                if data and 'schedule' in data and isinstance(data['schedule'], list):
-                    item_count = len(data['schedule'])
-                    
-                    if item_count >= 5: # Accept at least 5 days
-                        break
-                    else:
-                        if attempt < max_retries - 1:
-                            time.sleep(2)
-                            continue
-                            
-            except Exception as e:
-                print(f"workout_gen_attempt_error: {e}")
-                if attempt == max_retries - 1:
-                    bot.edit_message_text(f"❌ Xatolik: {str(e)[:100]}", user_id, msg.message_id)
-                    return
-        
-        if not data or 'schedule' not in data:
-            bot.edit_message_text(f"❌ AI javob bermadi.", user_id, msg.message_id)
+        # 1. Check if user already has an active workout link
+        active_link = db.get_user_workout_link(user_id)
+        if active_link:
+            # Auto-open today's workout
+            show_daily_workout(bot, user_id, active_link)
             return
 
-        final_count = len(data['schedule'])
-        if final_count < 5:
-             bot.edit_message_text(f"❌ Juda qisqa natija ({final_count} kun). Qayta urining.", user_id, msg.message_id)
-             return
+        # 2. Build Shared Profile Key (Deduplication)
+        # Group users by simple age bands to increase matches
+        age = user.get('age', 25)
+        age_band = "18-25"
+        if age > 45: age_band = "46+"
+        elif age > 35: age_band = "36-45"
+        elif age > 25: age_band = "26-35"
+        
+        # Key: workout_v2_Gender_Goal_Activity_AgeBand
+        profile_key = f"workout_v2_{user.get('gender')}_{user.get('goal')}_{user.get('activity_level')}_{age_band}".replace(" ", "_").lower()
 
-        bot.edit_message_text("💾 Bazaga saqlanmoqda...", user_id, msg.message_id)
+        # 3. Check for Existing Shared Template
+        existing_template = db.get_workout_template(profile_key)
         
-        try:
-            template_id = db.create_workout_template(
-                profile_key,
-                json.dumps(data['schedule'])
-            )
-        except Exception as e:
-            # Fallback update
-            template_id = db.update_workout_template_content(
-                profile_key,
-                json.dumps(data['schedule'])
-            )
-            if not template_id:
-                exist = db.get_workout_template(profile_key)
-                if exist: template_id = exist['id']
-                else: raise e
-        
-        db.create_user_workout_link(user_id, template_id)
-        
-        bot.delete_message(user_id, msg.message_id)
-        bot.send_message(user_id, "✅ Haftalik mashqlar rejasi tayyor! Marhamat:")
-        
-        new_link = db.get_user_workout_link(user_id)
-        db.increment_ai_usage(user_id, 'workout')
-        show_daily_workout(bot, user_id, new_link, override_day_idx=1)
+        if existing_template:
+            bot.send_message(user_id, "💡 Sizga mos tayyor reja topildi! Yuklanmoqda...")
+            db.create_user_workout_link(user_id, existing_template['id'])
             
-    except Exception as e:
-        print(f"Main Workout Gen Error: {e}")
+            new_link = db.get_user_workout_link(user_id)
+            # We assume cached plans are already "valid" usage, or maybe we discount usage? 
+            # Requirement says "reuse", implies saving cost.
+            # But for logic simplicity, we still count it as a "generation request" fulfilled.
+            db.increment_ai_usage(user_id, 'workout') 
+            show_daily_workout(bot, user_id, new_link, override_day_idx=1)
+            return
+
+        # If no template, generate new
+        msg = bot.send_message(user_id, "⏳ Siz uchun 7 kunlik mashg'ulotlar rejasini tuzyapman... Biroz kuting.")
+            
         try:
-            bot.edit_message_text(f"❌ Katta Xatolik: {str(e)[:100]}", user_id, msg.message_id)
-        except:
-             pass
+            # [SAFE LOGGING ADDITION]
+            try:
+                from core.ai_usage_logger import log_ai_usage
+                log_ai_usage(bot, user_id, "workout", 2500)
+            except: pass
+
+            # Retry Loop for Robustness
+            max_retries = 3
+            data = None
+            
+            for attempt in range(max_retries):
+                try:
+                    bot.edit_message_text(f"🧘‍♀️ Siz uchun 7 kunlik mashg'ulotlar rejasini tuzyapman...", user_id, msg.message_id)
+                    data = ai_generate_weekly_workout_json(user)
+                    
+                    if data and 'schedule' in data and isinstance(data['schedule'], list):
+                        item_count = len(data['schedule'])
+                        
+                        if item_count >= 5: # Accept at least 5 days
+                            break
+                        else:
+                            if attempt < max_retries - 1:
+                                time.sleep(2)
+                                continue
+                                
+                except Exception as e:
+                    print(f"workout_gen_attempt_error: {e}")
+                    if attempt == max_retries - 1:
+                        bot.edit_message_text(f"❌ Xatolik: {str(e)[:100]}", user_id, msg.message_id)
+                        return
+            
+            if not data or 'schedule' not in data:
+                bot.edit_message_text(f"❌ AI javob bermadi.", user_id, msg.message_id)
+                return
+
+            final_count = len(data['schedule'])
+            if final_count < 5:
+                 bot.edit_message_text(f"❌ Juda qisqa natija ({final_count} kun). Qayta urining.", user_id, msg.message_id)
+                 return
+
+            bot.edit_message_text("💾 Bazaga saqlanmoqda...", user_id, msg.message_id)
+            
+            try:
+                template_id = db.create_workout_template(
+                    profile_key,
+                    json.dumps(data['schedule'])
+                )
+            except Exception as e:
+                # Fallback update
+                template_id = db.update_workout_template_content(
+                    profile_key,
+                    json.dumps(data['schedule'])
+                )
+                if not template_id:
+                    exist = db.get_workout_template(profile_key)
+                    if exist: template_id = exist['id']
+                    else: raise e
+            
+            db.create_user_workout_link(user_id, template_id)
+            
+            bot.delete_message(user_id, msg.message_id)
+            bot.send_message(user_id, "✅ Haftalik mashqlar rejasi tayyor! Marhamat:")
+            
+            new_link = db.get_user_workout_link(user_id)
+            db.increment_ai_usage(user_id, 'workout')
+            show_daily_workout(bot, user_id, new_link, override_day_idx=1)
+                
+        except Exception as e:
+            print(f"Main Workout Gen Error: {e}")
+            try:
+                bot.edit_message_text(f"❌ Katta Xatolik: {str(e)[:100]}", user_id, msg.message_id)
+            except:
+                 pass
+    except Exception as e:
+         print(f"Outer Gen Error: {e}")
+    finally:
+        if user_id in GENERATION_LOCKS:
+            GENERATION_LOCKS.remove(user_id)
 
 def show_daily_workout(bot, user_id, link_data, override_day_idx=None):
     """Render the workout for specific day index."""
@@ -291,116 +306,127 @@ def generate_ai_meal(message, bot, user_id=None):
     if not allowed:
         bot.send_message(user_id, limit_msg, parse_mode="Markdown")
         return
-    
-    # 1. Check if user already has an active menu link
-    # RESTORED: Check for regular users
-    active_link = db.get_user_menu_link(user_id)
-    if active_link:
-        # Auto-open today's menu
-        show_daily_menu(bot, user_id, active_link)
+
+    # 0.5 Check Lock
+    if user_id in GENERATION_LOCKS:
+        bot.send_message(user_id, "⏳ Sabr qiling, reja tuzilmoqda...")
         return
 
-    # 2. Build Shared Profile Key (Deduplication)
-    age = user.get('age', 25)
-    age_band = "18-25"
-    if age > 45: age_band = "46+"
-    elif age > 35: age_band = "36-45"
-    elif age > 25: age_band = "26-35"
-        
-    profile_key = f"menu_v2_{user.get('gender')}_{user.get('goal')}_{user.get('activity_level')}_{user.get('allergies')}_{age_band}".replace(" ", "_").lower()
-    
-    # 3. Check for Existing Shared Template
-    existing_template = db.get_menu_template(profile_key)
-    
-    if existing_template:
-        bot.send_message(user_id, "💡 Sizga mos tayyor menyu topildi! Yuklanmoqda...")
-        db.create_user_menu_link(user_id, existing_template['id'])
-        
-        new_link = db.get_user_menu_link(user_id)
-        db.increment_ai_usage(user_id, 'menu')
-        show_daily_menu(bot, user_id, new_link, override_day_idx=1)
-        return
-
-    # If no template, generate new
-    # If no template, generate new
-    msg = bot.send_message(user_id, "🚀 **Jarayon boshlandi...**\n\n🥗 Siz uchun 7 kunlik ovqatlanish menyusini tuzyapman...", parse_mode="Markdown")
-        
-    # [SAFE LOGGING ADDITION]
+    GENERATION_LOCKS.add(user_id)
     try:
-        from core.ai_usage_logger import log_ai_usage
-        log_ai_usage(bot, user_id, "menu", 2000)
-    except: pass
-        
-    try:
-        # Retry Loop for Robustness (Force 30 days)
-        max_retries = 3
-        data = None
-        
-        for attempt in range(max_retries):
-            try:
-                bot.edit_message_text(f"🥗 Siz uchun 7 kunlik ovqatlanish menyusini tuzyapman...", user_id, msg.message_id)
-                data = ai_generate_monthly_menu_json(user)
-                
-                if data and 'menu' in data and isinstance(data['menu'], list):
-                    item_count = len(data['menu'])
-                    
-                    if item_count >= 7: 
-                        break
-                    else:
-                        if attempt < max_retries - 1:
-                            time.sleep(2)
-                            continue
-                            
-            except Exception as e:
-                print(f"gen_attempt_error: {e}")
-                if attempt == max_retries - 1:
-                    bot.edit_message_text(f"❌ Xatolik: {str(e)[:100]}", user_id, msg.message_id)
-                    return
-        
-        if not data or 'menu' not in data:
-            bot.edit_message_text("❌ AI javob bermadi.", user_id, msg.message_id)
+    
+        # 1. Check if user already has an active menu link
+        # RESTORED: Check for regular users
+        active_link = db.get_user_menu_link(user_id)
+        if active_link:
+            # Auto-open today's menu
+            show_daily_menu(bot, user_id, active_link)
             return
 
-        final_count = len(data['menu'])
-        if final_count < 5:
-             bot.edit_message_text(f"❌ Juda qisqa natija ({final_count} kun). Qayta urining.", user_id, msg.message_id)
-             return
-
-        bot.edit_message_text("💾 Bazaga saqlanmoqda...", user_id, msg.message_id)
-        
-        try:
-            template_id = db.create_menu_template(
-                profile_key,
-                json.dumps(data['menu']),
-                json.dumps(data['shopping_list'])
-            )
-        except Exception as e:
-            # Fallback update
-            template_id = db.update_menu_template_content(
-                profile_key,
-                json.dumps(data['menu']),
-                json.dumps(data['shopping_list'])
-            )
-            if not template_id:
-                exist = db.get_menu_template(profile_key)
-                if exist: template_id = exist['id']
-                else: raise e
-        
-        db.create_user_menu_link(user_id, template_id)
-        
-        bot.delete_message(user_id, msg.message_id)
-        bot.send_message(user_id, "✅ Haftalik reja tayyor! Marhamat:")
-        
-        new_link = db.get_user_menu_link(user_id)
-        db.increment_ai_usage(user_id, 'menu')
-        show_daily_menu(bot, user_id, new_link, override_day_idx=1)
+        # 2. Build Shared Profile Key (Deduplication)
+        age = user.get('age', 25)
+        age_band = "18-25"
+        if age > 45: age_band = "46+"
+        elif age > 35: age_band = "36-45"
+        elif age > 25: age_band = "26-35"
             
-    except Exception as e:
-        print(f"Main Gen Error: {e}")
+        profile_key = f"menu_v2_{user.get('gender')}_{user.get('goal')}_{user.get('activity_level')}_{user.get('allergies')}_{age_band}".replace(" ", "_").lower()
+        
+        # 3. Check for Existing Shared Template
+        existing_template = db.get_menu_template(profile_key)
+        
+        if existing_template:
+            bot.send_message(user_id, "💡 Sizga mos tayyor menyu topildi! Yuklanmoqda...")
+            db.create_user_menu_link(user_id, existing_template['id'])
+            
+            new_link = db.get_user_menu_link(user_id)
+            db.increment_ai_usage(user_id, 'menu')
+            show_daily_menu(bot, user_id, new_link, override_day_idx=1)
+            return
+
+        # If no template, generate new
+        # If no template, generate new
+        msg = bot.send_message(user_id, "🚀 **Jarayon boshlandi...**\n\n🥗 Siz uchun 7 kunlik ovqatlanish menyusini tuzyapman...", parse_mode="Markdown")
+            
+        # [SAFE LOGGING ADDITION]
         try:
-            bot.edit_message_text(f"❌ Katta Xatolik: {str(e)[:100]}", user_id, msg.message_id)
-        except:
-             pass
+            from core.ai_usage_logger import log_ai_usage
+            log_ai_usage(bot, user_id, "menu", 2000)
+        except: pass
+            
+        try:
+            # Retry Loop for Robustness (Force 30 days)
+            max_retries = 3
+            data = None
+            
+            for attempt in range(max_retries):
+                try:
+                    bot.edit_message_text(f"🥗 Siz uchun 7 kunlik ovqatlanish menyusini tuzyapman...", user_id, msg.message_id)
+                    data = ai_generate_monthly_menu_json(user)
+                    
+                    if data and 'menu' in data and isinstance(data['menu'], list):
+                        item_count = len(data['menu'])
+                        
+                        if item_count >= 7: 
+                            break
+                        else:
+                            if attempt < max_retries - 1:
+                                time.sleep(2)
+                                continue
+                                
+                except Exception as e:
+                    print(f"gen_attempt_error: {e}")
+                    if attempt == max_retries - 1:
+                        bot.edit_message_text(f"❌ Xatolik: {str(e)[:100]}", user_id, msg.message_id)
+                        return
+            
+            if not data or 'menu' not in data:
+                bot.edit_message_text("❌ AI javob bermadi.", user_id, msg.message_id)
+                return
+
+            final_count = len(data['menu'])
+            if final_count < 5:
+                 bot.edit_message_text(f"❌ Juda qisqa natija ({final_count} kun). Qayta urining.", user_id, msg.message_id)
+                 return
+
+            bot.edit_message_text("💾 Bazaga saqlanmoqda...", user_id, msg.message_id)
+            
+            try:
+                template_id = db.create_menu_template(
+                    profile_key,
+                    json.dumps(data['menu']),
+                    json.dumps(data['shopping_list'])
+                )
+            except Exception as e:
+                # Fallback update
+                template_id = db.update_menu_template_content(
+                    profile_key,
+                    json.dumps(data['menu']),
+                    json.dumps(data['shopping_list'])
+                )
+                if not template_id:
+                    exist = db.get_menu_template(profile_key)
+                    if exist: template_id = exist['id']
+                    else: raise e
+            
+            db.create_user_menu_link(user_id, template_id)
+            
+            bot.delete_message(user_id, msg.message_id)
+            bot.send_message(user_id, "✅ Haftalik reja tayyor! Marhamat:")
+            
+            new_link = db.get_user_menu_link(user_id)
+            db.increment_ai_usage(user_id, 'menu')
+            show_daily_menu(bot, user_id, new_link, override_day_idx=1)
+                
+        except Exception as e:
+            print(f"Main Gen Error: {e}")
+            try:
+                bot.edit_message_text(f"❌ Katta Xatolik: {str(e)[:100]}", user_id, msg.message_id)
+            except:
+                 pass
+    finally:
+        if user_id in GENERATION_LOCKS:
+            GENERATION_LOCKS.remove(user_id)
 
 def get_weekday_name(date_obj):
     # 0=Mon, ... 3=Thu ...
