@@ -35,6 +35,10 @@ def main():
         print(f"📂 Alembic Versions: {os.listdir('alembic/versions')}")
         
         # Run "alembic upgrade head" - Revert to head to see multiple heads error again with file list
+        if '003_add_stages_reward_claimed.py' in os.listdir('alembic/versions'):
+             with open('alembic/versions/003_add_stages_reward_claimed.py', 'r') as f:
+                 print(f"📄 Content of 003:\n{f.read()}")
+
         # Or try to run "alembic heads" first
         subprocess.run(["alembic", "heads"], check=False)
         
@@ -43,10 +47,11 @@ def main():
             print("✅ Migratsiyalar muvaffaqiyatli yakunlandi.")
         else:
             print(f"❌ Migratsiya Xatoligi:\n{result.stderr}")
-            # We don't exit here because sometimes tables exist but alembic history is missing (if partial migration issue).
-            # But in production usually we want to know.
+            exit(1) # CRITICAL: Stop the bot if DB is broken to avoid 409 conflicts from zombie containers
+            
     except Exception as e:
         print(f"❌ Migratsiya jarayonida xatolik: {e}")
+        exit(1)
 
     # Initialize Database (Sync, legacy check if needed)
     db.init_db()
