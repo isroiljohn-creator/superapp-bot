@@ -28,7 +28,7 @@ def register_handlers(bot):
             types.KeyboardButton("💎 Premium foydalanuvchilar"),
             types.KeyboardButton("🏷 Referallar"),
             types.KeyboardButton("💳 Obunalar"),
-            types.KeyboardButton("✍️ Matnlarni tahrirlash")
+            types.KeyboardButton("👨‍💻 Dasturchi")
         )
         bot.send_message(message.chat.id, "👨‍💼 **Admin Panel**", reply_markup=markup, parse_mode="Markdown")
         
@@ -756,6 +756,20 @@ def register_subscription_handlers(bot):
             bot.send_message(message.chat.id, "❌ Bekor qilindi.")
 
 def register_content_handlers(bot):
+    @bot.callback_query_handler(func=lambda call: call.data == "admin_content_btn")
+    def admin_content_callback(call):
+        if call.from_user.id not in ADMIN_IDS: return
+        
+        markup = types.InlineKeyboardMarkup(row_width=1)
+        markup.add(types.InlineKeyboardButton("🔍 Qidirish", callback_data="content_search"))
+        
+        all_content = content_manager.get_all()
+        for key in list(all_content.keys())[:5]:
+            markup.add(types.InlineKeyboardButton(f"📝 {key}", callback_data=f"content_edit_{key}"))
+            
+        bot.send_message(call.message.chat.id, "Matnlarni boshqarish. Qidiruvdan foydalaning yoki ro'yxatdan tanlang:", reply_markup=markup)
+        bot.answer_callback_query(call.id)
+
     @bot.message_handler(func=lambda message: "Matnlarni tahrirlash" in message.text and message.from_user.id in ADMIN_IDS)
     def admin_content_start(message):
         # List categories or show keys
