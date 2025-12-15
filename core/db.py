@@ -237,6 +237,22 @@ class Database:
             session.commit()
             return True
 
+    def update_user_points(self, user_id, delta):
+        """Update YASHA points for a user (delta can be negative)"""
+        try:
+            with get_sync_db() as session:
+                from backend.models import User
+                user = session.query(User).filter(User.telegram_id == user_id).first()
+                if user:
+                    current = user.yasha_points or 0
+                    user.yasha_points = max(0, current + delta) # Prevent negative
+                    session.commit()
+                    return True
+                return False
+        except Exception as e:
+            print(f"update_user_points Error: {e}")
+            return False
+
     def clear_all_workout_caches(self):
         """Deletes all entries from WorkoutCache, WorkoutTemplate, and UserWorkoutLink."""
         with get_sync_db() as session:
