@@ -307,7 +307,8 @@ def ai_generate_menu(user_profile):
         "muscle_gain": "Vazn olish",
         "health": "Sog'lomlikni saqlash"
     }
-    goal_uz = goal_map.get(user_profile.get('goal'), user_profile.get('goal', 'Sog\'lomlik'))
+    default_goal = "Sog'lomlik"
+    goal_uz = goal_map.get(user_profile.get('goal'), user_profile.get('goal', default_goal))
     
     prompt = f"""
 Siz professional dietolog va Telegram uchun kunlik ovqat menyularini tuzasiz.
