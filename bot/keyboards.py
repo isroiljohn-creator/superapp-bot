@@ -133,11 +133,11 @@ def challenges_inline_keyboard():
     return markup
 
 def profile_inline_keyboard():
-    markup = InlineKeyboardMarkup(row_width=2)
+    markup = InlineKeyboardMarkup(row_width=1)
     markup.add(
-        InlineKeyboardButton("1. ✏️ Anketani yangilash", callback_data="profile_edit"),
-        InlineKeyboardButton("2. 📊 Sog‘liq statistikasi", callback_data="profile_stats"),
-        InlineKeyboardButton("3. 🎯 Maqsadni o‘zgartirish", callback_data="profile_change_goal")
+        InlineKeyboardButton("✏️ Anketani yangilash", callback_data="profile_edit"),
+        InlineKeyboardButton("📊 Sog‘liq statistikasi", callback_data="profile_stats"),
+        InlineKeyboardButton("🎯 Maqsadni o‘zgartirish", callback_data="profile_change_goal")
     )
     return markup
 
