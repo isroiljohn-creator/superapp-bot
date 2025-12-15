@@ -331,19 +331,17 @@ Foydalanuvchi profili:
 🍽 [X]-kun uchun sog'lom menyu — [XXXX] kcal
 
 🥣 Nonushta
-• [Ingredient 1 + miqdori]
-• [Ingredient 2 + miqdori]
-- Tayyorlash: [Qisqa ketma-ketlik 1-2 gap]
+• [Taom nomi va asosiy masalliqlar]
+- Tayyorlash: [Qisqa va tushunarli retsept - masalan: "Tuxumni qaynatib, non bilan qo'shib yeng"]
 
 🍛 Tushlik
-• [Ingredient 1 + miqdori]
-• [Ingredient 2 + miqdori]  
-- Tayyorlash: [Qisqa ketma-ketlik 1-2 gap]
+• [Taom nomi va asosiy masalliqlar]
+• [Qo'shimcha salat yoki ichimlik]
+- Tayyorlash: [Qisqa va tushunarli retsept - masalan: "Go'shtni qovurib, sabzavotlar bilan dimlang"]
 
 🥗 Kechki ovqat
-• [Ingredient 1 + miqdori]
-• [Ingredient 2 + miqdori]
-- Tayyorlash: [Qisqa ketma-ketlik 1-2 gap]
+• [Taom nomi va asosiy masalliqlar]
+- Tayyorlash: [Qisqa va tushunarli retsept]
 
 💬 [Qisqa motivatsion gap 1 gap]
 
