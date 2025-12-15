@@ -1670,20 +1670,26 @@ class Database:
                 """)
                 result = session.execute(query, {"mod": mod_days}).fetchall()
                 # Convert to dict list
-                return [{"telegram_id": r[0], "full_name": r[1], "created_at": r[2]} for r in result]
+            return [{"telegram_id": r[0], "full_name": r[1], "created_at": r[2]} for r in result]
         except Exception as e:
             print(f"Error getting report users: {e}")
             return []
     
-    def clear_all_workouts(self):
-        """Delete all AI-generated workouts"""
+    def clear_all_workout_caches(self):
+        """Delete all AI-generated workout plans"""
         try:
             with get_sync_db() as session:
-                from backend.models import UserWorkout
-                count = session.query(UserWorkout).count()
-                session.query(UserWorkout).delete()
-                session.commit() # Added commit for delete operation
-                return count
+                from backend.models import UserWorkoutLink, WorkoutTemplate
+                # Delete links first (FK)
+                links_count = session.query(UserWorkoutLink).count()
+                session.query(UserWorkoutLink).delete()
+                
+                # Delete templates
+                templates_count = session.query(WorkoutTemplate).count()
+                session.query(WorkoutTemplate).delete()
+                
+                session.commit()
+                return links_count + templates_count
         except Exception as e:
             print(f"ERROR: Failed to clear workouts: {e}")
             return 0
@@ -1692,11 +1698,17 @@ class Database:
         """Delete all AI-generated meals"""
         try:
             with get_sync_db() as session:
-                from backend.models import UserMeal
-                count = session.query(UserMeal).count()
-                session.query(UserMeal).delete()
-                session.commit() # Added commit for delete operation
-                return count
+                from backend.models import UserMenuLink, MenuTemplate
+                # Delete links first (FK)
+                links_count = session.query(UserMenuLink).count()
+                session.query(UserMenuLink).delete()
+                
+                # Delete templates
+                templates_count = session.query(MenuTemplate).count()
+                session.query(MenuTemplate).delete()
+                
+                session.commit() 
+                return links_count + templates_count
         except Exception as e:
             print(f"ERROR: Failed to clear meals: {e}")
             return 0
