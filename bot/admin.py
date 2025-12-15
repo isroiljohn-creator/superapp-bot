@@ -298,12 +298,30 @@ def register_handlers(bot):
     def admin_backup_callback(call):
         try:
             if call.from_user.id in ADMIN_IDS:
-                 bot.send_message(call.message.chat.id, "📦 Backup: Hozircha bu funksiya avtomatlashmagan. Database.dump ishlatilishi kerak.")
-                 bot.answer_callback_query(call.id, "Tez orada...")
+                 bot.answer_callback_query(call.id, "Backup boshlandi...")
+                 bot.send_message(call.message.chat.id, "📦 <b>Backup boshlanmoqda...</b>", parse_mode="HTML")
+                 
+                 # Import and run backup
+                 try:
+                     import sys
+                     import os # Added import os here
+                     sys.path.insert(0, '/app/scripts') if os.path.exists('/app/scripts') else sys.path.insert(0, 'scripts')
+                     from backup_db import create_backup
+                     
+                     success = create_backup()
+                     
+                     if success:
+                         bot.send_message(call.message.chat.id, "✅ <b>Backup muvaffaqiyatli!</b>\n\nDatabase backup yaratildi va saqlandi.", parse_mode="HTML")
+                     else:
+                         bot.send_message(call.message.chat.id, "❌ <b>Backup xatolik!</b>\n\nBackup yaratishda muammo bo'ldi. Loglarni tekshiring.", parse_mode="HTML")
+                 except Exception as e:
+                     bot.send_message(call.message.chat.id, f"❌ <b>Xatolik:</b>\n\n{str(e)[:200]}", parse_mode="HTML")
             else:
                  bot.answer_callback_query(call.id, "Huquq yo'q", show_alert=True)
         except Exception as e:
-            print(f"Callback Error: {e}")
+            print(f"Callback Error backup: {e}")
+            import traceback
+            traceback.print_exc()
             bot.answer_callback_query(call.id, "Xatolik")
              
     # Helper function for flags interface (defined early for scope)
