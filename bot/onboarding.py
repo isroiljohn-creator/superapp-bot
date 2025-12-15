@@ -454,8 +454,8 @@ def finish_onboarding(user_id, message, bot):
             "welcome_msg_v2",
             default=(
                 "✅ Ro‘yxatdan o‘tdingiz! YASHA ga xush kelibsiz.\n\n"
-                "🎁 Sizga 5 kunlik Premium sinov ochildi - hech qanday cheklovsiz barcha AI xizmatlardan foydalanishingiz mumkin.\n\n"
-                "Bu 5 kun ichida siz:\n"
+                "🎁 Sizga 7 kunlik Premium sinov ochildi - hech qanday cheklovsiz barcha AI xizmatlardan foydalanishingiz mumkin.\n\n"
+                "Bu 7 kun ichida siz:\n"
                 "- shaxsiylashtirilgan mashqlar rejasiga ega bo‘lasiz\n"
                 "- o‘zingizga mos ovqatlanish rejasini olasiz\n"
                 "- individual retseptlardan foydalanasiz\n"

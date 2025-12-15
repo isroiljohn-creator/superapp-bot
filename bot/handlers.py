@@ -5,6 +5,8 @@ from core.observability import track_latency # IMPORTED
 
 from core.db import db
 
+from core.config import ADMIN_IDS
+
 def register_all_handlers(bot):
     # --- Global Logging Middleware ---
     def log_middleware(bot_instance, update):
@@ -26,6 +28,10 @@ def register_all_handlers(bot):
             
             if user_id:
                 db.log_activity(user_id, type_, content)
+                # Touch Updated At for Retention Engine
+                try:
+                    db.touch_user_activity(user_id)
+                except: pass
         except Exception as e:
             print(f"Logging Error: {e}")
 
@@ -36,6 +42,20 @@ def register_all_handlers(bot):
 
     # --- Admin Handlers (Priority) ---
     admin.register_handlers(bot)
+    
+    # --- Developer Menu Handler ---
+    @bot.message_handler(func=lambda message: message.text == "👨‍💻 Dasturchi")
+    def developer_menu(message):
+        if message.from_user.id in ADMIN_IDS:
+            # Show Inline Keyboard with Admin Commands
+            markup = types.InlineKeyboardMarkup(row_width=2)
+            markup.add(
+                types.InlineKeyboardButton("📊 Analytics", callback_data="admin_analytics_btn"),
+                types.InlineKeyboardButton("🚩 Feature Flags", callback_data="admin_flags_btn"),
+                types.InlineKeyboardButton("📢 Broadcast", callback_data="admin_broadcast_btn"),
+                types.InlineKeyboardButton("📦 Backup", callback_data="admin_backup_btn")
+            )
+            bot.send_message(message.chat.id, "👨‍💻 **Dasturchi Paneli**\n\nBuyruqni tanlang:", reply_markup=markup, parse_mode="Markdown")
 
     # --- Calorie Handlers ---
     @bot.message_handler(func=lambda message: message.text == "🍽 Kaloriya tahlili (premium)" or message.text == "🍽 Kaloriya skaneri" or message.text == "🍽 Kaloriya tahlili")
@@ -54,7 +74,8 @@ def register_all_handlers(bot):
     # --- Main Menu Navigation ---
     @bot.message_handler(func=lambda message: message.text == "⬅️ Asosiy menyu")
     def back_to_main(message):
-        bot.send_message(message.chat.id, "🏠 Asosiy menyu", reply_markup=main_menu_keyboard())
+        is_adm = message.from_user.id in ADMIN_IDS
+        bot.send_message(message.chat.id, "🏠 Asosiy menyu", reply_markup=main_menu_keyboard(is_admin=is_adm))
 
     @bot.message_handler(func=lambda message: message.text == "⬅️ Premium menyu")
     def back_to_premium(message):

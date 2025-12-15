@@ -40,20 +40,24 @@ def allergy_keyboard():
     )
     return markup
 
-def main_menu_keyboard():
+def main_menu_keyboard(is_admin=False):
     markup = ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
     
-    # Row 1: AI murabbiy (was Shaxsiy Murabbiy) | Kunlik odatlar (was Odatlar)
+    # Row 1: AI murabbiy | Kunlik odatlar
     markup.add(KeyboardButton("🤖 AI murabbiy"), KeyboardButton("📆 Kunlik odatlar"))
     
-    # Row 2: Kaloriya tahlili (swapped) | Premium (swapped with Chellenjlar)
+    # Row 2: Kaloriya tahlili | Premium
     markup.add(KeyboardButton("🍽 Kaloriya tahlili"), KeyboardButton("💳 Obuna"))
     
-    # Row 3: Chellenjlar (swapped with Premium) | Profil
+    # Row 3: Chellenjlar | Profil
     markup.add(KeyboardButton("🔥 Chellenjlar"), KeyboardButton("👤 Profil"))
     
     # Row 4: Referal | Qayta aloqa
     markup.add(KeyboardButton("🔗 Referal"), KeyboardButton("📩 Qayta aloqa"))
+    
+    # Row 5: Admin Button (if admin)
+    if is_admin:
+        markup.add(KeyboardButton("👨‍💻 Dasturchi"))
     
     return markup
 
