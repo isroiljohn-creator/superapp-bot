@@ -245,6 +245,43 @@ def register_handlers(bot):
             print(f"ERROR in admin_stats: {e}")
             bot.send_message(message.chat.id, f"❌ Xatolik: {str(e)}")
 
+    # --- CALLBACK BRIDGES FOR DEV MENU ---
+    
+    @bot.callback_query_handler(func=lambda call: call.data == "admin_analytics_btn")
+    def admin_analytics_callback(call):
+        if call.from_user.id in ADMIN_IDS:
+             # Call logic manually
+             admin_stats(call.message)
+             bot.answer_callback_query(call.id)
+
+    @bot.callback_query_handler(func=lambda call: call.data == "admin_broadcast_btn")
+    def admin_broadcast_callback(call):
+        if call.from_user.id in ADMIN_IDS:
+             admin_broadcast_start(call.message)
+             bot.answer_callback_query(call.id)
+             
+    @bot.callback_query_handler(func=lambda call: call.data == "admin_backup_btn")
+    def admin_backup_callback(call):
+        if call.from_user.id in ADMIN_IDS:
+             bot.send_message(call.message.chat.id, "📦 Backup: Hozircha bu funksiya avtomatlashmagan. Database.dump ishlatilishi kerak.")
+             bot.answer_callback_query(call.id, "Tez orada...")
+             
+    @bot.callback_query_handler(func=lambda call: call.data == "admin_flags_btn")
+    def admin_flags_callback(call):
+        if call.from_user.id in ADMIN_IDS:
+             # Fetch flags (Mock for now or DB)
+             flags = db.get_all_feature_flags() if hasattr(db, "get_all_feature_flags") else []
+             txt = "🚩 **Feature Flags (Beta):**\n\n"
+             if not flags:
+                 txt += "- Hozircha flaglar yo'q.\n"
+             else:
+                 for f in flags:
+                     status = "✅" if f['enabled'] else "❌"
+                     txt += f"{status} {f['name']} ({f['rollout_percent']}%)\n"
+             
+             bot.send_message(call.message.chat.id, txt, parse_mode="Markdown")
+             bot.answer_callback_query(call.id)
+
     @bot.message_handler(func=lambda message: "Foydalanuvchilar ro‘yxati" in message.text)
     def admin_user_list(message):
         if message.from_user.id not in ADMIN_IDS:
