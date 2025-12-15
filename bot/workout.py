@@ -229,7 +229,7 @@ def show_daily_workout(bot, user_id, link_data, override_day_idx=None):
         txt += f"{exercises_text}"
         
         # Add visual separator (optional)
-        txt += "\n\n_______________________"
+        # txt += "\n\n_______________________" # REMOVED per user request
             
         # Buttons
         markup = InlineKeyboardMarkup()
@@ -249,7 +249,7 @@ def show_daily_workout(bot, user_id, link_data, override_day_idx=None):
         else:
              markup.row(InlineKeyboardButton("🔄 Yangilash (Reset)", callback_data="workout_regenerate"))
         
-        bot.send_message(user_id, txt, parse_mode="HTML", reply_markup=markup)
+        bot.send_message(user_id, txt, parse_mode="HTML", reply_markup=markup, disable_web_page_preview=True)
 
     except Exception as e:
         print(f"Show Workout Error: {e}")

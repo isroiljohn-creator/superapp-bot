@@ -793,9 +793,9 @@ Weekly logic:
 	•	3–4 workout days per week
 	•	1–2 rest days
 	•	Muscle split logic:
-	•	Upper body
-	•	Lower body
-	•	Core / Full body
+	•	Upper Body -> Yuqori Tana
+	•	Lower Body -> Pastki Tana
+	•	Core / Full Body -> Butun Tana
 	•	Never train same muscle groups on consecutive days
 
 ⸻
@@ -810,10 +810,10 @@ Weekly logic:
 
 For workout days, the 'exercises' string MUST look exactly like this (use HTML bold tags <b>):
 
-🏋️ Bugungi mashq rejasi ({{Focus Area}})
+🏋️ Bugungi mashq rejasi ({{Yuqori Tana / Pastki Tana / Butun Tana}})
 
 ⏱ Umumiy vaqt: 30–40 daqiqa
-🎯 Maqsad: {{Goal based on user profile}}
+🎯 Maqsad: {{Vazn yo'qotish / Mushak o'stirish}} (Uzbek)
 
 🔹 <b>Razminka (5 daqiqa)</b>
 - Yengil cho‘zilish
@@ -823,7 +823,7 @@ For workout days, the 'exercises' string MUST look exactly like this (use HTML b
 💪 <b>Asosiy mashqlar</b>
 
 1️⃣ <b>Exercise Name</b>
-📌 Mushaklar: Muscle Group
+📌 Mushaklar: (Uzbek)
 🔁 3 set × 12 marta
 ⏸ Dam: 60 soniya
 🎥 Link: <a href="Instagram URL">Video darslik</a>
@@ -833,6 +833,8 @@ For workout days, the 'exercises' string MUST look exactly like this (use HTML b
 
 🧘 <b>Sovitish</b>
 - Mushaklarni cho'zish
+
+❌ DO NOT ADD SEPARATOR LINES LIKE "_______________________" AT THE END.
 
 ---
 
