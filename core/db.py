@@ -229,7 +229,14 @@ class Database:
             
             user.plan_type = plan_type
             user.is_premium = True 
-            user.premium_until = datetime.now() + timedelta(days=days)
+            
+            # Logic: If already premium, extend. Else start from now.
+            now = datetime.now()
+            if user.premium_until and user.premium_until > now:
+                user.premium_until = user.premium_until + timedelta(days=days)
+            else:
+                user.premium_until = now + timedelta(days=days)
+            
             session.commit()
 
     # Legacy Wrapper to support existing calls, but warning: deprecated
