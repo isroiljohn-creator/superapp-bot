@@ -170,15 +170,15 @@ def ai_coach_inline_keyboard():
     """Inline Submenu for '🤖 AI murabbiy'"""
     markup = InlineKeyboardMarkup(row_width=2)
     markup.add(
-        InlineKeyboardButton("🏋️ Mashq qilaman", callback_data="ai_sub_workout"),
-        InlineKeyboardButton("🥗 Nima yeyman?", callback_data="ai_sub_meal")
+        InlineKeyboardButton("🏋️ Mashq rejasi", callback_data="ai_sub_workout"),
+        InlineKeyboardButton("🥗 Ovqatlanish menyusi", callback_data="ai_sub_meal")
     )
     markup.add(
-        InlineKeyboardButton("🔥 AI retsept tuzsin", callback_data="ai_sub_recipe"),
-        InlineKeyboardButton("🛒 Nima xarid qilay?", callback_data="ai_sub_shopping")
+        InlineKeyboardButton("🔥 AI retsept", callback_data="ai_sub_recipe"),
+        InlineKeyboardButton("🛒 Xaridlar ro'yxati", callback_data="ai_sub_shopping")
     )
     markup.add(
-        InlineKeyboardButton("❓ Murabbiyga savolim bor", callback_data="ai_sub_qa"),
+        InlineKeyboardButton("❓ Murabbiyga savol", callback_data="ai_sub_qa"),
         InlineKeyboardButton("⬅️ Orqaga", callback_data="ai_sub_close")
     )
     return markup
