@@ -332,12 +332,10 @@ def register_handlers(bot):
         )
         
         text = (
-            "🗑 <b>AI Bazani Tozalash</b>\n\n"
+            "🗑 <b>AI Menyu Bazasini Tozalash</b>\n\n"
             "⚠️ <b>OGOHLANTIRISH:</b>\n"
-            "Bu barcha AI-generatsiya qilingan ma'lumotlarni o'chiradi:\n\n"
-            "• 🏋️ Barcha AI workout rejalari\n"
-            "• 🥗 Barcha AI meal rejalari\n"
-            "• 📅 Barcha daily plans\n\n"
+            "Bu barcha foydalanuvchilar tomonidan generatsiya qilingan AI menyularni o'chiradi:\n\n"
+            "• 🥗 Barcha AI-generatsiya qilingan meal rejalari\n\n"
             "Bu amal <b>QAYTARIB BO'LMAYDI!</b>\n\n"
             "Davom etishni xohlaysizmi?"
         )
@@ -353,17 +351,13 @@ def register_handlers(bot):
         bot.answer_callback_query(call.id, "Tozalanmoqda...")
         
         try:
-            # Clear AI data from database
-            deleted_workouts = db.clear_all_workouts()
+            # Clear only AI-generated meals
             deleted_meals = db.clear_all_meals()
-            deleted_plans = db.clear_all_daily_plans()
             
             text = (
-                "✅ <b>AI Baza Tozalandi!</b>\n\n"
-                f"🏋️ Workout rejalar: {deleted_workouts} ta\n"
-                f"🥗 Meal rejalar: {deleted_meals} ta\n"
-                f"📅 Daily plans: {deleted_plans} ta\n\n"
-                "Barcha AI ma'lumotlar o'chirildi."
+                "✅ <b>AI Menyu Bazasi Tozalandi!</b>\n\n"
+                f"🥗 Meal rejalar: {deleted_meals} ta\n\n"
+                "Barcha AI-generatsiya qilingan menyular o'chirildi."
             )
             
             bot.edit_message_text(text, call.message.chat.id, call.message.message_id, parse_mode="HTML")
