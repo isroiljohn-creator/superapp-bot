@@ -930,11 +930,14 @@ def register_content_handlers(bot):
 
     @bot.callback_query_handler(func=lambda call: call.data.startswith("flag_"))
     def handle_flag_actions(call):
-        if call.from_user.id not in ADMIN_IDS: return
+        if call.from_user.id not in ADMIN_IDS:
+            bot.answer_callback_query(call.id, "Huquq yo'q", show_alert=True)
+            return
         
         action = call.data
         
         if action == "flag_refresh":
+            bot.answer_callback_query(call.id)
             bot.delete_message(call.message.chat.id, call.message.message_id)
             admin_flags_cmd(call.message)
             return
@@ -962,6 +965,7 @@ def register_content_handlers(bot):
             )
             markup.add(types.InlineKeyboardButton("🔙 Orqaga", callback_data="flag_refresh"))
             
+            bot.answer_callback_query(call.id)
             bot.edit_message_text(text, call.message.chat.id, call.message.message_id, reply_markup=markup, parse_mode="HTML")
             return
 
@@ -993,6 +997,7 @@ def register_content_handlers(bot):
             )
             markup.add(types.InlineKeyboardButton("🔙 Orqaga", callback_data="flag_refresh"))
             
+            bot.answer_callback_query(call.id, "✅ Yangilandi")
             bot.edit_message_text(text, call.message.chat.id, call.message.message_id, reply_markup=markup, parse_mode="HTML")
             return
             
