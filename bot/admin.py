@@ -1115,102 +1115,102 @@ def register_subscription_handlers(bot):
         else:
             bot.send_message(message.chat.id, "❌ Bekor qilindi.")
 
+# Content key to human-readable label mapping (moved outside for accessibility)
+CONTENT_LABELS = {
+    # Onboarding
+    "welcome_message": "👋 Xush kelibsiz xabari",
+    "onboarding_name": "📝 Ism so'rash",
+    "onboarding_age": "🎂 Yosh so'rash",
+    "onboarding_gender": "👥 Jins so'rash",
+    "onboarding_height": "📏 Bo'y so'rash",
+    "onboarding_weight": "⚖️ Vazn so'rash",
+    "onboarding_goal": "🎯 Maqsad so'rash",
+    "onboarding_activity": "🏃 Faollik so'rash",
+    "onboarding_complete": "✅ Ro'yxat tugallandi",
+    
+    # Main Menu
+    "main_menu_title": "🏠 Asosiy menyu sarlavhasi",
+    "main_menu_desc": "🏠 Asosiy menyu matni",
+    
+    # Premium
+    "premium_title": "💎 Premium sarlavha",
+    "premium_desc": "💎 Premium tavsifi",
+    "premium_price": "💰 Premium narxi",
+    "premium_subscribe": "💳 Obuna qilish matni",
+    "premium_active": "✅ Premium faol",
+    "premium_required": "⚠️ Premium kerak xabari",
+    
+    # Workout
+    "workout_title": "🏋️ Mashqlar sarlavhasi",
+    "workout_menu": "🏋️ Mashqlar menyu",
+    "workout_ai_generating": "⏳ AI mashq yaratyapti",
+    "workout_ai_success": "✅ Mashq tayyor",
+    "workout_ai_error": "❌ Mashq xatolik",
+    "workout_daily_empty": "📋 Bugungi reja yo'q",
+    
+    # Nutrition
+    "nutrition_title": "🥗 Ovqat sarlavhasi",
+    "nutrition_menu": "🥗 Ovqat menyu",
+    "nutrition_ai_generating": "⏳ AI ovqat yaratyapti",
+    "nutrition_ai_success": "✅ Ovqat tayyor",
+    "nutrition_ai_error": "❌ Ovqat xatolik",
+    "nutrition_daily_empty": "📋 Bugungi ovqat yo'q",
+    
+    # Profile
+    "profile_title": "👤 Profil sarlavhasi",
+    "profile_view": "📊 Profil ko'rish",
+    "profile_edit": "✏️ Profil tahrirlash",
+    "profile_updated": "✅ Profil yangilandi",
+    
+    # Gamification
+    "gamification_title": "🎮 Motivatsiya sarlavhasi",
+    "points_earned": "🎉 Ball olish",
+    "level_up": "🎊 Daraja oshish",
+    "daily_streak": "🔥 Kunlik seriya",
+    "challenge_complete": "🏆 Chellenj tugadi",
+    
+    # Referral
+    "referral_title": "🔗 Referral sarlavhasi",
+    "referral_desc": "🔗 Referral tavsifi",
+    "referral_link": "🔗 Referral havola",
+    
+    # Calorie
+    "calorie_title": "📸 Kaloriya sarlavhasi",
+    "calorie_prompt": "📸 Rasm so'rash",
+    "calorie_analyzing": "🔍 Tahlil jarayoni",
+    "calorie_result": "📊 Natija",
+    
+    # Errors
+    "error_generic": "❌ Umumiy xatolik",
+    "error_invalid_input": "⚠️ Noto'g'ri ma'lumot",
+    "success_generic": "✅ Muvaffaqiyat",
+    "loading": "⏳ Yuklanmoqda",
+    "please_wait": "⏰ Kuting",
+    
+    # Admin
+    "admin_panel_title": "👨‍💼 Admin panel",
+    "admin_stats_title": "📊 Statistika",
+    "admin_users_title": "👥 Foydalanuvchilar",
+    "admin_broadcast_title": "📨 Umumiy xabar",
+}
+
+# Categories
+CONTENT_CATEGORIES = {
+    "👋 Onboarding": ["welcome_message", "onboarding_name", "onboarding_age", "onboarding_gender", 
+                      "onboarding_height", "onboarding_weight", "onboarding_goal", "onboarding_activity", "onboarding_complete"],
+    "🏠 Asosiy menyu": ["main_menu_title", "main_menu_desc"],
+    "💎 Premium": ["premium_title", "premium_desc", "premium_price", "premium_subscribe", "premium_active", "premium_required"],
+    "🏋️ Mashqlar": ["workout_title", "workout_menu", "workout_ai_generating", "workout_ai_success", "workout_ai_error", "workout_daily_empty"],
+    "🥗 Ovqatlanish": ["nutrition_title", "nutrition_menu", "nutrition_ai_generating", "nutrition_ai_success", "nutrition_ai_error", "nutrition_daily_empty"],
+    "👤 Profil": ["profile_title", "profile_view", "profile_edit", "profile_updated"],
+    "🎮 Gamifikatsiya": ["gamification_title", "points_earned", "level_up", "daily_streak", "challenge_complete"],
+    "🔗 Referral": ["referral_title", "referral_desc", "referral_link"],
+    "📸 Kaloriya": ["calorie_title", "calorie_prompt", "calorie_analyzing", "calorie_result"],
+    "⚠️ Xatolar": ["error_generic", "error_invalid_input", "success_generic", "loading", "please_wait"],
+    "👨‍💼 Admin": ["admin_panel_title", "admin_stats_title", "admin_users_title", "admin_broadcast_title"],
+}
+
 def register_content_handlers(bot):
-    # Content key to human-readable label mapping
-    CONTENT_LABELS = {
-        # Onboarding
-        "welcome_message": "👋 Xush kelibsiz xabari",
-        "onboarding_name": "📝 Ism so'rash",
-        "onboarding_age": "🎂 Yosh so'rash",
-        "onboarding_gender": "👥 Jins so'rash",
-        "onboarding_height": "📏 Bo'y so'rash",
-        "onboarding_weight": "⚖️ Vazn so'rash",
-        "onboarding_goal": "🎯 Maqsad so'rash",
-        "onboarding_activity": "🏃 Faollik so'rash",
-        "onboarding_complete": "✅ Ro'yxat tugallandi",
-        
-        # Main Menu
-        "main_menu_title": "🏠 Asosiy menyu sarlavhasi",
-        "main_menu_desc": "🏠 Asosiy menyu matni",
-        
-        # Premium
-        "premium_title": "💎 Premium sarlavha",
-        "premium_desc": "💎 Premium tavsifi",
-        "premium_price": "💰 Premium narxi",
-        "premium_subscribe": "💳 Obuna qilish matni",
-        "premium_active": "✅ Premium faol",
-        "premium_required": "⚠️ Premium kerak xabari",
-        
-        # Workout
-        "workout_title": "🏋️ Mashqlar sarlavhasi",
-        "workout_menu": "🏋️ Mashqlar menyu",
-        "workout_ai_generating": "⏳ AI mashq yaratyapti",
-        "workout_ai_success": "✅ Mashq tayyor",
-        "workout_ai_error": "❌ Mashq xatolik",
-        "workout_daily_empty": "📋 Bugungi reja yo'q",
-        
-        # Nutrition
-        "nutrition_title": "🥗 Ovqat sarlavhasi",
-        "nutrition_menu": "🥗 Ovqat menyu",
-        "nutrition_ai_generating": "⏳ AI ovqat yaratyapti",
-        "nutrition_ai_success": "✅ Ovqat tayyor",
-        "nutrition_ai_error": "❌ Ovqat xatolik",
-        "nutrition_daily_empty": "📋 Bugungi ovqat yo'q",
-        
-        # Profile
-        "profile_title": "👤 Profil sarlavhasi",
-        "profile_view": "📊 Profil ko'rish",
-        "profile_edit": "✏️ Profil tahrirlash",
-        "profile_updated": "✅ Profil yangilandi",
-        
-        # Gamification
-        "gamification_title": "🎮 Motivatsiya sarlavhasi",
-        "points_earned": "🎉 Ball olish",
-        "level_up": "🎊 Daraja oshish",
-        "daily_streak": "🔥 Kunlik seriya",
-        "challenge_complete": "🏆 Chellenj tugadi",
-        
-        # Referral
-        "referral_title": "🔗 Referral sarlavhasi",
-        "referral_desc": "🔗 Referral tavsifi",
-        "referral_link": "🔗 Referral havola",
-        
-        # Calorie
-        "calorie_title": "📸 Kaloriya sarlavhasi",
-        "calorie_prompt": "📸 Rasm so'rash",
-        "calorie_analyzing": "🔍 Tahlil jarayoni",
-        "calorie_result": "📊 Natija",
-        
-        # Errors
-        "error_generic": "❌ Umumiy xatolik",
-        "error_invalid_input": "⚠️ Noto'g'ri ma'lumot",
-        "success_generic": "✅ Muvaffaqiyat",
-        "loading": "⏳ Yuklanmoqda",
-        "please_wait": "⏰ Kuting",
-        
-        # Admin
-        "admin_panel_title": "👨‍💼 Admin panel",
-        "admin_stats_title": "📊 Statistika",
-        "admin_users_title": "👥 Foydalanuvchilar",
-        "admin_broadcast_title": "📨 Umumiy xabar",
-    }
-    
-    # Categories
-    CONTENT_CATEGORIES = {
-        "👋 Onboarding": ["welcome_message", "onboarding_name", "onboarding_age", "onboarding_gender", 
-                          "onboarding_height", "onboarding_weight", "onboarding_goal", "onboarding_activity", "onboarding_complete"],
-        "🏠 Asosiy menyu": ["main_menu_title", "main_menu_desc"],
-        "💎 Premium": ["premium_title", "premium_desc", "premium_price", "premium_subscribe", "premium_active", "premium_required"],
-        "🏋️ Mashqlar": ["workout_title", "workout_menu", "workout_ai_generating", "workout_ai_success", "workout_ai_error", "workout_daily_empty"],
-        "🥗 Ovqatlanish": ["nutrition_title", "nutrition_menu", "nutrition_ai_generating", "nutrition_ai_success", "nutrition_ai_error", "nutrition_daily_empty"],
-        "👤 Profil": ["profile_title", "profile_view", "profile_edit", "profile_updated"],
-        "🎮 Gamifikatsiya": ["gamification_title", "points_earned", "level_up", "daily_streak", "challenge_complete"],
-        "🔗 Referral": ["referral_title", "referral_desc", "referral_link"],
-        "📸 Kaloriya": ["calorie_title", "calorie_prompt", "calorie_analyzing", "calorie_result"],
-        "⚠️ Xatolar": ["error_generic", "error_invalid_input", "success_generic", "loading", "please_wait"],
-        "👨‍💼 Admin": ["admin_panel_title", "admin_stats_title", "admin_users_title", "admin_broadcast_title"],
-    }
-    
     @bot.callback_query_handler(func=lambda call: call.data == "admin_content_btn")
     def admin_content_callback(call):
         if call.from_user.id not in ADMIN_IDS: return
