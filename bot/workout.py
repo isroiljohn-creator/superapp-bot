@@ -109,7 +109,7 @@ def generate_ai_workout(message, bot, user_id=None):
         
         for attempt in range(max_retries):
             try:
-                bot.edit_message_text(f"🧘‍♀️ Siz uchun 7 kunlik mashg'ulotlar rejasini tuzyapman ({attempt+1}-urinish)...", user_id, msg.message_id)
+                bot.edit_message_text(f"🧘‍♀️ Siz uchun 7 kunlik mashg'ulotlar rejasini tuzyapman...", user_id, msg.message_id)
                 data = ai_generate_weekly_workout_json(user)
                 
                 if data and 'schedule' in data and isinstance(data['schedule'], list):
@@ -338,7 +338,7 @@ def generate_ai_meal(message, bot, user_id=None):
         
         for attempt in range(max_retries):
             try:
-                bot.edit_message_text(f"🥗 Siz uchun 7 kunlik ovqatlanish menyusini tuzyapman ({attempt+1}-urinish)...", user_id, msg.message_id)
+                bot.edit_message_text(f"🥗 Siz uchun 7 kunlik ovqatlanish menyusini tuzyapman...", user_id, msg.message_id)
                 data = ai_generate_monthly_menu_json(user)
                 
                 if data and 'menu' in data and isinstance(data['menu'], list):
