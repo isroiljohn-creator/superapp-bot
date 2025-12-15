@@ -288,16 +288,9 @@ def register_handlers(bot):
     def admin_flags_callback(call):
         try:
             if call.from_user.id in ADMIN_IDS:
-                 # Simple mock for Feature Flags
-                 txt = "🚩 **Feature Flags**\n\n"
-                 txt += "Hozircha flaglar mavjud emas.\n\n"
-                 txt += "Bo'lajak funksiyalar:\n"
-                 txt += "- retention_engine\n"
-                 txt += "- smart_recommendations\n"
-                 txt += "- ai_fallback_v2"
-                 
-                 bot.send_message(call.message.chat.id, txt, parse_mode="Markdown")
                  bot.answer_callback_query(call.id)
+                 # Call the full flags interface
+                 admin_flags_cmd(call.message)
             else:
                  bot.answer_callback_query(call.id, "Huquq yo'q", show_alert=True)
         except Exception as e:
