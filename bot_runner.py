@@ -92,13 +92,21 @@ def main():
     signal.signal(signal.SIGINT, signal_handler)
     signal.signal(signal.SIGTERM, signal_handler)
     
+    
     while True:
         try:
+            bot.remove_webhook() # Ensure we are in polling mode
             bot.infinity_polling(timeout=20, long_polling_timeout=20)
         except (ReadTimeout, ConnectionError) as e:
             print(f"⚠️ Tarmoq xatoligi (qayta ulanish 5s): {e}")
             time.sleep(5)
         except Exception as e:
+            # Check for 409 Conflict
+            error_str = str(e)
+            if "Error code: 409" in error_str:
+                print("❌ 409 Conflict detected (Another instance running). Exiting to stop this zombie process.")
+                sys.exit(1) # Die immediately so the new container can live
+            
             print(f"❌ Kutilmagan xatolik (qayta ulanish 5s): {e}")
             time.sleep(5)
 
