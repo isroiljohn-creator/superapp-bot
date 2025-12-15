@@ -671,26 +671,18 @@ class Database:
             
             premium_users = session.query(User).filter(User.premium_until > datetime.now()).count()
             
-            # This part of the return statement seems to be from a different context,
-            # but following the instruction to insert as provided.
-            # The original return statement for get_stats was:
-            # return {
-            #     "total": total_users,
-            #     "active": active_users,
-            #     "gender": gender_stats,
-            #     "goal": goal_stats,
-            #     "activity": activity_stats,
-            #     "premium": premium_users
-            # }
-            # The instruction implies replacing it with the new return block.
-            # Assuming `error_rate`, `errors`, `total`, `dau` are defined elsewhere or intended to be added.
-            # For now, I will insert the provided return block as is.
-            # If these variables are not defined, this will cause a runtime error.
+            
+            # UTM Stats
+            utm_stats = dict(session.query(User.utm_source, func.count(User.id)).group_by(User.utm_source).all())
+            
             return {
-                "error_rate_24h": error_rate,
-                "errors_24h": errors,
-                "total_events_24h": total,
-                "dau": dau
+                "total": total_users,
+                "active": active_users,
+                "gender": gender_stats,
+                "goal": goal_stats,
+                "activity": activity_stats,
+                "premium": premium_users,
+                "utm": utm_stats
             }
 
     def get_users_inactive_for(self, days):
