@@ -545,19 +545,26 @@ def register_subscription_handlers(bot):
             
             markup = types.InlineKeyboardMarkup()
             markup.add(types.InlineKeyboardButton("➕ Obuna qo'shish", callback_data=f"sub_add_{target_id}"))
+            markup.add(types.InlineKeyboardButton("➕ Obuna qo'shish", callback_data=f"sub_add_{target_id}"))
             markup.add(types.InlineKeyboardButton("➖ Obunani o'chirish", callback_data=f"sub_remove_{target_id}"))
+            markup.add(types.InlineKeyboardButton("🔄 Limitni tiklash (0)", callback_data=f"sub_reset_{target_id}"))
             
             bot.send_message(message.chat.id, text, reply_markup=markup, parse_mode="Markdown")
             
         except Exception as e:
             bot.send_message(message.chat.id, f"❌ Xatolik: {e}")
 
-    @bot.callback_query_handler(func=lambda call: call.data.startswith("sub_add_") or call.data.startswith("sub_remove_"))
+    @bot.callback_query_handler(func=lambda call: call.data.startswith("sub_add_") or call.data.startswith("sub_remove_") or call.data.startswith("sub_reset_"))
     def handle_sub_action(call):
         if call.from_user.id not in ADMIN_IDS:
             return
             
         action, target_id = call.data.split("_")[1], int(call.data.split("_")[2])
+        
+        if action == "reset":
+            db.reset_user_ai_limits(target_id)
+            bot.answer_callback_query(call.id, "✅ Limitlar 0 ga tushirildi!")
+            return
         
         if action == "remove":
             db.remove_premium(target_id)

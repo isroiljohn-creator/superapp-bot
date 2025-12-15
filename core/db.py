@@ -280,6 +280,25 @@ class Database:
         key = 'menu_gen' if type_key == 'menu' else 'workout_gen'
         self.increment_tiered_usage(user_id, key)
 
+    def reset_user_ai_limits(self, user_id):
+        """Resets AI usage counters for a specific user to 0."""
+        with get_sync_db() as session:
+            # Query by telegram_id to be safe, or internal ID if that's what we pass. 
+            # Looking at admin.py, we pass 'target_id' which is telegram_id usually.
+            # But wait, set_user_plan uses _get_user_pk with user_id.
+            pk = self._get_user_pk(session, user_id)
+            if not pk: return False
+            
+            session.query(User).filter(User.id == pk).update(
+                {
+                    "ai_menu_count": 0,
+                    "ai_workout_count": 0
+                },
+                synchronize_session=False
+            )
+            session.commit()
+            return True
+
 
 
     def reset_db(self):
