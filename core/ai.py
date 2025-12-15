@@ -179,7 +179,7 @@ def get_profile_key(profile):
     age = int(profile.get('age', 25))
     age_band = f"{age // 5 * 5}-{(age // 5 * 5) + 4}"
     
-    return f"{profile.get('gender')}|{profile.get('goal')}|{profile.get('activity_level')}|{profile.get('allergies')}|{age_band}|v4"
+    return f"{profile.get('gender')}|{profile.get('goal')}|{profile.get('activity_level')}|{profile.get('allergies')}|{age_band}|v5"
 
 # Usage Stats
 AI_USAGE_STATS = {
@@ -436,11 +436,15 @@ CRITICAL RULES:
    - title
    - ingredients (array)
    - preparation_steps (array of strings)
-   - time_minutes, cost_level, place (uy/kocha)
+   - time_minutes (integer)
+   - cost_level (MUST be one of: 'Arzon', 'O\'rtacha', 'Qimmat')
+   - place (uy/kocha)
 3. Recipes must be realistic for a home kitchen.
 4. Total calories must match the target range.
 5. 'kcal' field is MANDATORY for EVERY meal (breakfast, lunch, dinner, snack). It must be an INTEGER (e.g. 450, not '450 kcal').
 6. Snack MUST be a structured object with calculated calories.
+7. LANGUAGE STRICTLY UZBEK. NO ENGLISH WORDS.
+8. Snack (Tamaddi) title MUST be extremely short (2-3 words max).
 """
 
     # 2. User Prompt (Data)
@@ -457,7 +461,10 @@ Maqsad: {user_profile.get('goal')}
 Talablar:
 - 7 kunlik reja (JSON array "menu" ichida). 
 - **micro_advice**: Har kun uchun 1-2 gapdan iborat qisqa, motivatsion coach maslahati (faqat o'zbekcha). (Masalan: "Bugun 1% yaxshi bo‘lsang bo‘ldi.", "Suv ichishni unutma!").
+- **micro_advice**: Har kun uchun 1-2 gapdan iborat qisqa, motivatsion coach maslahati (faqat o'zbekcha). (Masalan: "Bugun 1% yaxshi bo‘lsang bo‘ldi.", "Suv ichishni unutma!").
 - **kcal**: Har bir ovqat (snack uchun ham) albatta kaloriya (integer) hisoblansin.
+- **Tillar**: FAQAT O'ZBEK TILI. Inglizcha so'z umuman ishlatilmasin (Masalan: "Snack" -> "Tamaddi", "Breakfast" -> "Nonushta" degan so'zlar JSON kalitlarida qolsin, lekin "title" ichida faqat o'zbekcha bo'lsin).
+- **Tamaddi (Snack)**: "title" juda qisqa bo'lsin (max 2-3 so'z). Masalan: "1 ta olma", "Qatiq va yong'oq", "Meva salati". Uzun ta'riflar kerak emas.
 
 - **shopping_list**: OBYEKT bo'lishi shart. Quyidagi kategoriyalarga bo'lingan:
     - protein (Go'sht, tuxum...)

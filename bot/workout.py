@@ -558,7 +558,14 @@ def show_daily_menu(bot, user_id, link_data, override_day_idx=None):
         user_goal = "Sog'lom Hayot"
         try:
             u = db.get_user(user_id)
-            if u: user_goal = u.get('goal', 'Sog\'lom Hayot')
+            raw_goal = u.get('goal', 'Sog\'lom Hayot')
+            # Translate common goals
+            goal_map = {
+                "weight_loss": "Vazn yo'qotish",
+                "muscle_gain": "Mushak o'stirish",
+                "health": "Sog'lom turmush"
+            }
+            user_goal = goal_map.get(raw_goal, raw_goal)
         except: pass
         
         txt = f"🍽 <b>{day_idx}-KUN MENYU</b>\n"
@@ -618,7 +625,7 @@ def show_daily_menu(bot, user_id, link_data, override_day_idx=None):
             return "-"
 
         txt += f"🍳 <b>Nonushta:</b>\n{_fmt(day_data.get('breakfast'))}\n\n"
-        txt += f"🍏 <b>Snack (Tamaddi):</b>\n{_fmt(day_data.get('snack'))}\n\n"
+        txt += f"🍏 <b>Tamaddi:</b>\n{_fmt(day_data.get('snack'))}\n\n"
         txt += f"🥗 <b>Tushlik:</b>\n{_fmt(day_data.get('lunch'))}\n\n"
         txt += f"🍲 <b>Kechki ovqat:</b>\n{_fmt(day_data.get('dinner'))}\n\n"
         
@@ -649,7 +656,7 @@ def show_daily_menu(bot, user_id, link_data, override_day_idx=None):
         
         # Action Buttons
         markup.row(
-            InlineKeyboardButton("🛒 Shopping List", callback_data="menu_shopping"),
+            InlineKeyboardButton("🛒 Bozorlik Ro'yxati", callback_data="menu_shopping"),
             InlineKeyboardButton("🥦 Muzlatgichdan retsept", callback_data="menu_fridge")
         )
         markup.row(
