@@ -310,6 +310,7 @@ def ai_generate_menu(user_profile):
     default_goal = "Sog'lomlik"
     goal_uz = goal_map.get(user_profile.get('goal'), user_profile.get('goal', default_goal))
     
+    activity_level = user_profile.get('activity_level', "O'rtacha")
     prompt = f"""
 Siz professional dietolog va Telegram uchun kunlik ovqat menyularini tuzasiz.
 
@@ -319,7 +320,7 @@ Foydalanuvchi profili:
 - Maqsad: {goal_uz}
 - Bo'y: {user_profile.get('height')} sm
 - Vazn: {user_profile.get('weight')} kg
-- Faollik: {user_profile.get('activity_level', 'O\'rtacha')}
+- Faollik: {activity_level}
 {allergy_section}
 
 🎯 Vazifa:
