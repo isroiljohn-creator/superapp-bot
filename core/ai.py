@@ -312,50 +312,52 @@ def ai_generate_menu(user_profile):
     
     activity_level = user_profile.get('activity_level', "O'rtacha")
     prompt = f"""
-Siz professional dietolog va Telegram uchun kunlik ovqat menyularini tuzasiz.
+Siz professional dietolog va fitness murabbiysiz.
+Vazifa: O'zbek tilida 1 KUNLIK professional ovqatlanish rejasi tuzing.
 
-Foydalanuvchi profili:
-- Yosh: {user_profile.get('age')}
-- Jins: {user_profile.get('gender')}
+Foydalanuvchi ma'lumotlari:
 - Maqsad: {goal_uz}
-- Bo'y: {user_profile.get('height')} sm
-- Vazn: {user_profile.get('weight')} kg
 - Faollik: {activity_level}
+- Yoshi: {user_profile.get('age')}
+- Vazni: {user_profile.get('weight')} kg
 {allergy_section}
 
-🎯 Vazifa:
-3 KUNLIK ovqatlanish rejasi tuzing (har kun uchun 1 menyu).
-
-📋 FORMAT (MUTLAQ SHART):
+O'QISH FORMATI (QAT'IY RIAOYA QILING):
+Format buzulmasin. Jadval ishlatmang.
 
 🍽 [X]-kun uchun sog'lom menyu — [XXXX] kcal
 
-🥣 Nonushta: [Qisqa taom nomi]
-• [Ingredient 1 + miqdori]
-- Tayyorlash: [Qisqa va tushunarli retsept]
+🥣 Nonushta: [Taom nomi va kkal]
+• [Masalliqlar ro'yxati]
+- Tayyorlanishi: [1-2 gapda aniq tushuntirish]
+- ⏱ [Vaqt] | 💰 [Narx darajasi] | 🏠
 
-🍛 Tushlik: [Qisqa taom nomi]
-• [Ingredient 1 + miqdori]
-• [Qo'shimcha]
-- Tayyorlash: [Qisqa va tushunarli retsept]
+🍎 Tamaddi: [Nomi va kkal]
+• [Masalliq]
+- Tayyorlanishi: [Qisqa yo'riqnoma]
 
-🥗 Kechki ovqat: [Qisqa taom nomi]
-• [Ingredient 1 + miqdori]
-- Tayyorlash: [Qisqa va tushunarli retsept]
+🍛 Tushlik: [Taom nomi va kkal]
+• [Masalliqlar]
+- Tayyorlanishi: [Qisqa retsept]
+- ⏱ [Vaqt] | 💰 [Narx] | 🍲
 
-💬 [Qisqa motivatsion gap 1 gap]
+🥗 Kechki ovqat: [Taom nomi va kkal]
+• [Masalliqlar]
+- Tayyorlanishi: [Qisqa retsept]
+- ⏱ [Vaqt] | 💰 [Narx] | 🌙
 
-⚠️ MUHIM QOIDALAR:
-1. Har kungi kaloriya {goal_uz} maqsadiga mos kelishi kerak
-2. O'zbek oshxonasiga mos mahsulotlar (guruch, tovuq, tuxum, sabzavotlar)
-3. Tayyorlash ketma-ketligi JUDA QISQA bo'lsin (1-2 gap maks)
-4. Motivatsion gap SIFATLI va AI-ga o'xshamasin
-5. Inglizcha so'zlarni ishlatmang - faqat O'zbek tili
-6. Emoji ishlatish: 🍽, 🥣, 🍛, 🥗, 💬
-7. 3 kun uchun 3 xil menyu
-8. Qimmat mahsulotlar emas, oddiy va arzon
+📊 Kun yakuni
+- 🔥 Jami kcal: [XXXX]
+- 🎯 Maqsad: {goal_uz} uchun mos
+- ✅ [Qisqa xulosa 1 gap]
 
-Javob faqat matn ko'rinishida"""
+TALABLAR:
+1. O'zbek tilida so'zlashuv uslubida, tushunarli yozing.
+2. Tarkibida O'zbekistonda bor mahsulotlar bo'lsin.
+3. Tayyorlash jarayoni juda qisqa va aniq bo'lsin.
+4. AI haqida gapirmang, faqat reja.
+5. 1 kunlik reja tuzing.
+"""
 
     response_text = call_gemini(prompt)
     
