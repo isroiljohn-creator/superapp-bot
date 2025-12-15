@@ -223,15 +223,13 @@ def show_daily_workout(bot, user_id, link_data, override_day_idx=None):
         txt = f"🏋️ **{day_idx}-KUN** (Jami {total_days} kun)\n"
         txt += f"🎯 **Fokus:** {day_data.get('focus', 'Umumiy')}\n\n"
         
-        # Disable web preview to keep message clean, or enable if desired
         exercises_text = day_data.get('exercises', '-')
         
-        # Ensure proper link formatting if AI didn't format it
-        # (Though AI is instructed to output raw URLs which Telegram detects)
+        # Display the AI-generated HTML directly
         txt += f"{exercises_text}"
         
-        # Add visual separator
-        txt += "\n\n_______________________\n💡 <i>Videoni ko'rish uchun havolani bosing</i>"
+        # Add visual separator (optional)
+        txt += "\n\n_______________________"
             
         # Buttons
         markup = InlineKeyboardMarkup()

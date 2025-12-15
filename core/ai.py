@@ -774,6 +774,8 @@ Vazifangiz: Quyidagi MASHQLAR KUTUBXONASIDAN foydalanib, 7 kunlik amaliy reja tu
 
 {get_exercises_string()}
 
+{get_exercises_string()}
+
 Javob formati: FAQAT JSON.
 
 Kutilgan JSON tuzilishi:
@@ -781,15 +783,20 @@ Kutilgan JSON tuzilishi:
   "schedule": [
     {{
       "day": 1,
-      "focus": "Upper Body",
-      "exercises": "<b>Isitish:</b>\\n• Qo'l aylantirish - 2 daqiqa\\n• Yengil otjimaniya - 10 ta\\n\\n<b>Asosiy:</b>\\n1. Push-Up Variations — 3x12\\n🎥 https://www.instagram.com/reel/DSGoaepkcf6/\\n\\n2. Overhead Shoulder Press — 3x10\\n🎥 https://www.instagram.com/reel/DMjSbxkNkBz/\\n\\n<b>Sovutish:</b>\\n• Yelka va ko'krakni cho'zish"
+      "focus": "Upper Body (Kuch + Mushak)",
+      "exercises": "🔹 <b>Razminka (5 daqiqa)</b>\\nMashqdan oldin:\\n• Yelka aylantirish – 1 daq\\n• Yengil push-up – 10x\\n\\n💪 <b>Asosiy mashqlar</b>\\n\\n1️⃣ <b>Push-Up Variations</b>\\n📌 Ko‘krak mushaklari\\n🔁 3 set × 12 marta\\n⏸ Dam: 60 soniya\\n🎥 <a href='https://www.instagram.com/reel/DSGoaepkcf6/'>Video darslik</a>\\n\\n2️⃣ <b>Shoulder Press</b>\\n📌 Yelka\\n🔁 3 set × 10 marta\\n⏸ Dam: 60 sek\\n🎥 <a href='https://www.instagram.com/reel/DMjSbxkNkBz/'>Video darslik</a>\\n\\n🧘‍♂️ <b>Sovitish</b>\\n• Qo‘l va yelkani cho‘zish"
     }},
     ... (jami 7 kun: 3-4 kun mashq, 1-2 kun faol dam olish, 1 kun to'liq dam olish)
   ]
 }}
 
-Dam olish kunlari uchun "exercises" maydoniga "Dam olish kuni 💤" deb yozing.
-DIQQAT: "schedule" arrayida roppa-rosa 7 ta element bo'lishi SHART. Kam bo'lmasin.
+Dam olish kunlari uchun "exercises" maydoniga:
+"🛌 <b>Bugun dam olish kuni!</b>\\n\\nMuskullar o'sishi uchun tiklanish muhim. Yaxshilab uxlang va suv iching. 💧" deb yozing.
+
+DIQQAT:
+1. "🎥 <a href='URL'>Video darslik</a>" formatidan foydalaning (HTML link).
+2. Har bir mashq orasida bo'sh qator tashlang.
+3. Emojilarni aynan shu ko'rinishda ishlating.
 """
 
     # 2. User Prompt (Context)
