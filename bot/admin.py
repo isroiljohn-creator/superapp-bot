@@ -1,5 +1,6 @@
 import os
 from telebot import types
+import time
 from core.db import db
 from core.content import content_manager
 from dotenv import load_dotenv
@@ -565,7 +566,6 @@ def _broadcast_worker(message, bot, segment):
             except: pass
             
             offset += BATCH_SIZE
-            import time
             time.sleep(1) # Sleep between batches to be nice to API limits
             
         bot.send_message(message.chat.id, f"🏁 Tugadi!\n✅ Muvaffaqiyatli: {success}\n❌ Yetib bormadi: {failed}")
