@@ -1,5 +1,5 @@
 from backend.database import get_sync_db, init_db_sync
-from backend.models import User, DailyLog, Plan, Transaction, Feedback, Order, ActivityLog, CalorieLog, WorkoutCache, MenuCache, AdminLog, MenuTemplate, UserMenuLink
+from backend.models import User, DailyLog, Plan, Transaction, Feedback, Order, ActivityLog, CalorieLog, WorkoutCache, MenuCache, AdminLog, MenuTemplate, UserMenuLink, WorkoutTemplate, UserWorkoutLink
 from sqlalchemy import func, desc, and_, or_
 from datetime import datetime, timedelta
 import json
@@ -300,14 +300,18 @@ class Database:
             return True
 
     def clear_all_workout_caches(self):
-        """Deletes all entries from the WorkoutCache table."""
+        """Deletes all entries from WorkoutCache, WorkoutTemplate, and UserWorkoutLink."""
         with get_sync_db() as session:
             try:
-                deleted = session.query(WorkoutCache).delete()
+                # Delete logic: Links first (FK), then Templates
+                d1 = session.query(UserWorkoutLink).delete()
+                d2 = session.query(WorkoutTemplate).delete()
+                d3 = session.query(WorkoutCache).delete() # Legacy
+                
                 session.commit()
-                return deleted
+                return d1 + d2 + d3
             except Exception as e:
-                print(f"Error clearing workout cache: {e}")
+                print(f"Error clearing workout tables: {e}")
                 return 0
 
 
