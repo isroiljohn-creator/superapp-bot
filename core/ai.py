@@ -643,10 +643,7 @@ Talablar:
             import ast
             data = ast.literal_eval(clean_json)
             return data
-        except:
-            import ast
-            data = ast.literal_eval(clean_json)
-            return data
+
     except Exception as e:
         print(f"DEBUG: Model {model_name} failed: {e}")
         # RE-RAISE THE EXACT ERROR so bot/workout.py displays it
