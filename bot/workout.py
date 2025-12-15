@@ -220,8 +220,22 @@ def show_daily_workout(bot, user_id, link_data, override_day_idx=None):
         # Format Message
         # { "day": 1, "focus": "...", "exercises": "..." }
         
+        focus_uu = day_data.get('focus', 'Umumiy')
+        
+        # Helper map to ensure Uzbek (fallback)
+        tr_map = {
+            "Upper Body": "Yuqori Tana",
+            "Lower Body": "Pastki Tana",
+            "Full Body": "Butun Tana",
+            "Core": "Press / Bel",
+            "Cardio": "Kardio",
+            "Rest": "Dam olish"
+        }
+        # If the AI returns English, map it. If it returns Uzbek, keep it.
+        final_focus = tr_map.get(focus_uu, focus_uu)
+        
         txt = f"🏋️ **{day_idx}-KUN** (Jami {total_days} kun)\n"
-        txt += f"🎯 **Fokus:** {day_data.get('focus', 'Umumiy')}\n\n"
+        txt += f"🎯 **Fokus:** {final_focus}\n\n"
         
         exercises_text = day_data.get('exercises', '-')
         

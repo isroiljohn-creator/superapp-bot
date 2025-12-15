@@ -849,7 +849,7 @@ OUTPUT FORMAT: JSON ONLY
   "schedule": [
     {{
       "day": 1,
-      "focus": "Upper Body",
+      "focus": "Yuqori Tana",
       "exercises": "...formatted string as above..."
     }},
     ... (for 7 days)
