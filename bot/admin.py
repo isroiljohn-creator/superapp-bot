@@ -25,6 +25,7 @@ def register_handlers(bot):
             types.KeyboardButton("👥 Foydalanuvchilar"),
             types.KeyboardButton("📤 Xabar yuborish"),
             types.KeyboardButton("💳 Obunalar"),
+            types.KeyboardButton("🗑 AI Bazani Tozalash"),
             types.KeyboardButton("👨‍💻 Dasturchi")
         )
         bot.send_message(message.chat.id, "👨‍💼 **Admin Panel**", reply_markup=markup, parse_mode="Markdown")
@@ -302,30 +303,84 @@ def register_handlers(bot):
              
     @bot.callback_query_handler(func=lambda call: call.data == "admin_backup_btn")
     def admin_backup_callback(call):
+        if call.from_user.id not in ADMIN_IDS: return
+        bot.answer_callback_query(call.id)
+        
+        # Provide manual backup instructions
+        text = (
+            "📦 <b>Database Backup</b>\n\n"
+            "Railway-da pg_dump mavjud emas.\n\n"
+            "<b>Qo'lda backup:</b>\n"
+            "1. Railway dashboard ochish\n"
+            "2. PostgreSQL plugin → Data → Export\n"
+            "3. Yoki local: railway run pg_dump\n\n"
+            "Backup fayl <code>backups/</code> papkaga saqlanadi."
+        )
+        bot.send_message(call.message.chat.id, text, parse_mode="HTML")
+    
+    # AI Database Cleanup Handler
+    @bot.message_handler(func=lambda message: "AI Bazani Tozalash" in message.text)
+    def admin_clear_ai_data(message):
+        if message.from_user.id not in ADMIN_IDS:
+            return
+        
+        # Confirmation markup
+        markup = types.InlineKeyboardMarkup(row_width=2)
+        markup.add(
+            types.InlineKeyboardButton("✅ Ha, tozala", callback_data="confirm_clear_ai"),
+            types.InlineKeyboardButton("❌ Bekor qilish", callback_data="cancel_clear_ai")
+        )
+        
+        text = (
+            "🗑 <b>AI Bazani Tozalash</b>\n\n"
+            "⚠️ <b>OGOHLANTIRISH:</b>\n"
+            "Bu barcha AI-generatsiya qilingan ma'lumotlarni o'chiradi:\n\n"
+            "• 🏋️ Barcha AI workout rejalari\n"
+            "• 🥗 Barcha AI meal rejalari\n"
+            "• 📅 Barcha daily plans\n\n"
+            "Bu amal <b>QAYTARIB BO'LMAYDI!</b>\n\n"
+            "Davom etishni xohlaysizmi?"
+        )
+        
+        bot.send_message(message.chat.id, text, reply_markup=markup, parse_mode="HTML")
+    
+    @bot.callback_query_handler(func=lambda call: call.data == "confirm_clear_ai")
+    def confirm_clear_ai_callback(call):
+        if call.from_user.id not in ADMIN_IDS:
+            bot.answer_callback_query(call.id, "Huquq yo'q", show_alert=True)
+            return
+        
+        bot.answer_callback_query(call.id, "Tozalanmoqda...")
+        
         try:
-            if call.from_user.id in ADMIN_IDS:
-                 bot.answer_callback_query(call.id)
-                 
-                 # Railway doesn't have pg_dump, show manual backup instructions
-                 text = (
-                     "📦 <b>Database Backup</b>\n\n"
-                     "<b>Avtomatik backup:</b>\n"
-                     "Har kuni 03:00 da avtomatik backup yaratiladi.\n\n"
-                     "<b>Qo'lda backup:</b>\n"
-                     "1. Railway dashboard → Data → Export\n"
-                     "2. Yoki pg_dump local ishlatish:\n"
-                     "<code>pg_dump $DATABASE_URL > backup.sql</code>\n\n"
-                     "⚠️ Railway containerida pg_dump o'rnatilmagan."
-                 )
-                 bot.send_message(call.message.chat.id, text, parse_mode="HTML")
-            else:
-                 bot.answer_callback_query(call.id, "Huquq yo'q", show_alert=True)
+            # Clear AI data from database
+            deleted_workouts = db.clear_all_workouts()
+            deleted_meals = db.clear_all_meals()
+            deleted_plans = db.clear_all_daily_plans()
+            
+            text = (
+                "✅ <b>AI Baza Tozalandi!</b>\n\n"
+                f"🏋️ Workout rejalar: {deleted_workouts} ta\n"
+                f"🥗 Meal rejalar: {deleted_meals} ta\n"
+                f"📅 Daily plans: {deleted_plans} ta\n\n"
+                "Barcha AI ma'lumotlar o'chirildi."
+            )
+            
+            bot.edit_message_text(text, call.message.chat.id, call.message.message_id, parse_mode="HTML")
         except Exception as e:
-            print(f"Callback Error backup: {e}")
             import traceback
             traceback.print_exc()
-            bot.answer_callback_query(call.id, "Xatolik")
-             
+            bot.edit_message_text(
+                f"❌ Xatolik: {str(e)[:100]}",
+                call.message.chat.id,
+                call.message.message_id
+            )
+    
+    @bot.callback_query_handler(func=lambda call: call.data == "cancel_clear_ai")
+    def cancel_clear_ai_callback(call):
+        if call.from_user.id not in ADMIN_IDS: return
+        bot.answer_callback_query(call.id)
+        bot.edit_message_text("❌ Bekor qilindi.", call.message.chat.id, call.message.message_id)
     # Helper function for flags interface (defined early for scope)
     def show_flags_interface(chat_id):
         """Helper to display flags interface - works for both commands and callbacks"""

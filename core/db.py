@@ -1642,6 +1642,44 @@ class Database:
         except Exception as e:
             print(f"Error getting report users: {e}")
             return []
+    
+    def clear_all_workouts(self):
+        """Delete all AI-generated workouts"""
+        try:
+            with get_sync_db() as session:
+                from backend.models import UserWorkout
+                count = session.query(UserWorkout).count()
+                session.query(UserWorkout).delete()
+                session.commit() # Added commit for delete operation
+                return count
+        except Exception as e:
+            print(f"ERROR: Failed to clear workouts: {e}")
+            return 0
+    
+    def clear_all_meals(self):
+        """Delete all AI-generated meals"""
+        try:
+            with get_sync_db() as session:
+                from backend.models import UserMeal
+                count = session.query(UserMeal).count()
+                session.query(UserMeal).delete()
+                session.commit() # Added commit for delete operation
+                return count
+        except Exception as e:
+            print(f"ERROR: Failed to clear meals: {e}")
+            return 0
+    
+    def clear_all_daily_plans(self):
+        """Delete all daily plans"""
+        try:
+            with get_sync_db() as session:
+                from backend.models import DailyPlan
+                count = session.query(DailyPlan).count()
+                session.query(DailyPlan).delete()
+                session.commit() # Added commit for delete operation
+                return count
+        except Exception as e:
+            print(f"ERROR: Failed to clear daily plans: {e}")
+            return 0
 
 db = Database()
-
