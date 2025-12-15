@@ -288,23 +288,23 @@ def register_handlers(bot):
     def admin_flags_callback(call):
         try:
             if call.from_user.id in ADMIN_IDS:
-                 # Fetch flags (Mock for now or DB)
-                 flags = db.get_all_feature_flags() if hasattr(db, "get_all_feature_flags") else []
-                 txt = "🚩 **Feature Flags (Beta):**\n\n"
-                 if not flags:
-                     txt += "- Hozircha flaglar yo'q.\n"
-                 else:
-                     for f in flags:
-                         status = "✅" if f['enabled'] else "❌"
-                         txt += f"{status} {f['name']} ({f['rollout_percent']}%)\n"
+                 # Simple mock for Feature Flags
+                 txt = "🚩 **Feature Flags**\n\n"
+                 txt += "Hozircha flaglar mavjud emas.\n\n"
+                 txt += "Bo'lajak funksiyalar:\n"
+                 txt += "- retention_engine\n"
+                 txt += "- smart_recommendations\n"
+                 txt += "- ai_fallback_v2"
                  
                  bot.send_message(call.message.chat.id, txt, parse_mode="Markdown")
                  bot.answer_callback_query(call.id)
             else:
                  bot.answer_callback_query(call.id, "Huquq yo'q", show_alert=True)
         except Exception as e:
-            print(f"Callback Error: {e}")
-            bot.answer_callback_query(call.id, "Xatolik")
+            print(f"Callback Error admin_flags: {e}")
+            import traceback
+            traceback.print_exc()
+            bot.answer_callback_query(call.id, "Xatolik yuz berdi")
 
     @bot.message_handler(func=lambda message: "Foydalanuvchilar ro‘yxati" in message.text)
     def admin_user_list(message):
