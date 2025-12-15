@@ -22,7 +22,7 @@ def register_handlers(bot):
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
         markup.add(
             types.KeyboardButton("📊 Statistika"),
-            types.KeyboardButton("👥 Foydalanuvchilar ro‘yxati"),
+            types.KeyboardButton("👥 Foydalanuvchilar"),
             types.KeyboardButton("📨 Umumiy xabar"),
             types.KeyboardButton("🎯 Segment xabar"),
             types.KeyboardButton("💎 Premium foydalanuvchilar"),
@@ -365,17 +365,56 @@ def register_handlers(bot):
             traceback.print_exc()
             bot.answer_callback_query(call.id, "Xatolik yuz berdi")
 
-    @bot.message_handler(func=lambda message: "Foydalanuvchilar ro‘yxati" in message.text)
+    @bot.message_handler(func=lambda message: "Foydalanuvchilar" in message.text)
     def admin_user_list(message):
         if message.from_user.id not in ADMIN_IDS:
             return
         
-        show_user_list_page(message.chat.id, 1, bot)
+        # Show category submenu
+        markup = types.InlineKeyboardMarkup(row_width=2)
+        markup.add(
+            types.InlineKeyboardButton("💎 Premium", callback_data="users_cat_premium"),
+            types.InlineKeyboardButton("👑 VIP", callback_data="users_cat_vip")
+        )
+        markup.add(
+            types.InlineKeyboardButton("🆓 Bepul", callback_data="users_cat_free"),
+            types.InlineKeyboardButton("🔗 TOP 10 Referallar", callback_data="users_cat_top_ref")
+        )
+        markup.add(
+            types.InlineKeyboardButton("⏸ Ro'yxatdan o'tmagan", callback_data="users_cat_incomplete"),
+            types.InlineKeyboardButton("👥 Barcha", callback_data="users_cat_all")
+        )
+        
+        bot.send_message(
+            message.chat.id, 
+            "👥 <b>Foydalanuvchilar</b>\n\nKategoriyani tanlang:",
+            reply_markup=markup,
+            parse_mode="HTML"
+        )
 
-    def show_user_list_page(chat_id, page, bot, message_id=None):
+    def show_user_list_page(chat_id, page, bot, message_id=None, category="all"):
         try:
-            PAGE_SIZE = 10  # Reduced for more detailed view
-            users, total_count = db.get_users_paginated(page, PAGE_SIZE)
+            PAGE_SIZE = 10
+            
+            #Get filtered users based on category
+            if category == "premium":
+                users, total_count = db.get_premium_users_paginated(page, PAGE_SIZE)
+                cat_title = "💎 Premium"
+            elif category == "vip":
+                users, total_count = db.get_vip_users_paginated(page, PAGE_SIZE)
+                cat_title = "👑 VIP"
+            elif category == "free":
+                users, total_count = db.get_free_users_paginated(page, PAGE_SIZE)
+                cat_title = "🆓 Bepul"
+            elif category == "top_ref":
+                users, total_count = db.get_top_referrers(10), 10
+                cat_title = "🔗 TOP 10 Referallar"
+            elif category == "incomplete":
+                users, total_count = db.get_incomplete_users_paginated(page, PAGE_SIZE)
+                cat_title = "⏸ Ro'yxatdan o'tmagan"
+            else: # all
+                users, total_count = db.get_users_paginated(page, PAGE_SIZE)
+                cat_title = "👥 Barcha"
             
             if not users:
                 text = "👥 Foydalanuvchilar topilmadi."
@@ -387,7 +426,7 @@ def register_handlers(bot):
 
             total_pages = (total_count + PAGE_SIZE - 1) // PAGE_SIZE
             
-            text = f"👥 <b>Foydalanuvchilar</b> (Jami: {total_count})\nSahifa: {page}/{total_pages}\n\n"
+            text = f"{cat_title} <b>Foydalanuvchilar</b> (Jami: {total_count})\nSahifa: {page}/{total_pages}\n\n"
             
             for i, user in enumerate(users, 1):
                 uid = user.get('telegram_id', 'N/A')
@@ -467,6 +506,19 @@ def register_handlers(bot):
             else:
                 bot.send_message(chat_id, error_text)
 
+    # Category handlers
+    @bot.callback_query_handler(func=lambda call: call.data.startswith("users_cat_"))
+    def handle_user_category(call):
+        if call.from_user.id not in ADMIN_IDS:
+            bot.answer_callback_query(call.id, "Huquq yo'q", show_alert=True)
+            return
+        
+        bot.answer_callback_query(call.id)
+        category = call.data.replace("users_cat_", "")
+        
+        # Show first page of selected category
+        show_user_list_page(call.message.chat.id, 1, bot, message_id=call.message.message_id, category=category)
+    
     @bot.callback_query_handler(func=lambda call: call.data.startswith("admin_users_page_"))
     def handle_user_pagination(call):
         if call.from_user.id not in ADMIN_IDS:
