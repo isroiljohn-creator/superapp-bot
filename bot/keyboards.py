@@ -177,8 +177,10 @@ def ai_coach_inline_keyboard():
         InlineKeyboardButton("🔥 AI retsept tuzsin", callback_data="ai_sub_recipe"),
         InlineKeyboardButton("🛒 Nima xarid qilay?", callback_data="ai_sub_shopping")
     )
-    markup.add(InlineKeyboardButton("❓ Murabbiyga savolim bor", callback_data="ai_sub_qa"))
-    markup.add(InlineKeyboardButton("❌ Yopish", callback_data="ai_sub_close"))
+    markup.add(
+        InlineKeyboardButton("❓ Murabbiyga savolim bor", callback_data="ai_sub_qa"),
+        InlineKeyboardButton("⬅️ Orqaga", callback_data="ai_sub_close")
+    )
     return markup
 
 def challenges_submenu_keyboard():
