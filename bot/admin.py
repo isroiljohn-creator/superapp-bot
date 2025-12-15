@@ -886,14 +886,17 @@ def register_content_handlers(bot):
         if message.from_user.id not in ADMIN_IDS: return
         
         try:
-            stats = db.get_analytics_summary()
-            
-            text = (
-                "📊 <b>Mini Analytics</b> (24h)\n\n"
-                f"👥 DAU (Active Users): <b>{stats['dau']}</b>\n"
-                f"🚨 Error Rate: <b>{stats['error_rate_24h']}%</b> ({stats['errors_24h']}/{stats['total_events_24h']})\n"
-                f"🕒 Server Time: {datetime.datetime.utcnow().strftime('%H:%M')}\n"
-            )
+            if hasattr(db, 'get_analytics_summary'):
+                stats = db.get_analytics_summary()
+                
+                text = (
+                    "📊 <b>Mini Analytics</b> (24h)\n\n"
+                    f"👥 DAU (Active Users): <b>{stats.get('dau', 0)}</b>\n"
+                    f"🚨 Error Rate: <b>{stats.get('error_rate_24h', 0)}%</b> ({stats.get('errors_24h', 0)}/{stats.get('total_events_24h', 0)})\n"
+                    f"🕒 Server Time: {datetime.datetime.utcnow().strftime('%H:%M')}\n"
+                )
+            else:
+                text = "📊 <b>Analytics</b>\n\nHozircha analytics funksiyasi mavjud emas."
             
             bot.send_message(message.chat.id, text, parse_mode="HTML")
         except Exception as e:
