@@ -24,7 +24,23 @@ bot = telebot.TeleBot(BOT_TOKEN, num_threads=5)
 def main():
     print("🚀 Fitness AI Bot ishga tushmoqda...")
     
-    # Initialize Database
+    # Run Migrations (Alembic)
+    try:
+        print("🔄 Migratsiyalar tekshirilmoqda...")
+        import subprocess
+        # Run "alembic upgrade head"
+        # We capture output to avoid spamming logs unless error
+        result = subprocess.run(["alembic", "upgrade", "head"], capture_output=True, text=True)
+        if result.returncode == 0:
+            print("✅ Migratsiyalar muvaffaqiyatli yakunlandi.")
+        else:
+            print(f"❌ Migratsiya Xatoligi:\n{result.stderr}")
+            # We don't exit here because sometimes tables exist but alembic history is missing (if partial migration issue).
+            # But in production usually we want to know.
+    except Exception as e:
+        print(f"❌ Migratsiya jarayonida xatolik: {e}")
+
+    # Initialize Database (Sync, legacy check if needed)
     db.init_db()
     print("✅ Database ulandi.")
     

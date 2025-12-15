@@ -961,6 +961,7 @@ class Database:
             if not user:
                 user = User(telegram_id=user_id, username=username, active=True)
                 session.add(user)
+                session.commit()
                 return True
             return False
 
