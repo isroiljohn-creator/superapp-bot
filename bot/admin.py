@@ -249,38 +249,62 @@ def register_handlers(bot):
     
     @bot.callback_query_handler(func=lambda call: call.data == "admin_analytics_btn")
     def admin_analytics_callback(call):
-        if call.from_user.id in ADMIN_IDS:
-             # Call logic manually
-             admin_stats(call.message)
-             bot.answer_callback_query(call.id)
+        try:
+            if call.from_user.id in ADMIN_IDS:
+                 # Call logic manually
+                 admin_stats(call.message)
+                 bot.answer_callback_query(call.id)
+            else:
+                 bot.answer_callback_query(call.id, "Huquq yo'q", show_alert=True)
+        except Exception as e:
+            print(f"Callback Error: {e}")
+            bot.answer_callback_query(call.id, "Xatolik")
 
     @bot.callback_query_handler(func=lambda call: call.data == "admin_broadcast_btn")
     def admin_broadcast_callback(call):
-        if call.from_user.id in ADMIN_IDS:
-             admin_broadcast_start(call.message)
-             bot.answer_callback_query(call.id)
+        try:
+            if call.from_user.id in ADMIN_IDS:
+                 admin_broadcast_start(call.message)
+                 bot.answer_callback_query(call.id)
+            else:
+                 bot.answer_callback_query(call.id, "Huquq yo'q", show_alert=True)
+        except Exception as e:
+            print(f"Callback Error: {e}")
+            bot.answer_callback_query(call.id, "Xatolik")
              
     @bot.callback_query_handler(func=lambda call: call.data == "admin_backup_btn")
     def admin_backup_callback(call):
-        if call.from_user.id in ADMIN_IDS:
-             bot.send_message(call.message.chat.id, "📦 Backup: Hozircha bu funksiya avtomatlashmagan. Database.dump ishlatilishi kerak.")
-             bot.answer_callback_query(call.id, "Tez orada...")
+        try:
+            if call.from_user.id in ADMIN_IDS:
+                 bot.send_message(call.message.chat.id, "📦 Backup: Hozircha bu funksiya avtomatlashmagan. Database.dump ishlatilishi kerak.")
+                 bot.answer_callback_query(call.id, "Tez orada...")
+            else:
+                 bot.answer_callback_query(call.id, "Huquq yo'q", show_alert=True)
+        except Exception as e:
+            print(f"Callback Error: {e}")
+            bot.answer_callback_query(call.id, "Xatolik")
              
     @bot.callback_query_handler(func=lambda call: call.data == "admin_flags_btn")
     def admin_flags_callback(call):
-        if call.from_user.id in ADMIN_IDS:
-             # Fetch flags (Mock for now or DB)
-             flags = db.get_all_feature_flags() if hasattr(db, "get_all_feature_flags") else []
-             txt = "🚩 **Feature Flags (Beta):**\n\n"
-             if not flags:
-                 txt += "- Hozircha flaglar yo'q.\n"
-             else:
-                 for f in flags:
-                     status = "✅" if f['enabled'] else "❌"
-                     txt += f"{status} {f['name']} ({f['rollout_percent']}%)\n"
-             
-             bot.send_message(call.message.chat.id, txt, parse_mode="Markdown")
-             bot.answer_callback_query(call.id)
+        try:
+            if call.from_user.id in ADMIN_IDS:
+                 # Fetch flags (Mock for now or DB)
+                 flags = db.get_all_feature_flags() if hasattr(db, "get_all_feature_flags") else []
+                 txt = "🚩 **Feature Flags (Beta):**\n\n"
+                 if not flags:
+                     txt += "- Hozircha flaglar yo'q.\n"
+                 else:
+                     for f in flags:
+                         status = "✅" if f['enabled'] else "❌"
+                         txt += f"{status} {f['name']} ({f['rollout_percent']}%)\n"
+                 
+                 bot.send_message(call.message.chat.id, txt, parse_mode="Markdown")
+                 bot.answer_callback_query(call.id)
+            else:
+                 bot.answer_callback_query(call.id, "Huquq yo'q", show_alert=True)
+        except Exception as e:
+            print(f"Callback Error: {e}")
+            bot.answer_callback_query(call.id, "Xatolik")
 
     @bot.message_handler(func=lambda message: "Foydalanuvchilar ro‘yxati" in message.text)
     def admin_user_list(message):

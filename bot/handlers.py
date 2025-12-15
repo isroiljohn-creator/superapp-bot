@@ -45,9 +45,18 @@ def register_all_handlers(bot):
     admin.register_handlers(bot)
     
     # --- Developer Menu Handler ---
+    @bot.message_handler(commands=['debug_ids'])
+    def debug_ids_command(message):
+        uid = message.from_user.id
+        txt = f"👤 ID: `{uid}`\n"
+        txt += f"📋 Admins: `{ADMIN_IDS}`\n"
+        txt += f"✅ Is Admin? {uid in ADMIN_IDS}"
+        bot.send_message(message.chat.id, txt, parse_mode="Markdown")
+
     @bot.message_handler(func=lambda message: message.text == "👨‍💻 Dasturchi")
     def developer_menu(message):
         if message.from_user.id in ADMIN_IDS:
+             # ... existing code ...
             # Show Inline Keyboard with Admin Commands
             markup = types.InlineKeyboardMarkup(row_width=2)
             markup.add(
