@@ -84,13 +84,17 @@ class Database:
                         conn.commit()
                     except Exception as e: print(e)
 
-                if 'steps_reward_claimed' not in inspector.get_columns('daily_logs'):
+                # Fix: Check columns properly (inspector returns list of dicts)
+                existing_columns_logs = [c['name'] for c in inspector.get_columns('daily_logs')]
+                if 'steps_reward_claimed' not in existing_columns_logs:
                     try:
                         conn.execute(text("ALTER TABLE daily_logs ADD COLUMN steps_reward_claimed BOOLEAN DEFAULT FALSE"))
                         conn.commit()
                         print("Migrated: steps_reward_claimed")
                     except Exception as e:
-                        print(f"Migration error (steps_reward_claimed): {e}")
+                        # Ignore if exists (race condition)
+                        if "already exists" not in str(e):
+                             print(f"Migration error (steps_reward_claimed): {e}")
                 
                 # 4. Migrate Legacy Premium to VIP
                 try:
