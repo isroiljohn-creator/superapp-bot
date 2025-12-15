@@ -6,8 +6,87 @@ from core.observability import track_latency # IMPORTED
 from core.db import db
 
 def register_all_handlers(bot):
-    # ... (existing middleware) ...
-    # ...
+    # --- Global Logging Middleware ---
+    def log_middleware(bot_instance, update):
+        try:
+            user_id = None
+            content = ""
+            type_ = ""
+            
+            if hasattr(update, 'message') and update.message:
+                # CallbackQuery
+                user_id = update.from_user.id
+                content = f"Callback: {update.data}"
+                type_ = "callback"
+            elif hasattr(update, 'text'):
+                # Message
+                user_id = update.from_user.id
+                content = update.text
+                type_ = "message"
+            
+            if user_id:
+                db.log_activity(user_id, type_, content)
+        except Exception as e:
+            print(f"Logging Error: {e}")
+
+    try:
+        bot.register_middleware_handler(log_middleware, update_types=['message', 'callback_query'])
+    except AttributeError:
+        print("Warning: register_middleware_handler not found. Logging might be limited.")
+
+    # --- Admin Handlers (Priority) ---
+    admin.register_handlers(bot)
+
+    # --- Calorie Handlers ---
+    @bot.message_handler(func=lambda message: message.text == "🍽 Kaloriya tahlili (premium)" or message.text == "🍽 Kaloriya skaneri" or message.text == "🍽 Kaloriya tahlili")
+    def calorie_handler(message):
+        calorie_scanner.show_calorie_menu(message, bot)
+
+    @bot.message_handler(content_types=['photo'])
+    def photo_handler(message):
+        # Check for calorie scanner state
+        state = onboarding.manager.get_state(message.from_user.id)
+        if state == calorie_scanner.STATE_CALORIE_PHOTO:
+            calorie_scanner.handle_calorie_photo(message, bot)
+            return
+        pass
+
+    # --- Main Menu Navigation ---
+    @bot.message_handler(func=lambda message: message.text == "⬅️ Asosiy menyu")
+    def back_to_main(message):
+        bot.send_message(message.chat.id, "🏠 Asosiy menyu", reply_markup=main_menu_keyboard())
+
+    @bot.message_handler(func=lambda message: message.text == "⬅️ Premium menyu")
+    def back_to_premium(message):
+        premium.handle_premium_menu(message, bot)
+
+    @bot.message_handler(func=lambda message: message.text == "📆 Kunlik odatlar")
+    def menu_habits(message):
+        trackers.handle_habits_menu(message, bot)
+
+    @bot.message_handler(func=lambda message: message.text == "🤖 AI murabbiy")
+    def menu_ai(message):
+        ai_features.handle_ai_tools_menu(message, bot)
+
+    @bot.message_handler(func=lambda message: message.text == "🔗 Referal")
+    def menu_referral(message):
+        gamification.handle_referral_link(message, bot)
+
+    @bot.message_handler(func=lambda message: message.text == "🔥 Chellenjlar")
+    def menu_challenges(message):
+        challenges.handle_challenges_menu(message, bot)
+
+    @bot.message_handler(func=lambda message: message.text == "👤 Profil")
+    def menu_profile(message):
+        profile.handle_profile(message, bot)
+
+    @bot.message_handler(func=lambda message: message.text in ["💳 Obuna", "💎 Premium"])
+    def menu_premium(message):
+        premium.handle_premium_menu(message, bot)
+
+    @bot.message_handler(func=lambda message: message.text == "📩 Qayta aloqa")
+    def menu_feedback(message):
+        feedback.handle_feedback_start(message, bot)
 
     # --- Sub-Menu Handlers ---
 
