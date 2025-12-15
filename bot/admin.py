@@ -1313,7 +1313,7 @@ def register_content_handlers(bot):
                 bot.send_message(message.chat.id, "❌ Matn bo'lishi kerak.")
                 return
                 
-            content_manager.update(key, new_text)
+            content_manager.set(key, new_text)
             label = CONTENT_LABELS.get(key, key)
             bot.send_message(message.chat.id, f"✅ <b>{label}</b> saqlandi!", parse_mode="HTML")
         except Exception as e:
