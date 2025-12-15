@@ -1449,5 +1449,32 @@ class Database:
             print(f"Error updating workout day: {e}")
             return 1
 
+    def get_users_for_report(self, mod_days=7):
+        """
+        Get users who joined exactly X*mod_days ago.
+        Uses native SQL for efficiency.
+        """
+        from backend.models import User
+        from sqlalchemy import text
+        try:
+            with get_sync_db() as session:
+                # PostgreSQL specific: Check if (current_date - created_at_date) % mod == 0
+                # And created_at is not null
+                # We use raw sql for date math
+                query = text("""
+                    SELECT telegram_id, full_name, created_at 
+                    FROM users 
+                    WHERE active = true 
+                    AND created_at IS NOT NULL
+                    AND (CURRENT_DATE - DATE(created_at)) > 0
+                    AND (CURRENT_DATE - DATE(created_at)) % :mod = 0
+                """)
+                result = session.execute(query, {"mod": mod_days}).fetchall()
+                # Convert to dict list
+                return [{"telegram_id": r[0], "full_name": r[1], "created_at": r[2]} for r in result]
+        except Exception as e:
+            print(f"Error getting report users: {e}")
+            return []
+
 db = Database()
 

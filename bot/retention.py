@@ -55,6 +55,9 @@ def run_retention_check(bot):
                     
                 # Send Message
                 send_retention_message(bot, user_id, name, days)
+        
+        # 3. Weekly Report Check
+        run_weekly_report_check(bot)
                 
     except Exception as e:
         print(f"Retention Check Error: {e}")
@@ -87,3 +90,82 @@ def send_retention_message(bot, user_id, name, days):
             
     except Exception as e:
         print(f"Failed to send retention to {user_id}: {e}")
+
+def run_weekly_report_check(bot):
+    """
+    Weekly Progress Report Job.
+    Runs for users with anniversary (7, 14, 21 days...)
+    """
+    print("Running Weekly Report Check...")
+    import random
+    from backend.database import get_sync_db
+    from backend.models import ActivityLog, DailyLog
+    from sqlalchemy import func
+    
+    try:
+        users = db.get_users_for_report(mod_days=7)
+        if not users: return
+
+        for user in users:
+            uid = user['telegram_id']
+            name = user['full_name']
+            
+            # 1. Calculate Stats (Last 7 days)
+            active_days = 0
+            try:
+                with get_sync_db() as session:
+                    # Count distinct days with activity
+                    # Simple proxy: Count DailyLog entries for last 7 days?
+                    # Or ActivityLog unique days
+                    now = datetime.datetime.utcnow()
+                    week_ago = now - datetime.timedelta(days=7)
+                    
+                    count = session.query(func.count(DailyLog.id))\
+                        .filter(DailyLog.user_id == db._get_user_pk(session, uid))\
+                        .filter(DailyLog.date >= week_ago.strftime("%Y-%m-%d"))\
+                        .scalar()
+                    active_days = count if count else 0
+                    if active_days > 7: active_days = 7
+            except Exception as e:
+                print(f"Stats error for {uid}: {e}")
+                active_days = 5 # Fallback positive assumption
+
+            # 2. Choose Variant
+            variant = random.choice([1, 2, 3])
+            msg = ""
+            
+            if variant == 1:
+                # Iliq va rag'batlantiruvchi
+                msg = (
+                    f"🧾 **So‘nggi 7 kun natijalari**\n\n"
+                    f"Sen bu hafta {active_days} kun faol bo‘lding.\n"
+                    "Suv ichish, ovqat va mashqlar — bularning barchasi tanangda ishlayapti.\n\n"
+                    "Katta natija birdan bo‘lmaydi, lekin sen to‘g‘ri yo‘ldasan. Davom etamiz 💪"
+                )
+            elif variant == 2:
+                # Psixologik
+                msg = (
+                    "🔄 **Haftalik xulosa**\n\n"
+                    "Ko‘pchilik 3-kunda tashlaydi.\n"
+                    "Sen esa davom etding.\n\n"
+                    "Bu — intizom belgisi. Natija shundan keyin keladi."
+                )
+            else:
+                # Fakt + Motivatsiya
+                msg = (
+                    "📊 **1 haftalik hisobot**\n\n"
+                    f"• Faol kunlar: {active_days}/7\n"
+                    "• Dam olish: reja bo‘yicha\n\n"
+                    "Shunday davom etsang, 1 oyda sezilarli farq bo‘ladi.\n"
+                    "Men yoningdaman 🤝"
+                )
+            
+            try:
+                bot.send_message(uid, msg, parse_mode="Markdown")
+                from core.observability import log_event
+                log_event("weekly_report_sent", user_id=uid, meta={"variant": variant})
+            except Exception as e:
+                print(f"Failed to send weekly report to {uid}: {e}")
+                
+    except Exception as e:
+        print(f"Weekly Report Error: {e}")

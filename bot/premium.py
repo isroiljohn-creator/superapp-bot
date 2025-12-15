@@ -76,40 +76,48 @@ def handle_premium_info(message, bot):
     bot.send_message(message.chat.id, text, reply_markup=markup, parse_mode="HTML")
 
 def handle_premium_info_detailed(message, bot):
+    import random
+    
+    # 3 Variants of Sales Copy
+    variants = [
+        # Variant 1: Kamroq o'ylash
+        (
+            "💎 <b>Premium nimasi bilan qulay?</b>\n\n"
+            "Menyu va mashqlar avtomatik yangilanadi.\n"
+            "Sen har kuni “nima qilsam?” deb o‘ylamaysan.\n\n"
+            "Faqat bajarish qoladi."
+        ),
+        # Variant 2: Vaqtni sotish
+        (
+            "⏳ <b>Premium = vaqtni tejash</b>\n\n"
+            "Reja tuzish, hisoblash, tekshirish — bularni AI qiladi.\n"
+            "Sen esa natijaga fokus bo‘lasan."
+        ),
+        # Variant 3: Psixologik trigger
+        (
+            "<b>Ko‘p odamlar aynan shu joyda to‘xtab qoladi.</b>\n"
+            "Premium esa seni yarim yo‘lda tashlab ketmaslik uchun.\n"
+            "Bu — sening intizoming garovi."
+        )
+    ]
+    
+    intro_text = random.choice(variants)
+    
     text = (
-        "Bu yerda YASHA sizga qanchalik kuchli yordam berishini tanlaysiz. <b>Har bir tarif — boshqa daraja.</b>\n\n"
-        "<b>💎 PREMIUM — 49 000 so‘m / oy</b>\n\n"
-        "👉 Boshlash va tartibga tushish uchun ideal\n\n"
-        "Agar siz sog‘lom hayotni asta-sekin boshlamoqchi bo‘lsangiz — shu tarif yetarli.\n\n"
-        "<b>Nimalar kiradi:</b>\n"
-        "\t- ✅ AI Menyu — oyiga 1 marta (7 kunlik)\n"
-        "→ Vazningiz va maqsadingizga mos ovqatlanish rejasi\n"
-        "\t- ✅ AI Mashqlar — oyiga 1 marta\n"
-        "→ Uyda yoki zalda bajariladigan mashqlar\n"
-        "\t- ⚠️ Kaloriya tahlili — kuniga 3 marta\n"
-        "→ Nima yeyayotganingiz nazorat ostida\n"
-        "\t- ⚠️ AI Chat — kuniga 3 savol\n"
-        "→ Savollar cheklangan\n\n"
-        "<b>🔎 Kimlar uchun?</b>\n"
-        "Yangi boshlayotganlar va rejaga kirib olishni xohlaydiganlar.\n\n"
+        f"{intro_text}\n\n"
+        "〰️〰️〰️〰️〰️〰️〰️\n\n"
+        "<b>💎 PREMIUM — 49 000 so‘m / oy</b>\n"
+        "✅ AI Menyu (7 kunlik)\n"
+        "✅ AI Mashqlar (7 kunlik)\n"
+        "⚠️ Kaloriya tahlili (3x)\n"
+        "👉 Boshlash uchun ideal\n\n"
         
-        "<b>👑 VIP — 97 000 so‘m / oy</b>\n\n"
-        "👉 Natija, tezlik va to‘liq nazorat uchun\n\n"
-        "Bu tarif — o‘zingizga real sarmoya. Hech qanday cheklovsiz.\n\n"
-        "<b>Nimalar kiradi:</b>\n"
-        "\t- 🔥 AI Menyu — oyiga 4 marta (28 kunlik)\n"
-        "→ Deyarli har hafta yangilanadi\n"
-        "\t- 🔥 Cheksiz kaloriya tahlili\n"
-        "→ Istagancha surat yuboring\n"
-        "\t- 🔥 Cheksiz AI Chat\n"
-        "→ Savolingiz tugamaydi\n"
-        "\t- 🔥 Cheksiz AI Retseptlar\n"
-        "→ Uyda bor mahsulotlardan mos ovqat\n\n"
-        "<b>🚀 Kimlar uchun?</b>\n"
-        "Tez natija xohlaydiganlar, ozish yoki formaga kirishni jiddiy olganlar.\n\n"
-        "⚖️ Qisqa taqqoslash\n"
-        "\t- <b>PREMIUM</b> — boshlash uchun\n"
-        "\t- <b>VIP</b> — maksimal natija uchun\n\n"
+        "<b>👑 VIP — 97 000 so‘m / oy</b>\n"
+        "🔥 Oyiga 4 marta Menyu (28 kun)\n"
+        "🔥 Cheksiz Kaloriya tahlili\n"
+        "🔥 Cheksiz AI Chat/Retseptlar\n"
+        "👉 Maksimal natija uchun\n\n"
+        
         "<b>💳 To‘lov turlari:</b> Click · Payme · Uzum"
     )
     markup = types.InlineKeyboardMarkup()

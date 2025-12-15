@@ -426,35 +426,49 @@ def register_all_handlers(bot):
             link = db.get_user_menu_link(call.from_user.id)
             if not link:
                 bot.answer_callback_query(call.id, "Reja topilmadi.")
+                # Send CTA
+                markup = types.InlineKeyboardMarkup()
+                markup.add(types.InlineKeyboardButton("🍽 Menyu tuzish", callback_data="plan_ai_meal"))
+                bot.send_message(call.from_user.id, "🛒 Xaridlar ro'yxatini tuzish uchun avval Menyu yarating:", reply_markup=markup)
                 return
 
             import json
-            shopping_list = json.loads(link['shopping_list_json'])
+            raw_list = json.loads(link['shopping_list_json'])
             
-            if not shopping_list:
+            if not raw_list:
                 bot.answer_callback_query(call.id, "Shopping list bo'sh.")
                 return
-              # Debugging: Show internal state
-            menu = json.loads(link['menu_json'])
-            total_days = len(menu)
-            day2_preview = "Yo'q"
-            if total_days >= 2:
-                day2_preview = menu[1].get('breakfast', 'N/A')
-                
-            debug_msg = (
-                f"🛠 DEBUG SERVER:\n"
-                f"Jami kunlar: {total_days}\n"
-                f"Joriy kun (DB): {link['current_day_index']}\n"
-                f"2-kun bor? {day2_preview}\n"
-            )
+
+            txt = "🛒 <b>XARIDLAR RO'YXATI</b> (1-Hafta)\n\n"
             
-            # shopping list text logic...
-            s_list = json.loads(link['shopping_list_json'])
-            txt = f"{debug_msg}\n🛒 **Xaridlar ro'yxati:**\n\n"
-            for item in s_list:
-                txt += f"▫️ {item}\n"
+            # Check Format: List vs Dict
+            if isinstance(raw_list, list):
+                # OLD Format
+                txt += "<i>Eski formatdagi ro'yxat:</i>\n"
+                for item in raw_list:
+                     txt += f"▫️ {item}\n"
+            elif isinstance(raw_list, dict):
+                # NEW Categorized Format
+                categories = {
+                    "protein": "🥩 Oqsil (Go'sht/Tuxum)",
+                    "veg": "🥦 Sabzavot va Meva",
+                    "carbs": "🍚 Don mahsulotlari",
+                    "dairy": "🥛 Sut mahsulotlari",
+                    "misc": "🧂 Boshqa"
+                }
                 
-            bot.send_message(call.from_user.id, txt, parse_mode="Markdown")
+                for key, label in categories.items():
+                    items = raw_list.get(key, [])
+                    if items:
+                        txt += f"<b>{label}:</b>\n"
+                        for item in items:
+                            txt += f"▫️ {item}\n"
+                        txt += "\n"
+            
+            # Coach Advice (Shopping)
+            txt += "\n🧠 <b>Coach Maslahati:</b>\n<i>\"Bozorlikni oldindan qilsang, 'fastfood' seni ushlolmaydi 😄\"</i>"
+                
+            bot.send_message(call.from_user.id, txt, parse_mode="HTML")
             bot.answer_callback_query(call.id)
             
         except Exception as e:
@@ -620,19 +634,20 @@ def register_all_handlers(bot):
     def fallback_handler(message):
         """
         Catches any unhandled message when user is NOT in a specific state.
-        Redirects to Main Menu without crashing or resetting state.
+        Redirects to Main Menu with Coach Tone.
         """
         user_id = message.from_user.id
         current_state = onboarding.manager.get_state(user_id)
         
+        # If user is in onboarding flows (e.g. typing name), do NOT interrupt.
         if current_state != onboarding.STATE_NONE:
             return
 
         try:
+            # Coach Tone Response
             bot.send_message(
                 message.chat.id,
-                "🤷‍♂️ Uzr, men bu xabarni tushunmadim.\n\n"
-                "Iltimos, pastdagi menyudan kerakli bo‘limni tanlang 👇",
+                "Men seni tushundim 😄 Pastdagi bo‘limlardan birini tanla, men o‘sha yerda yordam beraman 👇",
                 reply_markup=main_menu_keyboard()
             )
         except Exception as e:

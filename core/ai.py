@@ -179,7 +179,7 @@ def get_profile_key(profile):
     age = int(profile.get('age', 25))
     age_band = f"{age // 5 * 5}-{(age // 5 * 5) + 4}"
     
-    return f"{profile.get('gender')}|{profile.get('goal')}|{profile.get('activity_level')}|{profile.get('allergies')}|{age_band}"
+    return f"{profile.get('gender')}|{profile.get('goal')}|{profile.get('activity_level')}|{profile.get('allergies')}|{age_band}|v2"
 
 # Usage Stats
 AI_USAGE_STATS = {
@@ -264,28 +264,23 @@ Vazn: {user_profile.get('weight')}
 Faollik darajasi: {user_profile.get('activity_level', 'Belgilanmagan')}
 
 🎯 Vazifa:
-Foydalanuvchiga uy sharoitida bajariladigan 3 kunlik mashq rejasi tuzing.
+Foydalanuvchiga 7 kunlik mashq rejasi tuzing.
 
 📌 FORMAT TALABLARI:
-- HTML ishlatma (<p>, <ul>, <li> yo‘q).
-- Muhim joylarni ajratish uchun **yulduzcha** (markdown) ishlat.
-- Emojilarni minimal ishlat (faqat bo‘lim sarlavhalarida).
-- Har bir kun quyidagicha struktura bo‘lsin:
+- JSON formatda qaytar. "schedule" array ichida 7 ta kun bo'lsin.
+- Mashq kunlari (1, 3, 5-kunlar) va Dam olish kunlari (2, 4, 6, 7-kunlar) bo'lsin.
+- Dam olish kunlari uchun "focus": "Dam olish (Rest)" deb yozilsin va "exercises": "Bugun to'liq tiklanish kuni..." kabi matn bo'lsin.
+- Mashq kunlari uchun "focus": "Ko'krak", "Oyoq" kabi bo'lsin.
+- Javob FAQAT JSON bo'lsin.
 
-**1-kun: Ko‘krak & Triceps**  
-- Mashq 1 — takrorlar  
-- Mashq 2 — takrorlar  
-- Mashq 3 — takrorlar  
-
-**2-kun: Oyoq & Yelka**  
-- ...
-
-**3-kun: Orqa & Core**  
-- ... 
-
-🧩 Matn juda uzun chiqmasin. Maksimal 1500 belgi.
-🧩 Har bir mashq sodda va uyda qilinadigan bo‘lsin.
-🧩 Javob faqat matn ko‘rinishida bo‘lsin.
+Example structure:
+{
+  "schedule": [
+    { "day": 1, "focus": "Ko'krak", "exercises": "..." },
+    { "day": 2, "focus": "Dam olish (Rest)", "exercises": "..." },
+    ...
+  ]
+}
 """
     
     response_text = call_gemini(prompt)
@@ -432,14 +427,17 @@ Maqsad: {user_profile.get('goal')}
 
 Talablar:
 - 7 kunlik reja (JSON array "menu" ichida). 
-- DIQQAT: "menu" array ichida roppa-rosa 7 ta element bo'lishi SHART. Kam bo'lmasin.
-- Har bir kun uchun: day, breakfast, lunch, dinner, snack.
-- O'zbek milliy va yevropa taomlarini aralashtirib yoz.
-- "shopping_list" da FAQAT ENG ASOSIY 10-15 ta mahsulot bo'lsin.
-  - Uyda bor narsalarni (tuz, yog', un, shakar) YOZMA.
-  - Qimmat narsalarni YOZMA (Avokado, Losos, Kinoa kerak emas).
-  - Oddiy, hamyonbop va bozorbop mahsulotlarni yoz (Tuxum, Tovuq, Sabzi, Kartoshka).
-  - Ro'yxat "kunlarga bo'lingan" holda emas, umumiy bo'lsin, lekin ixcham.
+- **micro_advice**: Har kun uchun 1-2 gapdan iborat qisqa, motivatsion coach maslahati (faqat o'zbekcha). (Masalan: "Bugun 1% yaxshi bo‘lsang bo‘ldi.", "Suv ichishni unutma!").
+
+- **shopping_list**: OBYEKT bo'lishi shart. Quyidagi kategoriyalarga bo'lingan:
+    - protein (Go'sht, tuxum...)
+    - veg (Sabzavot, meva...)
+    - carbs (Guruch, non, grechka...)
+    - dairy (Sut, qatiq...)
+    - misc (Yog', ziravor...)
+    
+- Har bir mahsulot yonida taxminiy miqdorini yoz (Masalan: "Tovuq 1kg", "Guruch 500g").
+- Qimmat narsalarni YOZMA (Avokado, Losos).
 - JSON valid bo'lsin.
 """
 
@@ -456,7 +454,7 @@ Talablar:
         
         full_text_prompt = f"{system_prompt}\n\nUser Input: {user_prompt}"
         
-        # Define Schema for Strict Output
+        # Define Schema for Strict Output - UPDATED FOR IDEAL SYSTEM
         generation_config = {
             "response_mime_type": "application/json",
             "response_schema": {
@@ -471,14 +469,22 @@ Talablar:
                                 "breakfast": {"type": "string"},
                                 "lunch": {"type": "string"},
                                 "dinner": {"type": "string"},
-                                "snack": {"type": "string"}
+                                "snack": {"type": "string"},
+                                "micro_advice": {"type": "string", "description": "1-2 short sentences of coach advice"}
                             },
                             "required": ["day", "breakfast", "lunch", "dinner", "snack"]
                         }
                     },
                     "shopping_list": {
-                        "type": "array",
-                        "items": {"type": "string"}
+                        "type": "object",
+                        "properties": {
+                            "protein": {"type": "array", "items": {"type": "string"}},
+                            "veg": {"type": "array", "items": {"type": "string"}},
+                            "carbs": {"type": "array", "items": {"type": "string"}},
+                            "dairy": {"type": "array", "items": {"type": "string"}},
+                            "misc": {"type": "array", "items": {"type": "string"}}
+                        },
+                        "required": ["protein", "veg", "carbs", "dairy", "misc"]
                     }
                 },
                 "required": ["menu", "shopping_list"]

@@ -6,6 +6,8 @@ from bot.keyboards import (
     allergy_keyboard, main_menu_keyboard, activity_level_keyboard
 )
 
+from core.config import ADMIN_IDS
+
 # States
 STATE_NONE = 0
 STATE_PHONE = 1
@@ -59,10 +61,11 @@ def start_onboarding(message, bot):
     # Check if user already exists in database
     existing_user = db.get_user(user_id)
     if existing_user:
+        is_admin = user_id in ADMIN_IDS
         bot.send_message(
             user_id, 
             "Asosiy menyuga qaytdingiz, pastdagi tugmalar orqali keyingi qadamni tanlang👇🏻", 
-            reply_markup=main_menu_keyboard()
+            reply_markup=main_menu_keyboard(is_admin=is_admin)
         )
         return
     
@@ -468,7 +471,7 @@ def finish_onboarding(user_id, message, bot):
         bot.send_message(
             user_id,
             welcome_text,
-            reply_markup=main_menu_keyboard(),
+            reply_markup=main_menu_keyboard(is_admin=(user_id in ADMIN_IDS)),
             parse_mode=None # Disabled formatting
         )
         

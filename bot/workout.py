@@ -266,27 +266,48 @@ def show_daily_workout(bot, user_id, link_data, override_day_idx=None):
             "Full Body": "Butun Tana",
             "Core": "Press / Bel",
             "Cardio": "Kardio",
-            "Rest": "Dam olish"
+            "Rest": "Dam olish",
+            "Dam olish (Rest)": "Dam olish"
         }
         # If the AI returns English, map it. If it returns Uzbek, keep it.
         final_focus = tr_map.get(focus_uu, focus_uu)
         
-        txt = f"🏋️ <b>{day_idx}-KUN</b> (Jami {total_days} kun)\n"
+        txt = f"🏋️ <b>{day_idx}-KUN REJASI</b> (Jami {total_days} kun)\n"
         txt += f"🎯 <b>Fokus:</b> {final_focus}\n\n"
         
         exercises_text = day_data.get('exercises', '-')
         
-        # Display the AI-generated HTML directly
-        txt += f"{exercises_text}"
+        # REST DAY LOGIC
+        if "dam" in final_focus.lower() or "rest" in final_focus.lower():
+             import random
+             variants = [
+                 # Variant 1 - Ayb hissini yo'qotish
+                 ("😌 <b>Bugun dam</b>\n\n"
+                  "Dam olish — bu ortga qaytish emas.\n"
+                  "Mushaklar aynan bugun tiklanadi va kuchayadi.\n\n"
+                  "Ertaga tanang “rahmat” deydi."),
+                 # Variant 2 - Ilmiy + Oddiy
+                 ("🧠 <b>Bilasanmi?</b>\n\n"
+                  "O‘sish mashq vaqtida emas, dam olishda bo‘ladi.\n"
+                  "Bugun tana ishlayapti — sen sezmasang ham."),
+                 # Variant 3 - Qisqa, ammo kuchli
+                 ("<b>Bugun dam — bu ham rejaga kiradi.</b>\n"
+                  "Rejani buzmadik, to‘g‘ri bajaryapmiz ✅")
+             ]
+             rest_msg = random.choice(variants)
+             txt += f"{rest_msg}\n\n"
+             # Show original text if meaningful (like stretching), else hide
+             if len(exercises_text) > 20 and "tiklanish" not in exercises_text.lower():
+                 txt += f"<i>Qo'shimcha: {exercises_text}</i>"
+        else:
+             # Regular Workout
+             txt += f"{exercises_text}"
         
         # [SMART PAYWALL]
         from core.context import get_smart_paywall_cta
         if is_flag_enabled("smart_paywall", user_id):
             cta = get_smart_paywall_cta(user_id)
             if cta: txt += cta
-        
-        # Add visual separator (optional)
-        # txt += "\n\n_______________________" # REMOVED per user request
             
         # Buttons
         markup = InlineKeyboardMarkup()
@@ -528,11 +549,19 @@ def show_daily_menu(bot, user_id, link_data, override_day_idx=None):
         weekday_name = get_weekday_name(current_view_date)
         date_str = current_view_date.strftime("%d.%m.%Y")
         
-        # Build Text
-        txt = f"📅 **{day_idx}-KUN** (Jami {total_days} kun) | {weekday_name}, {date_str}\n\n"
+        # Build Text (Plate Format)
+        # Goal fetching for header
+        user_goal = "Sog'lom Hayot"
+        try:
+            u = db.get_user(user_id)
+            if u: user_goal = u.get('goal', 'Sog\'lom Hayot')
+        except: pass
+        
+        txt = f"🍽 <b>{day_idx}-KUN MENYU</b>\n"
+        txt += f"🎯 <b>Maqsad:</b> {user_goal} | 📅 {weekday_name}\n\n"
         
         if clamped:
-             txt += f"⚠️ **DIQQAT:** Sizning rejangiz jami {total_days} kunlik. Davom etish uchun yangi reja tuzing.\n\n"
+             txt += f"⚠️ **DIQQAT:** Sizning rejangiz yakunlandi ({total_days}-kun). Yangi reja tuzishingiz mumkin.\n\n"
              
         db.update_menu_day(user_id, day_idx)
 
@@ -547,13 +576,17 @@ def show_daily_menu(bot, user_id, link_data, override_day_idx=None):
             bot.send_message(user_id, "⚠️ Bu kun uchun ma'lumot yo'q.")
             return
 
-        # Format Message
-        # txt is already started
-        txt += f"🍳 **Nonushta:**\n{day_data.get('breakfast', '-')}\n\n"
-        txt += f"🥗 **Tushlik:**\n{day_data.get('lunch', '-')}\n\n"
-        txt += f"🍲 **Kechki ovqat:**\n{day_data.get('dinner', '-')}\n\n"
-        txt += f"🍏 **Snack:**\n{day_data.get('snack', '-')}\n"
+        # Format Meals
+        txt += f"🍳 <b>Nonushta:</b>\n{day_data.get('breakfast', '-')}\n\n"
+        txt += f"🍏 <b>Snack (Tamaddi):</b>\n{day_data.get('snack', '-')}\n\n"
+        txt += f"🥗 <b>Tushlik:</b>\n{day_data.get('lunch', '-')}\n\n"
+        txt += f"🍲 <b>Kechki ovqat:</b>\n{day_data.get('dinner', '-')}\n\n"
         
+        # Micro Advice (Coach Layer)
+        advice = day_data.get('micro_advice')
+        if advice:
+             txt += f"🧠 <b>Coach Maslahati:</b>\n<i>\"{advice}\"</i>\n"
+             
         # [SMART PAYWALL]
         if is_flag_enabled("smart_paywall", user_id):
             cta = get_smart_paywall_cta(user_id)
@@ -561,25 +594,29 @@ def show_daily_menu(bot, user_id, link_data, override_day_idx=None):
             
         # Buttons
         markup = InlineKeyboardMarkup()
-        btns = []
+        nav_btns = []
             
         if day_idx > 1:
-            btns.append(InlineKeyboardButton("⬅️ Oldingi", callback_data=f"menu_prev_{day_idx}"))
+            nav_btns.append(InlineKeyboardButton("⬅️", callback_data=f"menu_prev_{day_idx}"))
         
+        # Today Button (Center)
+        nav_btns.append(InlineKeyboardButton("📅 Bugun", callback_data=f"menu_today"))
+
         if day_idx < total_days:
-            btns.append(InlineKeyboardButton("Keyingi ➡️", callback_data=f"menu_next_{day_idx}"))
-        elif day_idx == total_days: # End of current plan (e.g. Day 7)
-            # Show "Generate Next Week" button
-            btns.append(InlineKeyboardButton("Keyingi Hafta (Yangi) 🔄", callback_data="menu_regenerate"))
-            
-        markup.row(*btns)
+            nav_btns.append(InlineKeyboardButton("➡️", callback_data=f"menu_next_{day_idx}"))
         
-        # Add Shopping List and Regenerate Buttons
-        markup.row(InlineKeyboardButton("🛒 Xaridlar ro'yxati", callback_data="menu_shopping"))
-        if day_idx < total_days:
-             markup.row(InlineKeyboardButton("🔄 Haftani Yangilash (Reset)", callback_data="menu_regenerate"))
+        markup.row(*nav_btns)
         
-        bot.send_message(user_id, txt, parse_mode="Markdown", reply_markup=markup)
+        # Action Buttons
+        markup.row(
+            InlineKeyboardButton("🛒 Shopping List", callback_data="menu_shopping"),
+            InlineKeyboardButton("🔄 Almashtirish (VIP)", callback_data="menu_swap_vip")
+        )
+        
+        if day_idx == total_days:
+             markup.row(InlineKeyboardButton("🔄 Yangi Reja Tuzish", callback_data="menu_regenerate"))
+        
+        bot.send_message(user_id, txt, parse_mode="HTML", reply_markup=markup)
 
     except Exception as e:
         print(f"Show Menu Error: {e}")
