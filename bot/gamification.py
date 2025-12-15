@@ -175,8 +175,14 @@ def register_handlers(bot):
             return
 
         try:
-            action = parts[1] # prem
+            # parts: ['redeem', 'prem', '7']
+            # We want the value (7 or 30).
+            # If prefix was "redeem_prem_", data is "redeem_prem_7".
+            # Split gives ['redeem', 'prem', '7'].
+            # So value is at index 2.
+            
             value = parts[2] # 7 or 30
+            # action = parts[1] # 'prem'
             
             days = 7 if value == "7" else 30
             cost = 100 if value == "7" else 500
