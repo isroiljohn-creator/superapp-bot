@@ -217,10 +217,23 @@ def register_handlers(bot):
                 f"🏃 <b>Faollik:</b>\n"
                 f"- Kam harakat: {stats.get('activity', {}).get('sedentary', 0)}\n"
                 f"- Yengil: {stats.get('activity', {}).get('light', 0)}\n"
-                f"- O'rtacha: {stats.get('activity', {}).get('moderate', 0)}\n"
                 f"- Faol: {stats.get('activity', {}).get('active', 0)}\n"
-                f"- Atlet: {stats.get('activity', {}).get('athlete', 0)}"
+                f"- Atlet: {stats.get('activity', {}).get('athlete', 0)}\n\n"
+                f"🔗 <b>Manbalar (UTM):</b>\n"
             )
+            
+            # UTM Stats logic (quick aggregation)
+            # This should ideally be in db.get_stats(), but for MVP I'll fetch here or update db.py
+            # Let's update db.py to include 'utm' in get_stats() 
+            # OR just do it dynamically here if we trust get_stats returns raw dict.
+            # Assuming db.get_stats() needs update.
+            # Let's verify what db.get_stats() returns.
+            
+            utm_stats = stats.get('utm', {})
+            for k, v in utm_stats.items():
+                if k == "None": k = "Organic/Unknown"
+                text += f"- {k}: {v}\n"
+                
             bot.send_message(message.chat.id, text, parse_mode="HTML")
             
         except Exception as e:

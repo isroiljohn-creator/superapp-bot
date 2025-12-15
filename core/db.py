@@ -67,6 +67,23 @@ class Database:
                     except Exception as e:
                         print(f"Migration error (daily_stats): {e}")
 
+                # UTM Tracking
+                if 'utm_raw' not in columns:
+                    try:
+                        conn.execute(text("ALTER TABLE users ADD COLUMN utm_raw VARCHAR DEFAULT NULL"))
+                        conn.commit()
+                    except Exception as e: print(e)
+                if 'utm_source' not in columns:
+                    try:
+                        conn.execute(text("ALTER TABLE users ADD COLUMN utm_source VARCHAR DEFAULT NULL"))
+                        conn.commit()
+                    except Exception as e: print(e)
+                if 'utm_campaign' not in columns:
+                    try:
+                        conn.execute(text("ALTER TABLE users ADD COLUMN utm_campaign VARCHAR DEFAULT NULL"))
+                        conn.commit()
+                    except Exception as e: print(e)
+
                 if 'steps_reward_claimed' not in inspector.get_columns('daily_logs'):
                     try:
                         conn.execute(text("ALTER TABLE daily_logs ADD COLUMN steps_reward_claimed BOOLEAN DEFAULT FALSE"))
@@ -899,7 +916,6 @@ class Database:
                 if type == 'water':
                     user.streak_water = (user.streak_water or 0) + 1
                 elif type == 'sleep':
-                    user.streak_sleep = (user.streak_sleep or 0) + 1
                 elif type == 'mood':
                     user.streak_mood = (user.streak_mood or 0) + 1
 
@@ -915,11 +931,6 @@ class Database:
         with get_sync_db() as session:
             user = session.query(User).filter(User.telegram_id == user_id).first()
             if user:
-                user.onboarding_state = state
-            else:
-                # Create user if not exists (partial user for onboarding)
-                # We need to be careful here. Usually we create user on /start or first contact.
-                # Let's assume user exists or create minimal user.
                 # For now, let's assume user is created at start_onboarding.
                 pass
 

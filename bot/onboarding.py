@@ -88,6 +88,36 @@ def start_onboarding(message, bot):
     # Ensure user exists in DB (as partial user) so we can save state
     db.ensure_user_exists(user_id, message.from_user.username)
     
+    # --- UTM / Source Tracking ---
+    # Logic:
+    # 1. If referrer_id found -> Source = 'referral', Campaign = code
+    # 2. If no referrer but code exists -> Parse as UTM (e.g. ig_demicstory)
+    # 3. If no code -> Source = 'organic'
+    
+    utm_raw = None
+    utm_source = "organic" # Default
+    utm_campaign = None
+    
+    if len(args) > 1:
+        code = args[1]
+        utm_raw = code
+        
+        if referrer_id:
+            utm_source = "referral"
+            utm_campaign = f"user_{referrer_id}"
+        elif code != 'premium': # Ignore premium shortcut which is internal
+            # Parse custom UTM: source_campaign or just source
+            parts = code.split('_', 1)
+            if len(parts) == 2:
+                utm_source = parts[0]
+                utm_campaign = parts[1]
+            else:
+                utm_source = code 
+                # keep campaign None or equal to source? Let's keep None/Generic
+    
+    db.update_user_utm(user_id, utm_raw, utm_source, utm_campaign)
+    # -----------------------------
+    
     manager.clear_user(user_id)
     manager.set_state(user_id, STATE_PHONE)
     manager.update_data(user_id, 'referrer_id', referrer_id)

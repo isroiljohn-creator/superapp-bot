@@ -76,6 +76,11 @@ class User(Base):
     onboarding_state = Column(Integer, default=0)
     onboarding_data = Column(Text, nullable=True) # JSON string
 
+    # UTM Tracking
+    utm_raw = Column(String, nullable=True)
+    utm_source = Column(String, nullable=True)
+    utm_campaign = Column(String, nullable=True)
+
 class DailyLog(Base):
     __tablename__ = "daily_logs"
     
