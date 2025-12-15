@@ -776,7 +776,7 @@ def register_all_handlers(bot):
             
         except Exception as e:
             print(f"Redeem Error: {e}")
-            bot.answer_callback_query(call.id, "Xatolik yuz berdi")
+            bot.answer_callback_query(call.id, f"Xatolik: {str(e)[:100]}", show_alert=True)
 
     # =========================================================
     # MEAL SWAP HANDLER (VIP)
