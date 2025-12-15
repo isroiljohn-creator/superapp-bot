@@ -57,8 +57,8 @@ def main():
     # Start Backup Scheduler
     try:
         from bot.backup_scheduler import start_backup_scheduler
-        start_backup_scheduler()
-        print("✅ Backup xizmati (03:00) ishga tushdi.")
+        start_backup_scheduler(bot)
+        print("✅ Backup & Retention xizmati (03:00, 10:00) ishga tushdi.")
     except Exception as e:
         print(f"⚠️ Backup xizmati ishga tushmadi: {e}")
     

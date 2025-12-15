@@ -120,7 +120,29 @@ def generate_ai_workout(message, bot, user_id=None):
             for attempt in range(max_retries):
                 try:
                     bot.edit_message_text(f"🧘‍♀️ Siz uchun 7 kunlik mashg'ulotlar rejasini tuzyapman...", user_id, msg.message_id)
-                    data = ai_generate_weekly_workout_json(user)
+                    
+                    # [SMART CONTEXT INJECTION]
+                    from core.flags import is_flag_enabled
+                    from core.context import get_user_context, get_founder_tone_prompt
+                    
+                    # Create a copy to not mutate DB object
+                    user_ctx = dict(user) 
+                    
+                    extra_ctx = ""
+                    if is_flag_enabled("stateful_ai_context", user_id):
+                        extra_ctx += get_user_context(user_id)
+                        
+                    if is_flag_enabled("founder_tone", user_id):
+                        extra_ctx += get_founder_tone_prompt()
+                        
+                    if extra_ctx:
+                        # Append to 'goal' or 'allergies' or just create a new 'custom_prompt_suffix' if supported
+                        # Since I can't change ai.py, safely appending to 'goal' usually works as LLMs pay attention to it.
+                        # "Goal: lose weight. CONTEXT: Streak 5 days. TONE: Be direct."
+                        current_goal = user_ctx.get('goal', '')
+                        user_ctx['goal'] = f"{current_goal}. {extra_ctx}"
+                        
+                    data = ai_generate_weekly_workout_json(user_ctx)
                     
                     if data and 'schedule' in data and isinstance(data['schedule'], list):
                         item_count = len(data['schedule'])
@@ -257,6 +279,12 @@ def show_daily_workout(bot, user_id, link_data, override_day_idx=None):
         # Display the AI-generated HTML directly
         txt += f"{exercises_text}"
         
+        # [SMART PAYWALL]
+        from core.context import get_smart_paywall_cta
+        if is_flag_enabled("smart_paywall", user_id):
+            cta = get_smart_paywall_cta(user_id)
+            if cta: txt += cta
+        
         # Add visual separator (optional)
         # txt += "\n\n_______________________" # REMOVED per user request
             
@@ -362,7 +390,22 @@ def generate_ai_meal(message, bot, user_id=None):
             for attempt in range(max_retries):
                 try:
                     bot.edit_message_text(f"🥗 Siz uchun 7 kunlik ovqatlanish menyusini tuzyapman...", user_id, msg.message_id)
-                    data = ai_generate_monthly_menu_json(user)
+                    
+                    # [SMART CONTEXT INJECTION]
+                    from core.flags import is_flag_enabled
+                    from core.context import get_user_context, get_founder_tone_prompt
+                    
+                    user_ctx = dict(user) 
+                    extra_ctx = ""
+                    if is_flag_enabled("stateful_ai_context", user_id):
+                        extra_ctx += get_user_context(user_id)
+                    if is_flag_enabled("founder_tone", user_id):
+                        extra_ctx += get_founder_tone_prompt()
+                        
+                    if extra_ctx:
+                        user_ctx['goal'] = f"{user_ctx.get('goal','')}. {extra_ctx}"
+
+                    data = ai_generate_monthly_menu_json(user_ctx)
                     
                     if data and 'menu' in data and isinstance(data['menu'], list):
                         item_count = len(data['menu'])
@@ -510,6 +553,11 @@ def show_daily_menu(bot, user_id, link_data, override_day_idx=None):
         txt += f"🥗 **Tushlik:**\n{day_data.get('lunch', '-')}\n\n"
         txt += f"🍲 **Kechki ovqat:**\n{day_data.get('dinner', '-')}\n\n"
         txt += f"🍏 **Snack:**\n{day_data.get('snack', '-')}\n"
+        
+        # [SMART PAYWALL]
+        if is_flag_enabled("smart_paywall", user_id):
+            cta = get_smart_paywall_cta(user_id)
+            if cta: txt += cta
             
         # Buttons
         markup = InlineKeyboardMarkup()

@@ -36,6 +36,7 @@ def check_db_connection():
     logger.info("2. Checking Database Connection (PostgreSQL)...")
     try:
         from core.db import db
+        from sqlalchemy import text
         # Try a simple read
         stats = db.get_stats()
         logger.info(f"✅ Database Connected. Users: {stats.get('total')}")
