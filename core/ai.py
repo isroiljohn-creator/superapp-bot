@@ -487,10 +487,12 @@ Talablar:
         
         # Define Schema for Strict Output - UPDATED FOR IDEAL SYSTEM
         generation_config = {
+            "max_output_tokens": 15000, # Increased for 7-day detailed plan
             "response_mime_type": "application/json",
             "response_schema": {
                 "type": "object",
                 "properties": {
+                    # ... (rest of shcema is same)
                     "menu": {
                         "type": "array",
                         "items": {
