@@ -45,10 +45,9 @@ def handle_meal_plan(message, bot):
     from bot.templates import show_meal_template_menu
     show_meal_template_menu(message, bot)
 
-@require_premium
 def generate_ai_workout(message, bot, user_id=None):
     """Generate AI workout plan (7-Day JSON System)"""
-    from core.ai import ai_generate_weekly_workout_json
+    from core.ai import ai_generate_weekly_workout_json, get_free_workout_template
     import json
     import time
     
@@ -61,7 +60,37 @@ def generate_ai_workout(message, bot, user_id=None):
         bot.send_message(user_id, "Iltimos, avval /start ni bosing.")
         return
 
-    # 0. Check Limit
+    # 0. Check Plan
+    is_premium = db.is_premium(user_id)
+    
+    if not is_premium:
+        # FREE TIER LOGIC
+        data = get_free_workout_template(user)
+        
+        # Save Template
+        # Key: free_workout_Goal
+        profile_key = f"free_workout_{user.get('goal')}".replace(" ", "_").lower()
+        
+        try:
+             import json
+             template_id = db.create_workout_template(profile_key, json.dumps(data['schedule']))
+        except:
+             # Fallback if exists
+             exist = db.get_workout_template(profile_key)
+             template_id = exist['id'] if exist else None
+             
+        if template_id:
+             db.create_user_workout_link(user_id, template_id)
+             bot.send_message(user_id, "Siz uchun mos boshlang‘ich mashq rejasi tayyor 💪\nBu rejani bajaring — natijani his qilasiz.")
+             bot.send_message(user_id, "⚡️ YASHA Plus’da esa mashqlar SIZNING vazningiz, yoshingiz va holatingizga qarab AI orqali tuziladi.")
+             
+             new_link = db.get_user_workout_link(user_id)
+             show_daily_workout(bot, user_id, new_link, override_day_idx=1)
+        else:
+             bot.send_message(user_id, "❌ Shablon yuklashda xatolik.")
+        return
+
+    # 0. Check Limit (Premium Only)
     allowed, limit_msg = db.check_ai_gen_limit(user_id, 'workout')
     if not allowed:
         bot.send_message(user_id, limit_msg, parse_mode="Markdown")
@@ -337,10 +366,9 @@ def show_daily_workout(bot, user_id, link_data, override_day_idx=None):
 
 from bot.premium import require_premium
 
-@require_premium
 def generate_ai_meal(message, bot, user_id=None):
     """Generate AI meal plan (Monthly Menu System)"""
-    from core.ai import ai_generate_monthly_menu_json
+    from core.ai import ai_generate_monthly_menu_json, get_free_menu_template
     import json
     import time
     
@@ -352,7 +380,34 @@ def generate_ai_meal(message, bot, user_id=None):
         bot.send_message(user_id, "Iltimos, avval /start ni bosing.")
         return
 
-    # 0. Check Limit
+    # 0. Check Plan
+    is_premium = db.is_premium(user_id)
+    
+    if not is_premium:
+        # FREE TIER LOGIC
+        data = get_free_menu_template()
+        
+        # Save Template
+        profile_key = "free_menu_v1"
+        try:
+             import json
+             template_id = db.create_menu_template(profile_key, json.dumps(data['menu']), json.dumps(data['shopping_list']))
+        except:
+             exist = db.get_menu_template(profile_key)
+             template_id = exist['id'] if exist else None
+             
+        if template_id:
+             db.create_user_menu_link(user_id, template_id)
+             bot.send_message(user_id, "🍽 Bugungi menyu tayyor.\nOddiy, arzon va vazn nazoratiga mos.")
+             bot.send_message(user_id, "💎 YASHA Plus’da sizga 7 kunlik to‘liq menyu,\nxarid ro‘yxati va individual kaloriya hisoblanadi.")
+             
+             new_link = db.get_user_menu_link(user_id)
+             show_daily_menu(bot, user_id, new_link, override_day_idx=1)
+        else:
+             bot.send_message(user_id, "❌ Shablon yuklashda xatolik.")
+        return
+
+    # 0. Check Limit (Premium Only)
     allowed, limit_msg = db.check_ai_gen_limit(user_id, 'menu')
     if not allowed:
         bot.send_message(user_id, limit_msg, parse_mode="Markdown")

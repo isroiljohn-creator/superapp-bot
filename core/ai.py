@@ -1313,3 +1313,175 @@ def ai_generate_single_meal(user_profile, meal_type, day_name="Bugun"):
     except Exception as e:
         print(f"Single Meal Gen Error: {e}")
         return None
+
+# -------------------------------------------------------------------------
+# NEW: Free Tier Static Templates (Zero AI)
+# -------------------------------------------------------------------------
+
+def get_free_workout_template(user_profile):
+    """Returns a STATIC workout plan based on goal. No AI cost."""
+    goal = user_profile.get('goal', 'Sog‘liq')
+    is_weight_loss = "Ozish" in goal or "weight_loss" in goal or "Vazn tashlash" in goal
+    
+    # Template 1: Weight Loss (Uy sharoiti)
+    if is_weight_loss:
+        return {
+            "schedule": [
+                {
+                    "day": 1,
+                    "focus": "Pastki tana",
+                    "exercises": "1. Squat — 3×12\n2. O‘tirib turish (Chair squat) — 3×15\n3. Oyoq ko‘tarish (Leg raise) — 3×10\n4. Yengil cho‘zilish — 5 daqiqa"
+                },
+                {
+                    "day": 2,
+                    "focus": "Dam olish (Rest)", 
+                    "exercises": "Bugun to'liq tiklanish kuni. Ko'proq suv iching."
+                },
+                {
+                    "day": 3,
+                    "focus": "Yuqori tana",
+                    "exercises": "1. Knee push-up — 3×10\n2. Devorga suyangan push-up — 3×12\n3. Yelka aylantirish — 3×15\n4. Cho‘zilish — 5 daqiqa"
+                },
+                {
+                    "day": 4,
+                    "focus": "Dam olish (Rest)",
+                    "exercises": "Sayr qiling va dam oling."
+                },
+                {
+                    "day": 5,
+                    "focus": "Core + Kardio",
+                    "exercises": "1. Plank — 3×20 soniya\n2. Crunch — 3×12\n3. Joyida yurish — 5 daqiqa\n4. Nafas mashqlari — 3 daqiqa"
+                },
+                {
+                    "day": 6,
+                    "focus": "Dam olish (Rest)",
+                    "exercises": "Haftalik yakun."
+                },
+                {
+                    "day": 7,
+                    "focus": "Dam olish (Rest)",
+                    "exercises": "Yangi haftaga tayyorgarlik."
+                }
+            ]
+        }
+    
+    # Template 2: Muscle Gain / General (Zal/Uy)
+    return {
+        "schedule": [
+            {
+                "day": 1,
+                "focus": "Ko‘krak + Qo‘l",
+                "exercises": "1. Push-up — 4×10\n2. Dumbbell curl — 3×12\n3. Triceps dip — 3×10"
+            },
+            {
+                "day": 2,
+                "focus": "Dam olish (Rest)",
+                "exercises": "Mushaklar o'sishi uchun dam kerak."
+            },
+            {
+                "day": 3,
+                "focus": "Oyoq",
+                "exercises": "1. Squat — 4×12\n2. Lunge — 3×10\n3. Calf raise — 3×15"
+            },
+            {
+                "day": 4,
+                "focus": "Dam olish (Rest)",
+                "exercises": "Tiklanish kuni."
+            },
+            {
+                "day": 5,
+                "focus": "Yelka + Core",
+                "exercises": "1. Shoulder press — 3×10\n2. Plank — 3×30 soniya"
+            },
+            {
+                "day": 6,
+                "focus": "Dam olish (Rest)",
+                "exercises": "Dam olish."
+            },
+            {
+                "day": 7,
+                "focus": "Dam olish (Rest)",
+                "exercises": "Tayyorgarlik."
+            }
+        ]
+    }
+
+def get_free_menu_template():
+    """Returns a STATIC 1-day menu template. Zero AI cost."""
+    # This is a 1-day template replicated for structure compliance
+    # But for Free users, we only show "Bugungi Menyu".
+    
+    daily_plan = {
+        "day": 1,
+        "day_name": "Bugun",
+        "total_kcal": 1400,
+        "micro_advice": "Siz yaxshi ketayapsiz 🔥. Natija davomiylikda.",
+        "breakfast": {
+            "title": "Tuxum va sabzavot",
+            "kcal": 350,
+            "ingredients": ["Tuxum (2 dona)", "Pomidor (1 dona)", "Bodring (1 dona)"],
+            "preparation_steps": ["Tuxumni qaynating", "Sabzavotlarni to'g'rang"],
+            "time_minutes": 10,
+            "cost_level": "Arzon",
+            "place": "uy"
+        },
+        "snack": {
+            "title": "Olma",
+            "kcal": 150,
+            "ingredients": ["Olma (1 dona)"], 
+            "preparation_steps": ["Yuvib iste'mol qiling"]
+        },
+        "lunch": {
+            "title": "Tovuq sho‘rvasi",
+            "kcal": 500,
+            "ingredients": ["Tovuq (150g)", "Kartoshka (1)", "Sabzi (1)"],
+            "preparation_steps": ["Go'shtni qaynatib oling", "Sabzavot soling"],
+            "time_minutes": 45,
+            "cost_level": "Arzon",
+            "place": "uy"
+        },
+        "dinner": {
+            "title": "Grechka + salat",
+            "kcal": 400,
+            "ingredients": ["Grechka (80g)", "Karam (100g)"],
+            "preparation_steps": ["Grechkani dimlang", "Salat to'g'rang"],
+            "time_minutes": 25,
+            "cost_level": "Arzon",
+            "place": "uy"
+        }
+    }
+    
+    # Replicate for 7 days structure (so JSON parsing doesn't break)
+    menu_list = []
+    
+    # Locked Meal Object
+    locked_meal = {
+         "title": "🔒 Faqat Premiumda",
+         "kcal": 0,
+         "ingredients": ["..."],
+         "preparation_steps": ["YASHA Plus taomnomasi"],
+         "time_minutes": 0,
+         "cost_level": "-",
+         "place": "-"
+    }
+
+    for i in range(1, 8):
+        if i == 1:
+            menu_list.append(daily_plan)
+        else:
+            day_copy = {
+                "day": i,
+                "day_name": f"Kun {i} (Premium)",
+                "total_kcal": 0,
+                "micro_advice": "To'liq menyu faqat YASHA Plus'da.",
+                "breakfast": locked_meal,
+                "lunch": locked_meal,
+                "dinner": locked_meal,
+                "snack": locked_meal
+            }
+            menu_list.append(day_copy)
+        
+    return {
+        "menu": menu_list,
+        "shopping_list": {} # Empty for Free
+    }

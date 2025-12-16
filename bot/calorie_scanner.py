@@ -54,6 +54,24 @@ def handle_calorie_mode(call, bot):
         mode = parts[2]
         user_id = call.from_user.id
         
+        # FREE TIER LOGIC (NO AI)
+        if not db.is_premium(user_id):
+             markup = types.InlineKeyboardMarkup()
+             markup.add(types.InlineKeyboardButton("💎 YASHA Plus’ga o‘tish", callback_data="premium_info"))
+             
+             msg = "📸 **Foto orqali aniqlash faqat YASHA Plus’da.**\n"
+             msg += "Bepul rejada umumiy taxminiy kaloriyalar beriladi:\n\n"
+             msg += "🍚 1 kosa osh — 500-600 kkal\n"
+             msg += "🥚 2 dona tuxum — 140-160 kkal\n"
+             msg += "🍞 1 bo‘lak non — 80-100 kkal\n"
+             msg += "🍎 1 dona olma — 50-60 kkal\n"
+             msg += "🍗 Tovuq (100g) — 160 kkal"
+             
+             bot.send_message(call.message.chat.id, msg, reply_markup=markup, parse_mode="Markdown")
+             bot.answer_callback_query(call.id, "Faqat YASHA Plus uchun", show_alert=True)
+             return
+
+        # PREMIUM LOGIC (AI Access)
         # 1. Check DB Limit
         try:
             allowed, reason = db.check_calorie_limit(user_id)

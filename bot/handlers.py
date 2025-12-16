@@ -572,6 +572,20 @@ def register_all_handlers(bot):
     @bot.callback_query_handler(func=lambda call: call.data == "menu_shopping")
     def callback_menu_shopping(call):
         try:
+            # FREE TIER CHECK
+            if not db.is_premium(call.from_user.id):
+                markup = types.InlineKeyboardMarkup()
+                markup.add(types.InlineKeyboardButton("💎 YASHA Plus’ga o‘tish", callback_data="premium_info"))
+                
+                bot.send_message(
+                    call.from_user.id,
+                    "🛒 **Xarid ro‘yxati faqat YASHA Plus foydalanuvchilar uchun.**\n\nSababi u menyuga bog‘liq holda avtomatik hisoblanadi.",
+                    reply_markup=markup,
+                    parse_mode="Markdown"
+                )
+                bot.answer_callback_query(call.id, "Faqat YASHA Plus uchun", show_alert=True)
+                return
+
             link = db.get_user_menu_link(call.from_user.id)
             if not link:
                 bot.answer_callback_query(call.id, "Reja topilmadi.")
