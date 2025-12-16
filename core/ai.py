@@ -1294,7 +1294,8 @@ def ai_generate_single_meal(user_profile, meal_type, day_name="Bugun"):
                     },
                     "required": ["title", "kcal", "ingredients", "preparation_steps"]
                 }
-            }
+            },
+            request_options={'timeout': 25}
          )
          
          # Log usage
