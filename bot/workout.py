@@ -591,42 +591,42 @@ def show_daily_menu(bot, user_id, link_data, override_day_idx=None):
         def _fmt(m, emoji, label):
             if isinstance(m, str): return f"{emoji} <b>{label}:</b>\n{m}"
             if isinstance(m, dict):
-                # New Schema
+                parts = []
+                
+                # 1. Header
                 title = m.get('title', 'Taom')
                 kcal = m.get('kcal')
-                try:
-                    kcal = int(kcal) if kcal else None
+                try: kcal = int(kcal) if kcal else None
                 except: kcal = None
                 
-                time_m = m.get('time_minutes', '')
+                head = f"{emoji} <b>{label}:</b> {title}"
+                if kcal: head += f" ({kcal} kcal)"
+                parts.append(head)
                 
-                # Header Line: Emoji Label: Title (kcal)
-                s = f"{emoji} <b>{label}:</b> {title}"
-                if kcal:
-                    s += f" ({kcal} kcal)"
-                s += "\n\n"
-                
-                # Ingredients
+                # 2. Ingredients
                 ings = m.get('ingredients', [])
                 if ings:
-                    s += f"<b>Tarkibi:</b> {', '.join(ings)}\n\n"
+                    parts.append(f"<b>Tarkibi:</b> {', '.join(ings)}")
                 
-                # Steps
+                # 3. Steps
                 steps = m.get('preparation_steps', [])
                 if steps:
-                    s += "<b>Tayyorlanishi:</b>\n"
+                    st_txt = "<b>Tayyorlanishi:</b>\n"
                     for i, step in enumerate(steps, 1):
-                        s += f"{i}. {step}\n"
-                    s += "\n"
-                        
-                # Footer: Time | Cost
+                        st_txt += f"{i}. {step}\n"
+                    parts.append(st_txt.strip())
+                    
+                # 4. Footer
                 meta = []
+                time_m = m.get('time_minutes', '')
                 if time_m: meta.append(f"⌛ {time_m} daqiqa")
                 cost = m.get('cost_level')
                 if cost and cost != "N/A": meta.append(f"💰 {cost}")
                 
-                if meta: s += " | ".join(meta)
-                return s
+                if meta:
+                    parts.append(" | ".join(meta))
+                
+                return "\n\n".join(parts)
             return f"{emoji} <b>{label}:</b> -"
 
         txt += f"{_fmt(day_data.get('breakfast'), '🍳', 'Nonushta')}\n\n"
