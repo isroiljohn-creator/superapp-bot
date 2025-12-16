@@ -1537,3 +1537,37 @@ def ai_suggest_recipe(user_profile, ingredients_text):
     except Exception as e:
         print(f"Fridge Gen Error: {e}")
         return None
+
+# -------------------------------------------------------------------------
+# Free Tier Mood Support (Static)
+# -------------------------------------------------------------------------
+def get_free_mood_support_template():
+    """Returns a static supportive message for Free users."""
+    import random
+    
+    templates = [
+        (
+            "😔 **Tushunaman, ba'zan shunday bo'ladi.**\n\n"
+            "Hozir eng muhimi — o'zingizga vaqt ajratish. "
+            "Chuqur nafas oling va bir stakan suv iching. "
+            "Muammolar vaqtinchalik, siz esa kuchlisiz. ��\n\n"
+            "💡 _YASHA Plus'da AI sizning vaziyatingizni tahlil qilib, "
+            "aniq psixologik maslahatlar bera oladi._"
+        ),
+        (
+            "🫂 **Siz yolg'iz emassiz.**\n\n"
+            "Har bir inson qiyin kunlarni boshdan kechiradi. "
+            "Bugun shunchaki dam olishga harakat qiling. "
+            "Hammasi yaxshi bo'ladi ✨\n\n"
+            "💡 _YASHA Plus'da AI murabbiy siz bilan suhbatlashib, "
+            "stressni yengishga yordam beradi._"
+        ),
+        (
+            "🌧 **Yomg'irdan keyin albatta quyosh chiqadi.**\n\n"
+            "Kayfiyat o'zgaruvchan, lekin maqsadingiz o'zgarmasin. "
+            "O'zingizni ehtiyot qiling.\n\n"
+            "�� _YASHA Plus foydalanuvchilari uchun AI har qanday vaziyatda "
+            "individual yechim taklif qiladi._"
+        )
+    ]
+    return random.choice(templates)

@@ -273,11 +273,18 @@ def process_mood_reason(message, bot):
     # Log as a problem for easier tracking
     db.log_activity(user_id, "problem", f"Mood Reason: {reason}")
     
-    # AI Support
+    # Support Logic
     bot.send_chat_action(user_id, 'typing')
-    support_msg = ai_provide_psychological_support(reason)
     
-    bot.send_message(user_id, support_msg, parse_mode="HTML")
+    if db.is_premium(user_id):
+        # AI Support (Premium)
+        support_msg = ai_provide_psychological_support(reason)
+    else:
+        # Static Support (Free)
+        from core.ai import get_free_mood_support_template
+        support_msg = get_free_mood_support_template()
+    
+    bot.send_message(user_id, support_msg, parse_mode="Markdown")
     
     from bot import onboarding
     onboarding.manager.clear_user(user_id)
