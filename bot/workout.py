@@ -82,7 +82,20 @@ def generate_ai_workout(message, bot, user_id=None):
         if template_id:
              db.create_user_workout_link(user_id, template_id)
              bot.send_message(user_id, "Siz uchun mos boshlang‘ich mashq rejasi tayyor 💪\nBu rejani bajaring — natijani his qilasiz.")
-             bot.send_message(user_id, "⚡️ YASHA Plus’da esa mashqlar SIZNING vazningiz, yoshingiz va holatingizga qarab AI orqali tuziladi.")
+             
+             # Enhanced Plus Teaser
+             markup = types.InlineKeyboardMarkup()
+             markup.add(types.InlineKeyboardButton("👉 Plus’ga o‘ting", callback_data="premium_info"))
+             
+             upsell_msg = (
+                 "⚡️ **YASHA Plus’da mashqlar shaxsiy bo‘ladi.**\n\n"
+                 "AI sizning vazningiz, yoshingiz va holatingizga qarab:\n"
+                 "• **to‘g‘ri yuklama tanlaydi**\n"
+                 "• **dam olish kunlarini hisobga oladi**\n"
+                 "• **har bir mashqni video bilan ko‘rsatadi**\n\n"
+                 "💎 **Natija uchun o‘ylash shart emas — AI rejalashtiradi.**"
+             )
+             bot.send_message(user_id, upsell_msg, parse_mode="Markdown", reply_markup=markup)
              
              new_link = db.get_user_workout_link(user_id)
              show_daily_workout(bot, user_id, new_link, override_day_idx=1)
@@ -399,7 +412,20 @@ def generate_ai_meal(message, bot, user_id=None):
         if template_id:
              db.create_user_menu_link(user_id, template_id)
              bot.send_message(user_id, "🍽 Bugungi menyu tayyor.\nOddiy, arzon va vazn nazoratiga mos.")
-             bot.send_message(user_id, "💎 YASHA Plus’da sizga 7 kunlik to‘liq menyu,\nxarid ro‘yxati va individual kaloriya hisoblanadi.")
+             
+             # Enhanced Menu Upsell
+             markup = types.InlineKeyboardMarkup()
+             markup.add(types.InlineKeyboardButton("👉 Plus’ga o‘ting", callback_data="premium_info"))
+             
+             upsell_msg = (
+                 "🍽 **YASHA Plus’da menyu — tayyor reja.**\n\n"
+                 "AI sizga:\n"
+                 "• **7 kunlik kaloriyali menyu**\n"
+                 "• **retsept + tayyorlash bosqichlari**\n"
+                 "• **avtomatik xarid ro‘yxati beradi.**\n\n"
+                 "💎 **Kamroq o‘ylaysiz, to‘g‘ri ovqatlanasiz.**"
+             )
+             bot.send_message(user_id, upsell_msg, parse_mode="Markdown", reply_markup=markup)
              
              new_link = db.get_user_menu_link(user_id)
              show_daily_menu(bot, user_id, new_link, override_day_idx=1)
