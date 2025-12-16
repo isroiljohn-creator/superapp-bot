@@ -1462,6 +1462,46 @@ class Database:
                 print(f"Error adding calories: {e}")
                 return 0
 
+    def update_single_meal(self, user_id, day_idx, meal_type, new_meal_data):
+        """VIP Swap: Update a single meal in the JSON menu"""
+        from backend.models import UserMenuLink
+        import json
+        
+        with get_sync_db() as session:
+             try:
+                 pk = self._get_user_pk(session, user_id)
+                 if not pk: return False
+                 
+                 link = session.query(UserMenuLink).filter(UserMenuLink.user_id == pk, UserMenuLink.is_active == True).first()
+                 if not link: return False
+                 
+                 menu_data = json.loads(link.menu_json)
+                 
+                 # Find day
+                 found = False
+                 for day in menu_data:
+                     if day['day'] == day_idx:
+                         day[meal_type] = new_meal_data
+                         # Recalculate total kcal if needed
+                         day['total_kcal'] = (
+                            (day.get('breakfast', {}).get('kcal',0) if isinstance(day.get('breakfast'), dict) else 0) +
+                            (day.get('lunch', {}).get('kcal',0) if isinstance(day.get('lunch'), dict) else 0) +
+                            (day.get('dinner', {}).get('kcal',0) if isinstance(day.get('dinner'), dict) else 0) +
+                            (day.get('snack', {}).get('kcal',0) if isinstance(day.get('snack'), dict) else 0)
+                         )
+                         found = True
+                         break
+                 
+                 if found:
+                     link.menu_json = json.dumps(menu_data)
+                     session.commit()
+                     return True
+                 return False
+                 
+             except Exception as e:
+                 print(f"Update Meal Error: {e}")
+                 return False
+
     def create_user_menu_link(self, user_id, template_id):
         with get_sync_db() as session:
             pk = self._get_user_pk(session, user_id)

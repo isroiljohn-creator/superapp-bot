@@ -653,7 +653,7 @@ def show_daily_menu(bot, user_id, link_data, day_idx=None, meal_type='breakfast'
         # Row 4: Tools
         markup.row(
             InlineKeyboardButton("🛒 Bozorlik", callback_data="menu_shopping"),
-            InlineKeyboardButton("🔄 Almashtirish (VIP)", callback_data="menu_swap_vip")
+            InlineKeyboardButton("🔄 Almashtirish (VIP)", callback_data=f"menu_swap_vip_{day_idx}_{meal_type}")
         )
         
         bot.send_message(user_id, txt, parse_mode="HTML", reply_markup=markup)
@@ -737,9 +737,58 @@ def handle_menu_callback(call, bot):
          bot.answer_callback_query(call.id, "🥦 Muzlatgich retsepti tez orada!", show_alert=True)
          return
          
-    if data == "menu_swap_vip":
-         bot.answer_callback_query(call.id, "🔄 Taomni almashtirish (VIP) tez orada!", show_alert=True)
-         return
+    if data.startswith("menu_swap_vip_"):
+        # menu_swap_vip_1_breakfast
+        user_id = call.from_user.id
+        
+        # 1. VIP Check
+        vip_status = db.get_premium_status(user_id)
+        if not vip_status['active']:
+             bot.answer_callback_query(call.id, "🔒 Bu funksiya faqat VIP uchun!", show_alert=True)
+             # Send upsell message
+             # bot.send_message(user_id, "💎 Taomni almashtirish uchun Premium oling...", reply_markup=...)
+             return
+
+        parts = data.split("_")
+        if len(parts) >= 4:
+            day_idx = int(parts[3])
+            meal_type = parts[4]
+            
+            # 2. Tell user to wait
+            bot.answer_callback_query(call.id, "🔄 Alternativ qidirilmoqda...", show_alert=False)
+            wait_msg = bot.send_message(user_id, "👨‍🍳 AI yangi retsept o'ylayapti... (15-20 soniya)")
+            
+            try:
+                # 3. Get User Profile
+                user_data = db.get_user(user_id)
+                if not user_data: return
+
+                # 4. Generate New Meal
+                from core import ai
+                new_meal = ai.ai_generate_single_meal(user_data, meal_type, day_name=f"Kun {day_idx}")
+                
+                if new_meal:
+                    # 5. Update DB
+                    success = db.update_single_meal(user_id, day_idx, meal_type, new_meal)
+                    
+                    if success:
+                        # 6. Refresh View
+                        try:
+                            bot.delete_message(user_id, wait_msg.message_id) # Delete wait msg
+                            bot.delete_message(user_id, call.message.message_id) # Delete old menu
+                        except: pass
+                        
+                        link = db.get_user_menu_link(user_id)
+                        show_daily_menu(bot, user_id, link, day_idx, meal_type)
+                    else:
+                        bot.edit_message_text("❌ Saqlashda xatolik.", user_id, wait_msg.message_id)
+                else:
+                    bot.edit_message_text("❌ AI javob bermadi. Keyinroq urinib ko'ring.", user_id, wait_msg.message_id)
+                    
+            except Exception as e:
+                print(f"Swap Error: {e}")
+                bot.edit_message_text("❌ Xatolik yuz berdi.", user_id, wait_msg.message_id)
+        return
          
     if data == "menu_regenerate":
         bot.answer_callback_query(call.id, "🔄 Yangi reja tuzish tez orada!", show_alert=True)

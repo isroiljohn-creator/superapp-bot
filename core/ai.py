@@ -686,15 +686,6 @@ Talablar:
         prompt_2 = base_prompt + f"\n\n✅ Days 1-3 Generated Successfully. Now generate remaining.\n\n🚨 IMPORTANT TASK: Generate ONLY Days 4, 5, 6, and 7. \nAND generate valid 'shopping_list' for THE WHOLE WEEK (Days 1-7)."
         data_2 = _generate_chunk(prompt_2, "Days 4-7")
         
-        # MERGE
-        final_menu = data_1.get('menu', []) + data_2.get('menu', [])
-        final_shopping = data_2.get('shopping_list', {})
-        
-        # Fallback if Part 2 shopping list empty/invalid, try Part 1 (unlikely but safe, though Part 1 should be empty)
-        if not final_shopping and 'shopping_list' in data_1:
-             final_shopping = data_1['shopping_list']
-             
-        # Construct Final Object
         merged_data = {
             "menu": final_menu,
             "shopping_list": final_shopping
@@ -1250,4 +1241,74 @@ Talablar:
 
     except Exception as e:
         print(f"Error generating weekly workout JSON: {e}")
+        return None
+
+# -------------------------------------------------------------------------
+# NEW: Single Meal Generation (VIP Swap)
+# -------------------------------------------------------------------------
+def ai_generate_single_meal(user_profile, meal_type, day_name="Bugun"):
+    """Generates a SINGLE meal object for VIP swap."""
+    
+    # 1. Prompt
+    prompt = f"""
+    Siz professional dietologsiz.
+    Vazifa: "{day_name}" uchun yangi "{meal_type.upper()}" (Taom) o'ylab toping.
+    
+    Foydalanuvchi:
+    - Maqsad: {user_profile.get('goal', 'Sog‘liq')}
+    - Allergiya: {user_profile.get('allergies', 'Yo‘q')}
+    
+    TALABLAR:
+    - 1 ta ovqat varianti.
+    - JSON formatda.
+    - Kaloriya: 300-600 kkal oralig'ida bo'lsin.
+    
+    JSON SCHEMA:
+    {{
+        "title": "Taom nomi",
+        "kcal": 450,
+        "ingredients": ["..."],
+        "preparation_steps": ["..."],
+        "time_minutes": 15,
+        "cost_level": "O'rtacha",
+        "place": "uy"
+    }}
+    """
+    
+    try:
+         # Use the new structured generation if possible, strictly enforcing schema
+         response = curr_model.generate_content(
+            prompt,
+            generation_config={
+                "response_mime_type": "application/json",
+                "response_schema": {
+                    "type": "object",
+                    "properties": {
+                        "title": {"type": "string"},
+                        "kcal": {"type": "integer"},
+                        "ingredients": {"type": "array", "items": {"type": "string"}},
+                        "preparation_steps": {"type": "array", "items": {"type": "string"}},
+                        "time_minutes": {"type": "integer"},
+                        "cost_level": {"type": "string"},
+                        "place": {"type": "string"}
+                    },
+                    "required": ["title", "kcal", "ingredients", "preparation_steps"]
+                }
+            }
+         )
+         
+         # Log usage
+         if response.usage_metadata:
+             try:
+                 from core.ai_usage_logger import log_ai_usage
+                 log_ai_usage(None, user_profile.get('telegram_id'), "meal_swap_vip", 
+                              input_tokens=response.usage_metadata.prompt_token_count,
+                              output_tokens=response.usage_metadata.candidates_token_count)
+             except: pass
+
+         import json
+         return json.loads(response.text)
+         
+    except Exception as e:
+        print(f"Single Meal Gen Error: {e}")
         return None
