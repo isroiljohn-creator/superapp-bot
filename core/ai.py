@@ -507,25 +507,21 @@ Talablar:
 
     
     # 3. Model Configuration
-    # Using 'gemini-1.5-flash' as stable version
     model_name = 'gemini-2.5-flash'
-    
-    try:
-        # print(f"DEBUG: Trying Menu Gen with {model_name}")
-        
-        genai.configure(api_key=GEMINI_API_KEY)
-        curr_model = genai.GenerativeModel(model_name)
-        
-        full_text_prompt = f"{system_prompt}\n\nUser Input: {user_prompt}"
-        
-        # Define Schema for Strict Output - UPDATED FOR IDEAL SYSTEM
+    genai.configure(api_key=GEMINI_API_KEY)
+    curr_model = genai.GenerativeModel(model_name)
+
+    # -------------------------------------------------------------------------
+    # HELPER: Safe JSON Generation with Retry/Repair
+    # -------------------------------------------------------------------------
+    def _generate_chunk(prompt_text, chunk_desc):
+        print(f"DEBUG: Generating {chunk_desc}...")
         generation_config = {
-            "max_output_tokens": 15000, # Increased for 7-day detailed plan
+            "max_output_tokens": 15000,
             "response_mime_type": "application/json",
             "response_schema": {
                 "type": "object",
                 "properties": {
-                    # ... (rest of shcema is same)
                     "menu": {
                         "type": "array",
                         "items": {
@@ -582,7 +578,7 @@ Talablar:
                                         "preparation_steps": {"type": "array", "items": {"type": "string"}}
                                     }
                                 },
-                                "micro_advice": {"type": "string", "description": "1-2 short sentences of coach advice"}
+                                "micro_advice": {"type": "string"}
                             },
                             "required": ["day", "breakfast", "lunch", "dinner", "snack"]
                         }
@@ -605,157 +601,140 @@ Talablar:
 
         try:
             response = curr_model.generate_content(
-                full_text_prompt,
+                prompt_text,
                 safety_settings=SAFETY_SETTINGS,
                 generation_config=generation_config,
                 request_options={'timeout': 180} 
             )
         except Exception as api_error:
-            # Catch API errors (429, 500, etc) and re-raise with clear message
-            # print(f"DEBUG: API Error: {api_error}")
             if "429" in str(api_error) or "quota" in str(api_error).lower():
                  raise Exception("AI charchadi (Limit tugadi). Iltimos, 1-2 daqiqadan keyin urinib ko'ring.")
             raise Exception(f"Google API Error: {api_error}")
 
         response_text = response.text
-        
-        # Check for safety blocking if text is empty but candidate exists
         if not response_text:
             if hasattr(response, 'prompt_feedback'):
                  feedback = response.prompt_feedback
                  print(f"DEBUG: Safety Feedback: {feedback}")
                  raise Exception(f"Blocked by Safety Filters: {feedback}")
-            raise Exception("Empty response text from AI (No reason given)")
+            raise Exception("Empty AI response")
 
         print(f"DEBUG: AI Output ({model_name}): {response_text[:200]}...")
 
-        # Robust JSON extraction
-        import re
-        # Try to find the start of JSON object
-        json_start_match = re.search(r'\{', response_text)
-        if json_start_match:
-            start_index = json_start_match.start()
-            # If standard regex extraction failed previously or we want to be smarter:
-            clean_json = response_text[start_index:]
-            # Remove any markdown code block suffix if present
-            clean_json = clean_json.split('```')[0].strip()
-        else:
-            clean_json = response_text
-
-        data = None
+        # Repair Logic (Compact)
+        import re, json
+        start_match = re.search(r'\{', response_text)
+        clean_json = response_text[start_match.start():] if start_match else response_text
+        # Remove any markdown code block suffix if present
+        clean_json = clean_json.split('```')[0].strip()
         try:
-            import json
-            data = json.loads(clean_json)
+             return json.loads(clean_json)
         except json.JSONDecodeError as e:
-            print(f"Initial JSON Parse Error: {e}. Attempting repair...")
-            # Simple Repair Attempt for Truncated JSON
-            try:
-                repaired_json = clean_json
-                
-                # 0. Close Unclosed String if needed
-                # Count non-escaped quotes? Simple count is usually enough for AI JSON
-                if repaired_json.count('"') % 2 != 0:
-                    repaired_json += '"'
-                
-                # 1. Close open brackets effectively
-                # Count open/close braces
-                open_braces = repaired_json.count('{')
-                close_braces = repaired_json.count('}')
-                open_brackets = repaired_json.count('[')
-                close_brackets = repaired_json.count(']')
-                
-                # Append missing
-                repaired_json += '}' * (open_braces - close_braces)
-                repaired_json += ']' * (open_brackets - close_brackets)
-                
-                # Try simple closing first
-                data = json.loads(repaired_json)
-                print("Repair successful (Method 1: Auto-close).")
-            except:
-                try:
-                    # Method 2: Backtrack to last comma (discard partial field) + Close
+             print(f"Initial JSON Parse Error for {chunk_desc}: {e}. Attempting repair...")
+             # Quick Close
+             try:
+                 repaired = clean_json
+                 if repaired.count('"') % 2 != 0: repaired += '"'
+                 repaired += '}' * (repaired.count('{') - repaired.count('}'))
+                 repaired += ']' * (repaired.count('[') - repaired.count(']'))
+                 data = json.loads(repaired)
+                 print(f"Repair successful for {chunk_desc} (Method 1: Auto-close).")
+                 return data
+             except:
+                 try:
+                    # Trim Last Comma
                     last_comma = clean_json.rfind(',')
                     if last_comma > 0:
-                        repaired_json = clean_json[:last_comma]
-                        
-                        # Close string if cut was bad? No, comma usually ends value.
-                        # Re-calc braces
-                        open_braces = repaired_json.count('{')
-                        close_braces = repaired_json.count('}')
-                        open_brackets = repaired_json.count('[')
-                        close_brackets = repaired_json.count(']')
-                        
-                        repaired_json += '}' * (open_braces - close_braces)
-                        repaired_json += ']' * (open_brackets - close_brackets)
-                        
-                        data = json.loads(repaired_json)
-                        print("Repair successful (Method 2: Trim & Close).")
+                        repaired = clean_json[:last_comma]
+                        repaired += '}' * (repaired.count('{') - repaired.count('}')) 
+                        repaired += ']' * (repaired.count('[') - repaired.count(']'))
+                        data = json.loads(repaired)
+                        print(f"Repair successful for {chunk_desc} (Method 2: Trim & Close).")
+                        return data
                     else:
                         raise Exception("No comma to backtrack")
-                except:
-                     try:
-                        # Method 3: Brute Force Close (if we missed a nesting)
-                        # Just force close array/object assuming it's the main menu list
-                        repaired_json = clean_json 
-                        if repaired_json.count('"') % 2 != 0: repaired_json += '"'
-                        repaired_json += ']}}' # Lucky guess for closing "menu": [ ...
-                        data = json.loads(repaired_json)
-                        print("Repair successful (Method 3: Brute Force).")
-                     except Exception as final_e:
-                        print(f"Repair failed: {final_e}")
-                        raise Exception(f"AI javobi chala qoldi. Iltimos qayta urining. Error: {e}")
+                 except Exception as final_e:     
+                    raise Exception(f"Failed to repair {chunk_desc} JSON: {final_e}")
+
+    # -------------------------------------------------------------------------
+    # MAIN SPLIT LOGIC
+    # -------------------------------------------------------------------------
+    try:
+        base_prompt = f"{system_prompt}\n\nUser Input: {user_prompt}"
+        
+        # PART 1: Days 1-3
+        prompt_1 = base_prompt + "\n\n🚨 IMPORTANT TASK: Generate ONLY Days 1, 2, and 3. Return an EMPTY shopping_list for now."
+        data_1 = _generate_chunk(prompt_1, "Days 1-3")
+        
+        # PART 2: Days 4-7 + Shopping List
+        # We pass summary of Part 1 to help context, but minimal
+        # The model is instructed to generate the full shopping list for the whole week in Part 2.
+        prompt_2 = base_prompt + f"\n\n✅ Days 1-3 Generated Successfully. Now generate remaining.\n\n🚨 IMPORTANT TASK: Generate ONLY Days 4, 5, 6, and 7. \nAND generate valid 'shopping_list' for THE WHOLE WEEK (Days 1-7)."
+        data_2 = _generate_chunk(prompt_2, "Days 4-7")
+        
+        # MERGE
+        final_menu = data_1.get('menu', []) + data_2.get('menu', [])
+        final_shopping = data_2.get('shopping_list', {})
+        
+        # Fallback if Part 2 shopping list empty/invalid, try Part 1 (unlikely but safe, though Part 1 should be empty)
+        if not final_shopping and 'shopping_list' in data_1:
+             final_shopping = data_1['shopping_list']
+             
+        # Construct Final Object
+        merged_data = {
+            "menu": final_menu,
+            "shopping_list": final_shopping
+        }
+        
+        # Basic Validation
+        if len(merged_data['menu']) < 2:
+            print("WARNING: Merged menu has < 2 days. Might be error.")
             
-            if not data: raise Exception("JSON unrecoverable")
-            
-        # Continue with processing data
-        if data:
-            # ----------------------------------------------------------------
-            
-            # ----------------------------------------------------------------
-            # ROBUST CLEANING (Fix "tuzat" and other AI glitches)
-            # ----------------------------------------------------------------
-            if "menu" in data and isinstance(data["menu"], list):
-                for day in data["menu"]:
-                     for meal in ["breakfast", "lunch", "dinner", "snack"]:
-                         if meal in day and isinstance(day[meal], str):
-                             # Remove "tuzat" or similar command leaks
-                             clean_text = day[meal].replace(" tuzat", "").replace(" yoz", "")
+        # ----------------------------------------------------------------
+        # ROBUST CLEANING (Fix "tuzat" and other AI glitches)
+        # ----------------------------------------------------------------
+        if "menu" in merged_data and isinstance(merged_data["menu"], list):
+            for day in merged_data["menu"]:
+                 for meal in ["breakfast", "lunch", "dinner", "snack"]:
+                     if meal in day and isinstance(day[meal], str):
+                         # Remove "tuzat" or similar command leaks
+                         clean_text = day[meal].replace(" tuzat", "").replace(" yoz", "")
+                         
+                         # Ensure capitalization
+                         if clean_text:
+                             clean_text = clean_text[0].upper() + clean_text[1:]
                              
-                             # Ensure capitalization
-                             if clean_text:
-                                 clean_text = clean_text[0].upper() + clean_text[1:]
-                                 
-                             day[meal] = clean_text
+                         day[meal] = clean_text
 
-            if "shopping_list" in data and isinstance(data["shopping_list"], list):
-                new_list = []
-                for item in data["shopping_list"]:
-                    if isinstance(item, str):
-                        clean_item = item.replace(" tuzat", "").strip()
-                        if clean_item:
-                             new_list.append(clean_item)
-                data["shopping_list"] = new_list
-            # ----------------------------------------------------------------
+        if "shopping_list" in merged_data and isinstance(merged_data["shopping_list"], dict):
+            for category in merged_data["shopping_list"]:
+                if isinstance(merged_data["shopping_list"][category], list):
+                    new_list = []
+                    for item in merged_data["shopping_list"][category]:
+                        if isinstance(item, str):
+                            clean_item = item.replace(" tuzat", "").strip()
+                            if clean_item:
+                                 new_list.append(clean_item)
+                    merged_data["shopping_list"][category] = new_list
+        # ----------------------------------------------------------------
 
-            # ----------------------------------------------------------------
-
-            # SAVE TO CACHE
-            try:
-                # Ensure it's valid data before saving
-                if "menu" in data and "shopping_list" in data:
-                     db.create_menu_template(
-                         profile_key,
-                         json.dumps(data["menu"]),
-                         json.dumps(data["shopping_list"])
-                     )
-            except Exception as e:
-                 print(f"Cache Save Error: {e}")
-            return data
+        # SAVE TO CACHE
+        try:
+            # Ensure it's valid data before saving
+            if "menu" in merged_data and "shopping_list" in merged_data:
+                 db.create_menu_template(
+                     profile_key,
+                     json.dumps(merged_data["menu"]),
+                     json.dumps(merged_data["shopping_list"])
+                 )
+        except Exception as e:
+             print(f"Cache Save Error: {e}")
+        return merged_data
             
 
 
     except Exception as e:
-        print(f"DEBUG: Model {model_name} failed: {e}")
+        print(f"Split Generation Failed: {e}")
         # RE-RAISE THE EXACT ERROR so bot/workout.py displays it
         raise e
         
