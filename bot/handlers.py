@@ -137,10 +137,14 @@ def register_all_handlers(bot):
             workout.generate_ai_workout(call.message, bot, user_id=call.from_user.id)
             bot.answer_callback_query(call.id)
             
-        elif action == 'meal' or action == 'recipe':
-            # Call generation with explicit user_id
+        elif action == 'meal':
             workout.generate_ai_meal(call.message, bot, user_id=call.from_user.id)
             bot.answer_callback_query(call.id)
+        
+        elif action == 'recipe':
+             # Redirect to Fridge Recipe
+             # We can manually call the function or just trigger standard Fridge flow
+             callback_start_fridge_recipe(call)
             
         elif action == 'shopping':
             try:
