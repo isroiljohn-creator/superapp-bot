@@ -246,6 +246,45 @@ def register_handlers(bot):
             print(f"Traceback: {traceback.format_exc()}")
             bot.send_message(message.chat.id, f"❌ Xatolik: {str(e)}")
 
+    @bot.message_handler(func=lambda message: "Oylik Xarajatlar" in message.text and message.from_user.id in ADMIN_IDS)
+    def admin_ai_costs(message):
+        try:
+            # Get stats for last 30 days
+            stats = db.get_ai_usage_summary(days=30)
+            
+            # Get today stats for comparison
+            stats_today = db.get_ai_usage_summary(days=1)
+            
+            txt = f"💰 <b>AI Xarajatlar Dashboard</b>\n"
+            txt += f"📅 Sana: {time.strftime('%Y-%m-%d')}\n\n"
+            
+            # Today
+            txt += f"🟢 <b>Bugungi Xarajat:</b> ${stats_today['total_cost']:.4f}\n"
+            txt += f"🔹 So'rovlar: {stats_today['total_requests']}\n"
+            txt += f"🔹 Tokenlar: {stats_today['total_tokens']:,}\n\n"
+            
+            # This Month
+            txt += f"📆 <b>Oxirgi 30 kun:</b> ${stats['total_cost']:.4f}\n"
+            txt += f"🔹 So'rovlar: {stats['total_requests']}\n"
+            txt += f"🔹 Tokenlar: {stats['total_tokens']:,}\n\n"
+            
+            # Top Features
+            txt += "📊 <b>Funksiyalar bo'yicha:</b>\n"
+            for fet in stats['by_feature']:
+                txt += f"• {fet['name']}: ${fet['cost']:.4f} ({fet['count']} ta)\n"
+            
+            txt += "\n🏆 <b>TOP 5 User (Xarajat):</b>\n"
+            for usr in stats['top_users']:
+                 u_obj = db.get_user(usr['user_id']) # Optional: get name
+                 name = u_obj.full_name if u_obj else "User"
+                 username = f"@{u_obj.username}" if u_obj and u_obj.username else f"ID: {usr['user_id']}"
+                 txt += f"• {username}: ${usr['spent']:.4f}\n"
+            
+            bot.send_message(message.chat.id, txt, parse_mode="HTML")
+            
+        except Exception as e:
+            bot.send_message(message.chat.id, f"❌ Xatolik: {e}")
+
     # --- CALLBACK BRIDGES FOR DEV MENU ---
     
     @bot.callback_query_handler(func=lambda call: call.data == "admin_analytics_btn")
