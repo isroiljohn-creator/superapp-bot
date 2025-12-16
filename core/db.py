@@ -481,11 +481,9 @@ class Database:
             session.commit()
 
     def is_premium(self, user_id):
-        with get_sync_db() as session:
-            user = session.query(User).filter(User.telegram_id == user_id).first()
-            if not user or not user.premium_until:
-                return False
-            return user.premium_until > datetime.now()
+        # Wraps lazy check
+        is_active, _ = self.check_subscription_status(user_id)
+        return is_active
 
     def get_premium_status(self, user_id):
         with get_sync_db() as session:
@@ -1074,14 +1072,6 @@ class Database:
                     
             return stats
 
-    def get_analytics_summary(self):
-        """Get admin analytics summary"""
-        from backend.models import AdminEvent
-        import datetime
-        from sqlalchemy import func
-        
-        with get_sync_db() as session:
-            now = datetime.datetime.utcnow()
             day_ago = now - datetime.timedelta(hours=24)
             
             # DAU (Distinct users in logs + active users updated)
@@ -1868,3 +1858,66 @@ class Database:
             }
 
 db = Database()
+
+    # -------------------------------------------------------------------------
+    # TRIAL & SUBSCRIPTION MANAGEMENT
+    # -------------------------------------------------------------------------
+    
+    def activate_trial(self, user_id, days=3):
+        """Activate Free Trial for new user."""
+        from datetime import datetime, timedelta
+        from backend.models import User
+        with get_sync_db() as session:
+            pk = self._get_user_pk(session, user_id)
+            if not pk: return False
+            
+            user = session.query(User).filter(User.id == pk).first()
+            if not user: return False
+            
+            # Check if already used trial
+            if user.trial_used > 0:
+                print(f"User {user_id} already used trial.")
+                return False
+                
+            user.plan_type = 'trial'
+            user.premium_until = datetime.utcnow() + timedelta(days=days)
+            user.trial_used = 1
+            user.is_premium = True
+            
+            session.commit()
+            print(f"Trial activated for {user_id} ({days} days)")
+            return True
+
+    def check_subscription_status(self, user_id):
+        """Check if subscription/trial valid. Downgrade if expired. Returns (is_active, plan_type)."""
+        from datetime import datetime
+        from backend.models import User
+        with get_sync_db() as session:
+            pk = self._get_user_pk(session, user_id)
+            if not pk: return (False, 'free')
+            
+            user = session.query(User).filter(User.id == pk).first()
+            if not user: return (False, 'free')
+            
+            # If Free, just return
+            if user.plan_type == 'free':
+                return (True, 'free')
+            
+            # If no expiry date set, assume permanent (unless trial logic fails)
+            if not user.premium_until:
+                return (True, user.plan_type)
+                
+            # Check expiry
+            if user.premium_until < datetime.utcnow():
+                # EXPIRED -> Downgrade
+                old_plan = user.plan_type
+                user.plan_type = 'free'
+                user.is_premium = False
+                user.premium_until = None
+                session.commit()
+                
+                print(f"Downgraded user {user_id} from {old_plan} to free")
+                return (False, 'expired')
+                
+            # Valid
+            return (True, user.plan_type)

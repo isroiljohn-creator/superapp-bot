@@ -451,20 +451,26 @@ def finish_onboarding(user_id, message, bot):
             except Exception as e:
                 print(f"Referral notify error: {e}")
         
+        # ACTIVATE TRIAL
+        try:
+            db.activate_trial(user_id, days=7)
+        except Exception as e:
+            print(f"Trial Activation Error: {e}")
+
         # Send welcome message - PLAIN TEXT (No HTML) to be safe
         from core.content import content_manager
         welcome_text = content_manager.get(
             "welcome_msg_v2",
             default=(
                 "✅ Ro‘yxatdan o‘tdingiz! YASHA ga xush kelibsiz.\n\n"
-                "🎁 Sizga 7 kunlik Premium sinov ochildi - hech qanday cheklovsiz barcha AI xizmatlardan foydalanishingiz mumkin.\n\n"
+                "🎁 **Sizga 7 kunlik Premium (Trial) ochildi!**\n"
+                "Hech qanday cheklovsiz barcha AI xizmatlardan foydalanishingiz mumkin.\n\n"
                 "Bu 7 kun ichida siz:\n"
-                "- shaxsiylashtirilgan mashqlar rejasiga ega bo‘lasiz\n"
-                "- o‘zingizga mos ovqatlanish rejasini olasiz\n"
-                "- individual retseptlardan foydalanasiz\n"
-                "- shaxsiy psixolog va odatlar murabbiyiga ega bo'lasiz\n\n"
-                "Bu shunchaki “bot” emas. Bu sog‘lom hayotga kirish uchun birinchi qadam. Agar odatlaringizni o‘zgartirmoqchi bo‘lsangiz, mana shu yerda boshlanadi.\n\n"
-                "Quyidagi tugmalar orqali o‘z rejangizni ishga tushiring 👇"
+                "• Shaxsiy mashq va ovqat rejasi\n"
+                "• AI psixolog va retseptlar\n"
+                "• Cheklovsiz analiz\n\n"
+                "Sinov davri tugagach, Free rejimiga o'tasiz (AI ishlamaydi).\n"
+                "Hozir esa maksimal foydalanib qoling! 👇"
             )
         )
         
