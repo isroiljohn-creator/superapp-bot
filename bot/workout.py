@@ -637,7 +637,9 @@ def show_daily_menu(bot, user_id, link_data, override_day_idx=None):
         # Micro Advice (Coach Layer)
         advice = day_data.get('micro_advice')
         if advice:
-             txt += f"🧠 <b>Coach Maslahati:</b>\n<i>\"{advice}\"</i>\n"
+             # Clean any potential quotes
+             advice_clean = advice.replace('"', '').replace("'", "").strip()
+             txt += f"🧠 <b>Coach Maslahati:</b>\n<i>{advice_clean}</i>\n"
              
         # [SMART PAYWALL]
         if is_flag_enabled("smart_paywall", user_id):
