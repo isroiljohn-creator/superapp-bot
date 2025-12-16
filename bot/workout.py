@@ -747,7 +747,7 @@ def handle_menu_callback(call, bot):
         is_vip = user_data and user_data.get('plan_type') == 'vip'
         
         if not is_vip:
-             bot.answer_callback_query(call.id, "🔒 Bu funksiya faqat VIP tarifida mavjud!", show_alert=True)
+             bot.answer_callback_query(call.id, "🔒 Faqat VIP foydalanuvchilar almashtirish huquqiga ega!", show_alert=True)
              # Send upsell message
              # bot.send_message(user_id, "💎 Taomni almashtirish uchun VIP tarifiga o'ting...", reply_markup=...)
              return
