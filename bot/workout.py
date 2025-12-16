@@ -588,8 +588,8 @@ def show_daily_menu(bot, user_id, link_data, override_day_idx=None):
             return
 
         # Format Meals
-        def _fmt(m):
-            if isinstance(m, str): return m
+        def _fmt(m, emoji, label):
+            if isinstance(m, str): return f"{emoji} <b>{label}:</b>\n{m}"
             if isinstance(m, dict):
                 # New Schema
                 title = m.get('title', 'Taom')
@@ -600,34 +600,39 @@ def show_daily_menu(bot, user_id, link_data, override_day_idx=None):
                 
                 time_m = m.get('time_minutes', '')
                 
-                s = f"<b>{title}</b>"
+                # Header Line: Emoji Label: Title (kcal)
+                s = f"{emoji} <b>{label}:</b> {title}"
                 if kcal:
                     s += f" ({kcal} kcal)"
-                s += "\n"
+                s += "\n\n"
                 
+                # Ingredients
                 ings = m.get('ingredients', [])
                 if ings:
-                    s += "<i>Tarkibi:</i> " + ", ".join(ings) + "\n"
+                    s += f"<b>Tarkibi:</b> {', '.join(ings)}\n\n"
                 
+                # Steps
                 steps = m.get('preparation_steps', [])
                 if steps:
-                    s += "\n<i>Tayyorlanishi:</i>\n"
+                    s += "<b>Tayyorlanishi:</b>\n"
                     for i, step in enumerate(steps, 1):
                         s += f"{i}. {step}\n"
+                    s += "\n"
                         
+                # Footer: Time | Cost
                 meta = []
-                if time_m: meta.append(f"⏱ {time_m} daq")
+                if time_m: meta.append(f"⌛ {time_m} daqiqa")
                 cost = m.get('cost_level')
                 if cost and cost != "N/A": meta.append(f"💰 {cost}")
                 
-                if meta: s += "\n" + " | ".join(meta)
+                if meta: s += " | ".join(meta)
                 return s
-            return "-"
+            return f"{emoji} <b>{label}:</b> -"
 
-        txt += f"🍳 <b>Nonushta:</b>\n{_fmt(day_data.get('breakfast'))}\n\n"
-        txt += f"🍏 <b>Tamaddi:</b>\n{_fmt(day_data.get('snack'))}\n\n"
-        txt += f"🥗 <b>Tushlik:</b>\n{_fmt(day_data.get('lunch'))}\n\n"
-        txt += f"🍲 <b>Kechki ovqat:</b>\n{_fmt(day_data.get('dinner'))}\n\n"
+        txt += f"{_fmt(day_data.get('breakfast'), '🍳', 'Nonushta')}\n\n"
+        txt += f"{_fmt(day_data.get('snack'), '🍏', 'Tamaddi')}\n\n"
+        txt += f"{_fmt(day_data.get('lunch'), '🥗', 'Tushlik')}\n\n"
+        txt += f"{_fmt(day_data.get('dinner'), '🍲', 'Kechki ovqat')}\n\n"
         
         # Micro Advice (Coach Layer)
         advice = day_data.get('micro_advice')
