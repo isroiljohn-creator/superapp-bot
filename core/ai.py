@@ -1485,3 +1485,55 @@ def get_free_menu_template():
         "menu": menu_list,
         "shopping_list": {} # Empty for Free
     }
+
+# -------------------------------------------------------------------------
+# NEW: Fridge / Recipe Suggestion (Premium)
+# -------------------------------------------------------------------------
+def ai_suggest_recipe(user_profile, ingredients_text):
+    """Suggests a healthy recipe based on user ingredients."""
+    
+    prompt = f"""
+    Siz professional dietologsiz.
+    
+    Foydalanuvchi maqsadi: {user_profile.get('goal', 'Sog‘liq')}
+    Muzlatgichda bor mahsulotlar: "{ingredients_text}"
+    
+    VAZIFA:
+    Shu mahsulotlardan (va qo'shimcha oddiy narsalardan) foydalanib, 
+    bitta sog'lom va foydali retsept tuzing.
+    
+    Javob formati (O'zbek tilida):
+    🍽 **Taom nomi**
+    
+    🛒 **Kerakli masalliqlar:**
+    - ...
+    
+    👩‍🍳 **Tayyorlash:**
+    1. ...
+    2. ...
+    
+    💡 **Foydasi:** ...
+    
+    Qisqa, lo'nda va tushunarli bo'lsin.
+    """
+    
+    try:
+        response = curr_model.generate_content(
+            prompt,
+            request_options={'timeout': 30}
+        )
+        
+        # Log usage
+        if response.usage_metadata:
+             try:
+                 from core.ai_usage_logger import log_ai_usage
+                 log_ai_usage(None, user_profile.get('telegram_id'), "fridge_recipe", 
+                              input_tokens=response.usage_metadata.prompt_token_count,
+                              output_tokens=response.usage_metadata.candidates_token_count)
+             except: pass
+             
+        return response.text
+             
+    except Exception as e:
+        print(f"Fridge Gen Error: {e}")
+        return None

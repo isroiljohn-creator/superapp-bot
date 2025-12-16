@@ -188,3 +188,5 @@ def send_fallback_message(bot, chat_id, message_id=None):
         bot.edit_message_text(text, chat_id, message_id, parse_mode="Markdown")
     else:
         bot.send_message(chat_id, text, parse_mode="Markdown")
+
+STATE_FRIDGE_INPUT = 300

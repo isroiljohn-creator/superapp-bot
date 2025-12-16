@@ -128,7 +128,41 @@ def register_all_handlers(bot):
     # --- Submenu Button Handlers ---
 
     # AI Coach Inline Callback Handler
-    @bot.callback_query_handler(func=lambda call: call.data.startswith('ai_sub_'))
+    @bot.message_handler(func=lambda message: onboarding.manager.get_state(message.from_user.id) == 300) # STATE_FRIDGE_INPUT
+    def handle_fridge_input(message):
+        user_id = message.from_user.id
+        text = message.text
+        
+        # 1. Status
+        wait_msg = bot.send_message(user_id, "👩‍🍳 **Retsept qidirilmoqda...**\n\nAI sizning masalliqlaringizga mos taom o'ylayapti...", parse_mode="Markdown")
+        
+        try:
+            user = db.get_user(user_id)
+            if not user: return
+
+            # 2. AI Call
+            from core.ai import ai_suggest_recipe
+            recipe = ai_suggest_recipe(user, text)
+            
+            if recipe:
+                # 3. Result
+                bot.delete_message(user_id, wait_msg.message_id)
+                bot.send_message(user_id, recipe, parse_mode="Markdown")
+                
+                # Upsell/Engagement
+                bot.send_message(user_id, "Yana retsept kerakmi? Yana masalliq yozishingiz yoki /start bosib menyuga qaytishingiz mumkin.")
+            else:
+                 bot.edit_message_text("❌ Uzr, retsept topa olmadim. Boshqa masalliq kiritib ko'ring.", user_id, wait_msg.message_id)
+
+        except Exception as e:
+            print(f"Fridge Handler Error: {e}")
+            bot.edit_message_text("❌ Xatolik yuz berdi.", user_id, wait_msg.message_id)
+        
+        # Keep state open for follow-up or clear? Keep open for convenience, clear on /start or button click.
+        # For now, let's CLEAR to avoid sticky state confusion, user can click button again.
+        onboarding.manager.clear_user(user_id) 
+
+    @bot.callback_query_handler(func=lambda call: call.data.startswith('ai_coach_'))
     def ai_coach_callback(call):
         action = call.data.replace('ai_sub_', '')
         

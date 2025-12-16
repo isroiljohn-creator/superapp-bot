@@ -815,7 +815,32 @@ def handle_menu_callback(call, bot):
         return
 
     if data == "menu_fridge":
-         bot.answer_callback_query(call.id, "🥦 Muzlatgich retsepti tez orada!", show_alert=True)
+         user_id = call.from_user.id
+         
+         # 1. Premium Check
+         if not db.is_premium(user_id):
+             markup = types.InlineKeyboardMarkup()
+             markup.add(types.InlineKeyboardButton("👉 Plus’ga o‘ting", callback_data="premium_info"))
+             
+             msg = "🥦 **Muzlatgich funksiyasi faqat YASHA Plus’da.**\n\n"
+             msg += "Bor mahsulotlardan retsept tuzish uchun Premium oling."
+             
+             bot.send_message(user_id, msg, parse_mode="Markdown", reply_markup=markup)
+             bot.answer_callback_query(call.id, "Faqat YASHA Plus uchun", show_alert=True)
+             return
+
+         # 2. Set State
+         from bot.calorie_scanner import STATE_FRIDGE_INPUT
+         from bot import onboarding
+         
+         onboarding.manager.set_state(user_id, STATE_FRIDGE_INPUT)
+         
+         bot.send_message(
+             user_id, 
+             "🥦 **Muzlatgichda nima bor?**\n\nBor mahsulotlarni vergul bilan yozib yuboring.\nMasalan: _Tuxum, pomidor, kartoshka_",
+             parse_mode="Markdown"
+         )
+         bot.answer_callback_query(call.id)
          return
          
     if data.startswith("menu_swap_vip_"):
