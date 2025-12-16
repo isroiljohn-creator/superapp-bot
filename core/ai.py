@@ -606,6 +606,20 @@ Talablar:
                 generation_config=generation_config,
                 request_options={'timeout': 180} 
             )
+            
+            # [Added] Granular Logging
+            try:
+                if response.usage_metadata:
+                    i_tok = response.usage_metadata.prompt_token_count
+                    o_tok = response.usage_metadata.candidates_token_count
+                    
+                    from core.ai_usage_logger import log_ai_usage
+                    # user_profile is available from outer scope
+                    u_id = user_profile.get('telegram_id') 
+                    log_ai_usage(None, u_id, f"menu_{chunk_desc}", input_tokens=i_tok, output_tokens=o_tok, model=model_name)
+            except Exception as log_e:
+                print(f"Usage Log Error: {log_e}")
+                
         except Exception as api_error:
             if "429" in str(api_error) or "quota" in str(api_error).lower():
                  raise Exception("AI charchadi (Limit tugadi). Iltimos, 1-2 daqiqadan keyin urinib ko'ring.")

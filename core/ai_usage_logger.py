@@ -7,20 +7,43 @@ from core.config import ADMIN_IDS
 # Feature Flag
 ENABLE_AI_LOGGING = os.getenv("ENABLE_AI_LOGGING", "false").lower() == "true"
 
-def log_ai_usage(bot, user_id, feature, estimated_tokens=0):
+# Cost Constants (Gemini 1.5/2.5 Flash Approx)
+INPUT_COST_PER_TOKEN = 0.000000075  # $0.075 per 1M
+OUTPUT_COST_PER_TOKEN = 0.00000030  # $0.30 per 1M
+
+def log_ai_usage(bot, user_id, feature, estimated_tokens=0, input_tokens=None, output_tokens=None, model="gemini-2.5-flash"):
     """
     Safely logs AI usage and checks for limits.
-    NEVER blocks execution. Silently fails on error.
+    Now supports precise costing and DB logging.
     """
     if not ENABLE_AI_LOGGING:
         return
 
     try:
-        # 1. Log to Console (or file/DB in future)
-        timestamp = datetime.datetime.now().isoformat()
-        print(f"[AI LOG] User: {user_id} | Feature: {feature} | Tokens: {estimated_tokens} | Time: {timestamp}")
+        # Determine specific token counts
+        if input_tokens is not None and output_tokens is not None:
+            i_tok = input_tokens
+            o_tok = output_tokens
+        else:
+            # Legacy fallback: 80% input, 20% output
+            i_tok = int(estimated_tokens * 0.8)
+            o_tok = int(estimated_tokens * 0.2)
+
+        # Calculate Cost
+        cost = (i_tok * INPUT_COST_PER_TOKEN) + (o_tok * OUTPUT_COST_PER_TOKEN)
         
-        # 2. Check & Alert (Additive Logic)
+        # 1. Log to Console
+        timestamp = datetime.datetime.now().isoformat()
+        total_tok = i_tok + o_tok
+        print(f"[AI LOG] User: {user_id} | Feature: {feature} | Tokens: {total_tok} (In:{i_tok}/Out:{o_tok}) | Cost: ${cost:.6f}")
+        
+        # 2. Log to DB
+        try:
+             db.log_ai_usage_db(user_id, feature, model, i_tok, o_tok, cost)
+        except Exception as db_e:
+             print(f"[AI LOG DB ERROR] {db_e}")
+
+        # 3. Check & Alert (Additive Logic)
         _check_and_alert_limit(bot, user_id)
         
     except Exception as e:

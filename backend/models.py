@@ -278,3 +278,16 @@ class AdminEvent(Base):
     # But Alembic handles Index() better if declared.
     # Let's keep it simple here and rely on migration for specific composite indexes.
 
+
+class AIUsageLog(Base):
+    __tablename__ = "ai_usage_logs"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, index=True) # Decoupled from User table to avoid FK locking issues on high volume
+    feature = Column(String) # 'menu', 'chat', 'workout'
+    model_name = Column(String, default="gemini-2.5-flash")
+    input_tokens = Column(Integer, default=0)
+    output_tokens = Column(Integer, default=0)
+    total_tokens = Column(Integer, default=0)
+    cost_usd = Column(Float, default=0.0)
+    timestamp = Column(DateTime, default=datetime.utcnow)

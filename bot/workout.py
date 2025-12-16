@@ -402,7 +402,7 @@ def generate_ai_meal(message, bot, user_id=None):
         # [SAFE LOGGING ADDITION]
         try:
             from core.ai_usage_logger import log_ai_usage
-            log_ai_usage(bot, user_id, "menu", 2000)
+            # log_ai_usage(bot, user_id, "menu", 2000) # Disabled to prevent double logging with core/ai.py
         except: pass
             
         try:

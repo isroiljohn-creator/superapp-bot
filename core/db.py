@@ -1733,4 +1733,68 @@ class Database:
             except Exception as e:
                 print(f"UTM Update Error: {e}")
 
+    def log_ai_usage_db(self, user_id, feature, model_name, input_tok, output_tok, cost_usd):
+        """Log granular AI usage to DB"""
+        from backend.models import AIUsageLog
+        with get_sync_db() as session:
+            try:
+                log = AIUsageLog(
+                    user_id=user_id,
+                    feature=feature,
+                    model_name=model_name,
+                    input_tokens=input_tok,
+                    output_tokens=output_tok,
+                    total_tokens=input_tok + output_tok,
+                    cost_usd=cost_usd,
+                    timestamp=datetime.utcnow()
+                )
+                session.add(log)
+                session.commit()
+            except Exception as e:
+                print(f"Db Log Error: {e}")
+
+    def get_ai_usage_summary(self, days=30):
+        """Get usage stats for Admin Dashboard"""
+        from backend.models import AIUsageLog
+        from sqlalchemy import func
+        with get_sync_db() as session:
+            start_date = datetime.utcnow() - timedelta(days=days)
+            
+            # Total Cost & Tokens
+            totals = session.query(
+                func.sum(AIUsageLog.cost_usd),
+                func.sum(AIUsageLog.total_tokens),
+                func.count(AIUsageLog.id)
+            ).filter(AIUsageLog.timestamp >= start_date).first()
+            
+            total_cost = totals[0] or 0.0
+            total_tokens = totals[1] or 0
+            total_reqs = totals[2] or 0
+            
+            # By Feature
+            by_feature = session.query(
+                AIUsageLog.feature,
+                func.sum(AIUsageLog.cost_usd),
+                func.count(AIUsageLog.id)
+            ).filter(AIUsageLog.timestamp >= start_date)\
+             .group_by(AIUsageLog.feature).all()
+             
+            # Top Spenders
+            top_users = session.query(
+                AIUsageLog.user_id,
+                func.sum(AIUsageLog.cost_usd).label('spent')
+            ).filter(AIUsageLog.timestamp >= start_date)\
+             .group_by(AIUsageLog.user_id)\
+             .order_by(func.sum(AIUsageLog.cost_usd).desc())\
+             .limit(5).all()
+
+            return {
+                "period_days": days,
+                "total_cost": total_cost,
+                "total_tokens": total_tokens,
+                "total_requests": total_reqs,
+                "by_feature": [{"name": f[0], "cost": f[1], "count": f[2]} for f in by_feature],
+                "top_users": [{"user_id": u[0], "spent": u[1]} for u in top_users]
+            }
+
 db = Database()
