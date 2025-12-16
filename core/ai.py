@@ -693,12 +693,11 @@ Talablar:
                      )
             except Exception as e:
                  print(f"Cache Save Error: {e}")
-
             return data
-        except:
-            import ast
-            data = ast.literal_eval(clean_json)
-            return data
+            
+        except Exception as e:
+            print(f"DEBUG: Model {model_name} processing failed: {e}")
+            raise e
 
     except Exception as e:
         print(f"DEBUG: Model {model_name} failed: {e}")
