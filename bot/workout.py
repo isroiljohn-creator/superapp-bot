@@ -690,8 +690,47 @@ def handle_menu_callback(call, bot):
 
     if data.startswith("eat_"):
         # eat_1_breakfast
-        bot.answer_callback_query(call.id, "✅ Kaloriyalar qo'shildi! (Tez orada...)")
-        # TODO: Implement actual tracking logic
+        parts = data.split("_")
+        if len(parts) >= 3:
+            day_idx = int(parts[1])
+            meal_type = parts[2]
+            
+            link = db.get_user_menu_link(user_id)
+            if not link:
+                bot.answer_callback_query(call.id, "❌ Menyu topilmadi!")
+                return
+                
+            # 1. Get Meal Data
+            try:
+                import json
+                menu_data = json.loads(link['menu_json'])
+                # Find day
+                day_data = next((d for d in menu_data if d['day'] == day_idx), None)
+                if not day_data:
+                    bot.answer_callback_query(call.id, "❌ Kun ma'lumoti yo'q")
+                    return
+                
+                # Get Meal Kcal
+                meal_obj = day_data.get(meal_type)
+                kcal = 0
+                if meal_obj and isinstance(meal_obj, dict):
+                    kcal = meal_obj.get('kcal', 0)
+                
+                if kcal > 0:
+                    # 2. Add to Daily Log
+                    new_total = db.add_daily_calories(user_id, kcal)
+                    
+                    # 3. Feedback
+                    bot.answer_callback_query(call.id, f"😋 {kcal} kkal qo'shildi!\nJami bugun: {new_total} kkal", show_alert=True)
+                    
+                    # Optional: Edit button to show checkmark? 
+                    # For now just alert is enough to keep complexity low and avoid race conditions with view_menu
+                else:
+                    bot.answer_callback_query(call.id, "⚠️ Bu ovqatda kaloriya ko'rsatilmagan.")
+                    
+            except Exception as e:
+                print(f"Eat Logic Error: {e}")
+                bot.answer_callback_query(call.id, "❌ Xatolik yuz berdi")
         return
 
     if data == "menu_fridge":

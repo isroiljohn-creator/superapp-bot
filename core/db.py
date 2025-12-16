@@ -1432,6 +1432,36 @@ class Database:
             print(f"Error getting habit progress: {e}")
             return (0, total_habits)
 
+    def add_daily_calories(self, user_id, kcal):
+        """Atomic addition of calories to today's log"""
+        today = datetime.utcnow().strftime('%Y-%m-%d')
+        from backend.models import DailyLog
+        
+        with get_sync_db() as session:
+            try:
+                pk = self._get_user_pk(session, user_id)
+                if not pk: return 0
+                
+                log = session.query(DailyLog).filter(
+                    DailyLog.user_id == pk, 
+                    DailyLog.date == today
+                ).first()
+                
+                new_total = 0
+                if not log:
+                    log = DailyLog(user_id=pk, date=today, calories_consumed=kcal)
+                    session.add(log)
+                    new_total = kcal
+                else:
+                    log.calories_consumed = (log.calories_consumed or 0) + kcal
+                    new_total = log.calories_consumed
+                    
+                session.commit()
+                return new_total
+            except Exception as e:
+                print(f"Error adding calories: {e}")
+                return 0
+
     def create_user_menu_link(self, user_id, template_id):
         with get_sync_db() as session:
             pk = self._get_user_pk(session, user_id)
