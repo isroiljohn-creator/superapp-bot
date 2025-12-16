@@ -574,7 +574,7 @@ Talablar:
                 full_text_prompt,
                 safety_settings=SAFETY_SETTINGS,
                 generation_config=generation_config,
-                request_options={'timeout': 120} 
+                request_options={'timeout': 180} 
             )
         except Exception as api_error:
             # Catch API errors (429, 500, etc) and re-raise with clear message
@@ -597,12 +597,62 @@ Talablar:
 
         # Robust JSON extraction
         import re
-        json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
-        clean_json = json_match.group(0) if json_match else response_text
+        # Try to find the start of JSON object
+        json_start_match = re.search(r'\{', response_text)
+        if json_start_match:
+            start_index = json_start_match.start()
+            # If standard regex extraction failed previously or we want to be smarter:
+            clean_json = response_text[start_index:]
+            # Remove any markdown code block suffix if present
+            clean_json = clean_json.split('```')[0].strip()
+        else:
+            clean_json = response_text
 
+        data = None
         try:
             import json
             data = json.loads(clean_json)
+        except json.JSONDecodeError as e:
+            print(f"Initial JSON Parse Error: {e}. Attempting repair...")
+            # Simple Repair Attempt for Truncated JSON
+            try:
+                # 1. Close open brackets effectively
+                # Count open/close braces
+                open_braces = clean_json.count('{')
+                close_braces = clean_json.count('}')
+                open_brackets = clean_json.count('[')
+                close_brackets = clean_json.count(']')
+                
+                # Append missing
+                repaired_json = clean_json
+                # This is a naive heuristic, but often works for simple truncation
+                repaired_json += '}' * (open_braces - close_braces)
+                repaired_json += ']' * (open_brackets - close_brackets)
+                # Sometimes needs a final '}' if it was cut off inside a list inside an object
+                # A better way is using a library, but minimal fallback:
+                
+                # Try simple closing first
+                data = json.loads(repaired_json)
+                print("Repair successful (Method 1).")
+            except:
+                try:
+                    # Method 2: Force close array and object
+                    repaired_json = clean_json + ']}' 
+                    data = json.loads(repaired_json)
+                    print("Repair successful (Method 2).")
+                except:
+                    # If still fails, try to find the LAST valid json object (maybe it generated 6 days then cut off)
+                    # We can regex for the last complete "day" object? 
+                    # For now, let's just fail or return partial if we had implemented a parser.
+                    print("Repair failed.")
+                    # Re-raise original error or a custom one
+                    raise Exception(f"AI javobi chala qoldi. Iltimos qayta urining. Error: {e}")
+            
+            if not data: raise Exception("JSON unrecoverable")
+            
+        # Continue with processing data
+        if data:
+            # ----------------------------------------------------------------
             
             # ----------------------------------------------------------------
             # ROBUST CLEANING (Fix "tuzat" and other AI glitches)
