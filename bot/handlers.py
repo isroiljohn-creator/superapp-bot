@@ -835,15 +835,26 @@ def register_all_handlers(bot):
 
     def handle_fridge_input(message, bot):
         try:
-            ingredients = message.text
+            txt = message.text
+            
+            # 1. Navigation Escape Hatch
+            # If user presses a menu button instead of typing ingredients
+            if txt.startswith("⬅️") or txt.startswith("🏠") or txt.startswith("/") or txt in ["🤖 AI murabbiy", "🔥 Chellenjlar", "👤 Profil"]:
+                bot.send_message(message.chat.id, "❌ Retsept bekor qilindi.", reply_markup=main_menu_keyboard(user_id=message.from_user.id))
+                return
+
+            ingredients = txt
             if not ingredients or len(ingredients) < 3:
                 bot.send_message(message.chat.id, "Iltimos, mahsulotlarni to'g'ri yozing.")
+                # Keep handler active? No, let them click again or type again if we knew how to re-register.
+                # For now just return, they have to click button again to restart flow.
                 return
 
             user = db.get_user(message.from_user.id)
             if not user: return
             
-            gen_msg = bot.send_message(message.chat.id, "👨‍🍳 **Shef-oshpaz o'ylamoqda...**\n\nRetsept tuzilmoqda...")
+            # FIXED: Added parse_mode='Markdown'
+            gen_msg = bot.send_message(message.chat.id, "👨‍🍳 **Shef-oshpaz o'ylamoqda...**\n\nRetsept tuzilmoqda...", parse_mode="Markdown")
             
             # Call AI
             from core.ai import ai_generate_fridge_recipe
