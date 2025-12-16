@@ -135,11 +135,13 @@ def register_all_handlers(bot):
         if action == 'workout':
             # Call generation with explicit user_id
             workout.generate_ai_workout(call.message, bot, user_id=call.from_user.id)
-            bot.answer_callback_query(call.id)
+            try: bot.answer_callback_query(call.id)
+            except: pass
             
         elif action == 'meal':
             workout.generate_ai_meal(call.message, bot, user_id=call.from_user.id)
-            bot.answer_callback_query(call.id)
+            try: bot.answer_callback_query(call.id)
+            except: pass
         
         elif action == 'recipe':
              # Redirect to Fridge Recipe
@@ -561,6 +563,11 @@ def register_all_handlers(bot):
 
     # [DUPLICATE HANDLER REMOVED]
     # The clean implementation is below at line 514+
+
+    # --- New Menu Navigation Handlers ---
+    @bot.callback_query_handler(func=lambda call: call.data.startswith('menu_view_') or call.data.startswith('eat_') or call.data in ['menu_fridge', 'menu_swap_vip', 'menu_regenerate'])
+    def menu_nav_callback(call):
+        workout.handle_menu_callback(call, bot)
 
     @bot.callback_query_handler(func=lambda call: call.data == "menu_shopping")
     def callback_menu_shopping(call):

@@ -1719,4 +1719,18 @@ class Database:
             print(f"ERROR: Failed to clear daily plans: {e}")
             return 0
 
+    def update_user_utm(self, user_id, source, medium, campaign):
+        """Update UTM tracking params for a user"""
+        from backend.models import User
+        with get_sync_db() as session:
+            try:
+                session.query(User).filter(User.telegram_id == user_id).update({
+                    "utm_source": source,
+                    "utm_raw": f"{source}_{medium}_{campaign}", # aggregated raw
+                    "utm_campaign": campaign
+                }, synchronize_session=False)
+                session.commit()
+            except Exception as e:
+                print(f"UTM Update Error: {e}")
+
 db = Database()

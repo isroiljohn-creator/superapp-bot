@@ -434,17 +434,17 @@ CRITICAL RULES:
 1. OUTPUT MUST BE VALID JSON ONLY.
 2. Each meal (breakfast, lunch, dinner) MUST be an OBJECT with:
    - title
-   - ingredients (array)
+   - ingredients (array of strings WITH QUANTITIES, e.g. "2 dona tuxum", "100g guruch")
    - preparation_steps (array of strings)
    - time_minutes (integer)
    - cost_level (MUST be one of: 'Arzon', 'O\'rtacha', 'Qimmat')
    - place (uy/kocha)
 3. Recipes must be realistic for a home kitchen.
 4. Total calories must match the target range.
-5. 'kcal' field is MANDATORY for EVERY meal (breakfast, lunch, dinner, snack). It must be an INTEGER (e.g. 450, not '450 kcal').
+5. 'kcal' field is MANDATORY for EVERY meal (breakfast, lunch, dinner, snack). It must be an INTEGER.
 6. Snack MUST be a structured object with calculated calories.
 7. LANGUAGE STRICTLY UZBEK. NO ENGLISH WORDS.
-8. Snack (Tamaddi) title MUST be extremely short (2-3 words max).
+8. Snack (Tamaddi) title: Short (2-3 words).
 """
 
     # 2. User Prompt (Data)
@@ -461,21 +461,14 @@ Maqsad: {user_profile.get('goal')}
 Talablar:
 - 7 kunlik reja (JSON array "menu" ichida). 
 - **micro_advice**: Har kun uchun 1-2 gapdan iborat qisqa, motivatsion coach maslahati (faqat o'zbekcha).
-- **Murojaat shakli**: Foydalanuvchiga doim "SIZ" deb murojaat qiling (Sen emacs).
-- **Formatlash**: Coach maslahatida qo'shtirnoq (" ") ishlatmang. Matnni tabiiy yozing.
+- **Murojaat shakli**: Foydalanuvchiga doim "SIZ" deb murojaat qiling.
 - **kcal**: Har bir ovqat (snack uchun ham) albatta kaloriya (integer) hisoblansin.
-- **Tillar**: FAQAT O'ZBEK TILI. Inglizcha so'z umuman ishlatilmasin (Masalan: "Snack" -> "Tamaddi", "Breakfast" -> "Nonushta" degan so'zlar JSON kalitlarida qolsin, lekin "title" ichida faqat o'zbekcha bo'lsin).
-- **Tamaddi (Snack)**: "title" juda qisqa bo'lsin (max 2-3 so'z). Masalan: "1 ta olma", "Qatiq va yong'oq", "Meva salati". Uzun ta'riflar kerak emas.
+- **Tillar**: FAQAT O'ZBEK TILI.
+- **Tarkibi (Ingredients)**: Har bir masalliqning miqdorini yozing (Masalan: "Tuxum (2 dona)", "Sut (200ml)").
+- **Tamaddi (Snack)**: "title" juda qisqa bo'lsin.
 
-- **shopping_list**: OBYEKT bo'lishi shart. Quyidagi kategoriyalarga bo'lingan:
-    - protein (Go'sht, tuxum...)
-    - veg (Sabzavot, meva...)
-    - carbs (Guruch, non, grechka...)
-    - dairy (Sut, qatiq...)
-    - misc (Yog', ziravor...)
-    
-- Har bir mahsulot yonida taxminiy miqdorini yoz (Masalan: "Tovuq 1kg", "Guruch 500g").
-- Qimmat narsalarni YOZMA (Avokado, Losos).
+- **shopping_list**: OBYEKT bo'lishi shart. Kategoriyalarga bo'lingan.
+- Har bir mahsulot yonida miqdorini yoz (Masalan: "Tovuq 1kg").
 - JSON valid bo'lsin.
 """
 
