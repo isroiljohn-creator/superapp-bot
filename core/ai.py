@@ -420,56 +420,89 @@ def ai_generate_monthly_menu_json(user_profile):
     
     
     # 1. System Prompt (Rich Nutritional Role)
+    # 1. System Prompt (Rich Nutritional Role - UPDATED STRICT)
     system_prompt = """
 You are a professional Uzbek nutritionist, home chef, and supportive fitness coach.
+
 Your task is to generate a 7-day meal plan in STRICT JSON format.
 
 CONTEXT:
-- Diet style: Simple Uzbek home food
-- Budget: Affordable
-- Ingredients must be available in Uzbekistan
-- Tone: Warm, motivating, human (like a caring coach)
+- Diet style: Oddiy o‘zbek uy ovqatlari
+- Budget: Arzon / O‘rtacha
+- Ingredients must be easily available in Uzbekistan
+- Cooking skill: Boshlang‘ich
+- Tone: Iliq, qo‘llab-quvvatlovchi, murabbiyona (insondek)
 
-CRITICAL RULES:
-1. OUTPUT MUST BE VALID JSON ONLY.
-2. Each meal (breakfast, lunch, dinner) MUST be an OBJECT with:
-   - title
-   - ingredients (array of strings WITH QUANTITIES, e.g. "2 dona tuxum", "100g guruch")
-   - preparation_steps (array of strings)
-   - time_minutes (integer)
-   - cost_level (MUST be one of: 'Arzon', 'O\'rtacha', 'Qimmat')
-   - place (uy/kocha)
-3. Recipes must be realistic for a home kitchen.
-4. Total calories must match the target range.
-5. 'kcal' field is MANDATORY for EVERY meal (breakfast, lunch, dinner, snack). It must be an INTEGER.
-6. Snack MUST be a structured object with calculated calories.
-7. LANGUAGE STRICTLY UZBEK. NO ENGLISH WORDS.
-8. Snack (Tamaddi) title: Short (2-3 words).
+CRITICAL RULES (VERY IMPORTANT):
+
+1. OUTPUT MUST BE VALID JSON ONLY. NO TEXT OUTSIDE JSON.
+2. JSON STRUCTURE MUST NEVER CHANGE.
+3. LANGUAGE: FAQAT O‘ZBEK TILI. HECH QANDAY INGLIZCHA SO‘Z YO‘Q (Values must be Uzbek, but JSON Keys must be English matching the schema).
+4. USERGA DOIM "SIZ" DEB MUROJAAT QILING.
+
+CALORIE RULES (STRICT):
+- DAILY_TOTAL_KCAL MUST BE BETWEEN 1400 AND 1500 (Adjust steps/ingredients to fit).
+- EVERY MEAL MUST HAVE 'kcal' (INTEGER).
+- DAILY kcal MUST BE LOGICALLY DISTRIBUTED:
+  - Nonushta: 25–30%
+  - Tushlik: 35–40%
+  - Kechki ovqat: 20–25%
+  - Tamaddi: 5–10%
+- If kcal does NOT fit → YOU MUST FIX IT.
+
+MEAL STRUCTURE (DO NOT CHANGE):
+Each meal object MUST include:
+- title (string)
+- ingredients (array of strings WITH QUANTITIES)
+- preparation_steps (array of strings, step-by-step)
+- time_minutes (integer)
+- cost_level ('Arzon' | 'O\'rtacha' | 'Qimmat')
+- place ('uy')
+- kcal (integer)
+
+SNACK (TAMADDI):
+- MUST be an OBJECT
+- title MUST be very short (2–3 words)
+- kcal is REQUIRED
+
+SHOPPING LIST:
+- MUST be an OBJECT
+- GROUPED BY CATEGORIES: 'protein', 'veg', 'carbs', 'dairy', 'misc'
+- Quantities MUST be TOTAL for 7 DAYS (Masalan: "Tovuq filesi — 1.5 kg")
+
+DAILY OBJECT MUST INCLUDE:
+- day (integer, 1-7)
+- day_name (string, e.g. "Dushanba")
+- breakfast, lunch, dinner, snack
+- total_kcal (integer)
+- micro_advice (1–2 short motivating sentences)
+
 """
 
     # 2. User Prompt (Data)
+    if 'allergies' in user_profile and user_profile['allergies']:
+         allergy_info = user_profile['allergies']
+    else:
+         allergy_info = "yo‘q"
+
     user_prompt = f"""
+🔹 USER PROMPT (DYNAMIC)
+
 Ma'lumotlar:
 Yosh: {user_profile.get('age')}
 Jins: {user_profile.get('gender')}
-Bo'y: {user_profile.get('height')}
+Bo‘y: {user_profile.get('height')}
 Vazn: {user_profile.get('weight')}
 Faollik: {user_profile.get('activity_level', 'O’rtacha')}
-Maqsad: {user_profile.get('goal')}
-{allergy_section}
+Maqsad: {user_profile.get('goal', 'Vazn yo‘qotish')}
+Allergiya: {allergy_info}
 
 Talablar:
-- 7 kunlik reja (JSON array "menu" ichida). 
-- **micro_advice**: Har kun uchun 1-2 gapdan iborat qisqa, motivatsion coach maslahati (faqat o'zbekcha).
-- **Murojaat shakli**: Foydalanuvchiga doim "SIZ" deb murojaat qiling.
-- **kcal**: Har bir ovqat (snack uchun ham) albatta kaloriya (integer) hisoblansin.
-- **Tillar**: FAQAT O'ZBEK TILI.
-- **Tarkibi (Ingredients)**: Har bir masalliqning miqdorini yozing (Masalan: "Tuxum (2 dona)", "Sut (200ml)").
-- **Tamaddi (Snack)**: "title" juda qisqa bo'lsin.
-
-- **shopping_list**: OBYEKT bo'lishi shart. Kategoriyalarga bo'lingan.
-- Har bir mahsulot yonida miqdorini yoz (Masalan: "Tovuq 1kg").
-- JSON valid bo'lsin.
+- 7 kunlik menyu
+- Ovqatlar uy sharoitida tayyorlanadigan bo‘lsin
+- Mahsulotlar arzon va topilishi oson bo‘lsin
+- Har kun yakunida aniq kaloriya chiqsin
+- Foydalanuvchini ruhlantiruvchi micro_advice bo‘lsin
 """
 
     
@@ -499,6 +532,7 @@ Talablar:
                             "type": "object",
                             "properties": {
                                 "day": {"type": "integer"},
+                                "day_name": {"type": "string"},
                                 "total_kcal": {"type": "integer"},
                                 "breakfast": {
                                     "type": "object",
