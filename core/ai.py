@@ -695,9 +695,7 @@ Talablar:
                  print(f"Cache Save Error: {e}")
             return data
             
-        except Exception as e:
-            print(f"DEBUG: Model {model_name} processing failed: {e}")
-            raise e
+
 
     except Exception as e:
         print(f"DEBUG: Model {model_name} failed: {e}")
