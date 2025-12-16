@@ -616,37 +616,60 @@ Talablar:
             print(f"Initial JSON Parse Error: {e}. Attempting repair...")
             # Simple Repair Attempt for Truncated JSON
             try:
+                repaired_json = clean_json
+                
+                # 0. Close Unclosed String if needed
+                # Count non-escaped quotes? Simple count is usually enough for AI JSON
+                if repaired_json.count('"') % 2 != 0:
+                    repaired_json += '"'
+                
                 # 1. Close open brackets effectively
                 # Count open/close braces
-                open_braces = clean_json.count('{')
-                close_braces = clean_json.count('}')
-                open_brackets = clean_json.count('[')
-                close_brackets = clean_json.count(']')
+                open_braces = repaired_json.count('{')
+                close_braces = repaired_json.count('}')
+                open_brackets = repaired_json.count('[')
+                close_brackets = repaired_json.count(']')
                 
                 # Append missing
-                repaired_json = clean_json
-                # This is a naive heuristic, but often works for simple truncation
                 repaired_json += '}' * (open_braces - close_braces)
                 repaired_json += ']' * (open_brackets - close_brackets)
-                # Sometimes needs a final '}' if it was cut off inside a list inside an object
-                # A better way is using a library, but minimal fallback:
                 
                 # Try simple closing first
                 data = json.loads(repaired_json)
-                print("Repair successful (Method 1).")
+                print("Repair successful (Method 1: Auto-close).")
             except:
                 try:
-                    # Method 2: Force close array and object
-                    repaired_json = clean_json + ']}' 
-                    data = json.loads(repaired_json)
-                    print("Repair successful (Method 2).")
+                    # Method 2: Backtrack to last comma (discard partial field) + Close
+                    last_comma = clean_json.rfind(',')
+                    if last_comma > 0:
+                        repaired_json = clean_json[:last_comma]
+                        
+                        # Close string if cut was bad? No, comma usually ends value.
+                        # Re-calc braces
+                        open_braces = repaired_json.count('{')
+                        close_braces = repaired_json.count('}')
+                        open_brackets = repaired_json.count('[')
+                        close_brackets = repaired_json.count(']')
+                        
+                        repaired_json += '}' * (open_braces - close_braces)
+                        repaired_json += ']' * (open_brackets - close_brackets)
+                        
+                        data = json.loads(repaired_json)
+                        print("Repair successful (Method 2: Trim & Close).")
+                    else:
+                        raise Exception("No comma to backtrack")
                 except:
-                    # If still fails, try to find the LAST valid json object (maybe it generated 6 days then cut off)
-                    # We can regex for the last complete "day" object? 
-                    # For now, let's just fail or return partial if we had implemented a parser.
-                    print("Repair failed.")
-                    # Re-raise original error or a custom one
-                    raise Exception(f"AI javobi chala qoldi. Iltimos qayta urining. Error: {e}")
+                     try:
+                        # Method 3: Brute Force Close (if we missed a nesting)
+                        # Just force close array/object assuming it's the main menu list
+                        repaired_json = clean_json 
+                        if repaired_json.count('"') % 2 != 0: repaired_json += '"'
+                        repaired_json += ']}}' # Lucky guess for closing "menu": [ ...
+                        data = json.loads(repaired_json)
+                        print("Repair successful (Method 3: Brute Force).")
+                     except Exception as final_e:
+                        print(f"Repair failed: {final_e}")
+                        raise Exception(f"AI javobi chala qoldi. Iltimos qayta urining. Error: {e}")
             
             if not data: raise Exception("JSON unrecoverable")
             
