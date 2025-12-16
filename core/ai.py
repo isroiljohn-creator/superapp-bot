@@ -877,26 +877,25 @@ def ai_generate_fridge_recipe(user_profile, available_ingredients):
     AI_USAGE_STATS["total_requests"] += 1
     
     prompt = f"""
-Siz professional oshpaz va fitness murabbiysiz.
-Foydalanuvchi uyida bor mahsulotlardan 1-2 ta retsept so'radi.
-
+Siz professional oshpazsiz.
 Foydalanuvchi maqsadi: {user_profile.get('goal')}
 Bor mahsulotlar: {available_ingredients}
 
-Vazifa:
-Faqat berilgan mahsulotlardan (va tuz/yog'/suv kabi oddiy narsalardan) foydalanib, 1 yoki 2 ta oddiy va foydali retsept yozing.
+VAZIFA:
+Shu mahsulotlardan 1 ta eng zo'r va tez pishadigan retsept yozing.
 
-Qoidalar:
-1. Retsept nomini yozing.
-2. Kerakli masalliqlarni ro'yxat qiling.
-3. Tayyorlash jarayonini qadamma-qadam (1, 2, 3...) tushunarli yozing.
-4. Murabbiy sifatida qisqa maslahat bering.
-5. Faqat O'zbek tilida.
-6. Format chiroyli va o'qishli bo'lsin (Markdown).
-
-Namuna:
-🍳 **Tuxumli kartoshka**
-...
+QAT'IY QOIDALAR:
+1. ⚠️ JUDA QISQA BO'LSIN (Maksimal 200 belgi).
+2. 🚫 Uydan yo'q narsa qo'shmang (faqat tuz/yog'/suv mumkin).
+3. 📝 Format: 
+   "🍳 [Nom]"
+   "🥣 [Masalliqlar]"
+   "👨‍🍳 [1 gap bilan tayyorlash]"
+   
+NAMUNA:
+🍳 Pomidorli Tuxum
+🥣 2 tuxum, 1 pomidor, tuz
+👨‍🍳 Pomidorni to'g'rab qovuring, ustiga tuxumni chaqib, tuz sepib 5 daqiqa pishiring. Yoqimli ishtaha!
 """
     return call_gemini(prompt)
 
