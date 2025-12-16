@@ -526,7 +526,7 @@ def register_handlers(bot):
         # Show category submenu with ReplyKeyboard
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
         markup.add(
-            types.KeyboardButton("💎 Premium"),
+            types.KeyboardButton("💎 Premiumlar"),
             types.KeyboardButton("👑 VIP")
         )
         markup.add(
@@ -547,7 +547,7 @@ def register_handlers(bot):
         )
     
     # Category message handlers
-    @bot.message_handler(func=lambda m: m.text == "💎 Premium" and m.from_user.id in ADMIN_IDS)
+    @bot.message_handler(func=lambda m: m.text == "💎 Premiumlar" and m.from_user.id in ADMIN_IDS)
     def show_premium_users(message):
         show_user_list_page(message.chat.id, 1, bot, category="premium")
     
