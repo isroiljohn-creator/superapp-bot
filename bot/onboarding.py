@@ -1,4 +1,5 @@
 from telebot import types
+from telebot.apihelper import ApiTelegramException
 from core.db import db
 from core.utils import generate_referral_code, get_referrer_id_from_code
 from bot.keyboards import (
@@ -62,11 +63,17 @@ def start_onboarding(message, bot):
     existing_user = db.get_user(user_id)
     if existing_user:
         is_admin = user_id in ADMIN_IDS
-        bot.send_message(
-            user_id, 
-            "Asosiy menyuga qaytdingiz, pastdagi tugmalar orqali keyingi qadamni tanlang👇🏻", 
-            reply_markup=main_menu_keyboard(user_id=user_id)
-        )
+        try:
+            bot.send_message(
+                user_id, 
+                "Asosiy menyuga qaytdingiz, pastdagi tugmalar orqali keyingi qadamni tanlang👇🏻", 
+                reply_markup=main_menu_keyboard(user_id=user_id)
+            )
+        except ApiTelegramException as e:
+            if e.error_code == 403:
+                print(f"User {user_id} blocked the bot (start_onboarding).")
+            else:
+                raise e
         return
     
     # Handle start parameters
@@ -129,13 +136,19 @@ def start_onboarding(message, bot):
     # Track user's start command if possible (message.message_id)
     manager.track_message(user_id, message.message_id)
     
-    msg = bot.send_message(
-        user_id,
-        "🎉 Assalomu alaykum! YASHA botiga xush kelibsiz.\n\n"
-        "Davom etish uchun telefon raqamingizni yuboring 👇",
-        reply_markup=phone_request_keyboard()
-    )
-    manager.track_message(user_id, msg.message_id)
+    try:
+        msg = bot.send_message(
+            user_id,
+            "🎉 Assalomu alaykum! YASHA botiga xush kelibsiz.\n\n"
+            "Davom etish uchun telefon raqamingizni yuboring 👇",
+            reply_markup=phone_request_keyboard()
+        )
+        manager.track_message(user_id, msg.message_id)
+    except ApiTelegramException as e:
+        if e.error_code == 403:
+            print(f"User {user_id} blocked the bot (start_onboarding initial).")
+        else:
+            raise e
 
 def process_phone(message, bot):
     user_id = message.from_user.id
@@ -511,12 +524,18 @@ def register_handlers(bot):
     @bot.message_handler(func=lambda m: manager.get_state(m.from_user.id) == STATE_PHONE)
     def handle_phone_fallback(message):
         """Catch non-contact messages during phone step"""
-        bot.send_message(
-            message.chat.id,
-            "❌ Iltimos, telefon raqamingizni kontakt sifatida yuboring 👇\n\n"
-            "Pastdagi tugmani bosing:",
-            reply_markup=phone_request_keyboard()
-        )
+        try:
+            bot.send_message(
+                message.chat.id,
+                "❌ Iltimos, telefon raqamingizni kontakt sifatida yuboring 👇\n\n"
+                "Pastdagi tugmani bosing:",
+                reply_markup=phone_request_keyboard()
+            )
+        except ApiTelegramException as e:
+            if e.error_code == 403:
+                print(f"User {message.chat.id} blocked the bot (phone_fallback).")
+            else:
+                raise e
         
     @bot.message_handler(func=lambda m: manager.get_state(m.from_user.id) == STATE_NAME)
     def handle_name_step(message):
