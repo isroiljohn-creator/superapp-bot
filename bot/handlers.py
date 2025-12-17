@@ -162,7 +162,7 @@ def register_all_handlers(bot):
         # For now, let's CLEAR to avoid sticky state confusion, user can click button again.
         onboarding.manager.clear_user(user_id) 
 
-    @bot.callback_query_handler(func=lambda call: call.data.startswith('ai_coach_'))
+    @bot.callback_query_handler(func=lambda call: call.data.startswith('ai_sub_'))
     def ai_coach_callback(call):
         action = call.data.replace('ai_sub_', '')
         
