@@ -1857,12 +1857,6 @@ class Database:
                 "top_users": [{"user_id": u[0], "spent": u[1]} for u in top_users]
             }
 
-db = Database()
-
-    # -------------------------------------------------------------------------
-    # TRIAL & SUBSCRIPTION MANAGEMENT
-    # -------------------------------------------------------------------------
-    
     def activate_trial(self, user_id, days=3):
         """Activate Free Trial for new user."""
         from datetime import datetime, timedelta
@@ -1921,3 +1915,5 @@ db = Database()
                 
             # Valid
             return (True, user.plan_type)
+
+db = Database()
