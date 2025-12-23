@@ -59,9 +59,9 @@ def start_onboarding(message, bot):
     """Step 0: Check if user exists, if not request phone number FIRST"""
     user_id = message.from_user.id
     
-    # Check if user already exists in database
+    # Check if user already exists AND has completed onboarding (has profile data)
     existing_user = db.get_user(user_id)
-    if existing_user:
+    if existing_user and existing_user.get('age') and existing_user.get('weight'):
         is_admin = user_id in ADMIN_IDS
         try:
             bot.send_message(
