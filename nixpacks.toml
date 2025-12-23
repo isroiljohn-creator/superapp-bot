@@ -1,13 +1,18 @@
 [phases.setup]
-nixPkgs = ["python311", "nodejs_18"]
+nixPkgs = ["python311", "nodejs_20", "gcc"]
 
 [phases.install]
 cmds = [
     "pip install -r requirements.txt",
-    "cd frontend && npm install && npm run build",
+    "cd frontend && npm install"
+]
+
+[phases.build]
+cmds = [
+    "cd frontend && npm run build",
     "echo '✅ Frontend Build Complete'",
     "ls -la frontend/dist"
 ]
 
-[phases.build]
-cmds = []
+[start]
+cmd = "(python bot_runner.py &) && uvicorn backend.main:app --host 0.0.0.0 --port $PORT"

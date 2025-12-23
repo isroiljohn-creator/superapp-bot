@@ -1,8 +1,9 @@
 // lib/db.ts
 import axios from 'axios';
 
-// API base URL - .env dan olinadi yoki default
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
+// API base URL - .env dan olinadi yoki joriy domain ishlatiladi
+const API_URL = import.meta.env.VITE_API_URL ||
+  (typeof window !== 'undefined' ? `${window.location.origin}/api/v1` : 'http://localhost:8000/api/v1');
 
 // Tokenni localStorage dan olish
 const getAuthHeaders = () => {
