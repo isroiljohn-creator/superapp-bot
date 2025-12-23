@@ -97,5 +97,22 @@ if os.path.exists(dist_path):
 else:
     @app.get("/")
     async def root():
-        """API is running"""
-        return {"status": "YASHA API is running", "message": "Frontend not built - API only mode"}
+        """API is running - Debug Mode"""
+        cwd = os.getcwd()
+        frontend_exists = os.path.exists("frontend")
+        dist_exists = os.path.exists("frontend/dist")
+        
+        files_root = os.listdir('.')
+        files_frontend = os.listdir('frontend') if frontend_exists else []
+        files_dist = os.listdir('frontend/dist') if dist_exists else []
+        
+        return {
+            "status": "YASHA API is running", 
+            "message": "Frontend not built - API only mode",
+            "debug": {
+                "cwd": cwd,
+                "files_root": files_root,
+                "files_frontend": files_frontend,
+                "files_dist": files_dist
+            }
+        }
