@@ -15,4 +15,4 @@ cmds = [
 ]
 
 [start]
-cmd = "python bot_runner.py & uvicorn backend.main:app --host 0.0.0.0 --port $PORT"
+cmd = "uvicorn backend.main:app --host 0.0.0.0 --port $PORT"
