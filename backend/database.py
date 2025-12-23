@@ -9,9 +9,9 @@ import sys
 RAW_DB_URL = os.getenv("DATABASE_URL")
 
 if not RAW_DB_URL:
-    print("❌ CRITICAL: DATABASE_URL is missing! Halting startup.")
-    print("This bot requires a PostgreSQL database to run safely.")
-    sys.exit(1)
+    print("❌ CRITICAL: DATABASE_URL is missing! Please set it in Railway Variables.")
+    # Fallback to local sqlite to at least allow backend to start for logging
+    RAW_DB_URL = "sqlite+aiosqlite:///./fallback.db"
 
 # Fix for Railway/Heroku using postgres:// instead of postgresql://
 if RAW_DB_URL.startswith("postgres://"):
