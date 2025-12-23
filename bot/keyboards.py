@@ -1,4 +1,5 @@
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardMarkup, KeyboardButton, WebAppInfo
+import os
 from core.config import ADMIN_IDS
 
 def phone_request_keyboard():
@@ -67,6 +68,10 @@ def main_menu_keyboard(is_admin=False, user_id=None):
         except Exception as e:
             print(f"Error getting habit progress for menu: {e}")
         
+    # Mini App tugmasi
+    mini_app_url = os.getenv("MINI_APP_URL", "https://yasha-app.vercel.app")
+    markup.add(KeyboardButton("📱 Ilovani ochish", web_app=WebAppInfo(url=mini_app_url)))
+
     # Row 1: AI murabbiy (Full width or prominent)
     markup.add(KeyboardButton("🤖 AI murabbiy"))
     
