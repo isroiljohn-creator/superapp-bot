@@ -42,8 +42,11 @@ export const HomeScreen: React.FC = () => {
           <div className="flex items-center gap-3">
             <img src={yashaLogo} alt="YASHA" className="w-10 h-10" />
             <div>
-              <h1 className="text-lg font-bold text-foreground">
+              <h1 className="text-lg font-bold text-foreground flex items-center gap-2">
                 Salom, {profile?.name || 'Foydalanuvchi'}!
+                <span className="bg-primary/20 text-primary text-[10px] px-2 py-0.5 rounded-full border border-primary/20">
+                  Beta v1.0
+                </span>
               </h1>
               <p className="text-sm text-muted-foreground">
                 Bugun qanday his qilyapsiz?
@@ -132,9 +135,9 @@ export const HomeScreen: React.FC = () => {
               icon={Smile}
               label="Kayfiyat"
               value={
-                todayLog?.mood === 'good' ? 'Yaxshi' : 
-                todayLog?.mood === 'bad' ? 'Yomon' : 
-                'O\'rtacha'
+                todayLog?.mood === 'good' ? 'Yaxshi' :
+                  todayLog?.mood === 'bad' ? 'Yomon' :
+                    'O\'rtacha'
               }
               color="primary"
             />
