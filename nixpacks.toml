@@ -9,9 +9,10 @@ cmds = [
 
 [phases.build]
 cmds = [
-    "cd frontend && npm run build",
+    "echo '🚀 Starting Frontend Build...'",
+    "cd frontend && npm install && npm run build",
     "echo '✅ Frontend Build Complete'",
-    "ls -la frontend/dist"
+    "ls -R frontend/dist"
 ]
 
 [start]
