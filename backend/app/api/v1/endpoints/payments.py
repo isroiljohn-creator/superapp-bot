@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
-from backend.app.core.database import get_db
-from backend.app.models import User
+from backend.database import get_db
+from backend.models import User
 from backend.app.api.v1.endpoints.users import get_current_user
 from pydantic import BaseModel
 from datetime import datetime, timedelta

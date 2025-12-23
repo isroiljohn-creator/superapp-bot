@@ -1,10 +1,11 @@
+import os
 import google.generativeai as genai
-from backend.app.core.config import settings
 
 class AIService:
     def __init__(self):
-        if settings.GEMINI_API_KEY:
-            genai.configure(api_key=settings.GEMINI_API_KEY)
+        gemini_key = os.getenv("GEMINI_API_KEY")
+        if gemini_key:
+            genai.configure(api_key=gemini_key)
             self.model = genai.GenerativeModel('gemini-1.5-flash')
         else:
             self.model = None

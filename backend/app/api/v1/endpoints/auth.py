@@ -1,10 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from backend.app.core.database import get_db
-from backend.app.models import User
-from backend.app.core.security import create_access_token
-from backend.app.core.config import settings
+from backend.database import get_db
+from backend.models import User
+from backend.auth import create_access_token
 from pydantic import BaseModel
 from urllib.parse import parse_qsl
 import hmac
@@ -20,7 +19,8 @@ class TelegramAuthRequest(BaseModel):
 @router.post("/telegram")
 async def telegram_auth(req: TelegramAuthRequest, db: AsyncSession = Depends(get_db)):
     """Authenticate via Telegram WebApp initData"""
-    if not settings.BOT_TOKEN:
+    bot_token = os.getenv("BOT_TOKEN")
+    if not bot_token:
         raise HTTPException(status_code=500, detail="BOT_TOKEN not set")
 
     print(f"DEBUG: Auth request received. initData length: {len(req.initData)}")
@@ -39,7 +39,7 @@ async def telegram_auth(req: TelegramAuthRequest, db: AsyncSession = Depends(get
         f"{k}={v}" for k, v in sorted(parsed_data.items())
     )
     
-    secret_key = hmac.new(b"WebAppData", settings.BOT_TOKEN.encode(), hashlib.sha256).digest()
+    secret_key = hmac.new(b"WebAppData", bot_token.encode(), hashlib.sha256).digest()
     calculated_hash = hmac.new(secret_key, data_check_string.encode(), hashlib.sha256).hexdigest()
 
     if calculated_hash != hash_:
@@ -70,7 +70,7 @@ async def telegram_auth(req: TelegramAuthRequest, db: AsyncSession = Depends(get
         await db.refresh(user)
     
     token = create_access_token({"user_id": user.id, "telegram_id": telegram_id})
-    is_admin = telegram_id == settings.ADMIN_ID
+    is_admin = telegram_id == int(os.getenv("ADMIN_ID", 0))
     
     return {
         "token": token,

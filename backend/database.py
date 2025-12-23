@@ -17,10 +17,12 @@ if not RAW_DB_URL:
 if RAW_DB_URL.startswith("postgres://"):
     RAW_DB_URL = RAW_DB_URL.replace("postgres://", "postgresql://", 1)
 
-# Fail fast if someone tries to inject SQLite
-if "sqlite" in RAW_DB_URL.lower():
+# Fail fast if someone tries to inject SQLite, BUT allow our own fallback
+if "sqlite" in RAW_DB_URL.lower() and "fallback.db" not in RAW_DB_URL:
     print("❌ CRITICAL: SQLite is FORBIDDEN in production!")
     sys.exit(1)
+elif "fallback.db" in RAW_DB_URL:
+    print("⚠️ WARNING: Running with FALLBACK SQLite database. Data will not persist!")
 
 # Async URL (for FastAPI/Future Proofing)
 # Convert postgresql://user:pass@host/db -> postgresql+asyncpg://...

@@ -42,6 +42,7 @@ class User(Base):
     calorie_logs = relationship("CalorieLog", back_populates="user")
     menu_link = relationship("UserMenuLink", uselist=False, back_populates="user")
     workout_link = relationship("UserWorkoutLink", uselist=False, back_populates="user")
+    subscriptions = relationship("Subscription", back_populates="user")
 
     # Missing Columns from core/db.py
     last_checkin = Column(String, nullable=True) # Stored as text in legacy
@@ -125,13 +126,29 @@ class Transaction(Base):
     
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"))
-    amount = Column(Integer)
+    transaction_id = Column(String, unique=True, index=True) # ID from provider
+    amount = Column(Float)
     currency = Column(String, default="UZS")
     provider = Column(String) # click, payme, stars
-    status = Column(String) # pending, paid, failed
+    status = Column(String) # pending, paid, failed, created, cancelled
     created_at = Column(DateTime, default=datetime.utcnow)
+    perform_time = Column(DateTime, nullable=True)
+    cancel_time = Column(DateTime, nullable=True)
+    reason = Column(Integer, nullable=True) # For cancellation
     
     user = relationship("User", back_populates="transactions")
+
+class Subscription(Base):
+    __tablename__ = "subscriptions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    plan_type = Column(String) # monthly, quarterly
+    start_date = Column(DateTime, default=datetime.utcnow)
+    end_date = Column(DateTime)
+    is_active = Column(Boolean, default=True)
+    
+    user = relationship("User", back_populates="subscriptions")
 
 class Feedback(Base):
     __tablename__ = "feedback"
