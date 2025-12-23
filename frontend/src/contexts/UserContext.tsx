@@ -1,4 +1,8 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import { db } from '@/lib/db';
+import axios from 'axios';
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
 
 export interface UserProfile {
   phone: string;
@@ -46,6 +50,7 @@ interface UserContextType extends UserState {
   addWater: (ml: number) => void;
   isPremium: () => boolean;
   checkAndDowngrade: () => boolean;
+  isLoading: boolean;
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
@@ -53,6 +58,7 @@ const UserContext = createContext<UserContextType | undefined>(undefined);
 const getTodayDate = () => new Date().toISOString().split('T')[0];
 
 export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [isLoading, setIsLoading] = useState(true);
   const [state, setState] = useState<UserState>(() => {
     const saved = localStorage.getItem('yasha_user');
     if (saved) {
@@ -79,16 +85,78 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setState(newState);
   }, []);
 
-  const setProfile = useCallback((profile: UserProfile) => {
+  // Sync with Telegram and Backend
+  useEffect(() => {
+    const initializeUser = async () => {
+      try {
+        const tg = (window as any).Telegram?.WebApp;
+        if (tg?.initData) {
+          // 1. Authenticate with TG initData
+          const authRes = await axios.post(`${API_URL}/auth/telegram`, {
+            initData: tg.initData
+          });
+
+          if (authRes.data.token) {
+            localStorage.setItem('token', authRes.data.token);
+
+            // 2. Fetch profile from DB
+            const { data: dbUser, error } = await db.select('profiles');
+
+            if (dbUser) {
+              // Sync local state with DB
+              const updatedState: UserState = {
+                ...state,
+                isOnboarded: !!(dbUser.age && dbUser.weight),
+                planType: dbUser.is_premium ? 'premium' : 'free',
+                points: dbUser.points || 0,
+                premiumUntil: dbUser.premium_until ? new Date(dbUser.premium_until) : null,
+                profile: {
+                  name: dbUser.full_name || '',
+                  phone: dbUser.phone || '',
+                  age: dbUser.age || 0,
+                  gender: dbUser.gender as any || 'male',
+                  height: dbUser.height || 0,
+                  weight: dbUser.weight || 0,
+                  goal: (dbUser.goal?.includes('loss') ? 'lose' : dbUser.goal?.includes('gain') ? 'gain' : 'maintain') as any,
+                  activityLevel: (dbUser.activity_level || 'moderate') as any,
+                  allergies: dbUser.allergies?.split(',') || [],
+                }
+              };
+              saveState(updatedState);
+            }
+          }
+        }
+      } catch (err) {
+        console.error("User initialization failed:", err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    initializeUser();
+  }, [saveState]);
+
+  const setProfile = useCallback(async (profile: UserProfile) => {
+    // 1. Update DB
+    await db.insert('profiles', {
+      age: profile.age,
+      gender: profile.gender,
+      height: profile.height,
+      weight: profile.weight,
+      goal: profile.goal,
+      activity_level: profile.activityLevel,
+      allergies: profile.allergies.join(',')
+    });
+
+    // 2. Update Local
     const newState = { ...state, profile };
     saveState(newState);
   }, [state, saveState]);
 
   const completeOnboarding = useCallback(() => {
-    // Start 7-day trial
     const premiumUntil = new Date();
     premiumUntil.setDate(premiumUntil.getDate() + 7);
-    
+
     const newState: UserState = {
       ...state,
       isOnboarded: true,
@@ -113,15 +181,15 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const currentLog = state.todayLog?.date === today
       ? state.todayLog
       : {
-          date: today,
-          water_ml: 0,
-          steps: 0,
-          sleep_hours: 0,
-          mood: 'ok' as const,
-          calories_consumed: 0,
-          workout_done: false,
-        };
-    
+        date: today,
+        water_ml: 0,
+        steps: 0,
+        sleep_hours: 0,
+        mood: 'ok' as const,
+        calories_consumed: 0,
+        workout_done: false,
+      };
+
     const newLog = { ...currentLog, ...log };
     const newState = { ...state, todayLog: newLog };
     saveState(newState);
@@ -132,27 +200,27 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const currentLog = state.todayLog?.date === today
       ? state.todayLog
       : {
-          date: today,
-          water_ml: 0,
-          steps: 0,
-          sleep_hours: 0,
-          mood: 'ok' as const,
-          calories_consumed: 0,
-          workout_done: false,
-        };
-    
+        date: today,
+        water_ml: 0,
+        steps: 0,
+        sleep_hours: 0,
+        mood: 'ok' as const,
+        calories_consumed: 0,
+        workout_done: false,
+      };
+
     const newWater = currentLog.water_ml + ml;
     const wasCompleted = currentLog.water_ml >= 2500;
     const isNowCompleted = newWater >= 2500;
-    
+
     let newPoints = state.points;
     let newStreaks = { ...state.streaks };
-    
+
     if (!wasCompleted && isNowCompleted) {
       newPoints += 10;
       newStreaks.water += 1;
     }
-    
+
     const newState = {
       ...state,
       points: newPoints,
@@ -187,6 +255,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         addWater,
         isPremium,
         checkAndDowngrade,
+        isLoading,
       }}
     >
       {children}
