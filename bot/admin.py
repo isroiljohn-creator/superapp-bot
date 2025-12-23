@@ -27,7 +27,9 @@ def register_handlers(bot):
             types.KeyboardButton("💳 Obunalar"),
             types.KeyboardButton("🗑 AI Bazani Tozalash"),
             types.KeyboardButton("💰 Oylik Xarajatlar"),
+            types.KeyboardButton("🛑 Userni o'chirish"),
             types.KeyboardButton("👨‍💻 Dasturchi")
+
         )
         bot.send_message(message.chat.id, "👨‍💼 **Admin Panel**", reply_markup=markup, parse_mode="Markdown")
         
@@ -635,6 +637,83 @@ def register_handlers(bot):
             reply_markup=markup,
             parse_mode="HTML"
         )
+
+    # User Deletion Handlers
+    @bot.message_handler(func=lambda message: "Userni o'chirish" in message.text)
+    def ask_user_delete_start(message):
+        if message.from_user.id not in ADMIN_IDS: return
+        
+        msg = bot.send_message(
+            message.chat.id, 
+            "🛑 <b>Foydalanuvchini O'chirish</b>\n\n"
+            "O'chirilishi kerak bo'lgan foydalanuvchining <b>Telegram ID</b> sini yozing:\n"
+            "(Masalan: 123456789)",
+            parse_mode="HTML",
+            reply_markup=types.ForceReply()
+        )
+        bot.register_next_step_handler(msg, process_user_delete_id, bot)
+
+    def process_user_delete_id(message, bot):
+        if message.from_user.id not in ADMIN_IDS: return
+        
+        try:
+            target_id = int(message.text.strip())
+            user = db.get_user(target_id)
+            
+            if not user:
+                bot.send_message(message.chat.id, "❌ Bunday ID bilan foydalanuvchi topilmadi.")
+                return
+
+            markup = types.InlineKeyboardMarkup()
+            markup.add(
+                types.InlineKeyboardButton("✅ Ha, o'chirilsin", callback_data=f"hard_delete_{target_id}"),
+                types.InlineKeyboardButton("❌ Bekor qilish", callback_data="cancel_delete")
+            )
+            
+            fullname = user.get('full_name', 'Noma\'lum')
+            username = f"@{user.get('username')}" if user.get('username') else "Yo'q"
+            
+            text = (
+                f"🛑 <b>DIQQAT! O'chirishni tasdiqlang.</b>\n\n"
+                f"👤 Ism: {fullname}\n"
+                f"🔗 Link: {username}\n"
+                f"🆔 ID: <code>{target_id}</code>\n\n"
+                f"⚠️ <b>Bu amal:</b>\n"
+                f"- Profilni o'chiradi\n"
+                f"- Barcha loglarni tozalaydi\n"
+                f"- Obunalarni bekor qiladi\n"
+                f"- Qaytarib bo'lmaydi!\n\n"
+                f"Rostdan ham o'chirasizmi?"
+            )
+            bot.send_message(message.chat.id, text, reply_markup=markup, parse_mode="HTML")
+            
+        except ValueError:
+            bot.send_message(message.chat.id, "❌ ID raqam bo'lishi kerak.")
+
+    @bot.callback_query_handler(func=lambda call: call.data.startswith("hard_delete_"))
+    def execute_user_delete(call):
+        if call.from_user.id not in ADMIN_IDS: return
+        
+        try:
+            target_id = int(call.data.replace("hard_delete_", ""))
+            bot.edit_message_text(f"⏳ O'chirilmoqda... ID: {target_id}", call.message.chat.id, call.message.message_id)
+            
+            success, msg = db.delete_user_by_id(target_id)
+            
+            if success:
+                bot.send_message(call.message.chat.id, f"✅ <b>Bajarildi:</b>\n{msg}", parse_mode="HTML")
+            else:
+                bot.send_message(call.message.chat.id, f"❌ <b>Xatolik:</b>\n{msg}", parse_mode="HTML")
+                
+        except Exception as e:
+            bot.send_message(call.message.chat.id, f"❌ Kritik Xatolik: {e}")
+
+    @bot.callback_query_handler(func=lambda call: call.data == "cancel_delete")
+    def cancel_delete_process(call):
+        if call.from_user.id not in ADMIN_IDS: return
+        bot.delete_message(call.message.chat.id, call.message.message_id)
+        bot.answer_callback_query(call.id, "Bekor qilindi")
+
 
     def show_user_list_page(chat_id, page, bot, message_id=None, category="all"):
         try:

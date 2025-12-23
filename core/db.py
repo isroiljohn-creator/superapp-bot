@@ -1,5 +1,5 @@
 from backend.database import get_sync_db, init_db_sync
-from backend.models import User, DailyLog, Plan, Transaction, Feedback, Order, ActivityLog, CalorieLog, WorkoutCache, MenuCache, AdminLog, MenuTemplate, UserMenuLink, WorkoutTemplate, UserWorkoutLink
+from backend.models import User, DailyLog, Plan, Transaction, Feedback, Order, ActivityLog, CalorieLog, WorkoutCache, MenuCache, AdminLog, MenuTemplate, UserMenuLink, WorkoutTemplate, UserWorkoutLink, Subscription, AIUsageLog
 from sqlalchemy import func, desc, and_, or_, case
 from datetime import datetime, timedelta
 import json
@@ -13,6 +13,58 @@ class Database:
         # self.check_schema() # Deprecated: Use Alembic
 
     # check_schema removed in favor of Alembic
+
+    def delete_user_by_id(self, telegram_id):
+        """
+        Hard delete user and all related data.
+        Returns: (success: bool, message: str)
+        """
+        with get_sync_db() as session:
+            try:
+                user = session.query(User).filter(User.telegram_id == telegram_id).first()
+                if not user:
+                    return False, "Foydalanuvchi topilmadi"
+
+                user_id = user.id
+                
+                # 1. Delete dependent tables (Manual cleanup for safety)
+                # Note: Some might cascade, but being explicit is safer for 'Hard Delete'
+                
+                # Logs & Activities
+                session.query(DailyLog).filter(DailyLog.user_id == user_id).delete()
+                session.query(ActivityLog).filter(ActivityLog.user_id == user_id).delete()
+                session.query(CalorieLog).filter(CalorieLog.user_id == user_id).delete()
+                session.query(AIUsageLog).filter(AIUsageLog.user_id == user_id).delete()
+                
+                # Content & Plans
+                session.query(Plan).filter(Plan.user_id == user_id).delete()
+                session.query(UserMenuLink).filter(UserMenuLink.user_id == user_id).delete()
+                session.query(UserWorkoutLink).filter(UserWorkoutLink.user_id == user_id).delete()
+                session.query(WorkoutCache).filter(WorkoutCache.user_id == user_id).delete()
+                session.query(MenuCache).filter(MenuCache.user_id == user_id).delete()
+                
+                # Financial
+                session.query(Transaction).filter(Transaction.user_id == user_id).delete()
+                session.query(Order).filter(Order.user_id == user_id).delete()
+                session.query(Subscription).filter(Subscription.user_id == user_id).delete()
+                
+                # Misc
+                session.query(Feedback).filter(Feedback.user_id == user_id).delete()
+                
+                # 2. Update Referrals (Set referrer to NULL for users referred by this user)
+                session.query(User).filter(User.referrer_id == user_id).update({User.referrer_id: None})
+                
+                # 3. Delete User
+                session.delete(user)
+                
+                session.commit()
+                return True, f"User {telegram_id} va barcha ma'lumotlari o'chirildi."
+                
+            except Exception as e:
+                session.rollback()
+                print(f"Delete User Error: {e}")
+                return False, f"Xatolik: {e}"
+
 
     def check_tiered_limit(self, user_id, feature_type):
         """
