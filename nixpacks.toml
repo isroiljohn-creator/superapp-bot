@@ -3,7 +3,7 @@ nixPkgs = ["python311", "nodejs_20", "gcc"]
 
 [phases.install]
 cmds = [
-    "pip install -r requirements.txt",
+    "python3 -m pip install -r requirements.txt",
     "cd frontend && npm install"
 ]
 
@@ -16,4 +16,4 @@ cmds = [
 ]
 
 [start]
-cmd = "if [ ! -d 'frontend/dist' ]; then echo '⚠️ frontend/dist missing, building now...'; cd frontend && npm install && npm run build && cd ..; fi && uvicorn backend.main:app --host 0.0.0.0 --port $PORT"
+cmd = "if [ ! -d 'frontend/dist' ]; then echo '⚠️ frontend/dist missing, building now...'; cd frontend && npm install && npm run build && cd ..; fi && python3 -m uvicorn backend.main:app --host 0.0.0.0 --port $PORT"
