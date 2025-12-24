@@ -205,7 +205,24 @@ def help_submenu_keyboard():
     markup.add(KeyboardButton("⬅️ Orqaga"))
     return markup
 
+def admin_analytics_keyboard():
+    """Inline keyboard for navigating analytics sections."""
+    markup = InlineKeyboardMarkup(row_width=2)
+    markup.add(
+        InlineKeyboardButton("📈 O'sish (Growth)", callback_data="admin_stats_growth"),
+        InlineKeyboardButton("🌪 Voronka (Funnel)", callback_data="admin_stats_funnel")
+    )
+    markup.add(
+        InlineKeyboardButton("📉 Retention", callback_data="admin_stats_retention"),
+        InlineKeyboardButton("💎 Premium", callback_data="admin_stats_premium")
+    )
+    markup.add(
+        InlineKeyboardButton("🔄 Yangilash", callback_data="admin_stats_refresh")
+    )
+    return markup
+
 def admin_developer_keyboard():
+
     """
     Main menu for Developers/Admins. Consolidates all /commands into buttons.
     """
