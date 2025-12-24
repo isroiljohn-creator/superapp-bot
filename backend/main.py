@@ -79,6 +79,7 @@ from backend.app.api.v1.api import api_router
 app.include_router(api_router, prefix="/api/v1")
 
 # === Static Files (Optional - only if frontend is built) ===
+dist_path = os.path.join(os.getcwd(), "frontend/dist")
 
 if os.path.exists(dist_path):
     @app.get("/{full_path:path}")
