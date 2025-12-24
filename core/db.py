@@ -6,7 +6,6 @@ import json
 
 class Database:
     def __init__(self):
-    def __init__(self):
         init_db_sync()
         self.run_migrations()
 
