@@ -29,8 +29,7 @@ def register_handlers(bot):
             types.KeyboardButton("💳 Obunalar"),
             types.KeyboardButton("🗑 AI Bazani Tozalash"),
             types.KeyboardButton("💰 Oylik Xarajatlar"),
-            types.KeyboardButton("🛑 Userni o'chirish"),
-            types.KeyboardButton("👨‍💻 Dasturchi")
+            types.KeyboardButton("🛑 Userni o'chirish")
         )
         bot.send_message(message.chat.id, "👨‍💼 **Admin Panel**", reply_markup=markup, parse_mode="Markdown")
         
