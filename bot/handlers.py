@@ -101,23 +101,6 @@ def register_all_handlers(bot):
     def menu_ai(message):
         bot.send_message(message.chat.id, "🤖 <b>AI Murabbiy</b>\n\nBugun nima qilamiz? Quyidagilardan birini tanlang 👇", reply_markup=ai_coach_inline_keyboard(), parse_mode="HTML")
 
-    @bot.message_handler(func=lambda message: message.text == "🧠 Coach Zone")
-    def menu_coach_zone(message):
-        user_id = message.from_user.id
-        msg = coach.get_coach_message(user_id)
-        
-        if not msg:
-             # If Feature Flag OFF
-             bot.send_message(message.chat.id, "⚠️ Coach Zone tez kunda ishga tushadi.")
-             return
-             
-        # Format the message nicely
-        txt = f"🧠 <b>COACH ZONE</b>\n\n{msg}\n\n<i>Sizning shaxsiy motivatsiyangiz.</i>"
-        bot.send_message(message.chat.id, txt, parse_mode="HTML")
-        
-        # Log View
-        db.log_event(user_id, "coach_message_viewed")
-
 
     # Moved Referral to Challenges submenu, but keeping handler for backward/direct access if needed
     @bot.message_handler(func=lambda message: message.text == "🔗 Referal" or message.text == "👥 Do‘st chaqirish")

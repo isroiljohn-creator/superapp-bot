@@ -22,24 +22,7 @@ export const HomeScreen: React.FC = () => {
   };
 
   const API_URL = import.meta.env.VITE_API_URL || '/api/v1';
-  const [coachMsg, setCoachMsg] = useState<string | null>(null);
-
   // Daily Stats Mock - in real app, fetch from API
-  React.useEffect(() => {
-    // 2. Fetch Coach Message
-    const fetchCoach = async () => {
-      try {
-        if (!profile?.id) return;
-        const res = await axios.get(`${API_URL}/coach/today?user_id=${profile.id}`);
-        if (res.data?.message) setCoachMsg(res.data.message);
-      } catch (e) {
-        console.error("Coach fetch error", e);
-      }
-    };
-    if (profile?.id) {
-      fetchCoach();
-    }
-  }, [profile?.id]);
 
   const containerVariants = {
 
@@ -103,22 +86,6 @@ export const HomeScreen: React.FC = () => {
         )}
       </div>
 
-      {/* Coach Zone Block */}
-      {coachMsg && (
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mx-4 mb-6 p-4 rounded-xl bg-gradient-to-r from-violet-500/10 to-fuchsia-500/10 border border-violet-500/20"
-        >
-          <div className="flex items-center gap-2 mb-2">
-            <span className="text-xl">🧠</span>
-            <h3 className="font-bold text-foreground text-sm">Coach Zone</h3>
-          </div>
-          <p className="text-sm text-foreground/90 italic leading-relaxed">
-            "{coachMsg}"
-          </p>
-        </motion.div>
-      )}
 
       {/* Today's Stats */}
       <motion.div
