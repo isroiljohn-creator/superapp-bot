@@ -153,27 +153,43 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     saveState(newState);
   }, [state, saveState]);
 
-  const completeOnboarding = useCallback(() => {
-    const premiumUntil = new Date();
-    premiumUntil.setDate(premiumUntil.getDate() + 7);
+  const completeOnboarding = useCallback(async (profileData?: Partial<UserProfile>) => {
+    try {
+      if (profileData) {
+        // Save to backend
+        await axios.put(`${API_URL}/user/profile`, profileData);
+        // Save to local profile immediately
+        setProfile(prev => ({ ...prev, ...profileData } as UserProfile));
+      }
 
-    const newState: UserState = {
-      ...state,
-      isOnboarded: true,
-      planType: 'trial',
-      premiumUntil,
-      trialUsed: true,
-      todayLog: {
-        date: getTodayDate(),
-        water_ml: 0,
-        steps: 0,
-        sleep_hours: 0,
-        mood: 'ok',
-        calories_consumed: 0,
-        workout_done: false,
-      },
-    };
-    saveState(newState);
+      const premiumUntil = new Date();
+      premiumUntil.setDate(premiumUntil.getDate() + 7);
+
+      const newState: UserState = {
+        ...state,
+        isOnboarded: true,
+        planType: 'trial',
+        premiumUntil,
+        trialUsed: true,
+        todayLog: {
+          date: getTodayDate(),
+          water_ml: 0,
+          steps: 0,
+          sleep_hours: 0,
+          mood: 'ok',
+          calories_consumed: 0,
+          workout_done: false,
+        },
+      };
+
+      if (profileData) {
+        newState.profile = { ...state.profile, ...profileData } as UserProfile;
+      }
+
+      saveState(newState);
+    } catch (error) {
+      console.error("Failed to complete onboarding:", error);
+    }
   }, [state, saveState]);
 
   const updateTodayLog = useCallback((log: Partial<DailyLog>) => {
