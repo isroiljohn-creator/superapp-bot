@@ -1083,29 +1083,34 @@ def register_handlers(bot):
         )
         bot.register_next_step_handler(msg, process_broadcast, bot, segment)
 
-    @bot.callback_query_handler(func=lambda call: call.data.startswith('admin_'))
-    def admin_main_callback_handler(call):
+    @bot.callback_query_handler(func=lambda call: call.data.startswith('dev_'))
+    def dev_main_callback_handler(call):
         if call.from_user.id not in ADMIN_IDS: return
         
         action = call.data
         bot.answer_callback_query(call.id)
         
-        if action == "admin_stats_menu":
-             analytics_pro_command(call.message)
-        elif action == "admin_delete_user_start":
-             ask_user_delete_start(call.message)
-        elif action == "admin_test_ai_start":
-             admin_test_ai(call.message)
-        elif action == "admin_flags_menu":
-             show_flags_interface(call.message.chat.id)
-        elif action == "admin_broadcast_menu":
-             messaging_menu(call.message)
-        elif action == "admin_backup_menu":
+        # Spoofing from_user to bypass permission check in command functions
+        msg = call.message
+        msg.from_user = call.from_user
+        
+        if action == "dev_stats_menu":
+             analytics_pro_command(msg)
+        elif action == "dev_delete_user_start":
+             ask_user_delete_start(msg)
+        elif action == "dev_test_ai_start":
+             admin_test_ai(msg)
+        elif action == "dev_flags_menu":
+             show_flags_interface(msg.chat.id)
+        elif action == "dev_broadcast_menu":
+             messaging_menu(msg)
+        elif action == "dev_backup_menu":
              admin_backup_callback(call)
-        elif action == "admin_content_menu":
-             bot.send_message(call.message.chat.id, "✍️ Matnlar redaktori hozircha faqat /content komandasi orqali ishlaydi.")
-        elif action == "admin_stats_old":
-             admin_stats(call.message)
+        elif action == "dev_content_menu":
+             bot.send_message(msg.chat.id, "✍️ Matnlar redaktori hozircha faqat /content komandasi orqali ishlaydi.")
+        elif action == "dev_stats_old":
+             admin_stats(msg)
+
 
 
     @bot.message_handler(func=lambda message: "Segment xabar" in message.text)
