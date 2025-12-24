@@ -15,4 +15,6 @@ Pillow==10.0.0
 psycopg2-binary==2.9.9
 fpdf2==2.8.5
 matplotlib==3.8.2
+pandas==2.1.3
+
 

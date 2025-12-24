@@ -45,25 +45,45 @@ def register_handlers(bot):
     def analytics_pro_command(message):
         if message.from_user.id not in ADMIN_IDS: return
         
-        msg = bot.send_message(message.chat.id, "📊 **Analitika chizilmoqda...**\n(Generatsiya jarayoni)", parse_mode="Markdown")
+        text = (
+            "🚀 **YASHA Advanced Analytics**\n\n"
+            "Bo'limni tanlang:\n"
+            "• **Growth**: Userlar ko'payishi\n"
+            "• **Funnel**: Konversiya yo'li\n"
+            "• **Retention**: Foydalanuvchi qaytishi\n"
+            "• **Premium**: Moliyaviy ko'rsatkichlar"
+        )
+        bot.send_message(message.chat.id, text, reply_markup=admin_analytics_keyboard(), parse_mode="Markdown")
+
+    @bot.callback_query_handler(func=lambda call: call.data.startswith('admin_stats_'))
+    def analytics_callback_handler(call):
+        if call.from_user.id not in ADMIN_IDS: return
+        
+        action = call.data.replace('admin_stats_', '')
+        from core.analytics import get_growth_stats, get_funnel_stats, get_retention_stats, get_premium_stats
+        from bot.admin import generate_analytics_report
+        
+        bot.answer_callback_query(call.id, "Yuklanmoqda...")
         
         try:
-            # 1. Text Report
-            report = generate_analytics_report()
-            bot.edit_message_text(report, message.chat.id, msg.message_id, parse_mode="HTML")
-            
-            # 2. Charts (Visuals)
-            from core.analytics import generate_charts
-            charts = generate_charts()
-            
-            if charts.get('dau'):
-                bot.send_photo(message.chat.id, charts['dau'], caption="📈 **DAU Trend** (So'nggi 7 kun)")
-            
-            if charts.get('retention'):
-                bot.send_photo(message.chat.id, charts['retention'], caption="📉 **Retention Rate** (D1 / D3)")
-
+            if action == 'growth':
+                report, chart = get_growth_stats()
+                bot.send_photo(call.message.chat.id, chart, caption=report, parse_mode="Markdown")
+            elif action == 'funnel':
+                report, chart = get_funnel_stats()
+                bot.send_photo(call.message.chat.id, chart, caption=report, parse_mode="Markdown")
+            elif action == 'retention':
+                report, chart = get_retention_stats()
+                bot.send_photo(call.message.chat.id, chart, caption=report, parse_mode="Markdown")
+            elif action == 'premium':
+                report, chart = get_premium_stats()
+                bot.send_photo(call.message.chat.id, chart, caption=report, parse_mode="Markdown")
+            elif action == 'report':
+                report = generate_analytics_report()
+                bot.send_message(call.message.chat.id, report, parse_mode="HTML")
         except Exception as e:
-            bot.send_message(message.chat.id, f"❌ Xatolik: {e}")
+            bot.send_message(call.message.chat.id, f"❌ Xatolik: {e}")
+
 
 
     @bot.message_handler(commands=['test_ai'])
