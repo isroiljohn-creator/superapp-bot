@@ -39,7 +39,7 @@ def get_coach_message(user_id, force_refresh=False):
     """
     Get or generate today's coach message.
     """
-    if not is_flag_enabled("coach_zone", user_id):
+    if not is_flag_enabled("coach_zone", user_id, default=True):
         return None
         
     date_str = datetime.utcnow().strftime("%Y-%m-%d")
