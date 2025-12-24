@@ -139,6 +139,42 @@ class Database:
                 session.rollback()
                 print(f"MIGRATION ERROR 4: {e}")
 
+            try:
+                # 5. Create Analytics Views for Metabase (Automation)
+                # This allows "Drag & Drop" in Metabase without writing SQL
+                from sqlalchemy import text
+                
+                # View: Daily Summary (DAU, Events)
+                session.execute(text("""
+                CREATE OR REPLACE VIEW view_analytics_daily AS
+                SELECT 
+                    date_trunc('day', created_at) as day,
+                    COUNT(DISTINCT user_id) as dau,
+                    COUNT(*) as total_events
+                FROM event_logs
+                GROUP BY 1
+                """))
+                
+                # View: Funnel Stats
+                session.execute(text("""
+                CREATE OR REPLACE VIEW view_analytics_funnel AS
+                SELECT 
+                    date_trunc('day', created_at) as day,
+                    COUNT(*) FILTER (WHERE event_type='menu_generated') as menu_generated,
+                    COUNT(*) FILTER (WHERE event_type='shopping_list_opened') as shopping_opened,
+                    COUNT(*) FILTER (WHERE event_type='workout_generated') as workout_generated
+                FROM event_logs
+                GROUP BY 1
+                """))
+
+                session.commit()
+                # print("MIGRATION: Analytics views updated!")
+                
+            except Exception as e:
+                session.rollback()
+                print(f"MIGRATION ERROR 5 (Views): {e}")
+
+
 
 
 
