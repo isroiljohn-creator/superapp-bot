@@ -126,6 +126,10 @@ def send_template_plan(user_id, category, template_id, bot):
             except Exception:
                 bot.send_message(user_id, strip_html(chunk))
         
+        # Log Event [NEW]
+        db.log_event(user_id, f"{category[:-1]}_template_viewed", {"template_id": template_id})
+
+        
         # Add feedback message
         bot.send_message(
             user_id,

@@ -74,6 +74,10 @@ def process_ai_qa(message, bot):
             log_ai_usage(bot, user_id, "chat", 150)
         except: pass
         
+        # Log Event [NEW]
+        db.log_event(user_id, "ai_chat_used")
+
+        
         # Edit status message with response
         try:
             bot.edit_message_text(response, user_id, status_msg.message_id, parse_mode="HTML")
@@ -110,6 +114,10 @@ def handle_shopping_list(message, bot, user_id=None):
         if not shopping_list:
             bot.send_message(user_id, "⚠️ Xaridlar ro'yxati bo'sh.", parse_mode="HTML")
             return
+            
+        # Log Event [NEW]
+        db.log_event(user_id, "shopping_list_opened")
+
             
         # 3. Format and Send
         txt = "🛒 <b>30 KUNLIK XARIDLAR RO'YXATI</b>\n\n"
@@ -186,6 +194,10 @@ def process_recipe_input(message, bot):
             from core.ai_usage_logger import log_ai_usage
             log_ai_usage(bot, message.from_user.id, "recipe", 300)
         except: pass
+        
+        # Log Event [NEW]
+        db.log_event(user_id, "recipe_generated")
+
         
         try:
             bot.edit_message_text(response, message.chat.id, status_msg.message_id, parse_mode="HTML")

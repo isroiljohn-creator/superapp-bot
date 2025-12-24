@@ -129,6 +129,10 @@ def handle_calorie_photo(message, bot):
             from core.ai_usage_logger import log_ai_usage
             log_ai_usage(bot, user_id, "scan", 1000)
         except: pass
+        
+        # Log Event [NEW]
+        db.log_event(user_id, "calorie_scan_photo")
+
 
         file_info = bot.get_file(message.photo[-1].file_id)
         downloaded_file = bot.download_file(file_info.file_path)
@@ -159,6 +163,10 @@ def handle_calorie_text(message, bot):
             from core.ai_usage_logger import log_ai_usage
             log_ai_usage(bot, user_id, "scan", 500)
         except: pass
+        
+        # Log Event [NEW]
+        db.log_event(user_id, "calorie_scan_text")
+
 
         result = analyze_food_text(message.text)
         

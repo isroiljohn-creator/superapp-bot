@@ -83,6 +83,10 @@ def generate_ai_workout(message, bot, user_id=None):
              db.create_user_workout_link(user_id, template_id)
              bot.send_message(user_id, "Siz uchun mos boshlang‘ich mashq rejasi tayyor 💪\nBu rejani bajaring — natijani his qilasiz.")
              
+             # Log Event [NEW]
+             db.log_event(user_id, "workout_generated", {"type": "template", "tier": "free"})
+
+             
              # Enhanced Plus Teaser
              markup = types.InlineKeyboardMarkup()
              markup.add(types.InlineKeyboardButton("👉 Plus’ga o‘ting", callback_data="premium_info"))
