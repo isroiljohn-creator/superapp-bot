@@ -6,13 +6,41 @@ import json
 
 class Database:
     def __init__(self):
+    def __init__(self):
         init_db_sync()
+        self.run_migrations()
+
 
     def init_db(self):
         init_db_sync()
         # self.check_schema() # Deprecated: Use Alembic
 
     # check_schema removed in favor of Alembic
+
+    def run_migrations(self):
+        """
+        Auto-fix schema issues without full Alembic setup.
+        """
+        with get_sync_db() as session:
+            try:
+                # 1. Check transactions.transaction_id
+                from sqlalchemy import text
+                
+                # Check if column exists
+                check_sql = text("SELECT column_name FROM information_schema.columns WHERE table_name='transactions' AND column_name='transaction_id'")
+                result = session.execute(check_sql).fetchone()
+                
+                if not result:
+                    print("MIGRATION: Adding transaction_id to transactions table...")
+                    session.execute(text("ALTER TABLE transactions ADD COLUMN IF NOT EXISTS transaction_id VARCHAR"))
+                    session.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS ix_transactions_transaction_id ON transactions (transaction_id)"))
+                    session.commit()
+                    print("MIGRATION: Success!")
+                    
+            except Exception as e:
+                session.rollback()
+                print(f"MIGRATION ERROR: {e}")
+
 
     def delete_user_by_id(self, telegram_id):
         """
