@@ -2,6 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Lock, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useHaptic } from '@/hooks/useHaptic';
 
 interface MealCardProps {
   time: string;
@@ -20,10 +21,17 @@ export const MealCard: React.FC<MealCardProps> = ({
   isLocked = false,
   onClick,
 }) => {
+  const { vibrate } = useHaptic();
+
+  const handleClick = () => {
+    vibrate('light');
+    onClick?.();
+  };
+
   return (
     <motion.button
       whileTap={{ scale: 0.98 }}
-      onClick={onClick}
+      onClick={handleClick}
       className={cn(
         "w-full p-4 rounded-2xl bg-card border border-border/50 text-left transition-all",
         isLocked ? "opacity-60" : "hover:border-primary/30"

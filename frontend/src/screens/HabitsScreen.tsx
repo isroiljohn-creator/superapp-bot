@@ -1,66 +1,81 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Droplets, Footprints, Moon, Smile, Frown, Meh, Plus, Check } from 'lucide-react';
-import { HabitCard } from '@/components/HabitCard';
 import { Button } from '@/components/ui/button';
 import { useUser } from '@/contexts/UserContext';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { useHaptic } from '@/hooks/useHaptic';
 import { toast } from 'sonner';
-
-const moodOptions = [
-  { value: 'bad', label: 'Yomon', icon: Frown, color: 'text-red-400' },
-  { value: 'ok', label: 'O\'rtacha', icon: Meh, color: 'text-yellow-400' },
-  { value: 'good', label: 'Yaxshi', icon: Smile, color: 'text-green-400' },
-];
-
-const supportiveMessages = [
-  "Hamma narsa yaxshi bo'ladi! Bugun o'zingizga ko'proq e'tibor bering. 💚",
-  "Qiyin kunlar ham o'tadi. Siz kuchlisiz! 💪",
-  "Har bir kun yangi imkoniyat. Ertaga yaxshiroq bo'ladi! 🌟",
-];
 
 export const HabitsScreen: React.FC = () => {
   const { todayLog, addWater, updateTodayLog, isPremium } = useUser();
-  const [showMoodPicker, setShowMoodPicker] = useState(false);
+  const { t } = useLanguage();
+  const { vibrate } = useHaptic();
   const [showStepsInput, setShowStepsInput] = useState(false);
   const [showSleepInput, setShowSleepInput] = useState(false);
   const [stepsInput, setStepsInput] = useState('');
   const [sleepInput, setSleepInput] = useState('');
 
+  const moodOptions = [
+    { value: 'bad', label: t('habits.moodBad'), icon: Frown, color: 'text-red-400' },
+    { value: 'ok', label: t('habits.moodOk'), icon: Meh, color: 'text-yellow-400' },
+    { value: 'good', label: t('habits.moodGood'), icon: Smile, color: 'text-green-400' },
+  ];
+
+  const supportiveMessages = [
+    t('habits.badMoodMsg1'),
+    t('habits.badMoodMsg2'),
+    t('habits.badMoodMsg3'),
+  ];
+
   const handleAddWater = () => {
+    vibrate('success');
     addWater(250);
-    toast.success('+250 ml suv qo\'shildi! 💧');
+    toast.success(t('habits.waterAdded') + ' 💧');
   };
 
   const handleMoodSelect = (mood: 'bad' | 'ok' | 'good') => {
+    vibrate('medium');
     updateTodayLog({ mood });
-    setShowMoodPicker(false);
     
     if (mood === 'bad') {
       const message = supportiveMessages[Math.floor(Math.random() * supportiveMessages.length)];
-      toast.info(message, { duration: 5000 });
+      toast.info(message + ' 💚', { duration: 5000 });
     } else if (mood === 'good') {
-      toast.success('Ajoyib! Bugun yaxshi kun! 🎉');
+      toast.success(t('habits.goodMoodMsg') + ' 🎉');
     }
   };
 
   const handleAddSteps = () => {
     const steps = parseInt(stepsInput) || 0;
     if (steps > 0) {
+      vibrate('success');
       updateTodayLog({ steps: (todayLog?.steps || 0) + steps });
       setStepsInput('');
       setShowStepsInput(false);
-      toast.success(`+${steps} qadam qo'shildi! 🚶`);
+      toast.success(`+${steps} ${t('habits.stepsAdded')} 🚶`);
     }
   };
 
   const handleSetSleep = () => {
     const hours = parseFloat(sleepInput) || 0;
     if (hours > 0) {
+      vibrate('success');
       updateTodayLog({ sleep_hours: hours });
       setSleepInput('');
       setShowSleepInput(false);
-      toast.success(`${hours} soat uyqu saqlandi! 😴`);
+      toast.success(`${hours} ${t('habits.sleepSaved')} 😴`);
     }
+  };
+
+  const handleStepsClick = () => {
+    vibrate('light');
+    setShowStepsInput(true);
+  };
+
+  const handleSleepClick = () => {
+    vibrate('light');
+    setShowSleepInput(true);
   };
 
   const containerVariants = {
@@ -81,10 +96,10 @@ export const HabitsScreen: React.FC = () => {
       {/* Header */}
       <div className="px-4 pt-6 pb-4 safe-area-top">
         <h1 className="text-2xl font-display font-bold text-foreground mb-2">
-          Kundalik odatlar
+          {t('habits.title')}
         </h1>
         <p className="text-muted-foreground">
-          Sog'lom odatlarni kuzatib boring
+          {t('habits.subtitle')}
         </p>
       </div>
 
@@ -97,17 +112,38 @@ export const HabitsScreen: React.FC = () => {
       >
         {/* Water */}
         <motion.div variants={itemVariants}>
-          <HabitCard
-            icon={<Droplets className="w-6 h-6" />}
-            title="Suv ichish"
-            current={todayLog?.water_ml || 0}
-            target={2500}
-            unit="ml"
-            streak={0}
-            onAdd={handleAddWater}
-            addAmount={250}
-            isCompleted={(todayLog?.water_ml || 0) >= 2500}
-          />
+          <div className="p-4 rounded-2xl bg-card border border-border/50">
+            <div className="flex items-center gap-4">
+              <div className={`w-14 h-14 rounded-xl flex items-center justify-center ${
+                (todayLog?.water_ml || 0) >= 2500 ? 'bg-success/20' : 'bg-blue-500/20'
+              }`}>
+                <Droplets className={`w-7 h-7 ${
+                  (todayLog?.water_ml || 0) >= 2500 ? 'text-success' : 'text-blue-400'
+                }`} />
+              </div>
+              
+              <div className="flex-1">
+                <h3 className="font-semibold text-foreground">{t('habits.waterIntake')}</h3>
+                <p className="text-sm text-muted-foreground">
+                  {todayLog?.water_ml || 0} / 2,500 ml
+                </p>
+              </div>
+
+              {(todayLog?.water_ml || 0) >= 2500 ? (
+                <div className="w-12 h-12 rounded-xl bg-success/20 flex items-center justify-center">
+                  <Check className="w-6 h-6 text-success" />
+                </div>
+              ) : (
+                <motion.button
+                  whileTap={{ scale: 0.9 }}
+                  onClick={handleAddWater}
+                  className="w-12 h-12 rounded-xl bg-blue-500/20 flex items-center justify-center text-blue-400 hover:bg-blue-500/30 transition-colors"
+                >
+                  <Plus className="w-6 h-6" />
+                </motion.button>
+              )}
+            </div>
+          </div>
         </motion.div>
 
         {/* Steps */}
@@ -123,7 +159,7 @@ export const HabitsScreen: React.FC = () => {
               </div>
               
               <div className="flex-1">
-                <h3 className="font-semibold text-foreground">Qadamlar</h3>
+                <h3 className="font-semibold text-foreground">{t('habits.steps')}</h3>
                 <p className="text-sm text-muted-foreground">
                   {todayLog?.steps || 0} / 10,000
                 </p>
@@ -141,19 +177,23 @@ export const HabitsScreen: React.FC = () => {
                       type="number"
                       value={stepsInput}
                       onChange={(e) => setStepsInput(e.target.value)}
-                      placeholder="Qadam"
-                      className="w-20 h-10 rounded-lg bg-muted text-center text-foreground"
+                      placeholder={t('habits.steps')}
+                      className="w-20 h-10 rounded-lg bg-muted text-center text-foreground border border-border"
                     />
                     <Button size="icon-sm" onClick={handleAddSteps}>
                       <Check className="w-4 h-4" />
                     </Button>
                   </motion.div>
+                ) : (todayLog?.steps || 0) >= 10000 ? (
+                  <div className="w-12 h-12 rounded-xl bg-success/20 flex items-center justify-center">
+                    <Check className="w-6 h-6 text-success" />
+                  </div>
                 ) : (
                   <motion.button
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     whileTap={{ scale: 0.9 }}
-                    onClick={() => setShowStepsInput(true)}
+                    onClick={handleStepsClick}
                     className="w-12 h-12 rounded-xl bg-orange-500/20 flex items-center justify-center text-orange-400 hover:bg-orange-500/30 transition-colors"
                   >
                     <Plus className="w-6 h-6" />
@@ -177,9 +217,9 @@ export const HabitsScreen: React.FC = () => {
               </div>
               
               <div className="flex-1">
-                <h3 className="font-semibold text-foreground">Uyqu</h3>
+                <h3 className="font-semibold text-foreground">{t('habits.sleep')}</h3>
                 <p className="text-sm text-muted-foreground">
-                  {todayLog?.sleep_hours || 0} / 8 soat
+                  {todayLog?.sleep_hours || 0} / 8 {t('common.hours')}
                 </p>
               </div>
 
@@ -196,19 +236,23 @@ export const HabitsScreen: React.FC = () => {
                       step="0.5"
                       value={sleepInput}
                       onChange={(e) => setSleepInput(e.target.value)}
-                      placeholder="Soat"
-                      className="w-16 h-10 rounded-lg bg-muted text-center text-foreground"
+                      placeholder={t('common.hours')}
+                      className="w-16 h-10 rounded-lg bg-muted text-center text-foreground border border-border"
                     />
                     <Button size="icon-sm" onClick={handleSetSleep}>
                       <Check className="w-4 h-4" />
                     </Button>
                   </motion.div>
+                ) : (todayLog?.sleep_hours || 0) >= 8 ? (
+                  <div className="w-12 h-12 rounded-xl bg-success/20 flex items-center justify-center">
+                    <Check className="w-6 h-6 text-success" />
+                  </div>
                 ) : (
                   <motion.button
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     whileTap={{ scale: 0.9 }}
-                    onClick={() => setShowSleepInput(true)}
+                    onClick={handleSleepClick}
                     className="w-12 h-12 rounded-xl bg-purple-500/20 flex items-center justify-center text-purple-400 hover:bg-purple-500/30 transition-colors"
                   >
                     <Plus className="w-6 h-6" />
@@ -222,9 +266,9 @@ export const HabitsScreen: React.FC = () => {
         {/* Mood */}
         <motion.div variants={itemVariants}>
           <div className="p-4 rounded-2xl bg-card border border-border/50">
-            <h3 className="font-semibold text-foreground mb-4">Bugungi kayfiyat</h3>
+            <h3 className="font-semibold text-foreground mb-4">{t('habits.todayMood')}</h3>
             
-            <div className="flex gap-3">
+            <div className="grid grid-cols-3 gap-3">
               {moodOptions.map((option) => {
                 const Icon = option.icon;
                 const isSelected = todayLog?.mood === option.value;
@@ -232,14 +276,14 @@ export const HabitsScreen: React.FC = () => {
                   <button
                     key={option.value}
                     onClick={() => handleMoodSelect(option.value as 'bad' | 'ok' | 'good')}
-                    className={`flex-1 p-4 rounded-xl border-2 transition-all ${
+                    className={`p-4 rounded-xl border-2 transition-all ${
                       isSelected
                         ? 'border-primary bg-primary/10'
                         : 'border-border bg-card hover:border-primary/30'
                     }`}
                   >
                     <Icon className={`w-8 h-8 mx-auto mb-2 ${option.color}`} />
-                    <p className="text-sm font-medium text-foreground">{option.label}</p>
+                    <p className="text-sm font-medium text-foreground text-center">{option.label}</p>
                   </button>
                 );
               })}
@@ -252,9 +296,9 @@ export const HabitsScreen: React.FC = () => {
           variants={itemVariants}
           className="mt-6 p-4 rounded-2xl bg-gradient-to-r from-primary/20 to-primary/10 border border-primary/30"
         >
-          <h3 className="font-semibold text-foreground mb-2">💡 Kunlik maslahat</h3>
+          <h3 className="font-semibold text-foreground mb-2">💡 {t('habits.dailyTip')}</h3>
           <p className="text-sm text-muted-foreground">
-            Har soatda 1 stakan suv iching. Bu metabolizmni tezlashtiradi va energiya beradi!
+            {t('habits.dailyTipText')}
           </p>
         </motion.div>
       </motion.div>

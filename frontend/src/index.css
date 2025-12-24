@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Montserrat:wght@700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -43,7 +43,7 @@
     --input: 0 0% 14%;
     --ring: 72 75% 55%;
 
-    --radius: 1rem;
+    --radius: 0.875rem;
 
     /* Custom YASHA tokens */
     --yasha-lime: 72 75% 55%;
@@ -113,8 +113,11 @@
   }
 
   body {
-    @apply bg-background text-foreground font-sans antialiased;
-    font-family: 'Inter', system-ui, sans-serif;
+    @apply bg-background text-foreground antialiased;
+    font-family: 'Nunito', system-ui, sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
+    letter-spacing: 0;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
@@ -131,7 +134,8 @@
 
 @layer utilities {
   .font-display {
-    font-family: 'Montserrat', sans-serif;
+    font-family: 'Nunito', sans-serif;
+    font-weight: 700;
   }
 
   .text-gradient {
@@ -237,5 +241,25 @@
       transparent
     );
     animation: shimmer 2s infinite;
+  }
+
+  /* Hide scrollbar */
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  /* Scrollbar hide for wheel picker */
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
   }
 }

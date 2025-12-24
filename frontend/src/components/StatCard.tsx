@@ -59,27 +59,27 @@ export const StatCard: React.FC<StatCardProps> = ({
       whileTap={{ scale: 0.98 }}
       onClick={onClick}
       className={cn(
-        "flex flex-col p-4 rounded-2xl bg-card border border-border/50 text-left w-full",
+        "flex flex-col p-4 rounded-2xl bg-card border border-border/50 text-left w-full h-[120px]",
         onClick && "cursor-pointer active:bg-card/80"
       )}
     >
-      <div className="flex items-center gap-3 mb-3">
+      <div className="flex items-center gap-2 mb-2">
         <div className={cn("p-2 rounded-xl", styles.bg)}>
-          <Icon className={cn("w-5 h-5", styles.icon)} />
+          <Icon className={cn("w-4 h-4", styles.icon)} />
         </div>
-        <span className="text-sm text-muted-foreground">{label}</span>
+        <span className="text-xs font-medium text-muted-foreground">{label}</span>
       </div>
       
-      <div className="flex items-baseline gap-1">
-        <span className="text-2xl font-bold text-foreground">{value}</span>
-        {unit && <span className="text-sm text-muted-foreground">{unit}</span>}
+      <div className="flex items-baseline gap-1 mt-auto">
+        <span className="text-xl font-bold text-foreground">{value}</span>
+        {unit && <span className="text-xs text-muted-foreground">{unit}</span>}
         {target && (
-          <span className="text-sm text-muted-foreground">/ {target}</span>
+          <span className="text-xs text-muted-foreground">/ {target}</span>
         )}
       </div>
 
       {typeof progress === 'number' && (
-        <div className="mt-3 h-2 bg-muted rounded-full overflow-hidden">
+        <div className="mt-2 h-1.5 bg-muted rounded-full overflow-hidden">
           <motion.div
             className={cn("h-full rounded-full", styles.progress)}
             initial={{ width: 0 }}

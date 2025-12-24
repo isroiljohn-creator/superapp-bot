@@ -1,8 +1,10 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Crown, Sparkles, Check, Lock } from 'lucide-react';
+import { Crown, Sparkles, Check, Lock, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { useHaptic } from '@/hooks/useHaptic';
 
 interface PaywallProps {
   isOpen: boolean;
@@ -10,43 +12,70 @@ interface PaywallProps {
   feature?: string;
 }
 
-const plans = [
-  {
-    id: 'premium',
-    name: 'Premium',
-    price: "99,000",
-    period: 'oyiga',
-    features: [
-      '7 kunlik AI menyu',
-      '7 kunlik mashq dasturi',
-      'AI murabbiy chat',
-      'Muzlatgich retseptlari',
-      'Savdo ro\'yxati',
-    ],
-    popular: true,
-  },
-  {
-    id: 'vip',
-    name: 'VIP',
-    price: "199,000",
-    period: 'oyiga',
-    features: [
-      'Premium barcha imkoniyatlari',
-      'Oyiga 4 marta menyu yangilash',
-      'Taom almashtirish',
-      'Prioritet yordam',
-      'Maxsus retseptlar',
-    ],
-    popular: false,
-  },
-];
+const TELEGRAM_BOT_URL = 'https://t.me/yashabot';
 
 export const Paywall: React.FC<PaywallProps> = ({
   isOpen,
   onClose,
   feature,
 }) => {
+  const { t, language } = useLanguage();
+  const { vibrate } = useHaptic();
+
   if (!isOpen) return null;
+
+  const plans = [
+    {
+      id: 'premium',
+      name: '💎 PREMIUM',
+      price: "49,000",
+      periodKey: 'paywall.perMonth',
+      descKey: 'paywall.premiumDesc',
+      features: language === 'ru' ? [
+        { text: 'AI Меню: Недельное (7 дней) персональное меню', included: true },
+        { text: 'AI Тренировки: 7-дневный индивидуальный план', included: true },
+        { text: 'Анализ калорий: до 3 раз в день', included: true, limited: true },
+        { text: 'AI Тренер (Q&A): до 3 вопросов в день', included: true, limited: true },
+      ] : [
+        { text: 'AI Taomnoma: Haftalik (7 kunlik) shaxsiy menyu', included: true },
+        { text: 'AI Mashg\'ulotlar: 7 kunlik individual mashqlar rejasi', included: true },
+        { text: 'Kaloriya tahlili: Kuniga 3 martagacha', included: true, limited: true },
+        { text: 'AI Murabbiy (QA): Kuniga 3 martagacha savol-javob', included: true, limited: true },
+      ],
+      popular: true,
+    },
+    {
+      id: 'vip',
+      name: '👑 VIP',
+      price: "97,000",
+      periodKey: 'paywall.perMonth',
+      descKey: 'paywall.vipDesc',
+      features: language === 'ru' ? [
+        { text: 'AI Меню: Обновляемое 4 раза в месяц (28 дней) меню', included: true },
+        { text: 'Неограниченный анализ калорий', included: true, unlimited: true },
+        { text: 'Неограниченный AI Тренер: Q&A', included: true, unlimited: true },
+        { text: 'Неограниченные рецепты: AI здоровые рецепты', included: true, unlimited: true },
+        { text: 'Список покупок: Список продуктов', included: true },
+      ] : [
+        { text: 'AI Taomnoma: Oyiga 4 marta yangilanadigan (28 kunlik) menyu', included: true },
+        { text: 'Cheksiz Kaloriya tahlili', included: true, unlimited: true },
+        { text: 'Cheksiz AI Murabbiy: Savol-javob', included: true, unlimited: true },
+        { text: 'Cheksiz Retseptlar: AI bilan sog\'lom retseptlar', included: true, unlimited: true },
+        { text: 'Shopping List: Mahsulotlar ro\'yxati', included: true },
+      ],
+      popular: false,
+    },
+  ];
+
+  const handleSubscribe = (planId: string) => {
+    vibrate('success');
+    window.open(`${TELEGRAM_BOT_URL}?start=subscribe_${planId}`, '_blank');
+  };
+
+  const handleClose = () => {
+    vibrate('light');
+    onClose();
+  };
 
   return (
     <motion.div
@@ -58,10 +87,10 @@ export const Paywall: React.FC<PaywallProps> = ({
       {/* Header */}
       <div className="flex items-center justify-between p-4 safe-area-top">
         <button
-          onClick={onClose}
-          className="text-muted-foreground hover:text-foreground"
+          onClick={handleClose}
+          className="text-muted-foreground hover:text-foreground transition-colors"
         >
-          Yopish
+          {t('paywall.close')}
         </button>
         <div className="w-16" />
       </div>
@@ -77,12 +106,12 @@ export const Paywall: React.FC<PaywallProps> = ({
             <Crown className="w-10 h-10 text-primary" />
           </div>
           <h1 className="text-2xl font-display font-bold text-foreground mb-2">
-            Premium rejaga o'ting
+            {t('paywall.hero')}
           </h1>
           {feature && (
             <p className="text-muted-foreground">
               <Lock className="w-4 h-4 inline mr-1" />
-              "{feature}" faqat premium uchun
+              "{feature}" {t('paywall.featureOnly')}
             </p>
           )}
         </motion.div>
@@ -105,27 +134,32 @@ export const Paywall: React.FC<PaywallProps> = ({
               {plan.popular && (
                 <div className="absolute -top-3 left-4 px-3 py-1 bg-primary text-primary-foreground text-xs font-bold rounded-full flex items-center gap-1">
                   <Sparkles className="w-3 h-3" />
-                  MASHHUR
+                  {t('paywall.popular')}
                 </div>
               )}
 
-              <div className="flex justify-between items-start mb-4">
-                <div>
-                  <h3 className="text-lg font-bold text-foreground">{plan.name}</h3>
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-2xl font-bold text-foreground">
-                      {plan.price}
-                    </span>
-                    <span className="text-sm text-muted-foreground">so'm/{plan.period}</span>
-                  </div>
+              <div className="mb-4">
+                <h3 className="text-xl font-bold text-foreground mb-1">{plan.name}</h3>
+                <p className="text-sm text-muted-foreground mb-3">{t(plan.descKey)}</p>
+                <div className="flex items-baseline gap-1">
+                  <span className="text-3xl font-bold text-foreground">
+                    {plan.price}
+                  </span>
+                  <span className="text-sm text-muted-foreground">{language === 'ru' ? 'сум' : 'so\'m'}/{t(plan.periodKey)}</span>
                 </div>
               </div>
 
               <ul className="space-y-2 mb-4">
                 {plan.features.map((feature, i) => (
-                  <li key={i} className="flex items-center gap-2 text-sm">
-                    <Check className="w-4 h-4 text-primary flex-shrink-0" />
-                    <span className="text-foreground">{feature}</span>
+                  <li key={i} className="flex items-start gap-2 text-sm">
+                    {feature.unlimited ? (
+                      <span className="text-orange-400 flex-shrink-0">🔥</span>
+                    ) : feature.limited ? (
+                      <span className="text-yellow-400 flex-shrink-0">⚠️</span>
+                    ) : (
+                      <Check className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
+                    )}
+                    <span className="text-foreground">{feature.text}</span>
                   </li>
                 ))}
               </ul>
@@ -133,21 +167,35 @@ export const Paywall: React.FC<PaywallProps> = ({
               <Button
                 variant={plan.popular ? "hero" : "outline"}
                 className="w-full"
+                onClick={() => handleSubscribe(plan.id)}
               >
-                Tanlash
+                <ExternalLink className="w-4 h-4 mr-2" />
+                {t('paywall.subscribe')}
               </Button>
             </motion.div>
           ))}
         </div>
 
+        {/* Info */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.3 }}
+          className="mt-6 p-4 rounded-xl bg-muted/50 border border-border"
+        >
+          <p className="text-sm text-muted-foreground text-center">
+            {t('paywall.telegramInfo')}
+          </p>
+        </motion.div>
+
         {/* Trial notice */}
         <motion.p
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 0.3 }}
-          className="text-center text-sm text-muted-foreground mt-6"
+          transition={{ delay: 0.4 }}
+          className="text-center text-sm text-muted-foreground mt-4"
         >
-          7 kunlik bepul sinov • Istalgan vaqtda bekor qilish mumkin
+          {t('paywall.trial')}
         </motion.p>
       </div>
     </motion.div>

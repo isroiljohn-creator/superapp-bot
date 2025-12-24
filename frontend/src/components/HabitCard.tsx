@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { Plus, Check, Flame } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ProgressRing } from './ProgressRing';
+import { useHaptic } from '@/hooks/useHaptic';
 
 interface HabitCardProps {
   icon: React.ReactNode;
@@ -27,7 +28,13 @@ export const HabitCard: React.FC<HabitCardProps> = ({
   addAmount,
   isCompleted = false,
 }) => {
+  const { vibrate } = useHaptic();
   const progress = Math.min((current / target) * 100, 100);
+
+  const handleAdd = () => {
+    vibrate('success');
+    onAdd?.();
+  };
 
   return (
     <motion.div
@@ -71,7 +78,7 @@ export const HabitCard: React.FC<HabitCardProps> = ({
         {onAdd && !isCompleted && (
           <motion.button
             whileTap={{ scale: 0.9 }}
-            onClick={onAdd}
+            onClick={handleAdd}
             className="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center text-primary hover:bg-primary/30 transition-colors"
           >
             <Plus className="w-6 h-6" />

@@ -105,6 +105,51 @@ class Database:
                 session.rollback()
                 print(f"MIGRATION ERROR 3: {e}")
 
+    def save_meal_log(self, user_id, name, calories, protein, carbs, fat, meal_type, date):
+        with get_sync_db() as session:
+            from backend.models import MealLog
+            log = MealLog(
+                user_id=user_id,
+                name=name,
+                calories=calories,
+                protein=protein,
+                carbs=carbs,
+                fat=fat,
+                meal_type=meal_type,
+                date=date
+            )
+            session.add(log)
+            return True
+
+    def get_meal_logs(self, user_id, date):
+        with get_sync_db() as session:
+            from backend.models import MealLog
+            return session.query(MealLog).filter(
+                MealLog.user_id == user_id,
+                MealLog.date == date
+            ).all()
+
+    def save_exercise_log(self, user_id, name, duration, calories_burned, date):
+        with get_sync_db() as session:
+            from backend.models import ExerciseLog
+            log = ExerciseLog(
+                user_id=user_id,
+                name=name,
+                duration=duration,
+                calories_burned=calories_burned,
+                date=date
+            )
+            session.add(log)
+            return True
+
+    def get_exercise_logs(self, user_id, date):
+        with get_sync_db() as session:
+            from backend.models import ExerciseLog
+            return session.query(ExerciseLog).filter(
+                ExerciseLog.user_id == user_id,
+                ExerciseLog.date == date
+            ).all()
+
             try:
                 # 4. Create coach_messages and event_logs table
                 from sqlalchemy import text

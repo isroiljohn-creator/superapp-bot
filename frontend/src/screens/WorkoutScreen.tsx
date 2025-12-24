@@ -1,64 +1,74 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Lock, Calendar, Dumbbell, Play, ExternalLink } from 'lucide-react';
+import { Lock, Dumbbell, Play, Video, Clock, Flame } from 'lucide-react';
 import { WorkoutCard } from '@/components/WorkoutCard';
-import axios from 'axios';
-
 import { Paywall } from '@/components/Paywall';
+import { DaySelector } from '@/components/DaySelector';
 import { useUser } from '@/contexts/UserContext';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { useHaptic } from '@/hooks/useHaptic';
 
-const weekDays = ['Du', 'Se', 'Cho', 'Pa', 'Ju', 'Sha', 'Ya'];
+const getWeekDays = (t: (key: string) => string) => [
+  t('day.mon'), t('day.tue'), t('day.wed'), t('day.thu'), t('day.fri'), t('day.sat'), t('day.sun')
+];
 
-const freeWorkouts = [
+const getFreeWorkouts = (t: (key: string) => string) => [
   {
-    title: 'Uyda mashq - Boshlang\'ich',
-    duration: '25 daqiqa',
+    title: t('workout.homeBasic'),
+    duration: '25 ' + t('common.minutes'),
     calories: 180,
     exercises: 8,
   },
   {
-    title: 'Kardio va stretching',
-    duration: '20 daqiqa',
+    title: t('workout.cardioStretching'),
+    duration: '20 ' + t('common.minutes'),
     calories: 150,
     exercises: 6,
   },
   {
-    title: 'Tananing yuqori qismi',
-    duration: '30 daqiqa',
+    title: t('workout.upperBody'),
+    duration: '30 ' + t('common.minutes'),
     calories: 220,
     exercises: 10,
   },
 ];
 
-interface Exercise {
-  id: number;
-  name: string;
-  video_url: string;
-  category: string;
-  difficulty: string;
-}
-
-const API_URL = import.meta.env.VITE_API_URL || '/api/v1';
-
+const getVideoWorkouts = (t: (key: string) => string) => [
+  {
+    id: 1,
+    title: t('workout.homeCardio'),
+    duration: '15 ' + t('common.minutes'),
+    thumbnail: null,
+    isLocked: false,
+  },
+  {
+    id: 2,
+    title: t('workout.abs'),
+    duration: '12 ' + t('common.minutes'),
+    thumbnail: null,
+    isLocked: true,
+  },
+  {
+    id: 3,
+    title: t('workout.fullBody'),
+    duration: '25 ' + t('common.minutes'),
+    thumbnail: null,
+    isLocked: true,
+  },
+];
 
 export const WorkoutScreen: React.FC = () => {
-  const { isPremium, todayLog, updateTodayLog } = useUser();
+  const { isPremium, todayLog, markWorkoutDone, getTodayWorkouts } = useUser();
+  const { t } = useLanguage();
+  const { vibrate } = useHaptic();
   const [selectedDay, setSelectedDay] = useState(0);
   const [showPaywall, setShowPaywall] = useState(false);
-  const [exercises, setExercises] = useState<Exercise[]>([]);
 
-  React.useEffect(() => {
-    const fetchExercises = async () => {
-      try {
-        const res = await axios.get(`${API_URL}/content/exercises`);
-        setExercises(res.data);
-      } catch (e) {
-        console.error("Failed to fetch exercises", e);
-      }
-    };
-    fetchExercises();
-  }, []);
-
+  const todayWorkouts = getTodayWorkouts();
+  const workoutDone = todayLog?.workout_done || todayWorkouts.length > 0;
+  const weekDays = getWeekDays(t);
+  const freeWorkouts = getFreeWorkouts(t);
+  const videoWorkouts = getVideoWorkouts(t);
 
   const today = new Date();
   const days = Array.from({ length: 7 }, (_, i) => {
@@ -72,6 +82,7 @@ export const WorkoutScreen: React.FC = () => {
   });
 
   const handleDaySelect = (index: number) => {
+    vibrate('light');
     if (index > 0 && !isPremium()) {
       setShowPaywall(true);
       return;
@@ -80,13 +91,21 @@ export const WorkoutScreen: React.FC = () => {
   };
 
   const handleWorkoutClick = (index: number) => {
+    vibrate('medium');
     if (!isPremium() && selectedDay > 0) {
       setShowPaywall(true);
       return;
     }
-    // Toggle workout completion for today
-    if (selectedDay === 0) {
-      updateTodayLog({ workout_done: !todayLog?.workout_done });
+    // Mark workout as done for today
+    if (selectedDay === 0 && !workoutDone) {
+      markWorkoutDone();
+    }
+  };
+
+  const handleVideoClick = (isLocked: boolean) => {
+    vibrate('medium');
+    if (isLocked && !isPremium()) {
+      setShowPaywall(true);
     }
   };
 
@@ -107,40 +126,24 @@ export const WorkoutScreen: React.FC = () => {
     <div className="min-h-screen bg-background pb-24">
       {/* Header */}
       <div className="px-4 pt-6 pb-4 safe-area-top">
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-5">
           <h1 className="text-2xl font-display font-bold text-foreground">
-            Mashqlar
+            {t('workout.title')}
           </h1>
-          <div className="flex items-center gap-1 text-sm text-muted-foreground">
+          <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
             <Dumbbell className="w-4 h-4" />
-            <span>7 kunlik</span>
+            <span>{t('menu.weekly')}</span>
           </div>
         </div>
 
         {/* Day selector */}
-        <div className="flex gap-2 overflow-x-auto no-scrollbar mb-6">
-          {days.map((day, index) => {
-            const isLocked = index > 0 && !isPremium();
-            return (
-              <button
-                key={index}
-                onClick={() => handleDaySelect(index)}
-                className={`relative flex flex-col items-center min-w-[48px] py-2 px-1 rounded-xl transition-all ${selectedDay === index
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-card text-foreground'
-                  } ${isLocked ? 'opacity-60' : ''}`}
-              >
-                <span className="text-xs font-medium">{day.day}</span>
-                <span className="text-lg font-bold">{day.date}</span>
-                {day.isToday && (
-                  <div className="absolute -bottom-1 w-1.5 h-1.5 rounded-full bg-primary" />
-                )}
-                {isLocked && (
-                  <Lock className="absolute -top-1 -right-1 w-3 h-3 text-muted-foreground" />
-                )}
-              </button>
-            );
-          })}
+        <div className="mb-5">
+          <DaySelector
+            days={days}
+            selectedDay={selectedDay}
+            onDaySelect={handleDaySelect}
+            isPremium={isPremium()}
+          />
         </div>
 
         {/* Premium info */}
@@ -152,7 +155,7 @@ export const WorkoutScreen: React.FC = () => {
           >
             <p className="text-sm text-foreground">
               <Lock className="w-4 h-4 inline mr-1" />
-              Bepul rejada 3 ta asosiy mashq mavjud. AI shaxsiy dastur uchun Premium kerak.
+              {t('workout.premiumInfo')}
             </p>
           </motion.div>
         )}
@@ -166,7 +169,7 @@ export const WorkoutScreen: React.FC = () => {
         className="px-4 space-y-3"
       >
         <motion.p variants={itemVariants} className="text-sm text-muted-foreground mb-2">
-          Kun {selectedDay + 1} - {selectedDay === 0 ? 'Bugun' : days[selectedDay].day}
+          {t('common.day')} {selectedDay + 1} - {selectedDay === 0 ? t('common.today') : days[selectedDay].day}
         </motion.p>
 
         {freeWorkouts.map((workout, index) => (
@@ -180,70 +183,88 @@ export const WorkoutScreen: React.FC = () => {
           </motion.div>
         ))}
 
+        {/* Video mashqlar bo'limi */}
+        <motion.div variants={itemVariants} className="mt-8">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
+              <Video className="w-5 h-5 text-primary" />
+              {t('workout.videoWorkouts')}
+            </h2>
+            <span className="text-xs text-muted-foreground">{t('workout.comingSoon')}</span>
+          </div>
+
+          <div className="grid grid-cols-1 gap-3">
+            {videoWorkouts.map((video) => (
+              <motion.button
+                key={video.id}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => handleVideoClick(video.isLocked)}
+                className={`relative w-full rounded-2xl overflow-hidden bg-card border border-border/50 ${
+                  video.isLocked && !isPremium() ? 'opacity-60' : ''
+                }`}
+              >
+                {/* Thumbnail placeholder */}
+                <div className="aspect-video bg-muted flex items-center justify-center relative">
+                  <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent" />
+                  
+                  {video.isLocked && !isPremium() ? (
+                    <div className="w-14 h-14 rounded-full bg-muted-foreground/20 flex items-center justify-center">
+                      <Lock className="w-6 h-6 text-muted-foreground" />
+                    </div>
+                  ) : (
+                    <div className="w-14 h-14 rounded-full bg-primary/90 flex items-center justify-center shadow-glow">
+                      <Play className="w-6 h-6 text-primary-foreground ml-1" />
+                    </div>
+                  )}
+
+                  {/* Video info overlay */}
+                  <div className="absolute bottom-3 left-3 right-3">
+                    <h3 className="text-sm font-semibold text-foreground text-left">{video.title}</h3>
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
+                      <span className="flex items-center gap-1">
+                        <Clock className="w-3 h-3" />
+                        {video.duration}
+                      </span>
+                    </div>
+                  </div>
+
+                  {video.isLocked && !isPremium() && (
+                    <div className="absolute top-2 right-2 px-2 py-1 bg-background/80 rounded-lg text-xs text-muted-foreground flex items-center gap-1">
+                      <Lock className="w-3 h-3" />
+                      Premium
+                    </div>
+                  )}
+                </div>
+              </motion.button>
+            ))}
+          </div>
+
+          <p className="text-xs text-muted-foreground text-center mt-3">
+            {t('workout.videosSoon')}
+          </p>
+        </motion.div>
+
         {/* Tips section */}
         <motion.div
           variants={itemVariants}
           className="mt-6 p-4 rounded-2xl bg-card border border-border/50"
         >
-          <h3 className="font-semibold text-foreground mb-2">💡 Maslahat</h3>
-          <p className="text-sm text-muted-foreground">
-            Har bir mashqdan oldin 5 daqiqa isitish mashqlari qiling. Bu jarohatlarning oldini oladi.
-          </p>
+          <div className="flex items-start gap-3">
+            <div className="text-2xl">💡</div>
+            <div>
+              <h3 className="font-semibold text-foreground text-sm mb-1">{t('menu.tip')}</h3>
+              <p className="text-sm text-muted-foreground">
+                {t('workout.warmupTip')}
+              </p>
+            </div>
+          </div>
         </motion.div>
       </motion.div>
-
-      {/* Video Library */}
-      <motion.div
-        variants={containerVariants}
-        initial="hidden"
-        animate="show"
-        className="px-4 mt-8"
-      >
-        <div className="flex items-center gap-2 mb-4">
-          <div className="w-8 h-8 rounded-lg bg-red-500/10 flex items-center justify-center text-red-500">
-            <Play className="w-5 h-5 fill-current" />
-          </div>
-          <h2 className="text-lg font-bold text-foreground">Mashqlar Kutubxonasi</h2>
-        </div>
-
-        <div className="space-y-3">
-          {exercises.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Videolar yuklanmoqda...</p>
-          ) : (
-            exercises.map((ex) => (
-              <motion.div
-                key={ex.id}
-                variants={itemVariants}
-                className="bg-card border border-border/50 rounded-xl p-4 flex items-center justify-between"
-              >
-                <div>
-                  <h3 className="font-semibold text-foreground">{ex.name}</h3>
-                  <div className="flex gap-2 text-xs text-muted-foreground mt-1">
-                    <span className="bg-muted px-2 py-0.5 rounded">{ex.category}</span>
-                    <span className="bg-muted px-2 py-0.5 rounded">{ex.difficulty}</span>
-                  </div>
-                </div>
-                <a
-                  href={ex.video_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary hover:bg-primary/20 transition-colors"
-                >
-                  <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
-                    <Play className="w-5 h-5 fill-current" />
-                  </motion.div>
-                </a>
-              </motion.div>
-            ))
-          )}
-        </div>
-      </motion.div>
-
 
       <Paywall
         isOpen={showPaywall}
         onClose={() => setShowPaywall(false)}
-        feature="AI mashq dasturi"
+        feature={t('paywall.aiWorkout')}
       />
     </div>
   );

@@ -34,7 +34,18 @@ class UserProfileUpdate(BaseModel):
     allergies: Optional[str] = None
 
 @router.get("/profile")
-async def get_profile(current_user: User = Depends(get_current_user)):
+async def get_profile(current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    # Fetch today's log for stats
+    from datetime import datetime
+    today = datetime.utcnow().strftime("%Y-%m-%d")
+    from backend.models import DailyLog
+    from sqlalchemy import select
+    
+    log_result = await db.execute(
+        select(DailyLog).where(DailyLog.user_id == current_user.id, DailyLog.date == today)
+    )
+    today_log = log_result.scalar_one_or_none()
+
     return {
         "id": current_user.id,
         "username": current_user.username,
@@ -54,7 +65,10 @@ async def get_profile(current_user: User = Depends(get_current_user)):
         "streak_sleep": current_user.streak_sleep,
         "streak_mood": current_user.streak_mood,
         "referral_code": current_user.referral_code,
-        "bot_username": os.getenv("BOT_USERNAME", "YashaBot")
+        "bot_username": os.getenv("BOT_USERNAME", "yashabot"),
+        "today_water": today_log.water_ml if today_log else 0,
+        "today_steps": today_log.steps if today_log else 0,
+        "today_sleep": today_log.sleep_hours if today_log else 0
     }
 
 @router.put("/profile")

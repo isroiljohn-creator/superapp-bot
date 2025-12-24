@@ -4,49 +4,65 @@ import { ArrowRight, ArrowLeft, Phone, User, Ruler, Target, AlertCircle, Sparkle
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useUser, UserProfile } from '@/contexts/UserContext';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { WheelPicker } from '@/components/WheelPicker';
+import { useHaptic } from '@/hooks/useHaptic';
 import yashaLogo from '@/assets/yasha-logo.png';
 
 type OnboardingStep = 'welcome' | 'phone' | 'name' | 'body' | 'goal' | 'activity' | 'allergies' | 'complete';
 
 const steps: OnboardingStep[] = ['welcome', 'phone', 'name', 'body', 'goal', 'activity', 'allergies', 'complete'];
 
-const activityLevels = [
-  { id: 'sedentary', label: 'Kam harakatli', desc: 'Ofis ishi, kam yurish' },
-  { id: 'light', label: 'Engil faol', desc: 'Kunlik 30 daqiqa yurish' },
-  { id: 'moderate', label: "O'rtacha faol", desc: 'Haftada 3-4 marta sport' },
-  { id: 'active', label: 'Faol', desc: 'Har kuni sport mashqlari' },
-  { id: 'very_active', label: 'Juda faol', desc: 'Intensiv mashqlar har kuni' },
-];
-
-const goals = [
-  { id: 'lose', label: 'Vazn yo\'qotish', icon: '📉', desc: 'Ortiqcha kilolardan xalos bo\'lish' },
-  { id: 'gain', label: 'Vazn olish', icon: '📈', desc: 'Mushak massasini oshirish' },
-  { id: 'maintain', label: 'Sog\'lom turmush', icon: '⚖️', desc: 'Hozirgi vazningizni saqlash' },
-];
-
-const commonAllergies = [
-  'Sut mahsulotlari', 'Yong\'oq', 'Tuxum', 'Gluten', 'Dengiz mahsulotlari', 'Soya'
-];
+// Picker uchun qiymatlar
+const ageValues = Array.from({ length: 83 }, (_, i) => i + 18); // 18-100
+const heightValues = Array.from({ length: 81 }, (_, i) => i + 140); // 140-220
+const weightValues = Array.from({ length: 121 }, (_, i) => i + 40); // 40-160
 
 export const Onboarding: React.FC = () => {
   const { setProfile, completeOnboarding } = useUser();
+  const { t } = useLanguage();
+  const { vibrate } = useHaptic();
   const [currentStep, setCurrentStep] = useState<OnboardingStep>('welcome');
   const [formData, setFormData] = useState({
     phone: '',
     name: '',
-    age: '',
+    age: 25,
     gender: 'male' as 'male' | 'female',
-    height: '',
-    weight: '',
+    height: 170,
+    weight: 70,
     goal: '' as 'lose' | 'gain' | 'maintain' | '',
     activityLevel: '' as UserProfile['activityLevel'] | '',
     allergies: [] as string[],
   });
 
+  const activityLevels = [
+    { id: 'sedentary', labelKey: 'onboarding.activitySedentary', descKey: 'onboarding.activitySedentaryDesc' },
+    { id: 'light', labelKey: 'onboarding.activityLight', descKey: 'onboarding.activityLightDesc' },
+    { id: 'moderate', labelKey: 'onboarding.activityModerate', descKey: 'onboarding.activityModerateDesc' },
+    { id: 'active', labelKey: 'onboarding.activityActive', descKey: 'onboarding.activityActiveDesc' },
+    { id: 'very_active', labelKey: 'onboarding.activityVeryActive', descKey: 'onboarding.activityVeryActiveDesc' },
+  ];
+
+  const goals = [
+    { id: 'lose', labelKey: 'onboarding.goalLose', icon: '📉', descKey: 'onboarding.goalLoseDesc' },
+    { id: 'gain', labelKey: 'onboarding.goalGain', icon: '📈', descKey: 'onboarding.goalGainDesc' },
+    { id: 'maintain', labelKey: 'onboarding.goalMaintain', icon: '⚖️', descKey: 'onboarding.goalMaintainDesc' },
+  ];
+
+  const commonAllergies = [
+    { id: 'dairy', key: 'onboarding.allergyDairy' },
+    { id: 'nuts', key: 'onboarding.allergyNuts' },
+    { id: 'eggs', key: 'onboarding.allergyEggs' },
+    { id: 'gluten', key: 'onboarding.allergyGluten' },
+    { id: 'seafood', key: 'onboarding.allergySeafood' },
+    { id: 'soy', key: 'onboarding.allergySoy' },
+  ];
+
   const currentIndex = steps.indexOf(currentStep);
   const progress = ((currentIndex) / (steps.length - 1)) * 100;
 
   const goNext = () => {
+    vibrate('light');
     const nextIndex = currentIndex + 1;
     if (nextIndex < steps.length) {
       setCurrentStep(steps[nextIndex]);
@@ -54,6 +70,7 @@ export const Onboarding: React.FC = () => {
   };
 
   const goBack = () => {
+    vibrate('light');
     const prevIndex = currentIndex - 1;
     if (prevIndex >= 0) {
       setCurrentStep(steps[prevIndex]);
@@ -61,13 +78,14 @@ export const Onboarding: React.FC = () => {
   };
 
   const handleComplete = () => {
+    vibrate('success');
     const profile: UserProfile = {
       phone: formData.phone,
       name: formData.name,
-      age: parseInt(formData.age) || 25,
+      age: formData.age,
       gender: formData.gender,
-      height: parseInt(formData.height) || 170,
-      weight: parseInt(formData.weight) || 70,
+      height: formData.height,
+      weight: formData.weight,
       goal: formData.goal as 'lose' | 'gain' | 'maintain',
       activityLevel: formData.activityLevel as UserProfile['activityLevel'],
       allergies: formData.allergies,
@@ -76,13 +94,29 @@ export const Onboarding: React.FC = () => {
     completeOnboarding();
   };
 
-  const toggleAllergy = (allergy: string) => {
+  const toggleAllergy = (allergyId: string) => {
+    vibrate('selection');
     setFormData(prev => ({
       ...prev,
-      allergies: prev.allergies.includes(allergy)
-        ? prev.allergies.filter(a => a !== allergy)
-        : [...prev.allergies, allergy],
+      allergies: prev.allergies.includes(allergyId)
+        ? prev.allergies.filter(a => a !== allergyId)
+        : [...prev.allergies, allergyId],
     }));
+  };
+
+  const handleGenderSelect = (gender: 'male' | 'female') => {
+    vibrate('medium');
+    setFormData({ ...formData, gender });
+  };
+
+  const handleGoalSelect = (goal: 'lose' | 'gain' | 'maintain') => {
+    vibrate('medium');
+    setFormData({ ...formData, goal });
+  };
+
+  const handleActivitySelect = (activityLevel: UserProfile['activityLevel']) => {
+    vibrate('medium');
+    setFormData({ ...formData, activityLevel });
   };
 
   const slideVariants = {
@@ -142,13 +176,13 @@ export const Onboarding: React.FC = () => {
                 YASHA AI
               </h1>
               <p className="text-lg text-primary font-medium mb-2">
-                Sog'lom Hayot Murabbiyi
+                {t('onboarding.slogan')}
               </p>
               <p className="text-muted-foreground max-w-xs mb-8">
-                Shaxsiy AI fitnes va dieta murabbiyi. Sog'lom hayot yo'lingizda biz bilan boring!
+                {t('onboarding.welcome')}
               </p>
               <Button variant="hero" size="xl" onClick={goNext} className="w-full max-w-xs">
-                Boshlash
+                {t('onboarding.start')}
                 <ArrowRight className="w-5 h-5" />
               </Button>
             </motion.div>
@@ -168,14 +202,14 @@ export const Onboarding: React.FC = () => {
                 <Phone className="w-8 h-8 text-primary" />
               </div>
               <h2 className="text-2xl font-bold text-foreground mb-2">
-                Telefon raqamingiz
+                {t('onboarding.phoneTitle')}
               </h2>
               <p className="text-muted-foreground mb-8">
-                Hisobingizni yaratish uchun telefon raqamingizni kiriting
+                {t('onboarding.phoneDesc')}
               </p>
               <Input
                 type="tel"
-                placeholder="+998 90 123 45 67"
+                placeholder={t('onboarding.phonePlaceholder')}
                 value={formData.phone}
                 onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                 className="text-lg h-14 mb-4"
@@ -188,7 +222,7 @@ export const Onboarding: React.FC = () => {
                 disabled={formData.phone.length < 9}
                 className="w-full"
               >
-                Davom etish
+                {t('onboarding.continue')}
                 <ArrowRight className="w-5 h-5" />
               </Button>
             </motion.div>
@@ -208,14 +242,14 @@ export const Onboarding: React.FC = () => {
                 <User className="w-8 h-8 text-primary" />
               </div>
               <h2 className="text-2xl font-bold text-foreground mb-2">
-                Sizni qanday chaqiramiz?
+                {t('onboarding.nameTitle')}
               </h2>
               <p className="text-muted-foreground mb-8">
-                Ismingizni kiriting
+                {t('onboarding.nameDesc')}
               </p>
               <Input
                 type="text"
-                placeholder="Ismingiz"
+                placeholder={t('onboarding.namePlaceholder')}
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 className="text-lg h-14 mb-4"
@@ -228,13 +262,13 @@ export const Onboarding: React.FC = () => {
                 disabled={formData.name.length < 2}
                 className="w-full"
               >
-                Davom etish
+                {t('onboarding.continue')}
                 <ArrowRight className="w-5 h-5" />
               </Button>
             </motion.div>
           )}
 
-          {/* Body metrics */}
+          {/* Body metrics - iOS style wheel picker */}
           {currentStep === 'body' && (
             <motion.div
               key="body"
@@ -248,21 +282,21 @@ export const Onboarding: React.FC = () => {
                 <Ruler className="w-8 h-8 text-primary" />
               </div>
               <h2 className="text-2xl font-bold text-foreground mb-2">
-                Jismoniy ko'rsatkichlar
+                {t('onboarding.bodyTitle')}
               </h2>
-              <p className="text-muted-foreground mb-8">
-                Sizga mos rejani tuzish uchun kerak
+              <p className="text-muted-foreground mb-6">
+                {t('onboarding.bodyDesc')}
               </p>
 
               {/* Gender */}
               <div className="flex gap-3 mb-6">
                 {[
-                  { id: 'male', label: 'Erkak', icon: '👨' },
-                  { id: 'female', label: 'Ayol', icon: '👩' },
+                  { id: 'male', labelKey: 'onboarding.male', icon: '👨' },
+                  { id: 'female', labelKey: 'onboarding.female', icon: '👩' },
                 ].map((g) => (
                   <button
                     key={g.id}
-                    onClick={() => setFormData({ ...formData, gender: g.id as 'male' | 'female' })}
+                    onClick={() => handleGenderSelect(g.id as 'male' | 'female')}
                     className={`flex-1 p-4 rounded-xl border-2 transition-all ${
                       formData.gender === g.id
                         ? 'border-primary bg-primary/10'
@@ -270,53 +304,45 @@ export const Onboarding: React.FC = () => {
                     }`}
                   >
                     <span className="text-2xl mb-1 block">{g.icon}</span>
-                    <span className="font-medium text-foreground">{g.label}</span>
+                    <span className="font-medium text-foreground">{t(g.labelKey)}</span>
                   </button>
                 ))}
               </div>
 
-              <div className="grid grid-cols-3 gap-3 mb-6">
-                <div>
-                  <label className="text-sm text-muted-foreground mb-2 block">Yosh</label>
-                  <Input
-                    type="number"
-                    placeholder="25"
+              {/* iOS Style Wheel Pickers */}
+              <div className="flex-1 flex items-center justify-center">
+                <div className="grid grid-cols-3 gap-4 w-full">
+                  <WheelPicker
+                    items={ageValues}
                     value={formData.age}
-                    onChange={(e) => setFormData({ ...formData, age: e.target.value })}
-                    className="h-12 text-center"
+                    onChange={(val) => setFormData({ ...formData, age: val as number })}
+                    label={t('onboarding.age')}
+                    suffix={t('onboarding.ageSuffix')}
                   />
-                </div>
-                <div>
-                  <label className="text-sm text-muted-foreground mb-2 block">Bo'y (sm)</label>
-                  <Input
-                    type="number"
-                    placeholder="170"
+                  <WheelPicker
+                    items={heightValues}
                     value={formData.height}
-                    onChange={(e) => setFormData({ ...formData, height: e.target.value })}
-                    className="h-12 text-center"
+                    onChange={(val) => setFormData({ ...formData, height: val as number })}
+                    label={t('onboarding.height')}
+                    suffix={t('onboarding.heightSuffix')}
                   />
-                </div>
-                <div>
-                  <label className="text-sm text-muted-foreground mb-2 block">Vazn (kg)</label>
-                  <Input
-                    type="number"
-                    placeholder="70"
+                  <WheelPicker
+                    items={weightValues}
                     value={formData.weight}
-                    onChange={(e) => setFormData({ ...formData, weight: e.target.value })}
-                    className="h-12 text-center"
+                    onChange={(val) => setFormData({ ...formData, weight: val as number })}
+                    label={t('onboarding.weight')}
+                    suffix={t('onboarding.weightSuffix')}
                   />
                 </div>
               </div>
 
-              <div className="flex-1" />
               <Button
                 variant="hero"
                 size="lg"
                 onClick={goNext}
-                disabled={!formData.age || !formData.height || !formData.weight}
-                className="w-full"
+                className="w-full mt-4"
               >
-                Davom etish
+                {t('onboarding.continue')}
                 <ArrowRight className="w-5 h-5" />
               </Button>
             </motion.div>
@@ -336,17 +362,17 @@ export const Onboarding: React.FC = () => {
                 <Target className="w-8 h-8 text-primary" />
               </div>
               <h2 className="text-2xl font-bold text-foreground mb-2">
-                Maqsadingiz nima?
+                {t('onboarding.goalTitle')}
               </h2>
               <p className="text-muted-foreground mb-8">
-                Asosiy maqsadingizni tanlang
+                {t('onboarding.goalDesc')}
               </p>
 
               <div className="space-y-3">
                 {goals.map((goal) => (
                   <button
                     key={goal.id}
-                    onClick={() => setFormData({ ...formData, goal: goal.id as 'lose' | 'gain' | 'maintain' })}
+                    onClick={() => handleGoalSelect(goal.id as 'lose' | 'gain' | 'maintain')}
                     className={`w-full p-4 rounded-xl border-2 text-left transition-all ${
                       formData.goal === goal.id
                         ? 'border-primary bg-primary/10'
@@ -356,8 +382,8 @@ export const Onboarding: React.FC = () => {
                     <div className="flex items-center gap-3">
                       <span className="text-2xl">{goal.icon}</span>
                       <div>
-                        <h3 className="font-semibold text-foreground">{goal.label}</h3>
-                        <p className="text-sm text-muted-foreground">{goal.desc}</p>
+                        <h3 className="font-semibold text-foreground">{t(goal.labelKey)}</h3>
+                        <p className="text-sm text-muted-foreground">{t(goal.descKey)}</p>
                       </div>
                     </div>
                   </button>
@@ -372,7 +398,7 @@ export const Onboarding: React.FC = () => {
                 disabled={!formData.goal}
                 className="w-full"
               >
-                Davom etish
+                {t('onboarding.continue')}
                 <ArrowRight className="w-5 h-5" />
               </Button>
             </motion.div>
@@ -389,25 +415,25 @@ export const Onboarding: React.FC = () => {
               className="flex-1 flex flex-col"
             >
               <h2 className="text-2xl font-bold text-foreground mb-2">
-                Faollik darajangiz
+                {t('onboarding.activityTitle')}
               </h2>
               <p className="text-muted-foreground mb-6">
-                Kundalik faolligingizni tanlang
+                {t('onboarding.activityDesc')}
               </p>
 
               <div className="space-y-2 flex-1 overflow-auto">
                 {activityLevels.map((level) => (
                   <button
                     key={level.id}
-                    onClick={() => setFormData({ ...formData, activityLevel: level.id as UserProfile['activityLevel'] })}
+                    onClick={() => handleActivitySelect(level.id as UserProfile['activityLevel'])}
                     className={`w-full p-4 rounded-xl border-2 text-left transition-all ${
                       formData.activityLevel === level.id
                         ? 'border-primary bg-primary/10'
                         : 'border-border bg-card'
                     }`}
                   >
-                    <h3 className="font-semibold text-foreground">{level.label}</h3>
-                    <p className="text-sm text-muted-foreground">{level.desc}</p>
+                    <h3 className="font-semibold text-foreground">{t(level.labelKey)}</h3>
+                    <p className="text-sm text-muted-foreground">{t(level.descKey)}</p>
                   </button>
                 ))}
               </div>
@@ -419,7 +445,7 @@ export const Onboarding: React.FC = () => {
                 disabled={!formData.activityLevel}
                 className="w-full mt-4"
               >
-                Davom etish
+                {t('onboarding.continue')}
                 <ArrowRight className="w-5 h-5" />
               </Button>
             </motion.div>
@@ -439,31 +465,31 @@ export const Onboarding: React.FC = () => {
                 <AlertCircle className="w-8 h-8 text-primary" />
               </div>
               <h2 className="text-2xl font-bold text-foreground mb-2">
-                Allergiyalaringiz bormi?
+                {t('onboarding.allergyTitle')}
               </h2>
               <p className="text-muted-foreground mb-8">
-                Tanlang yoki o'tkazib yuboring
+                {t('onboarding.allergyDesc')}
               </p>
 
               <div className="flex flex-wrap gap-2 mb-6">
                 {commonAllergies.map((allergy) => (
                   <button
-                    key={allergy}
-                    onClick={() => toggleAllergy(allergy)}
+                    key={allergy.id}
+                    onClick={() => toggleAllergy(allergy.id)}
                     className={`px-4 py-2 rounded-full border-2 transition-all ${
-                      formData.allergies.includes(allergy)
+                      formData.allergies.includes(allergy.id)
                         ? 'border-primary bg-primary/10 text-primary'
                         : 'border-border bg-card text-foreground'
                     }`}
                   >
-                    {allergy}
+                    {t(allergy.key)}
                   </button>
                 ))}
               </div>
 
               <div className="flex-1" />
               <Button variant="hero" size="lg" onClick={goNext} className="w-full">
-                {formData.allergies.length > 0 ? 'Davom etish' : 'O\'tkazib yuborish'}
+                {formData.allergies.length > 0 ? t('onboarding.continue') : t('onboarding.skip')}
                 <ArrowRight className="w-5 h-5" />
               </Button>
             </motion.div>
@@ -482,30 +508,19 @@ export const Onboarding: React.FC = () => {
               <motion.div
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
-                transition={{ type: "spring", stiffness: 200, delay: 0.2 }}
+                transition={{ type: 'spring', stiffness: 200, damping: 15 }}
                 className="w-24 h-24 rounded-full bg-primary/20 flex items-center justify-center mb-6"
               >
                 <Sparkles className="w-12 h-12 text-primary" />
               </motion.div>
               <h2 className="text-2xl font-bold text-foreground mb-2">
-                Tabriklaymiz, {formData.name}! 🎉
+                {t('onboarding.completeTitle')}
               </h2>
-              <p className="text-muted-foreground mb-4 max-w-xs">
-                Sizga 7 kunlik bepul Premium sinov berildi!
+              <p className="text-muted-foreground max-w-xs mb-8">
+                {t('onboarding.completeDesc')}
               </p>
-              <div className="bg-primary/10 border border-primary/30 rounded-2xl p-4 mb-8 max-w-xs">
-                <p className="text-sm text-foreground">
-                  <strong>Premium imkoniyatlar:</strong>
-                </p>
-                <ul className="text-sm text-muted-foreground mt-2 space-y-1">
-                  <li>✓ AI bilan shaxsiy menyu</li>
-                  <li>✓ AI mashq dasturi</li>
-                  <li>✓ Murabbiy chat</li>
-                  <li>✓ Muzlatgich retseptlari</li>
-                </ul>
-              </div>
               <Button variant="hero" size="xl" onClick={handleComplete} className="w-full max-w-xs">
-                Boshlash
+                {t('onboarding.letsStart')}
                 <ArrowRight className="w-5 h-5" />
               </Button>
             </motion.div>

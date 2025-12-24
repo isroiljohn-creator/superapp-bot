@@ -43,6 +43,8 @@ class User(Base):
     menu_link = relationship("UserMenuLink", uselist=False, back_populates="user")
     workout_link = relationship("UserWorkoutLink", uselist=False, back_populates="user")
     subscriptions = relationship("Subscription", back_populates="user")
+    meal_logs = relationship("MealLog", back_populates="user")
+    exercise_logs = relationship("ExerciseLog", back_populates="user")
 
     # Missing Columns from core/db.py
     last_checkin = Column(String, nullable=True) # Stored as text in legacy
@@ -343,3 +345,31 @@ class EventLog(Base):
     created_at = Column(DateTime, default=datetime.utcnow, index=True)
 
 
+class MealLog(Base):
+    __tablename__ = "meal_logs"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    name = Column(String)
+    calories = Column(Integer)
+    protein = Column(Float, default=0.0)
+    carbs = Column(Float, default=0.0)
+    fat = Column(Float, default=0.0)
+    meal_type = Column(String) # breakfast, lunch, dinner, snack
+    date = Column(String, index=True) # YYYY-MM-DD
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    user = relationship("User", back_populates="meal_logs")
+
+class ExerciseLog(Base):
+    __tablename__ = "exercise_logs"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    name = Column(String)
+    duration = Column(Integer) # in minutes
+    calories_burned = Column(Integer)
+    date = Column(String, index=True) # YYYY-MM-DD
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    user = relationship("User", back_populates="exercise_logs")

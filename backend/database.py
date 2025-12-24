@@ -85,5 +85,4 @@ async def init_db():
 # Sync table creation (Deprecated for Migrations, but kept for logic consistency if needed)
 def init_db_sync():
     # In production, use Alembic!
-    # Base.metadata.create_all(bind=sync_engine)
-    pass
+    Base.metadata.create_all(bind=sync_engine)
