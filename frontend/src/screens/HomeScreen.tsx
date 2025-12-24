@@ -2,6 +2,8 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Droplets, Footprints, Moon, Smile, Flame, Trophy } from 'lucide-react';
 import { StatCard } from '@/components/StatCard';
+import axios from 'axios';
+
 import { useUser } from '@/contexts/UserContext';
 import yashaLogo from '@/assets/yasha-logo.png';
 
@@ -19,7 +21,26 @@ export const HomeScreen: React.FC = () => {
     return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
   };
 
+  const API_URL = import.meta.env.VITE_API_URL || '/api/v1';
+  const [coachMsg, setCoachMsg] = useState<string | null>(null);
+
+  // Daily Stats Mock - in real app, fetch from API
+  React.useEffect(() => {
+    // 2. Fetch Coach Message
+    const fetchCoach = async () => {
+      try {
+        if (!profile?.id) return;
+        const res = await axios.get(`${API_URL}/coach/today?user_id=${profile.id}`);
+        if (res.data?.message) setCoachMsg(res.data.message);
+      } catch (e) {
+        console.error("Coach fetch error", e);
+      }
+    };
+    fetchCoach();
+  }, [profile]);
+
   const containerVariants = {
+
     hidden: { opacity: 0 },
     show: {
       opacity: 1,
@@ -80,91 +101,114 @@ export const HomeScreen: React.FC = () => {
         )}
       </div>
 
-      {/* Today's Stats */}
+        )}
+    </div>
+
+      {/* Coach Zone Block */ }
+  {
+    coachMsg && (
       <motion.div
-        variants={containerVariants}
-        initial="hidden"
-        animate="show"
-        className="px-4"
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="mx-4 mb-6 p-4 rounded-xl bg-gradient-to-r from-violet-500/10 to-fuchsia-500/10 border border-violet-500/20"
       >
-        <motion.h2 variants={itemVariants} className="text-lg font-bold text-foreground mb-4">
-          Bugungi ko'rsatkichlar
-        </motion.h2>
-
-        <div className="grid grid-cols-2 gap-3">
-          <motion.div variants={itemVariants}>
-            <StatCard
-              icon={Droplets}
-              label="Suv"
-              value={todayLog?.water_ml || 0}
-              target="2500"
-              unit="ml"
-              progress={waterProgress}
-              color="blue"
-            />
-          </motion.div>
-
-          <motion.div variants={itemVariants}>
-            <StatCard
-              icon={Footprints}
-              label="Qadamlar"
-              value={todayLog?.steps || 0}
-              target="10,000"
-              progress={stepsProgress}
-              color="orange"
-            />
-          </motion.div>
-
-          <motion.div variants={itemVariants}>
-            <StatCard
-              icon={Moon}
-              label="Uyqu"
-              value={todayLog?.sleep_hours || 0}
-              target="8"
-              unit="soat"
-              progress={sleepProgress}
-              color="purple"
-            />
-          </motion.div>
-
-          <motion.div variants={itemVariants}>
-            <StatCard
-              icon={Smile}
-              label="Kayfiyat"
-              value={
-                todayLog?.mood === 'good' ? 'Yaxshi' :
-                  todayLog?.mood === 'bad' ? 'Yomon' :
-                    'O\'rtacha'
-              }
-              color="primary"
-            />
-          </motion.div>
+        <div className="flex items-center gap-2 mb-2">
+          <span className="text-xl">🧠</span>
+          <h3 className="font-bold text-foreground text-sm">Coach Zone</h3>
         </div>
+        <p className="text-sm text-foreground/90 italic leading-relaxed">
+          "{coachMsg}"
+        </p>
+      </motion.div>
+    )
+  }
 
-        {/* Streaks */}
-        <motion.div variants={itemVariants} className="mt-6">
-          <h2 className="text-lg font-bold text-foreground mb-4">
-            Streak'lar 🔥
-          </h2>
-          <div className="flex gap-3">
-            <div className="flex-1 p-4 rounded-2xl bg-card border border-border/50 text-center">
-              <Droplets className="w-6 h-6 text-blue-400 mx-auto mb-2" />
-              <p className="text-2xl font-bold text-foreground">{streaks.water}</p>
-              <p className="text-xs text-muted-foreground">Suv kun</p>
-            </div>
-            <div className="flex-1 p-4 rounded-2xl bg-card border border-border/50 text-center">
-              <Moon className="w-6 h-6 text-purple-400 mx-auto mb-2" />
-              <p className="text-2xl font-bold text-foreground">{streaks.sleep}</p>
-              <p className="text-xs text-muted-foreground">Uyqu kun</p>
-            </div>
-            <div className="flex-1 p-4 rounded-2xl bg-card border border-border/50 text-center">
-              <Smile className="w-6 h-6 text-primary mx-auto mb-2" />
-              <p className="text-2xl font-bold text-foreground">{streaks.mood}</p>
-              <p className="text-xs text-muted-foreground">Kayfiyat</p>
-            </div>
-          </div>
-        </motion.div>
+  {/* Today's Stats */ }
+
+  <motion.div
+    variants={containerVariants}
+    initial="hidden"
+    animate="show"
+    className="px-4"
+  >
+    <motion.h2 variants={itemVariants} className="text-lg font-bold text-foreground mb-4">
+      Bugungi ko'rsatkichlar
+    </motion.h2>
+
+    <div className="grid grid-cols-2 gap-3">
+      <motion.div variants={itemVariants}>
+        <StatCard
+          icon={Droplets}
+          label="Suv"
+          value={todayLog?.water_ml || 0}
+          target="2500"
+          unit="ml"
+          progress={waterProgress}
+          color="blue"
+        />
+      </motion.div>
+
+      <motion.div variants={itemVariants}>
+        <StatCard
+          icon={Footprints}
+          label="Qadamlar"
+          value={todayLog?.steps || 0}
+          target="10,000"
+          progress={stepsProgress}
+          color="orange"
+        />
+      </motion.div>
+
+      <motion.div variants={itemVariants}>
+        <StatCard
+          icon={Moon}
+          label="Uyqu"
+          value={todayLog?.sleep_hours || 0}
+          target="8"
+          unit="soat"
+          progress={sleepProgress}
+          color="purple"
+        />
+      </motion.div>
+
+      <motion.div variants={itemVariants}>
+        <StatCard
+          icon={Smile}
+          label="Kayfiyat"
+          value={
+            todayLog?.mood === 'good' ? 'Yaxshi' :
+              todayLog?.mood === 'bad' ? 'Yomon' :
+                'O\'rtacha'
+          }
+          color="primary"
+        />
       </motion.div>
     </div>
+
+    {/* Streaks */}
+    <motion.div variants={itemVariants} className="mt-6">
+      <h2 className="text-lg font-bold text-foreground mb-4">
+        Streak'lar 🔥
+      </h2>
+      <div className="flex gap-3">
+        <div className="flex-1 p-4 rounded-2xl bg-card border border-border/50 text-center">
+          <Droplets className="w-6 h-6 text-blue-400 mx-auto mb-2" />
+          <p className="text-2xl font-bold text-foreground">{streaks.water}</p>
+          <p className="text-xs text-muted-foreground">Suv kun</p>
+        </div>
+        <div className="flex-1 p-4 rounded-2xl bg-card border border-border/50 text-center">
+          <Moon className="w-6 h-6 text-purple-400 mx-auto mb-2" />
+          <p className="text-2xl font-bold text-foreground">{streaks.sleep}</p>
+          <p className="text-xs text-muted-foreground">Uyqu kun</p>
+        </div>
+        <div className="flex-1 p-4 rounded-2xl bg-card border border-border/50 text-center">
+          <Smile className="w-6 h-6 text-primary mx-auto mb-2" />
+          <p className="text-2xl font-bold text-foreground">{streaks.mood}</p>
+          <p className="text-xs text-muted-foreground">Kayfiyat</p>
+        </div>
+      </div>
+    </motion.div>
+  </motion.div>
+    </div >
   );
 };

@@ -1,4 +1,6 @@
 from bot import onboarding, gamification, admin, feedback, premium, profile, templates, workout
+from core import coach
+
 from bot.keyboards import main_menu_keyboard, ai_coach_submenu_keyboard, challenges_submenu_keyboard, help_submenu_keyboard, ai_coach_inline_keyboard
 from bot import trackers, ai_features, challenges, calorie_scanner
 from core.observability import track_latency # IMPORTED
@@ -29,7 +31,14 @@ def register_all_handlers(bot):
             
             if user_id:
                 db.log_activity(user_id, type_, content)
+                # Analytics Event Log [NEW]
+                try:
+                    meta = {"content_length": len(content)}
+                    db.log_event(user_id, f"bot_{type_}", meta)
+                except: pass
+                
                 # Touch Updated At for Retention Engine
+
                 try:
                     db.touch_user_activity(user_id)
                 except: pass
@@ -98,6 +107,24 @@ def register_all_handlers(bot):
     @bot.message_handler(func=lambda message: message.text == "🤖 AI murabbiy")
     def menu_ai(message):
         bot.send_message(message.chat.id, "🤖 <b>AI Murabbiy</b>\n\nBugun nima qilamiz? Quyidagilardan birini tanlang 👇", reply_markup=ai_coach_inline_keyboard(), parse_mode="HTML")
+
+    @bot.message_handler(func=lambda message: message.text == "🧠 Coach Zone")
+    def menu_coach_zone(message):
+        user_id = message.from_user.id
+        msg = coach.get_coach_message(user_id)
+        
+        if not msg:
+             # If Feature Flag OFF
+             bot.send_message(message.chat.id, "⚠️ Coach Zone tez kunda ishga tushadi.")
+             return
+             
+        # Format the message nicely
+        txt = f"🧠 <b>COACH ZONE</b>\n\n{msg}\n\n<i>Sizning shaxsiy motivatsiyangiz.</i>"
+        bot.send_message(message.chat.id, txt, parse_mode="HTML")
+        
+        # Log View
+        db.log_event(user_id, "coach_message_viewed")
+
 
     # Moved Referral to Challenges submenu, but keeping handler for backward/direct access if needed
     @bot.message_handler(func=lambda message: message.text == "🔗 Referal" or message.text == "👥 Do‘st chaqirish")

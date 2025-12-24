@@ -72,8 +72,10 @@ def main_menu_keyboard(is_admin=False, user_id=None):
     # mini_app_url = os.getenv("MINI_APP_URL", "https://yasha-app.vercel.app")
     # markup.add(KeyboardButton("📱 Ilovani ochish", web_app=WebAppInfo(url=mini_app_url)))
 
-    # Row 1: AI murabbiy (Full width or prominent)
-    markup.add(KeyboardButton("🤖 AI murabbiy"))
+    # Row 1: Coach Zone (New) -> AI Murabbiy (Old) moved down or merged?
+    # Requirement: "In Bot (Coach Zone menu)"
+    markup.add(KeyboardButton("🧠 Coach Zone"), KeyboardButton("🤖 AI murabbiy"))
+
     
     # Row 2: Kunlik odatlar | Kaloriya tahlili
     markup.add(KeyboardButton(habit_text), KeyboardButton("🍽 Kaloriya tahlili"))

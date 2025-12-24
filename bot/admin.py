@@ -39,7 +39,22 @@ def register_handlers(bot):
     register_subscription_handlers(bot)
     register_content_handlers(bot)
 
+    register_content_handlers(bot)
+    
+    @bot.message_handler(commands=['analytics_pro'])
+    def analytics_pro_command(message):
+        if message.from_user.id not in ADMIN_IDS: return
+        
+        bot.send_message(message.chat.id, "📊 **Analitika hisoblanmoqda...**\n(5-10 soniya vaqt olishi mumkin)", parse_mode="Markdown")
+        
+        try:
+            report = generate_analytics_report()
+            bot.send_message(message.chat.id, report, parse_mode="HTML")
+        except Exception as e:
+            bot.send_message(message.chat.id, f"❌ Xatolik: {e}")
+
     @bot.message_handler(commands=['test_ai'])
+
     @safe_handler(bot)
     def admin_test_ai(message):
         if message.from_user.id not in ADMIN_IDS: return
@@ -1796,6 +1811,138 @@ def register_content_handlers(bot):
                 count += 1
         
         bot.send_message(message.chat.id, f"✅ {count} ta yangi matn bazaga qo'shildi.")
+
+    
+def generate_analytics_report():
+    from backend.database import get_sync_db
+    from sqlalchemy import text
+    from datetime import datetime
+    
+    now_ts = datetime.now().strftime("%Y-%m-%d %H:%M")
+    
+    with get_sync_db() as session:
+        # 1. DAU / WAU / MAU
+        dau = session.execute(text("SELECT COUNT(DISTINCT user_id) FROM event_logs WHERE created_at >= date_trunc('day', now()) AND created_at < date_trunc('day', now()) + interval '1 day'")).scalar() or 0
+        wau = session.execute(text("SELECT COUNT(DISTINCT user_id) FROM event_logs WHERE created_at >= now() - interval '7 days'")).scalar() or 0
+        mau = session.execute(text("SELECT COUNT(DISTINCT user_id) FROM event_logs WHERE created_at >= now() - interval '30 days'")).scalar() or 0
+        
+        stickiness = round((dau / mau * 100), 1) if mau > 0 else 0
+        
+        # 2. Retention (Cohort: onboarding_completed) - Simplified for robustness
+        # Note: Needs strictly defined 'onboarding_completed' event to be accurate.
+        # Fallback to 'start' or similar if onboarding event new.
+        ret_sql = """
+        WITH cohort AS (
+          SELECT user_id, MIN(date_trunc('day', created_at)) AS day0
+          FROM event_logs
+          WHERE event_type = 'onboarding_completed'
+            AND created_at >= now() - interval '30 days'
+          GROUP BY 1
+        ),
+        activity AS (
+          SELECT DISTINCT user_id, date_trunc('day', created_at) AS day
+          FROM event_logs
+          WHERE created_at >= now() - interval '30 days'
+        ),
+        ret AS (
+          SELECT
+            c.day0,
+            c.user_id,
+            EXISTS (SELECT 1 FROM activity a WHERE a.user_id=c.user_id AND a.day=c.day0 + interval '1 day') AS d1,
+            EXISTS (SELECT 1 FROM activity a WHERE a.user_id=c.user_id AND a.day=c.day0 + interval '3 day') AS d3,
+            EXISTS (SELECT 1 FROM activity a WHERE a.user_id=c.user_id AND a.day=c.day0 + interval '7 day') AS d7
+          FROM cohort c
+        )
+        SELECT
+          COUNT(*) AS cohort_size,
+          ROUND(100.0 * SUM(CASE WHEN d1 THEN 1 ELSE 0 END) / NULLIF(COUNT(*),0), 1) AS d1,
+          ROUND(100.0 * SUM(CASE WHEN d3 THEN 1 ELSE 0 END) / NULLIF(COUNT(*),0), 1) AS d3,
+          ROUND(100.0 * SUM(CASE WHEN d7 THEN 1 ELSE 0 END) / NULLIF(COUNT(*),0), 1) AS d7
+        FROM ret;
+        """
+        try:
+            ret_res = session.execute(text(ret_sql)).fetchone()
+            d1, d3, d7 = (ret_res.d1, ret_res.d3, ret_res.d7) if ret_res else (0,0,0)
+        except:
+             d1, d3, d7 = 0, 0, 0
+
+        # 3. Conversion
+        conv_sql = """
+        WITH trial AS (
+          SELECT DISTINCT user_id FROM event_logs WHERE event_type = 'trial_started' AND created_at >= now() - interval '30 days'
+        ),
+        paid AS (
+          SELECT DISTINCT user_id FROM event_logs WHERE event_type = 'premium_activated' AND created_at >= now() - interval '30 days'
+        )
+        SELECT
+          (SELECT COUNT(*) FROM trial) AS trial_users,
+          (SELECT COUNT(*) FROM paid) AS paid_users
+        """
+        conv_res = session.execute(text(conv_sql)).fetchone()
+        trial_users = conv_res.trial_users
+        paid_users = conv_res.paid_users
+        try:
+             trial_to_paid = round((paid_users / trial_users * 100), 1) if trial_users > 0 else 0
+        except: trial_to_paid = 0
+
+        # 4. Funnel Drop-off (Last 7 days)
+        # Assuming events exist. If purely logic-based counters implementation, these will be 0 initially.
+        funnel_menu = session.execute(text("SELECT COUNT(*) FROM event_logs WHERE event_type='menu_generated' AND created_at >= now() - interval '7 days'")).scalar() or 0
+        funnel_shop = session.execute(text("SELECT COUNT(*) FROM event_logs WHERE event_type='shopping_list_opened' AND created_at >= now() - interval '7 days'")).scalar() or 0
+        no_shopping_users = funnel_menu - funnel_shop
+        no_shopping_pct = round((no_shopping_users / funnel_menu * 100), 1) if funnel_menu > 0 else 0
+        
+        # 5. Feature Usage (Today)
+        feats_sql = """
+        SELECT
+          COUNT(*) FILTER (WHERE event_type='menu_generated') AS menu_gen,
+          COUNT(*) FILTER (WHERE event_type='workout_generated') AS workout_gen,
+          COUNT(*) FILTER (WHERE event_type='calorie_scanned') AS calorie_scans,
+          COUNT(*) FILTER (WHERE event_type='coach_message_generated') AS coach_views
+        FROM event_logs
+        WHERE created_at >= date_trunc('day', now())
+        """
+        feat_res = session.execute(text(feats_sql)).fetchone()
+        
+        # 6. UTM
+        utm_sql = "SELECT utm_source, COUNT(*) AS users FROM users WHERE utm_source IS NOT NULL GROUP BY utm_source ORDER BY users DESC LIMIT 5"
+        utm_rows = session.execute(text(utm_sql)).fetchall()
+        utm_lines = "\n".join([f"• {u.utm_source}: {u.users}" for u in utm_rows]) if utm_rows else "• (Ma'lumot yo'q)"
+
+        msg = f"""<b>📊 YASHA Analytics (Pro)</b>
+🕒 {now_ts}
+
+<b>1) Aktivlik</b>
+• DAU (bugun): {dau}
+• WAU (7 kun): {wau}
+• MAU (30 kun): {mau}
+• Stickiness: {stickiness}%
+
+<b>2) Retention (Cohort)</b>
+• D1: {d1}%
+• D3: {d3}%
+• D7: {d7}%
+
+<b>3) Konversiya</b>
+• Trial users: {trial_users}
+• Paid users: {paid_users}
+• Trial → Paid: {trial_to_paid}%
+
+<b>4) Funnel drop-off (7 kun)</b>
+• Menu generated: {funnel_menu}
+• Shopping opened: {funnel_shop}
+• No shopping: {no_shopping_users} ({no_shopping_pct}%)
+
+<b>5) Feature usage (bugun)</b>
+• 🍽 Menyu: {feat_res.menu_gen}
+• 🏋️ Mashq: {feat_res.workout_gen}
+• 📸 Kaloriya skan: {feat_res.calorie_scans}
+• 💬 Coach zone: {feat_res.coach_views}
+
+<b>6) Top UTM Sources</b>
+{utm_lines}
+"""
+        return msg
 
 
 

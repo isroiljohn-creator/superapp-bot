@@ -320,3 +320,25 @@ class Exercise(Base):
     description = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
+class CoachMessage(Base):
+    __tablename__ = "coach_messages"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    message = Column(Text)
+    date = Column(String, index=True) # YYYY-MM-DD
+    is_read = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    # user = relationship("User") # implied FK
+
+class EventLog(Base):
+    __tablename__ = "event_logs"
+    
+    id = Column(BigInteger, primary_key=True, index=True)
+    user_id = Column(BigInteger, index=True)
+    event_type = Column(String, index=True)
+    metadata_json = Column(Text, nullable=True) # Renamed to avoid conflicts, store JSON string
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+
+

@@ -1,5 +1,5 @@
 from backend.database import get_sync_db, init_db_sync
-from backend.models import User, DailyLog, Plan, Transaction, Feedback, Order, ActivityLog, CalorieLog, WorkoutCache, MenuCache, AdminLog, MenuTemplate, UserMenuLink, WorkoutTemplate, UserWorkoutLink, Subscription, AIUsageLog, Exercise
+from backend.models import User, DailyLog, Plan, Transaction, Feedback, Order, ActivityLog, CalorieLog, WorkoutCache, MenuCache, AdminLog, MenuTemplate, UserMenuLink, WorkoutTemplate, UserWorkoutLink, Subscription, AIUsageLog, Exercise, CoachMessage, EventLog
 from sqlalchemy import func, desc, and_, or_, case
 from datetime import datetime, timedelta
 import json
@@ -91,6 +91,54 @@ class Database:
             except Exception as e:
                 session.rollback()
                 print(f"MIGRATION ERROR 3: {e}")
+
+            try:
+                # 4. Create coach_messages and event_logs table
+                from sqlalchemy import text
+                
+                # Coach Messages
+                check_sql = text("SELECT to_regclass('public.coach_messages')")
+                result = session.execute(check_sql).scalar()
+                if not result:
+                     print("MIGRATION: Creating coach_messages...")
+                     sql = """
+                     CREATE TABLE IF NOT EXISTS coach_messages (
+                        id SERIAL PRIMARY KEY,
+                        user_id INTEGER REFERENCES users(id),
+                        message TEXT,
+                        date VARCHAR,
+                        is_read BOOLEAN DEFAULT FALSE,
+                        created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT (now() at time zone 'utc')
+                     );
+                     CREATE INDEX IF NOT EXISTS ix_coach_messages_date ON coach_messages (date);
+                     """
+                     session.execute(text(sql))
+                     session.commit()
+
+                # Event Logs
+                check_sql2 = text("SELECT to_regclass('public.event_logs')")
+                result2 = session.execute(check_sql2).scalar()
+                if not result2:
+                     print("MIGRATION: Creating event_logs...")
+                     sql2 = """
+                     CREATE TABLE IF NOT EXISTS event_logs (
+                        id BIGSERIAL PRIMARY KEY,
+                        user_id BIGINT,
+                        event_type VARCHAR,
+                        metadata_json TEXT,
+                        created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT (now() at time zone 'utc')
+                     );
+                     CREATE INDEX IF NOT EXISTS ix_event_logs_event_type ON event_logs (event_type);
+                     CREATE INDEX IF NOT EXISTS ix_event_logs_user_id ON event_logs (user_id);
+                     CREATE INDEX IF NOT EXISTS ix_event_logs_created_at ON event_logs (created_at);
+                     """
+                     session.execute(text(sql2))
+                     session.commit()
+                     
+            except Exception as e:
+                session.rollback()
+                print(f"MIGRATION ERROR 4: {e}")
+
 
 
 
@@ -2092,5 +2140,65 @@ class Database:
                 ]
             except:
                 return []
+
+    # === Coach Zone Methods ===
+    def add_coach_message(self, user_id, message, date_str):
+        with get_sync_db() as session:
+            try:
+                pk = self._get_user_pk(session, user_id)
+                msg = CoachMessage(
+                    user_id=pk,
+                    message=message,
+                    date=date_str,
+                    is_read=False
+                )
+                session.add(msg)
+                session.commit()
+                return True
+            except Exception as e:
+                session.rollback()
+                print(f"Add Coach Msg Error: {e}")
+                return False
+
+    def get_today_coach_message(self, user_id, date_str):
+        with get_sync_db() as session:
+            try:
+                pk = self._get_user_pk(session, user_id)
+                msg = session.query(CoachMessage).filter(
+                    CoachMessage.user_id == pk,
+                    CoachMessage.date == date_str
+                ).first()
+                if msg: return msg.message
+                return None
+            except: return None
+            
+    # === Analytics / Event Login ===
+    def log_event(self, user_id, event_type, metadata=None):
+        """
+        Log business event for analytics.
+        Metadata is optional dict.
+        """
+        import json
+        from datetime import datetime
+        with get_sync_db() as session:
+            try:
+                meta_str = json.dumps(metadata) if metadata else "{}"
+                
+                # user_id can be BigInteger (telegram_id) directly in this table
+                # We don't necessarily enforce FK to 'users' table for raw logs 
+                # to allow logging even if user sync is lagging or for anonymous tracking
+                
+                log = EventLog(
+                    user_id=user_id,
+                    event_type=event_type,
+                    metadata_json=meta_str,
+                    created_at=datetime.utcnow()
+                )
+                session.add(log)
+                session.commit()
+            except Exception as e:
+                # Analytics should fail silently in production
+                print(f"Log Event Error: {e}")
+                session.rollback()
 
 db = Database()
