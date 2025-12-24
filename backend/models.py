@@ -308,3 +308,15 @@ class AIUsageLog(Base):
     total_tokens = Column(Integer, default=0)
     cost_usd = Column(Float, default=0.0)
     timestamp = Column(DateTime, default=datetime.utcnow)
+
+class Exercise(Base):
+    __tablename__ = "exercises"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, index=True)
+    video_url = Column(String)
+    category = Column(String) # Upper Body, Lower Body, Cardio, Full Body
+    difficulty = Column(String) # Beginner, Intermediate, Advanced
+    description = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+

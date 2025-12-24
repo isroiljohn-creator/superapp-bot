@@ -1,5 +1,5 @@
 from backend.database import get_sync_db, init_db_sync
-from backend.models import User, DailyLog, Plan, Transaction, Feedback, Order, ActivityLog, CalorieLog, WorkoutCache, MenuCache, AdminLog, MenuTemplate, UserMenuLink, WorkoutTemplate, UserWorkoutLink, Subscription, AIUsageLog
+from backend.models import User, DailyLog, Plan, Transaction, Feedback, Order, ActivityLog, CalorieLog, WorkoutCache, MenuCache, AdminLog, MenuTemplate, UserMenuLink, WorkoutTemplate, UserWorkoutLink, Subscription, AIUsageLog, Exercise
 from sqlalchemy import func, desc, and_, or_, case
 from datetime import datetime, timedelta
 import json
@@ -60,9 +60,38 @@ class Database:
                         session.commit()
                         print(f"MIGRATION: {col_name} added!")
                         
+                
             except Exception as e:
                 session.rollback()
                 print(f"MIGRATION ERROR 2: {e}")
+
+            try:
+                # 3. Create exercises table if not exists (Manual fallback for sync issues)
+                from sqlalchemy import text
+                check_sql = text("SELECT to_regclass('public.exercises')")
+                result = session.execute(check_sql).scalar()
+                
+                if not result:
+                    print("MIGRATION: Creating exercises table...")
+                    # Basic creation, let SQLAlchemy handle full sync if possible, but this ensures existence
+                    sql = """
+                    CREATE TABLE IF NOT EXISTS exercises (
+                        id SERIAL PRIMARY KEY,
+                        name VARCHAR,
+                        video_url VARCHAR,
+                        category VARCHAR,
+                        difficulty VARCHAR,
+                        description TEXT,
+                        created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT (now() at time zone 'utc')
+                    );
+                    """
+                    session.execute(text(sql))
+                    session.commit()
+                    print("MIGRATION: Exercises table created!")
+            except Exception as e:
+                session.rollback()
+                print(f"MIGRATION ERROR 3: {e}")
+
 
 
     def delete_user_by_id(self, telegram_id):
@@ -2018,5 +2047,50 @@ class Database:
                 
             # Valid
             return (True, user.plan_type)
+
+    # === Exercise Content Management ===
+    def add_exercise(self, name, video_url, category="General", difficulty="All"):
+        with get_sync_db() as session:
+            try:
+                ex = Exercise(
+                    name=name,
+                    video_url=video_url,
+                    category=category,
+                    difficulty=difficulty
+                )
+                session.add(ex)
+                session.commit()
+                return True
+            except Exception as e:
+                print(f"Add Exercise Error: {e}")
+                session.rollback()
+                return False
+
+    def delete_exercise(self, exercise_id):
+        with get_sync_db() as session:
+            try:
+                session.query(Exercise).filter(Exercise.id == exercise_id).delete()
+                session.commit()
+                return True
+            except:
+                session.rollback()
+                return False
+
+    def get_all_exercises(self):
+        with get_sync_db() as session:
+            try:
+                exercises = session.query(Exercise).order_by(Exercise.category, Exercise.name).all()
+                return [
+                    {
+                        "id": e.id,
+                        "name": e.name,
+                        "video_url": e.video_url,
+                        "category": e.category,
+                        "difficulty": e.difficulty
+                    }
+                    for e in exercises
+                ]
+            except:
+                return []
 
 db = Database()

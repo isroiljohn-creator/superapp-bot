@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Lock, Calendar, Dumbbell } from 'lucide-react';
+import { Lock, Calendar, Dumbbell, Play, ExternalLink } from 'lucide-react';
 import { WorkoutCard } from '@/components/WorkoutCard';
+import axios from 'axios';
+
 import { Paywall } from '@/components/Paywall';
 import { useUser } from '@/contexts/UserContext';
 
@@ -28,10 +30,35 @@ const freeWorkouts = [
   },
 ];
 
+interface Exercise {
+  id: number;
+  name: string;
+  video_url: string;
+  category: string;
+  difficulty: string;
+}
+
+const API_URL = import.meta.env.VITE_API_URL || '/api/v1';
+
+
 export const WorkoutScreen: React.FC = () => {
   const { isPremium, todayLog, updateTodayLog } = useUser();
   const [selectedDay, setSelectedDay] = useState(0);
   const [showPaywall, setShowPaywall] = useState(false);
+  const [exercises, setExercises] = useState<Exercise[]>([]);
+
+  React.useEffect(() => {
+    const fetchExercises = async () => {
+      try {
+        const res = await axios.get(`${API_URL}/content/exercises`);
+        setExercises(res.data);
+      } catch (e) {
+        console.error("Failed to fetch exercises", e);
+      }
+    };
+    fetchExercises();
+  }, []);
+
 
   const today = new Date();
   const days = Array.from({ length: 7 }, (_, i) => {
@@ -98,11 +125,10 @@ export const WorkoutScreen: React.FC = () => {
               <button
                 key={index}
                 onClick={() => handleDaySelect(index)}
-                className={`relative flex flex-col items-center min-w-[48px] py-2 px-1 rounded-xl transition-all ${
-                  selectedDay === index
+                className={`relative flex flex-col items-center min-w-[48px] py-2 px-1 rounded-xl transition-all ${selectedDay === index
                     ? 'bg-primary text-primary-foreground'
                     : 'bg-card text-foreground'
-                } ${isLocked ? 'opacity-60' : ''}`}
+                  } ${isLocked ? 'opacity-60' : ''}`}
               >
                 <span className="text-xs font-medium">{day.day}</span>
                 <span className="text-lg font-bold">{day.date}</span>
@@ -165,6 +191,54 @@ export const WorkoutScreen: React.FC = () => {
           </p>
         </motion.div>
       </motion.div>
+
+      {/* Video Library */}
+      <motion.div
+        variants={containerVariants}
+        initial="hidden"
+        animate="show"
+        className="px-4 mt-8"
+      >
+        <div className="flex items-center gap-2 mb-4">
+          <div className="w-8 h-8 rounded-lg bg-red-500/10 flex items-center justify-center text-red-500">
+            <Play className="w-5 h-5 fill-current" />
+          </div>
+          <h2 className="text-lg font-bold text-foreground">Mashqlar Kutubxonasi</h2>
+        </div>
+
+        <div className="space-y-3">
+          {exercises.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Videolar yuklanmoqda...</p>
+          ) : (
+            exercises.map((ex) => (
+              <motion.div
+                key={ex.id}
+                variants={itemVariants}
+                className="bg-card border border-border/50 rounded-xl p-4 flex items-center justify-between"
+              >
+                <div>
+                  <h3 className="font-semibold text-foreground">{ex.name}</h3>
+                  <div className="flex gap-2 text-xs text-muted-foreground mt-1">
+                    <span className="bg-muted px-2 py-0.5 rounded">{ex.category}</span>
+                    <span className="bg-muted px-2 py-0.5 rounded">{ex.difficulty}</span>
+                  </div>
+                </div>
+                <a
+                  href={ex.video_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary hover:bg-primary/20 transition-colors"
+                >
+                  <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
+                    <Play className="w-5 h-5 fill-current" />
+                  </motion.div>
+                </a>
+              </motion.div>
+            ))
+          )}
+        </div>
+      </motion.div>
+
 
       <Paywall
         isOpen={showPaywall}
