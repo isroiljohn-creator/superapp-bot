@@ -38,7 +38,31 @@ class Database:
                     
             except Exception as e:
                 session.rollback()
-                print(f"MIGRATION ERROR: {e}")
+                print(f"MIGRATION ERROR 1: {e}")
+
+            try:
+                # 2. Check other missing columns (perform_time, cancel_time, reason)
+                missing_cols = [
+                    ("perform_time", "TIMESTAMP"),
+                    ("cancel_time", "TIMESTAMP"),
+                    ("reason", "INTEGER")
+                ]
+                
+                from sqlalchemy import text
+                
+                for col_name, col_type in missing_cols:
+                    check_sql = text(f"SELECT column_name FROM information_schema.columns WHERE table_name='transactions' AND column_name='{col_name}'")
+                    result = session.execute(check_sql).fetchone()
+                    
+                    if not result:
+                        print(f"MIGRATION: Adding {col_name} to transactions table...")
+                        session.execute(text(f"ALTER TABLE transactions ADD COLUMN IF NOT EXISTS {col_name} {col_type}"))
+                        session.commit()
+                        print(f"MIGRATION: {col_name} added!")
+                        
+            except Exception as e:
+                session.rollback()
+                print(f"MIGRATION ERROR 2: {e}")
 
 
     def delete_user_by_id(self, telegram_id):
