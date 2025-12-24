@@ -966,7 +966,7 @@ def register_all_handlers(bot):
             bot.send_message(
                 message.chat.id,
                 "Men seni tushundim 😄 Pastdagi bo‘limlardan birini tanla, men o‘sha yerda yordam beraman 👇",
-                reply_markup=main_menu_keyboard()
+                reply_markup=main_menu_keyboard(user_id=message.from_user.id)
             )
         except Exception as e:
             print(f"Fallback error: {e}")

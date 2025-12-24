@@ -54,8 +54,8 @@ def main_menu_keyboard(is_admin=False, user_id=None):
     # Calculate admin status securely
     real_admin = False
     if user_id:
-        real_admin = user_id in ADMIN_IDS
-    elif is_admin: # This handles backward compatibility for is_admin=True
+        real_admin = int(user_id) in ADMIN_IDS
+    elif is_admin: # Fallback
         real_admin = True
     
     # Calculate habit progress if user_id is present
@@ -244,8 +244,7 @@ def admin_developer_keyboard():
         InlineKeyboardButton("📦 Backup", callback_data="dev_backup_menu")
     )
     markup.add(
-        InlineKeyboardButton("✍️ Matnlar (Content)", callback_data="dev_content_menu"),
-        InlineKeyboardButton("📈 Eskicha Statistika", callback_data="dev_stats_old")
+        InlineKeyboardButton("✍️ Matnlar (Content)", callback_data="dev_content_menu")
     )
 
     return markup
