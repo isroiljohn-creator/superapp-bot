@@ -49,6 +49,10 @@ async def get_profile(current_user: User = Depends(get_current_user)):
         "is_premium": current_user.is_premium,
         "premium_until": current_user.premium_until,
         "points": current_user.points,
+        "plan_type": current_user.plan_type,
+        "streak_water": current_user.streak_water,
+        "streak_sleep": current_user.streak_sleep,
+        "streak_mood": current_user.streak_mood,
         "referral_code": current_user.referral_code,
         "bot_username": os.getenv("BOT_USERNAME", "YashaBot")
     }

@@ -80,20 +80,26 @@ app.include_router(api_router, prefix="/api/v1")
 
 # === Static Files (Optional - only if frontend is built) ===
 
-# Mount static files if they exist
-dist_path = "frontend/dist"
-assets_path = "frontend/dist/assets"
-
 if os.path.exists(dist_path):
-    if os.path.exists(assets_path):
-        app.mount("/assets", StaticFiles(directory=assets_path), name="assets")
-    
     @app.get("/{full_path:path}")
     async def serve_frontend(full_path: str):
+        # 1. Check in root dist (index.html, robots.txt, etc.)
         file_path = os.path.join(dist_path, full_path)
         if os.path.exists(file_path) and os.path.isfile(file_path):
             return FileResponse(file_path)
-        return FileResponse("frontend/dist/index.html")
+            
+        # 2. Check in assets folder (fallback for hashed assets requested from root)
+        asset_file = os.path.join(dist_path, "assets", full_path)
+        if os.path.exists(asset_file) and os.path.isfile(asset_file):
+            return FileResponse(asset_file)
+            
+        # 3. SPA Routing Fallback
+        # If the request contains a dot (e.g. .js, .css, .png) and wasn't found, 404 it
+        # to prevent serving HTML as JS/CSS/Image.
+        if "." in full_path.split("/")[-1]:
+            raise HTTPException(status_code=404, detail="File not found")
+            
+        return FileResponse(os.path.join(dist_path, "index.html"))
 else:
     @app.get("/")
     async def root():
