@@ -81,14 +81,10 @@ def main_menu_keyboard(is_admin=False, user_id=None):
     markup.add(KeyboardButton(habit_text), KeyboardButton("🍽 Kaloriya tahlili"))
     
     # Row 3: YASHA Plus | Profil
-    markup.add(KeyboardButton("💚 YASHA Plus"), KeyboardButton("👤 Profil"))
+    markup.add(KeyboardButton("💚 YASHA Plus"), KeyboardButton("👤 Profilim"))
     
     # Row 4: Chellenjlar | Yordam (Serving separate help menu now)
     markup.add(KeyboardButton("🔥 Chellenjlar"), KeyboardButton("📩 Yordam"))
-    
-    # Row 5: Admin/Developer (New) - Only for Admins
-    if real_admin:
-        markup.add(KeyboardButton("👨‍💻 Dasturchi"))
     
     return markup
 
