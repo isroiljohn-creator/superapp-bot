@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Droplets, Footprints, Moon, Smile, Flame, Trophy } from 'lucide-react';
 import { StatCard } from '@/components/StatCard';

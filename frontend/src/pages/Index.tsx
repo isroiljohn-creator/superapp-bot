@@ -9,8 +9,16 @@ import { ProfileScreen } from '@/screens/ProfileScreen';
 import { UserProvider, useUser } from '@/contexts/UserContext';
 
 const AppContent: React.FC = () => {
-  const { isOnboarded } = useUser();
+  const { isOnboarded, isLoading } = useUser();
   const [activeTab, setActiveTab] = useState('home');
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
 
   if (!isOnboarded) {
     return <Onboarding />;
