@@ -204,3 +204,26 @@ def help_submenu_keyboard():
     markup.add(KeyboardButton("💳 Obuna bo'yicha"), KeyboardButton("🤖 Bot ishlamayapti"))
     markup.add(KeyboardButton("⬅️ Orqaga"))
     return markup
+
+def admin_developer_keyboard():
+    """
+    Main menu for Developers/Admins. Consolidates all /commands into buttons.
+    """
+    markup = InlineKeyboardMarkup(row_width=2)
+    markup.add(
+        InlineKeyboardButton("📊 Analitika (Pro)", callback_data="admin_stats_menu"),
+        InlineKeyboardButton("🗑 Foydalanuvchini o'chirish", callback_data="admin_delete_user_start")
+    )
+    markup.add(
+        InlineKeyboardButton("🧪 AI ni tekshirish", callback_data="admin_test_ai_start"),
+        InlineKeyboardButton("🚩 Feature Flags", callback_data="admin_flags_menu")
+    )
+    markup.add(
+        InlineKeyboardButton("📢 Xabar yuborish (Broadcast)", callback_data="admin_broadcast_menu"),
+        InlineKeyboardButton("📦 Backup", callback_data="admin_backup_menu")
+    )
+    markup.add(
+        InlineKeyboardButton("✍️ Matnlar (Content)", callback_data="admin_content_menu"),
+        InlineKeyboardButton("📈 Eskicha Statistika", callback_data="admin_stats_old")
+    )
+    return markup

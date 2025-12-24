@@ -14,6 +14,8 @@ BROADCAST_STOP = False
 BATCH_SIZE = 50
 
 def register_handlers(bot):
+    from bot.keyboards import admin_developer_keyboard, admin_analytics_keyboard
+
     @bot.message_handler(commands=['admin'])
     def admin_panel(message):
         if message.from_user.id not in ADMIN_IDS:
@@ -1080,6 +1082,31 @@ def register_handlers(bot):
             reply_markup=types.ForceReply()
         )
         bot.register_next_step_handler(msg, process_broadcast, bot, segment)
+
+    @bot.callback_query_handler(func=lambda call: call.data.startswith('admin_'))
+    def admin_main_callback_handler(call):
+        if call.from_user.id not in ADMIN_IDS: return
+        
+        action = call.data
+        bot.answer_callback_query(call.id)
+        
+        if action == "admin_stats_menu":
+             analytics_pro_command(call.message)
+        elif action == "admin_delete_user_start":
+             ask_user_delete_start(call.message)
+        elif action == "admin_test_ai_start":
+             admin_test_ai(call.message)
+        elif action == "admin_flags_menu":
+             show_flags_interface(call.message.chat.id)
+        elif action == "admin_broadcast_menu":
+             messaging_menu(call.message)
+        elif action == "admin_backup_menu":
+             admin_backup_callback(call)
+        elif action == "admin_content_menu":
+             bot.send_message(call.message.chat.id, "✍️ Matnlar redaktori hozircha faqat /content komandasi orqali ishlaydi.")
+        elif action == "admin_stats_old":
+             admin_stats(call.message)
+
 
     @bot.message_handler(func=lambda message: "Segment xabar" in message.text)
     def admin_segment_start(message):

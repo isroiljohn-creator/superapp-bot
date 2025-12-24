@@ -1,7 +1,7 @@
 from bot import onboarding, gamification, admin, feedback, premium, profile, templates, workout
 from core import coach
 
-from bot.keyboards import main_menu_keyboard, ai_coach_submenu_keyboard, challenges_submenu_keyboard, help_submenu_keyboard, ai_coach_inline_keyboard
+from bot.keyboards import main_menu_keyboard, ai_coach_submenu_keyboard, challenges_submenu_keyboard, help_submenu_keyboard, ai_coach_inline_keyboard, admin_developer_keyboard
 from bot import trackers, ai_features, challenges, calorie_scanner
 from core.observability import track_latency # IMPORTED
 
@@ -67,14 +67,7 @@ def register_all_handlers(bot):
         if message.from_user.id in ADMIN_IDS:
              # ... existing code ...
             # Show Inline Keyboard with Admin Commands
-            markup = types.InlineKeyboardMarkup(row_width=2)
-            markup.add(
-                types.InlineKeyboardButton("📊 Analytics", callback_data="admin_analytics_btn"),
-                types.InlineKeyboardButton("🚩 Feature Flags", callback_data="admin_flags_btn"),
-                types.InlineKeyboardButton("📦 Backup", callback_data="admin_backup_btn"),
-                types.InlineKeyboardButton("✍️ Matnlar", callback_data="admin_content_btn")
-            )
-            bot.send_message(message.chat.id, "👨‍💻 **Dasturchi Paneli**\n\nBuyruqni tanlang:", reply_markup=markup, parse_mode="Markdown")
+            bot.send_message(message.chat.id, "👨‍💻 **Dasturchi Paneli**\n\nBuyruqni tanlang:", reply_markup=admin_developer_keyboard(), parse_mode="Markdown")
 
     # --- Calorie Handlers ---
     @bot.message_handler(func=lambda message: message.text == "🍽 Kaloriya tahlili (premium)" or message.text == "🍽 Kaloriya skaneri" or message.text == "🍽 Kaloriya tahlili")
