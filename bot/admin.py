@@ -45,13 +45,26 @@ def register_handlers(bot):
     def analytics_pro_command(message):
         if message.from_user.id not in ADMIN_IDS: return
         
-        bot.send_message(message.chat.id, "📊 **Analitika hisoblanmoqda...**\n(5-10 soniya vaqt olishi mumkin)", parse_mode="Markdown")
+        msg = bot.send_message(message.chat.id, "📊 **Analitika chizilmoqda...**\n(Generatsiya jarayoni)", parse_mode="Markdown")
         
         try:
+            # 1. Text Report
             report = generate_analytics_report()
-            bot.send_message(message.chat.id, report, parse_mode="HTML")
+            bot.edit_message_text(report, message.chat.id, msg.message_id, parse_mode="HTML")
+            
+            # 2. Charts (Visuals)
+            from core.analytics import generate_charts
+            charts = generate_charts()
+            
+            if charts.get('dau'):
+                bot.send_photo(message.chat.id, charts['dau'], caption="📈 **DAU Trend** (So'nggi 7 kun)")
+            
+            if charts.get('retention'):
+                bot.send_photo(message.chat.id, charts['retention'], caption="📉 **Retention Rate** (D1 / D3)")
+
         except Exception as e:
             bot.send_message(message.chat.id, f"❌ Xatolik: {e}")
+
 
     @bot.message_handler(commands=['test_ai'])
 
