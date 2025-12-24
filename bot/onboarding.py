@@ -451,6 +451,10 @@ def finish_onboarding(user_id, message, bot):
         )
         print(f"DEBUG: complete_onboarding success for {user_id}")
         
+        # Log Event [NEW]
+        db.log_event(user_id, "onboarding_completed")
+
+        
         # Handle referral notification
         if referrer_id:
             try:
