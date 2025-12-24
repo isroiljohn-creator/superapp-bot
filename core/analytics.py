@@ -1,7 +1,11 @@
 import matplotlib.pyplot as plt
 import io
 from datetime import datetime, timedelta
-from core.db import db
+from datetime import datetime, timedelta
+# from core.db import db # Removed incorrect import
+from backend.database import get_sync_db # Import specifically
+from sqlalchemy import text
+
 from sqlalchemy import text
 
 def generate_charts():
@@ -11,7 +15,9 @@ def generate_charts():
     """
     charts = {}
     
-    with db.get_sync_db() as session:
+    # with db.get_sync_db() as session: # ERROR: db object has no method get_sync_db
+    with get_sync_db() as session:
+
         # 1. DAU Trend (Last 7 Days)
         dau_sql = """
         SELECT date_trunc('day', created_at) as day, count(distinct user_id) as users
