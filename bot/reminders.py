@@ -14,7 +14,7 @@ def send_daily_reminders(bot):
         "☀️ Salom {name}! Sog'lig'ingizga e'tiborli bo'lishni unutmang. Suv ichdingizmi va mashqlarni bajardingizmi? 💧💪\n\n/start orqali tekshiring!",
         "☀️ Salom {name}! Haftaning o'rtasi keldi. Suv va mashqlar rejada bormi? 💧💪\n\n/start tugmasini bosing!",
         "☀️ Salom {name}! Maqsadingiz sari intilishda davom eting! Bugun suv va mashqlar qanday bo'ldi? 💧💪\n\n/start tugmasi sizni kutmoqda!",
-        "☀️ Salom {name}! Juma muborak! Bugungi suv ichish va mashg'ulotlar haqida unutmang. 💧💪\n\n/start ni bosib belgilang!",
+        "☀️ Salom {name}! Bugungi suv ichish va mashg'ulotlar haqida unutmang, sog'lig'ingiz o'z qo'lingizda! 💧💪\n\n/start ni bosib belgilang!",
         "☀️ Salom {name}! Dam olish kuningiz unumli o'tsin. Bugun ham suv va mashqlar esingizdami? 💧💪\n\n/start orqali tekshiring!",
         "☀️ Salom {name}! Yakshanba - o'z ustingizda ishlash uchun yaxshi kun. Suv ichdingizmi va mashqlarni qildingizmi? 💧💪\n\n/start ni bosing!"
     ]
