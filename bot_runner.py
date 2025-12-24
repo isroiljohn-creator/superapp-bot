@@ -67,7 +67,8 @@ def main():
     bot.remove_webhook()
 
     # Set Chat Menu Button (Mini App)
-    webapp_url = os.getenv("WEBAPP_URL")
+    # Using MINI_APP_URL as the primary source for consistency
+    webapp_url = os.getenv("MINI_APP_URL") or os.getenv("WEBAPP_URL")
     if webapp_url:
         try:
             bot.set_chat_menu_button(
