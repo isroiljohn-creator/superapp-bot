@@ -66,6 +66,19 @@ class Database:
                 print(f"MIGRATION ERROR 2: {e}")
 
             try:
+                # 2.1 Check daily_logs.reminder_sent
+                check_sql = text("SELECT column_name FROM information_schema.columns WHERE table_name='daily_logs' AND column_name='reminder_sent'")
+                result = session.execute(check_sql).fetchone()
+                if not result:
+                    print("MIGRATION: Adding reminder_sent to daily_logs table...")
+                    session.execute(text("ALTER TABLE daily_logs ADD COLUMN IF NOT EXISTS reminder_sent BOOLEAN DEFAULT FALSE"))
+                    session.commit()
+                    print("MIGRATION: daily_logs.reminder_sent added!")
+            except Exception as e:
+                session.rollback()
+                print(f"MIGRATION ERROR 2.1: {e}")
+
+            try:
                 # 3. Create exercises table if not exists (Manual fallback for sync issues)
                 from sqlalchemy import text
                 check_sql = text("SELECT to_regclass('public.exercises')")
@@ -619,6 +632,26 @@ class Database:
             for key, value in kwargs.items():
                 if hasattr(log, key):
                     setattr(log, key, value)
+            session.commit()
+
+    def check_reminder_sent(self, user_id, date_str):
+        with get_sync_db() as session:
+            pk = self._get_user_pk(session, user_id)
+            if not pk: return True
+            log = session.query(DailyLog).filter(DailyLog.user_id == pk, DailyLog.date == date_str).first()
+            return log.reminder_sent if log else False
+
+    def mark_reminder_sent(self, user_id, date_str):
+        with get_sync_db() as session:
+            pk = self._get_user_pk(session, user_id)
+            if not pk: return
+            log = session.query(DailyLog).filter(DailyLog.user_id == pk, DailyLog.date == date_str).first()
+            if not log:
+                log = DailyLog(user_id=pk, date=date_str, reminder_sent=True)
+                session.add(log)
+            else:
+                log.reminder_sent = True
+            session.commit()
 
     def get_referral_count(self, user_id):
         with get_sync_db() as session:

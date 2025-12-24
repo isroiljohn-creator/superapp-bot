@@ -95,6 +95,7 @@ class DailyLog(Base):
     
     water_drank = Column(Boolean, default=False)
     workout_done = Column(Boolean, default=False)
+    reminder_sent = Column(Boolean, default=False)
     steps_count = Column(Integer, default=0) # mapped to 'steps' in legacy? legacy has 'steps' column
     steps = Column(Integer, default=0) # Legacy name
     calories_consumed = Column(Integer, default=0)
