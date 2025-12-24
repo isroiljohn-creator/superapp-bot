@@ -41,7 +41,6 @@ def register_handlers(bot):
     register_subscription_handlers(bot)
     register_content_handlers(bot)
 
-    register_content_handlers(bot)
     
     @bot.message_handler(commands=['analytics_pro'])
     def analytics_pro_command(message):
@@ -81,10 +80,15 @@ def register_handlers(bot):
                 report, chart = get_premium_stats()
                 bot.send_photo(call.message.chat.id, chart, caption=report, parse_mode="Markdown")
             elif action == 'report':
+                from bot.admin import generate_analytics_report
                 report = generate_analytics_report()
                 bot.send_message(call.message.chat.id, report, parse_mode="HTML")
+            elif action == 'refresh':
+                bot.delete_message(call.message.chat.id, call.message.message_id)
+                analytics_pro_command(call.message)
         except Exception as e:
             bot.send_message(call.message.chat.id, f"❌ Xatolik: {e}")
+
 
 
 
@@ -1107,9 +1111,11 @@ def register_handlers(bot):
         elif action == "dev_backup_menu":
              admin_backup_callback(call)
         elif action == "dev_content_menu":
-             bot.send_message(msg.chat.id, "✍️ Matnlar redaktori hozircha faqat /content komandasi orqali ishlaydi.")
+             # Route to content management categories
+             admin_content_start(msg)
         elif action == "dev_stats_old":
              admin_stats(msg)
+
 
 
 
@@ -2047,24 +2053,15 @@ def generate_analytics_report():
         
         success = db.add_exercise(name, url, category)
         
-        # Restore Admin Keyboard
-        markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
-        markup.add(
-            types.KeyboardButton("📊 Statistika"),
-            types.KeyboardButton("👥 Foydalanuvchilar"),
-            types.KeyboardButton("📤 Xabar yuborish"),
-            types.KeyboardButton("💳 Obunalar"),
-            types.KeyboardButton("🗑 AI Bazani Tozalash"),
-            types.KeyboardButton("💰 Oylik Xarajatlar"),
-            types.KeyboardButton("🛑 Userni o'chirish"),
-            types.KeyboardButton("🎥 Mashqlar Bazasi"),
-            types.KeyboardButton("👨‍💻 Dasturchi")
-        )
-        
+        # Restore Admin Panel view
         if success:
-            bot.send_message(message.chat.id, f"✅ **Qo'shildi!**\n\n{name}\n{category}", reply_markup=markup, parse_mode="Markdown")
+            bot.send_message(message.chat.id, f"✅ **Qo'shildi!**\n\n{name}\n{category}", parse_mode="Markdown")
         else:
-            bot.send_message(message.chat.id, "❌ Xatolik yuz berdi.", reply_markup=markup)
+            bot.send_message(message.chat.id, "❌ Xatolik yuz berdi.")
+        
+        # Return to admin panel keyboard
+        admin_panel(message)
+
 
     @bot.callback_query_handler(func=lambda call: call.data == "ex_list")
     def ex_list_view(call):

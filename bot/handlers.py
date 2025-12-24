@@ -421,15 +421,13 @@ def register_all_handlers(bot):
 
     # Register module handlers (callbacks etc)
     onboarding.register_handlers(bot)
-    # menu.register_handlers(bot) # Removed
     gamification.register_handlers(bot)
-    gamification.register_handlers(bot)
-    feedback.register_handlers(bot)
     feedback.register_handlers(bot)
     premium.register_handlers(bot)
     profile.register_handlers(bot)
     templates.register_handlers(bot)
     calorie_scanner.register_handlers(bot)
+
 
     # --- Callbacks ---
     

@@ -8,93 +8,133 @@ from sqlalchemy import text
 
 from sqlalchemy import text
 
-def generate_charts():
-    """
-    Generate analytics charts (DAU Trend + Retention) and return as In-Memory BytesIO objects.
-    Returns: dict {'dau': bytes, 'retention': bytes}
-    """
-    charts = {}
-    
-    # with db.get_sync_db() as session: # ERROR: db object has no method get_sync_db
-    with get_sync_db() as session:
+def _get_buffer():
+    buf = io.BytesIO()
+    plt.savefig(buf, format='png')
+    buf.seek(0)
+    plt.close()
+    return buf
 
-        # 1. DAU Trend (Last 7 Days)
-        dau_sql = """
+def get_growth_stats():
+    """Returns (report_text, chart_bytes) for growth."""
+    with get_sync_db() as session:
+        # DAU Last 7 days
+        sql = """
         SELECT date_trunc('day', created_at) as day, count(distinct user_id) as users
         FROM event_logs
         WHERE created_at >= now() - interval '7 days'
-        GROUP BY 1
-        ORDER BY 1
+        GROUP BY 1 ORDER BY 1
         """
-        dau_data = session.execute(text(dau_sql)).fetchall()
+        data = session.execute(text(sql)).fetchall()
         
-        dates = [r[0].strftime('%d/%m') for r in dau_data]
-        counts = [r[1] for r in dau_data]
+        dates = [r[0].strftime('%d/%m') for r in data]
+        counts = [r[1] for r in data]
         
-        if not dates:
-            dates = [(datetime.now() - timedelta(days=i)).strftime('%d/%m') for i in range(7)]
-            counts = [0] * 7
-            
         plt.figure(figsize=(6, 4))
-        plt.plot(dates, counts, marker='o', linestyle='-', color='#4CAF50')
+        plt.plot(dates, counts, marker='o', color='#4CAF50')
         plt.title('DAU (Last 7 Days)')
         plt.grid(True, alpha=0.3)
         plt.tight_layout()
+        chart = _get_buffer()
         
-        buf = io.BytesIO()
-        plt.savefig(buf, format='png')
-        buf.seek(0)
-        charts['dau'] = buf
-        plt.close()
+        report = "📈 **Growth Stats**\n\n"
+        report += f"Bugungi DAU: {counts[-1] if counts else 0}\n"
+        avg_dau = int(sum(counts)/len(counts)) if counts else 0
+        report += f"O'tgan haftadagi o'rtacha: {avg_dau}"
+        
+        return report, chart
 
-        # 2. Retention (Simple Bar)
-        # We calculated D1/D3/D7 in admin.py logic, let's re-calculate quickly for chart or mock visualization
-        # Ideally pass metrics in, but let's query specific for chart
-        
-        # Mocking for robust visualization if data scarce
-        # In prod, this query mirrors admin.py
-        ret_sql = """
-            WITH cohort AS (
-            SELECT user_id, MIN(date_trunc('day', created_at)) AS day0
-            FROM event_logs
-            WHERE event_type = 'onboarding_completed' AND created_at >= now() - interval '14 days'
-            GROUP BY 1
-            ),
-            activity AS (
-            SELECT DISTINCT user_id, date_trunc('day', created_at) AS day
-            FROM event_logs
-            WHERE created_at >= now() - interval '14 days'
-            )
-            SELECT
-            ROUND(100.0 * SUM(CASE WHEN EXISTS (SELECT 1 FROM activity a WHERE a.user_id=c.user_id AND a.day=c.day0 + interval '1 day') THEN 1 ELSE 0 END) / NULLIF(COUNT(*),0), 1) AS d1,
-            ROUND(100.0 * SUM(CASE WHEN EXISTS (SELECT 1 FROM activity a WHERE a.user_id=c.user_id AND a.day=c.day0 + interval '3 day') THEN 1 ELSE 0 END) / NULLIF(COUNT(*),0), 1) AS d3
-            FROM cohort c
+def get_funnel_stats():
+    """Returns (report_text, chart_bytes) for funnel."""
+    with get_sync_db() as session:
+        sql = """
+        SELECT event_type, count(distinct user_id)
+        FROM event_logs
+        WHERE event_type IN ('bot_start', 'onboarding_completed', 'trial_started')
+        AND created_at >= now() - interval '30 days'
+        GROUP BY 1
         """
-        res = session.execute(text(ret_sql)).fetchone()
-        d1 = res[0] or 0 if res else 0
-        d3 = res[1] or 0 if res else 0
+        data = dict(session.execute(text(sql)).fetchall())
         
-        labels = ['Day 1', 'Day 3']
-        values = [d1, d3]
+        labels = ['Start', 'Onboarded', 'Trial']
+        values = [data.get('bot_start', 0), data.get('onboarding_completed', 0), data.get('trial_started', 0)]
         
         plt.figure(figsize=(6, 4))
-        bars = plt.bar(labels, values, color=['#2196F3', '#FF9800'])
-        plt.title('Retention Rate (%)')
-        plt.ylim(0, 100)
-        plt.grid(axis='y', alpha=0.3)
-        
-        # Add values on bars
-        for bar in bars:
-            height = bar.get_height()
-            plt.text(bar.get_x() + bar.get_width()/2., height,
-                    f'{height}%',
-                    ha='center', va='bottom')
-                    
+        plt.bar(labels, values, color='#2196F3')
+        plt.title('User Funnel (30 Days)')
         plt.tight_layout()
-        buf2 = io.BytesIO()
-        plt.savefig(buf2, format='png')
-        buf2.seek(0)
-        charts['retention'] = buf2
-        plt.close()
+        chart = _get_buffer()
         
-    return charts
+        conv = round(values[1]/values[0]*100, 1) if values[0] > 0 else 0
+        report = "🌪 **Funnel Stats**\n\n"
+        report += f"Start -> Onboarded: {conv}%\n"
+        report += f"Jami onboarded: {values[1]}"
+        
+        return report, chart
+
+def get_retention_stats():
+    """Returns (report_text, chart_bytes) for retention."""
+    with get_sync_db() as session:
+        sql = """
+            WITH cohort AS (
+                SELECT user_id, MIN(date_trunc('day', created_at)) AS day0
+                FROM event_logs
+                WHERE event_type = 'onboarding_completed' AND created_at >= now() - interval '30 days'
+                GROUP BY 1
+            ),
+            activity AS (
+                SELECT DISTINCT user_id, date_trunc('day', created_at) AS day
+                FROM event_logs
+                WHERE created_at >= now() - interval '30 days'
+            )
+            SELECT
+                ROUND(100.0 * SUM(CASE WHEN EXISTS (SELECT 1 FROM activity a WHERE a.user_id=c.user_id AND a.day=c.day0 + interval '1 day') THEN 1 ELSE 0 END) / NULLIF(COUNT(*),0), 1) AS d1,
+                ROUND(100.0 * SUM(CASE WHEN EXISTS (SELECT 1 FROM activity a WHERE a.user_id=c.user_id AND a.day=c.day0 + interval '3 day') THEN 1 ELSE 0 END) / NULLIF(COUNT(*),0), 1) AS d3,
+                ROUND(100.0 * SUM(CASE WHEN EXISTS (SELECT 1 FROM activity a WHERE a.user_id=c.user_id AND a.day=c.day0 + interval '7 day') THEN 1 ELSE 0 END) / NULLIF(COUNT(*),0), 1) AS d7
+            FROM cohort c
+        """
+        res = session.execute(text(sql)).fetchone()
+        d1, d3, d7 = (res[0] or 0, res[1] or 0, res[2] or 0) if res else (0,0,0)
+        
+        labels = ['D1', 'D3', 'D7']
+        values = [d1, d3, d7]
+        
+        plt.figure(figsize=(6, 4))
+        plt.bar(labels, values, color=['#4CAF50', '#FFC107', '#F44336'])
+        plt.title('Retention Rates (%)')
+        plt.ylim(0, 100)
+        plt.tight_layout()
+        chart = _get_buffer()
+        
+        report = "📉 **Retention Stats**\n\n"
+        report += f"Day 1: {d1}%\nDay 3: {d3}%\nDay 7: {d7}%"
+        
+        return report, chart
+
+def get_premium_stats():
+    """Returns (report_text, chart_bytes) for premium."""
+    with get_sync_db() as session:
+        sql = """
+        SELECT 
+            (SELECT count(*) FROM users WHERE is_premium = true) as total_premium,
+            (SELECT count(*) FROM event_logs WHERE event_type = 'premium_activated' AND created_at >= now() - interval '30 days') as new_premium_30d
+        """
+        res = session.execute(text(sql)).fetchone()
+        total, new_30 = (res[0] or 0, res[1] or 0) if res else (0,0)
+        
+        report = "💎 **Premium Stats**\n\n"
+        report += f"Jami Premium userlar: {total}\n"
+        report += f"Oxirgi 30 kunda yangi: {new_30}"
+        
+        # Simple dummy chart for premium (maybe pie chart of free vs premium)
+        sql2 = "SELECT count(*) FROM users"
+        total_users = session.execute(text(sql2)).scalar() or 1
+        free = total_users - total
+        
+        plt.figure(figsize=(6, 4))
+        plt.pie([total, free], labels=['Premium', 'Free'], autopct='%1.1f%%', colors=['#FFD700', '#C0C0C0'])
+        plt.title('Premium vs Free Users')
+        plt.tight_layout()
+        chart = _get_buffer()
+        
+        return report, chart

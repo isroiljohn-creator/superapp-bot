@@ -86,6 +86,10 @@ def main_menu_keyboard(is_admin=False, user_id=None):
     # Row 4: Chellenjlar | Yordam (Serving separate help menu now)
     markup.add(KeyboardButton("🔥 Chellenjlar"), KeyboardButton("📩 Yordam"))
     
+    # Row 5: Admin/Developer (New) - Only for Admins
+    if real_admin:
+        markup.add(KeyboardButton("👨‍💻 Dasturchi"))
+    
     return markup
 
 def plan_inline_keyboard():
