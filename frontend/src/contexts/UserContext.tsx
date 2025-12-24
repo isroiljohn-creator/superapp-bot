@@ -59,25 +59,34 @@ const getTodayDate = () => new Date().toISOString().split('T')[0];
 
 export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true);
+  const DEFAULT_STATE: UserState = {
+    isOnboarded: false,
+    profile: null,
+    planType: 'free',
+    premiumUntil: null,
+    trialUsed: false,
+    points: 0,
+    streaks: { water: 0, sleep: 0, mood: 0 },
+    todayLog: null,
+  };
+
   const [state, setState] = useState<UserState>(() => {
     const saved = localStorage.getItem('yasha_user');
     if (saved) {
-      const parsed = JSON.parse(saved);
-      return {
-        ...parsed,
-        premiumUntil: parsed.premiumUntil ? new Date(parsed.premiumUntil) : null,
-      };
+      try {
+        const parsed = JSON.parse(saved);
+        return {
+          ...DEFAULT_STATE,
+          ...parsed,
+          premiumUntil: parsed.premiumUntil ? new Date(parsed.premiumUntil) : null,
+          streaks: { ...DEFAULT_STATE.streaks, ...(parsed.streaks || {}) }
+        };
+      } catch (e) {
+        console.error("Failed to parse saved user state", e);
+        return DEFAULT_STATE;
+      }
     }
-    return {
-      isOnboarded: false,
-      profile: null,
-      planType: 'free' as PlanType,
-      premiumUntil: null,
-      trialUsed: false,
-      points: 0,
-      streaks: { water: 0, sleep: 0, mood: 0 },
-      todayLog: null,
-    };
+    return DEFAULT_STATE;
   });
 
   const saveState = useCallback((newState: UserState) => {
@@ -107,10 +116,17 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
               const updatedState: UserState = {
                 ...state,
                 isOnboarded: !!(dbUser.age && dbUser.weight),
-                planType: dbUser.is_premium ? 'premium' : 'free',
+                planType: (dbUser.plan_type || (dbUser.is_premium ? 'premium' : 'free')) as PlanType,
                 points: dbUser.points || 0,
                 premiumUntil: dbUser.premium_until ? new Date(dbUser.premium_until) : null,
+                trialUsed: !!dbUser.trial_used,
+                streaks: {
+                  water: dbUser.streak_water || 0,
+                  sleep: dbUser.streak_sleep || 0,
+                  mood: dbUser.streak_mood || 0,
+                },
                 profile: {
+                  id: dbUser.id,
                   name: dbUser.full_name || '',
                   phone: dbUser.phone || '',
                   age: dbUser.age || 0,

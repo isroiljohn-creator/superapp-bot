@@ -36,8 +36,10 @@ export const HomeScreen: React.FC = () => {
         console.error("Coach fetch error", e);
       }
     };
-    fetchCoach();
-  }, [profile]);
+    if (profile?.id) {
+      fetchCoach();
+    }
+  }, [profile?.id]);
 
   const containerVariants = {
 
