@@ -12,7 +12,7 @@ if GEMINI_API_KEY:
     try:
         client = genai.Client(api_key=GEMINI_API_KEY)
         # Configurable model with fallback
-        model_name = os.getenv("GEMINI_MODEL", "gemini-2.0-flash")
+        model_name = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
         print(f"DEBUG: Gemini AI initialized successfully using {model_name}.")
     except Exception as e:
         print(f"Error initializing Gemini: {e}")
@@ -497,7 +497,7 @@ Talablar:
 
     
     # 3. Model Configuration
-    model_name = 'gemini-2.0-flash'
+    model_name = 'gemini-2.5-flash'
     global client
     if not client:
         client = genai.Client(api_key=GEMINI_API_KEY)
