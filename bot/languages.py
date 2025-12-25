@@ -159,6 +159,50 @@ TRANS = {
         "btn_get_plus": "👉 Plus’ga o‘ting",
         
         "error_number": "❌ Iltimos, raqam kiriting.",
+        
+        # Profile Keys (Mz)
+        "btn_edit_profile": "✏️ Tahrirlash",
+        "btn_stats": "📊 Statistika",
+        "btn_change_goal": "🎯 Maqsadni o‘zgartirish",
+        
+        "gender_male": "Erkak",
+        "gender_female": "Ayol",
+        
+        "goal_weight_loss": "Vazn tashlash 🔻",
+        "goal_muscle_gain": "Vazn olish 🔺",
+        "goal_health": "Sog'lom turmush ❤️",
+        
+        "activity_sedentary": "Kam harakat",
+        "activity_light": "Yengil faol",
+        "activity_moderate": "O'rtacha faol",
+        "activity_active": "Juda faol",
+        "activity_athlete": "Atlet",
+
+        "profile_title": "👤 **Profilingiz**",
+        "profile_name": "Ism",
+        "profile_age": "Yosh",
+        "profile_gender": "Jins",
+        "profile_height": "Bo'y",
+        "profile_weight": "Vazn",
+        "profile_activity": "Faollik",
+        "profile_goal": "Maqsad",
+        "profile_allergies": "Allergiya",
+        "profile_next_step": "<b>Keyingi qadamni tanlang👇🏻</b>",
+
+        "edit_prompt_start": "✏️ <b>Nimani o'zgartirmoqchisiz?</b>",
+        "edit_prompt_full_name": "Yangi ismingizni kiriting:",
+        "edit_prompt_age": "Yangi yoshingizni kiriting (raqamda):",
+        "edit_prompt_gender": "Jinsingizni tanlang:",
+        "edit_prompt_height": "Yangi bo'yingizni kiriting (sm):",
+        "edit_prompt_weight": "Yangi vazningizni kiriting (kg):",
+        "edit_prompt_goal": "Yangi maqsadingizni tanlang:",
+        "edit_prompt_activity": "Yangi faollik darajasini tanlang:",
+        "edit_prompt_allergies": "Yangi allergiya ma'lumotlarini yozing (yoki 'Yo'q' deb yozing):",
+        
+        "edit_success": "✅ Yangilandi",
+        "edit_error_age": "❌ Iltimos, to'g'ri yosh kiriting (10-100).",
+        "edit_error_height": "❌ Iltimos, to'g'ri bo'y kiriting (100-250 sm).",
+        "edit_error_weight": "❌ Iltimos, to'g'ri vazn kiriting (30-300 kg).",
     },
     "ru": {
         "select_language": "🇺🇿 Tilni tanlang / 🇷🇺 Выберите язык / 🇬🇧 Select language",
