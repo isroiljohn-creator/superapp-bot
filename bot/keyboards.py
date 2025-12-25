@@ -251,8 +251,8 @@ def help_submenu_keyboard():
     """Submenu for '📩 Yordam'"""
     markup = ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
     markup.add(KeyboardButton("🏋️ Mashqlar bo'yicha"), KeyboardButton("🥗 Menyu bo'yicha"))
-    markup.add(KeyboardButton("💳 Obuna bo'yicha"), KeyboardButton("🤖 Bot ishlamayapti"))
-    markup.add(KeyboardButton("⬅️ Orqaga"))
+    markup.add(KeyboardButton("💳 Obuna bo'yicha"), KeyboardButton("🇺🇿/🇷🇺 Tilni o'zgartirish"))
+    markup.add(KeyboardButton("🤖 Bot ishlamayapti"), KeyboardButton("⬅️ Orqaga"))
     return markup
 
 def admin_analytics_keyboard():

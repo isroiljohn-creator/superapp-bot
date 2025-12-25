@@ -298,6 +298,11 @@ def register_all_handlers(bot):
     def help_premium_info(message):
         premium.handle_premium_info_detailed(message, bot)
 
+    @bot.message_handler(func=lambda message: "Tilni o'zgartirish" in message.text)
+    def help_language_change(message):
+        from bot.keyboards import language_selection_keyboard
+        bot.send_message(message.chat.id, "🇺🇿 Tilni tanlang / 🇷🇺 Выберите язык:", reply_markup=language_selection_keyboard())
+
     @bot.message_handler(func=lambda message: message.text == "🤖 Bot ishlamayapti")
     def help_bug_report(message):
         feedback.handle_feedback_start(message, bot)
