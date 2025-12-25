@@ -3,7 +3,8 @@ import telebot
 from dotenv import load_dotenv
 from core.db import db
 from bot.handlers import register_all_handlers
-from bot.reminders import start_reminder_thread
+from bot.reminders import init_reminder_schedule
+from bot.backup_scheduler import init_backup_schedule
 
 from telebot import apihelper
 
@@ -50,17 +51,23 @@ def main():
     register_all_handlers(bot)
     print("✅ Handlerlar yuklandi.")
     
-    # Start Reminder Thread
-    start_reminder_thread(bot)
-    print("✅ Eslatmalar xizmati ishga tushdi.")
+    # Initialize Schedules
+    init_reminder_schedule(bot)
+    init_backup_schedule(bot)
     
-    # Start Backup Scheduler
-    try:
-        from bot.backup_scheduler import start_backup_scheduler
-        start_backup_scheduler(bot)
-        print("✅ Backup & Retention xizmati (03:00, 10:00) ishga tushdi.")
-    except Exception as e:
-        print(f"⚠️ Backup xizmati ishga tushmadi: {e}")
+    # Start ONE background scheduler thread for ALL jobs
+    import schedule
+    import time
+    import threading
+    
+    def run_scheduler():
+        while True:
+            schedule.run_pending()
+            time.sleep(60)
+
+    scheduler_thread = threading.Thread(target=run_scheduler, daemon=True)
+    scheduler_thread.start()
+    print("✅ Background Shceduler (Reminders, Backup, Retention) ishga tushdi.")
     
     # Start Polling
     print("🤖 Bot ishlamoqda...")

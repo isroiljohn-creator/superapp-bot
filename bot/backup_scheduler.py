@@ -15,7 +15,8 @@ def run_backup_job():
         meta={"source": "scheduler"}
     )
 
-def start_backup_scheduler(bot=None):
+def init_backup_schedule(bot=None):
+    """Initializes the backup and retention schedule but does not start the thread."""
     # Run every day at 03:00
     schedule.every().day.at("03:00").do(run_backup_job)
     
@@ -23,13 +24,4 @@ def start_backup_scheduler(bot=None):
     if bot:
         schedule.every().day.at("10:00").do(run_retention_check, bot)
     
-    # Also run once on startup for Verification? No, that might slow down startup.
-    # User asked for "Smoke test checklist" implying visual verification.
-    
-    def loop():
-        while True:
-            schedule.run_pending()
-            time.sleep(60)
-            
-    thread = threading.Thread(target=loop, daemon=True)
-    thread.start()
+    print("✅ Backup & Retention xizmati rejalashtirildi (03:00, 10:00).")

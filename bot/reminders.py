@@ -33,11 +33,13 @@ def send_daily_reminders(bot):
             if db.check_reminder_sent(user_id, today):
                 continue
 
+            # Mark sent BEFORE sending to prevent race conditions (Double/Triple sends)
+            db.mark_reminder_sent(user_id, today)
+            
             name = full_name if full_name else (username if username else "Aziz foydalanuvchi")
             msg = template.format(name=name)
             
             bot.send_message(user_id, msg)
-            db.mark_reminder_sent(user_id, today)
             count += 1
             
             # Anti-flood delay
@@ -50,15 +52,8 @@ def send_daily_reminders(bot):
     
     print(f"Daily reminders sent to {count} users.")
 
-def start_reminder_thread(bot):
+def init_reminder_schedule(bot):
+    """Initializes the reminder schedule but does not start the thread."""
     # Schedule daily reminder at 09:00
     schedule.every().day.at("09:00").do(send_daily_reminders, bot)
-    
-    def run_schedule():
-        while True:
-            schedule.run_pending()
-            time.sleep(60)
-
-    thread = threading.Thread(target=run_schedule, daemon=True)
-    thread.start()
-    print("✅ Eslatmalar xizmati ishga tushdi (09:00).")
+    print("✅ Eslatmalar xizmati rejalashtirildi (09:00).")
