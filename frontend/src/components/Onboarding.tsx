@@ -104,7 +104,7 @@ export const Onboarding: React.FC = () => {
     }
   };
 
-  const handleComplete = () => {
+  const handleComplete = async () => {
     vibrate('success');
     const profile: UserProfile = {
       phone: formData.phone,
