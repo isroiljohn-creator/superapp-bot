@@ -3,6 +3,7 @@ from core.db import db
 from core.ai import analyze_food_image, analyze_food_text
 from bot import onboarding
 from bot.premium import require_premium
+from bot.languages import get_text
 
 # States (Must be integers as per DB schema)
 # States (Must be integers as per DB schema)
