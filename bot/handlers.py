@@ -127,7 +127,7 @@ def register_all_handlers(bot):
     def menu_premium(message):
         premium.handle_premium_menu(message, bot)
 
-    @bot.message_handler(func=lambda message: message.text == "📩 Yordam" or message.text == "📩 Qayta aloqa")
+    @bot.message_handler(func=lambda message: message.text == "📩 Yordam" or message.text == "📩 Qayta aloqa" or message.text == "📩 Помощь")
     def menu_help(message):
         bot.send_message(message.chat.id, "Nima tushunarsiz bo'ldi?", reply_markup=help_submenu_keyboard())
 
