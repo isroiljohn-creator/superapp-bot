@@ -48,6 +48,12 @@ async def get_profile(current_user: User = Depends(get_current_user), db: AsyncS
     )
     today_log = log_result.scalar_one_or_none()
 
+    # Auto-heal onboarding status if data exists
+    if not current_user.is_onboarded and current_user.age and current_user.gender and current_user.weight:
+        current_user.is_onboarded = True
+        await db.commit()
+        await db.refresh(current_user)
+
     return {
         "id": current_user.id,
         "username": current_user.username,
