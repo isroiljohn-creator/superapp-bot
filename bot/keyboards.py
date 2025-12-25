@@ -197,20 +197,36 @@ def ai_coach_submenu_keyboard():
     markup.add(KeyboardButton("❓ Murabbiyga savolim bor"), KeyboardButton("⬅️ Orqaga"))
     return markup
 
-def ai_coach_inline_keyboard():
+def ai_coach_inline_keyboard(lang="uz"):
     """Inline Submenu for '🤖 AI murabbiy'"""
     markup = InlineKeyboardMarkup(row_width=2)
+    
+    if lang == "ru":
+        workout_text = "🏋️ План тренировок"
+        meal_text = "🥗 Меню питания"
+        recipe_text = "🔥 AI Рецепт"
+        shopping_text = "🛒 Список покупок"
+        qa_text = "❓ Вопрос тренеру"
+        back_text = "⬅️ Назад"
+    else:
+        workout_text = "🏋️ Mashq rejasi"
+        meal_text = "🥗 Ovqat menyusi"
+        recipe_text = "🔥 AI retsept"
+        shopping_text = "🛒 Xaridlar ro'yxati"
+        qa_text = "❓ Murabbiyga savol"
+        back_text = "⬅️ Orqaga"
+
     markup.add(
-        InlineKeyboardButton("🏋️ Mashq rejasi", callback_data="ai_sub_workout"),
-        InlineKeyboardButton("🥗 Ovqat menyusi", callback_data="ai_sub_meal")
+        InlineKeyboardButton(workout_text, callback_data="ai_sub_workout"),
+        InlineKeyboardButton(meal_text, callback_data="ai_sub_meal")
     )
     markup.add(
-        InlineKeyboardButton("🔥 AI retsept", callback_data="ai_sub_recipe"),
-        InlineKeyboardButton("🛒 Xaridlar ro'yxati", callback_data="ai_sub_shopping")
+        InlineKeyboardButton(recipe_text, callback_data="ai_sub_recipe"),
+        InlineKeyboardButton(shopping_text, callback_data="ai_sub_shopping")
     )
     markup.add(
-        InlineKeyboardButton("❓ Murabbiyga savol", callback_data="ai_sub_qa"),
-        InlineKeyboardButton("⬅️ Orqaga", callback_data="ai_sub_close")
+        InlineKeyboardButton(qa_text, callback_data="ai_sub_qa"),
+        InlineKeyboardButton(back_text, callback_data="ai_sub_close")
     )
     return markup
 
