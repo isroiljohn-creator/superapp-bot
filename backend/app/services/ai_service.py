@@ -1,21 +1,24 @@
-import os
-import google.generativeai as genai
+from google import genai
 
 class AIService:
     def __init__(self):
+        import os
         gemini_key = os.getenv("GEMINI_API_KEY")
         if gemini_key:
-            genai.configure(api_key=gemini_key)
-            self.model = genai.GenerativeModel('gemini-1.5-flash')
+            self.client = genai.Client(api_key=gemini_key)
+            self.model_name = 'gemini-2.0-flash'
         else:
-            self.model = None
+            self.client = None
             print("⚠️ GEMINI_API_KEY not set. AI features disabled.")
 
     def generate_content(self, prompt: str) -> str | None:
-        if not self.model:
+        if not self.client:
             return None
         try:
-            response = self.model.generate_content(prompt)
+            response = self.client.models.generate_content(
+                model=self.model_name,
+                contents=prompt
+            )
             return response.text
         except Exception as e:
             print(f"AI Error: {e}")

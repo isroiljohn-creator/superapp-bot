@@ -1,14 +1,13 @@
 import os
-import google.generativeai as genai
+from google import genai
 from dotenv import load_dotenv
 
 load_dotenv()
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-genai.configure(api_key=GEMINI_API_KEY)
+client = genai.Client(api_key=GEMINI_API_KEY)
 
-model_name = 'gemini-2.5-flash'
-model = genai.GenerativeModel(model_name)
+model_name = 'gemini-2.0-flash'
 
 system_prompt = """
 Siz O'zbekistonda yashovchi foydali yordamchisiz.
@@ -43,10 +42,10 @@ full_text_prompt = f"{system_prompt}\n\nUser Input: {user_prompt}"
 
 print("Running generation...")
 try:
-    response = model.generate_content(
-        full_text_prompt,
-        generation_config={"response_mime_type": "application/json"},
-        request_options={'timeout': 120}
+    response = client.models.generate_content(
+        model=model_name,
+        contents=full_text_prompt,
+        config={"response_mime_type": "application/json"}
     )
     print("Response received.")
     print("Raw Text Length:", len(response.text))

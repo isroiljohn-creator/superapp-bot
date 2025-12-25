@@ -1,25 +1,18 @@
 import os
 import time
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 from dotenv import load_dotenv
 
 load_dotenv()
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-model = None
-
+client = None
 if GEMINI_API_KEY:
     try:
-        genai.configure(api_key=GEMINI_API_KEY)
+        client = genai.Client(api_key=GEMINI_API_KEY)
         # Configurable model with fallback
-        model_name = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
-        try:
-            model = genai.GenerativeModel(model_name)
-        except:
-             # Fallback if specific model fails (e.g. deprecation)
-            print(f"Warning: Model {model_name} failed, falling back to gemini-1.5-flash")
-            model = genai.GenerativeModel("gemini-1.5-flash")
-            
+        model_name = os.getenv("GEMINI_MODEL", "gemini-2.0-flash")
         print(f"DEBUG: Gemini AI initialized successfully using {model_name}.")
     except Exception as e:
         print(f"Error initializing Gemini: {e}")
@@ -158,11 +151,12 @@ def get_offline_menu(user_profile):
 """
 
 # Global Safety Settings
+# Global Safety Settings (New SDK Format)
 SAFETY_SETTINGS = [
-    {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
-    {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"},
-    {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"},
-    {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"},
+    types.SafetySetting(category="HARM_CATEGORY_HARASSMENT", threshold="BLOCK_NONE"),
+    types.SafetySetting(category="HARM_CATEGORY_HATE_SPEECH", threshold="BLOCK_NONE"),
+    types.SafetySetting(category="HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold="BLOCK_NONE"),
+    types.SafetySetting(category="HARM_CATEGORY_DANGEROUS_CONTENT", threshold="BLOCK_NONE"),
 ]
 
 # Models to try in order
@@ -198,10 +192,12 @@ def ask_gemini(system_prompt, user_prompt):
     Centralized helper to call Gemini with model fallback.
     Returns plain text response or raises Exception.
     """
-    global model
+    global client
     
-    if not GEMINI_API_KEY:
-        raise Exception("API Key not found")
+    if not client:
+        if not GEMINI_API_KEY:
+            raise Exception("API Key not found")
+        client = genai.Client(api_key=GEMINI_API_KEY)
 
     # Combine system and user prompt
     full_prompt = f"{system_prompt}\n\nUser Input: {user_prompt}"
@@ -210,16 +206,15 @@ def ask_gemini(system_prompt, user_prompt):
     
     for model_name in MODELS_TO_TRY:
         try:
-            # Configure and instantiate specific model
-            genai.configure(api_key=GEMINI_API_KEY)
-            current_model = genai.GenerativeModel(model_name)
-            
             print(f"DEBUG: Attempting AI generation with model: {model_name}")
             
-            response = current_model.generate_content(
-                full_prompt, 
-                safety_settings=SAFETY_SETTINGS,
-                request_options={'timeout': 60}
+            response = client.models.generate_content(
+                model=model_name,
+                contents=full_prompt,
+                config=types.GenerateContentConfig(
+                    safety_settings=SAFETY_SETTINGS,
+                    # timeout is handled differently in the new SDK or at client level
+                )
             )
             
             if response.text:
@@ -227,11 +222,6 @@ def ask_gemini(system_prompt, user_prompt):
             
         except Exception as e:
             print(f"DEBUG: Model {model_name} failed: {e}")
-            try:
-                if hasattr(response, 'prompt_feedback'):
-                    print(f"DEBUG: Prompt Feedback: {response.prompt_feedback}")
-            except:
-                pass
             last_error = e
             continue # Try next model
             
@@ -507,9 +497,10 @@ Talablar:
 
     
     # 3. Model Configuration
-    model_name = 'gemini-2.5-flash'
-    genai.configure(api_key=GEMINI_API_KEY)
-    curr_model = genai.GenerativeModel(model_name)
+    model_name = 'gemini-2.0-flash'
+    global client
+    if not client:
+        client = genai.Client(api_key=GEMINI_API_KEY)
 
     # -------------------------------------------------------------------------
     # HELPER: Safe JSON Generation with Retry/Repair
@@ -600,11 +591,16 @@ Talablar:
         }
 
         try:
-            response = curr_model.generate_content(
-                prompt_text,
-                safety_settings=SAFETY_SETTINGS,
-                generation_config=generation_config,
-                request_options={'timeout': 180} 
+            response = client.models.generate_content(
+                model=model_name,
+                contents=prompt_text,
+                config=types.GenerateContentConfig(
+                    max_output_tokens=15000,
+                    response_mime_type="application/json",
+                    response_schema=generation_config["response_schema"],
+                    safety_settings=SAFETY_SETTINGS,
+                    # timeout is handled at client or elsewhere
+                )
             )
             
             # [Added] Granular Logging

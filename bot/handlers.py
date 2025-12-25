@@ -577,19 +577,21 @@ def register_all_handlers(bot):
         if message.from_user.id not in ADMIN_IDS:
             return
 
-        import google.generativeai as genai
+        from google import genai
         import os
         key = os.getenv("GEMINI_API_KEY")
         if not key:
             bot.reply_to(message, "❌ API Key topilmadi!")
             return
         
-        bot.reply_to(message, f"🔄 Model: gemini-2.5-flash sinalyapti...")
+        bot.reply_to(message, f"🔄 Model: gemini-2.0-flash sinalyapti...")
         
         try:
-            genai.configure(api_key=key)
-            model = genai.GenerativeModel('gemini-2.5-flash')
-            response = model.generate_content("Test")
+            client = genai.Client(api_key=key)
+            response = client.models.generate_content(
+                model='gemini-2.0-flash',
+                contents="Test"
+            )
             bot.reply_to(message, f"✅ Success! Response: {response.text}")
         except Exception as e:
             bot.reply_to(message, f"❌ Error: {e}")

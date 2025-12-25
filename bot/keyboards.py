@@ -68,9 +68,9 @@ def main_menu_keyboard(is_admin=False, user_id=None):
         except Exception as e:
             print(f"Error getting habit progress for menu: {e}")
         
-    # Mini App tugmasi olib tashlandi (foydalanuvchi talabiga ko'ra)
-    # mini_app_url = os.getenv("MINI_APP_URL", "https://yasha-app.vercel.app")
-    # markup.add(KeyboardButton("📱 Ilovani ochish", web_app=WebAppInfo(url=mini_app_url)))
+    # Mini App tugmasi (Qayta tiklandi)
+    mini_app_url = os.getenv("MINI_APP_URL", "https://web-production-b606.up.railway.app")
+    markup.add(KeyboardButton("📱 Ilovani ochish", web_app=WebAppInfo(url=mini_app_url)))
 
     # Row 1: AI Murabbiy
     markup.add(KeyboardButton("🤖 AI murabbiy"))

@@ -97,10 +97,10 @@ def register_handlers(bot):
         
         msg = bot.send_message(message.chat.id, "🤖 AI tekshirilmoqda...")
         
-        import google.generativeai as genai
+        from google import genai
         import os
         
-        report = "🤖 <b>AI Test Report:</b>\n\n"
+        report = "🤖 <b>AI Test Report (New SDK):</b>\n\n"
         
         # 1. Check Key
         key = os.getenv("GEMINI_API_KEY")
@@ -110,21 +110,23 @@ def register_handlers(bot):
             return
         
         try:
-            genai.configure(api_key=key)
-            report += "✅ <b>Config:</b> Success\n"
+            client = genai.Client(api_key=key)
+            report += "✅ <b>Client Init:</b> Success\n"
         except Exception as e:
-            report += f"❌ <b>Config:</b> {e}\n"
+            report += f"❌ <b>Client Init:</b> {e}\n"
             bot.edit_message_text(report, message.chat.id, msg.message_id, parse_mode="HTML")
             return
 
         # 2. Test Models
-        models = ['gemini-2.5-flash', 'gemini-1.5-flash']
+        models = ['gemini-2.0-flash', 'gemini-1.5-flash']
         
         for m_name in models:
             report += f"\nTesting <b>{m_name}</b>:\n"
             try:
-                model = genai.GenerativeModel(m_name)
-                response = model.generate_content("Hello", request_options={'timeout': 10})
+                response = client.models.generate_content(
+                    model=m_name,
+                    contents="Hello"
+                )
                 if response.text:
                     report += "✅ <b>Success!</b>\n"
                 else:
@@ -141,7 +143,7 @@ def register_handlers(bot):
         
         msg = bot.send_message(message.chat.id, "⏳ Limit tekshirilmoqda...")
         
-        import google.generativeai as genai
+        from google import genai
         import os
         from core.ai import AI_USAGE_STATS
         
@@ -153,13 +155,15 @@ def register_handlers(bot):
         # 1. Live Test (Quota Check)
         status_text = ""
         try:
-            genai.configure(api_key=key)
-            model = genai.GenerativeModel('gemini-2.5-flash')
+            client = genai.Client(api_key=key)
             # Try a very short generation
-            model.generate_content("Test", request_options={'timeout': 5})
+            client.models.generate_content(
+                model='gemini-2.0-flash',
+                contents="Test"
+            )
             status_text = "✅ <b>AI Ishlayapti</b> (Limit bor)"
         except Exception as e:
-            if "429" in str(e):
+            if "429" in str(e) or "quota" in str(e).lower():
                 status_text = "❌ <b>LIMIT TUGAGAN</b> (Quota Exceeded)"
             else:
                 status_text = f"⚠️ <b>Xatolik:</b> {str(e)[:50]}..."
