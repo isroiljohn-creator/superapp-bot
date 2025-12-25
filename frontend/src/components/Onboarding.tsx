@@ -121,7 +121,7 @@ export const Onboarding: React.FC = () => {
 
     // Sync to Backend (Fix Persistence Bug)
     try {
-      const API_URL = import.meta.env.VITE_API_URL || 'https://yasha-bot-production.up.railway.app/api/v1';
+      const API_URL = import.meta.env.VITE_API_URL || '/api/v1';
       console.log("Syncing onboarding profile to", API_URL);
 
       // We must await to ensure backend sets is_onboarded=True before completeOnboarding()
