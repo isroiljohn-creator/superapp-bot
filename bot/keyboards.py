@@ -193,12 +193,17 @@ def gamification_keyboard():
     markup.add(InlineKeyboardButton("Suv ichdim 💧", callback_data="daily_water_done"))
     return markup
 
-def ai_coach_submenu_keyboard():
+def ai_coach_submenu_keyboard(lang="uz"):
     """Reply Submenu for '🤖 AI murabbiy' (Legacy - kept for fallback)"""
     markup = ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
-    markup.add(KeyboardButton("🏋️ Mashq qilaman"), KeyboardButton("🥗 Nima yeyman?"))
-    markup.add(KeyboardButton("🔥 AI retsept tuzsin"), KeyboardButton("🛒 Nima xarid qilay?"))
-    markup.add(KeyboardButton("❓ Murabbiyga savolim bor"), KeyboardButton("⬅️ Orqaga"))
+    if lang == "ru":
+        markup.add(KeyboardButton("🏋️ Тренировка"), KeyboardButton("🥗 Питание"))
+        markup.add(KeyboardButton("🔥 AI Рецепт"), KeyboardButton("🛒 Что купить?"))
+        markup.add(KeyboardButton("❓ Вопрос тренеру"), KeyboardButton("⬅️ Назад"))
+    else:
+        markup.add(KeyboardButton("🏋️ Mashq qilaman"), KeyboardButton("🥗 Nima yeyman?"))
+        markup.add(KeyboardButton("🔥 AI retsept tuzsin"), KeyboardButton("🛒 Nima xarid qilay?"))
+        markup.add(KeyboardButton("❓ Murabbiyga savolim bor"), KeyboardButton("⬅️ Orqaga"))
     return markup
 
 def ai_coach_inline_keyboard(lang="uz"):
@@ -234,19 +239,28 @@ def ai_coach_inline_keyboard(lang="uz"):
     )
     return markup
 
-def challenges_submenu_keyboard():
+def challenges_submenu_keyboard(lang="uz"):
     """Submenu for '🔥 Chellenjlar'"""
     markup = ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
-    markup.add(KeyboardButton("🔥 Bugungi chellenj"), KeyboardButton("🏆 Reyting"))
-    markup.add(KeyboardButton("👥 Do‘st chaqirish"), KeyboardButton("⬅️ Orqaga"))
+    if lang == "ru":
+        markup.add(KeyboardButton("🔥 Челлендж дня"), KeyboardButton("🏆 Рейтинг"))
+        markup.add(KeyboardButton("👥 Пригласить друга"), KeyboardButton("⬅️ Назад"))
+    else:
+        markup.add(KeyboardButton("🔥 Bugungi chellenj"), KeyboardButton("🏆 Reyting"))
+        markup.add(KeyboardButton("👥 Do‘st chaqirish"), KeyboardButton("⬅️ Orqaga"))
     return markup
 
-def help_submenu_keyboard():
+def help_submenu_keyboard(lang="uz"):
     """Submenu for '📩 Yordam'"""
     markup = ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
-    markup.add(KeyboardButton("🏋️ Mashqlar bo'yicha"), KeyboardButton("🥗 Menyu bo'yicha"))
-    markup.add(KeyboardButton("💳 Obuna bo'yicha"), KeyboardButton("🇺🇿/🇷🇺 Tilni o'zgartirish"))
-    markup.add(KeyboardButton("🤖 Bot ishlamayapti"), KeyboardButton("⬅️ Orqaga"))
+    if lang == "ru":
+        markup.add(KeyboardButton("🏋️ По тренировкам"), KeyboardButton("🥗 По питанию"))
+        markup.add(KeyboardButton("💳 По подписке"), KeyboardButton("🇺🇿/🇷🇺 Сменить язык"))
+        markup.add(KeyboardButton("🤖 Бот не работает"), KeyboardButton("⬅️ Назад"))
+    else:
+        markup.add(KeyboardButton("🏋️ Mashqlar bo'yicha"), KeyboardButton("🥗 Menyu bo'yicha"))
+        markup.add(KeyboardButton("💳 Obuna bo'yicha"), KeyboardButton("🇺🇿/🇷🇺 Tilni o'zgartirish"))
+        markup.add(KeyboardButton("🤖 Bot ishlamayapti"), KeyboardButton("⬅️ Orqaga"))
     return markup
 
 def admin_analytics_keyboard():

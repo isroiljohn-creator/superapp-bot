@@ -121,7 +121,7 @@ def register_all_handlers(bot):
 
     # Challenges handler is now moved to YASHA Plus callback
     # Keeping referral handler separately for direct access/links
-    @bot.message_handler(func=lambda message: message.text == "🔗 Referal" or message.text == "👥 Do‘st chaqirish")
+    @bot.message_handler(func=lambda message: message.text in ["🔗 Referal", "👥 Do‘st chaqirish", "🔗 Реферал", "👥 Пригласить друга"])
     def menu_referral(message):
         gamification.handle_referral_link(message, bot)
 
@@ -148,9 +148,73 @@ def register_all_handlers(bot):
     def menu_premium(message):
         premium.handle_premium_menu(message, bot)
 
-    @bot.message_handler(func=lambda message: message.text == "📩 Yordam" or message.text == "📩 Qayta aloqa" or message.text == "📩 Помощь")
+    @bot.message_handler(func=lambda message: message.text in ["📩 Yordam", "📩 Qayta aloqa", "📩 Помощь"])
     def menu_help(message):
-        bot.send_message(message.chat.id, "Nima tushunarsiz bo'ldi?", reply_markup=help_submenu_keyboard())
+        user_id = message.from_user.id
+        lang = db.get_user_language(user_id)
+        msg_text = "Nima tushunarsiz bo'ldi?" if lang == 'uz' else "Что вам непонятно?"
+        
+        bot.send_message(message.chat.id, msg_text, reply_markup=help_submenu_keyboard(lang=lang))
+
+    # --- Legacy AI Coach Reply Handlers (Russian Support) ---
+    @bot.message_handler(func=lambda message: message.text in ["🏋️ Mashq qilaman", "🏋️ Тренировка"])
+    def legacy_ai_workout(message):
+        workout.generate_ai_workout(message, bot, user_id=message.from_user.id)
+
+    @bot.message_handler(func=lambda message: message.text in ["🥗 Nima yeyman?", "🥗 Питание"])
+    def legacy_ai_meal(message):
+        workout.generate_ai_meal(message, bot, user_id=message.from_user.id)
+
+    @bot.message_handler(func=lambda message: message.text in ["🔥 AI retsept tuzsin", "🔥 AI Рецепт"])
+    def legacy_ai_recipe(message):
+        ai_features.handle_recipe_gen(message, bot, user_id=message.from_user.id)
+    
+    @bot.message_handler(func=lambda message: message.text in ["🛒 Nima xarid qilay?", "🛒 Что купить?"])
+    def legacy_ai_shopping(message):
+        ai_features.handle_shopping_list(message, bot, user_id=message.from_user.id)
+
+    @bot.message_handler(func=lambda message: message.text in ["❓ Murabbiyga savolim bor", "❓ Вопрос тренеру"])
+    def legacy_ai_qa(message):
+        ai_features.handle_ai_qa(message, bot, user_id=message.from_user.id)
+
+    # --- Legacy Challenges Reply Handlers (Russian Support) ---
+    @bot.message_handler(func=lambda message: message.text in ["🔥 Bugungi chellenj", "🔥 Челлендж дня"])
+    def legacy_challenge_daily(message):
+        challenges.handle_daily_challenge(message, bot)
+
+    @bot.message_handler(func=lambda message: message.text in ["🏆 Reyting", "🏆 Рейтинг"])
+    def legacy_challenge_leaderboard(message):
+        challenges.handle_leaderboard(message, bot)
+
+    # --- Help Submenu Handlers ---
+    @bot.message_handler(func=lambda message: message.text in ["🏋️ Mashqlar bo'yicha", "🏋️ По тренировкам"])
+    def help_workout(message):
+        user_id = message.from_user.id
+        lang = db.get_user_language(user_id)
+        txt = "Mashqlar bo'yicha savolingizni yozing:" if lang == 'uz' else "Напишите ваш вопрос по тренировкам:"
+        bot.send_message(message.chat.id, txt)
+
+    @bot.message_handler(func=lambda message: message.text in ["🥗 Menyu bo'yicha", "🥗 По питанию"])
+    def help_menu(message):
+        user_id = message.from_user.id
+        lang = db.get_user_language(user_id)
+        txt = "Menyu bo'yicha savolingizni yozing:" if lang == 'uz' else "Напишите ваш вопрос по питанию:"
+        bot.send_message(message.chat.id, txt)
+
+    @bot.message_handler(func=lambda message: message.text in ["💳 Obuna bo'yicha", "💳 По подписке"])
+    def help_subscription(message):
+        premium.handle_premium_info_detailed(message, bot)
+
+    @bot.message_handler(func=lambda message: message.text in ["🇺🇿/🇷🇺 Tilni o'zgartirish", "🇺🇿/🇷🇺 Сменить язык"])
+    def help_language(message):
+        onboarding.ask_language(message, bot)
+
+    @bot.message_handler(func=lambda message: message.text in ["🤖 Bot ishlamayapti", "🤖 Бот не работает"])
+    def help_bug(message):
+        user_id = message.from_user.id
+        lang = db.get_user_language(user_id)
+        txt = "Xatolik haqida yozing, adminlarga yetkazamiz:" if lang == 'uz' else "Опишите ошибку, мы передадим админам:"
+        bot.send_message(message.chat.id, txt)
 
     # --- Submenu Button Handlers ---
 
@@ -592,7 +656,10 @@ def register_all_handlers(bot):
     # General utility handlers
     @bot.message_handler(commands=['menu'])
     def handle_menu_command(message):
-        bot.send_message(message.chat.id, "Asosiy menyu:", reply_markup=main_menu_keyboard())
+        user_id = message.from_user.id
+        lang = db.get_user_language(user_id)
+        txt = "Asosiy menyu:" if lang == "uz" else "Главное меню:"
+        bot.send_message(message.chat.id, txt, reply_markup=main_menu_keyboard(user_id=user_id, lang=lang))
 
     @bot.message_handler(commands=['ping'])
     def handle_ping(message):
