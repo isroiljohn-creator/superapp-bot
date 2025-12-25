@@ -6,28 +6,36 @@ from bot.premium import require_premium
 from bot.keyboards import ai_inline_keyboard
 
 def handle_ai_tools_menu(message, bot):
+    user_id = message.from_user.id
+    lang = db.get_user_language(user_id)
     with open("assets/ai_murabbiy.png", "rb") as photo:
+        caption = "<b>🤖 AI shaxsiy murabbiy</b>\n\nMaqsadingizga tezroq yetishingizga yordam beraman.\nTayyormisiz? — Keyingi qadamni tanlang👇🏻" if lang == 'uz' else "<b>🤖 Личный AI тренер</b>\n\nЯ помогу вам достичь вашей цели быстрее.\nГотовы? — Выберите следующий шаг 👇🏻"
         bot.send_photo(
             message.chat.id,
             photo,
-            caption="<b>🤖 AI shaxsiy murabbiy</b>\n\nMaqsadingizga tezroq yetishingizga yordam beraman.\nTayyormisiz? — Keyingi qadamni tanlang👇🏻",
-            reply_markup=ai_inline_keyboard(),
+            caption=caption,
+            reply_markup=ai_inline_keyboard(lang=lang),
             parse_mode="HTML"
         )
 
 @require_premium
 def handle_ai_qa(message, bot, user_id=None):
+    if user_id is None: user_id = message.from_user.id
+    lang = db.get_user_language(user_id)
+    from bot.languages import get_text
     try:
+        msg_text = "❓ <b>AI Murabbiy</b>\n\nMashg'ulotlar, ovqatlanish yoki sog'lom turmush tarzi bo'yicha istalgan savolingizni yozing:" if lang == 'uz' else "❓ <b>AI Тренер</b>\n\nЗадайте любой вопрос по тренировкам, питанию или здоровому образу жизни:"
         msg = bot.send_message(
             message.chat.id, 
-            "❓ <b>AI Murabbiy</b>\n\nMashg'ulotlar, ovqatlanish yoki sog'lom turmush tarzi bo'yicha istalgan savolingizni yozing:", 
+            msg_text, 
             reply_markup=types.ForceReply(),
             parse_mode="HTML"
         )
         bot.register_next_step_handler(msg, process_ai_qa, bot)
     except Exception as e:
         print(f"Handle AI QA Error: {e}")
-        bot.send_message(message.chat.id, "❌ Xatolik yuz berdi. Iltimos qayta urinib ko'ring.")
+        error_text = get_text("error_generic", lang=lang)
+        bot.send_message(message.chat.id, error_text)
 
 def process_ai_qa(message, bot):
     user_id = message.from_user.id
@@ -41,27 +49,30 @@ def process_ai_qa(message, bot):
     # Send "typing" action instead of message to avoid clutter, or keep message if preferred
     status_msg = bot.send_message(user_id, "🤖 <b>Javob tayyorlanmoqda...</b>", parse_mode="HTML")
     
-    system_prompt = f"""
-    Siz professional fitnes murabbiyisiz.
+    - O'zbek tilida (Lotin alifbosi).
+    """
+    if user.get('language') == 'ru':
+        system_prompt = f"""
+    You are a professional fitness coach.
     
-    Foydalanuvchi Profili:
-    - Yosh: {user.get('age')}
-    - Jins: {user.get('gender')}
-    - Bo'y: {user.get('height')} sm
-    - Vazn: {user.get('weight')} kg
-    - Maqsad: {user.get('goal')}
-    - Faollik: {user.get('activity_level')}
+    User Profile:
+    - Age: {user.get('age')}
+    - Gender: {user.get('gender')}
+    - Height: {user.get('height')} cm
+    - Weight: {user.get('weight')} kg
+    - Goal: {user.get('goal')}
+    - Activity: {user.get('activity_level')}
     
-    Vazifa: Savolga qisqa, aniq va foydalanuvchi profiliga moslashtirilgan javob bering.
+    Task: Answer the question clearly and accurately, tailored to the user profile.
     
-    FORMAT TALABLARI:
-    - Maksimal 700-900 belgi.
-    - Qisqa paragraflar.
-    - Muhim joylari uchun <b>qalin</b> (HTML) ishlating.
-    - Ro'yxat uchun tire (-) ishlating.
-    - Markdown ishlata ko'rmang (* yoki _).
-    - Faqat HTML teglar: <b>, <i>, <u>, <s>, <code>, <pre>.
-    - O'zbek tilida.
+    FORMAT RULES:
+    - Max 700-900 chars.
+    - Short paragraphs.
+    - Use <b>bold</b> (HTML) for keywords.
+    - Use bullets (-) for lists.
+    - NO Markdown (* or _).
+    - ONLY HTML tags: <b>, <i>, <u>, <s>, <code>, <pre>.
+    - Respond strictly in RUSSIAN.
     """
     
     try:
@@ -78,6 +89,9 @@ def process_ai_qa(message, bot):
         db.log_event(user_id, "ai_chat_used")
 
         
+        from bot.languages import get_text
+        lang = user.get('language', 'uz')
+        
         # Edit status message with response
         try:
             bot.edit_message_text(response, user_id, status_msg.message_id, parse_mode="HTML")
@@ -87,7 +101,8 @@ def process_ai_qa(message, bot):
             
         # Send main menu to restore navigation
         from bot.keyboards import main_menu_keyboard
-        bot.send_message(user_id, "Yana nima yordam bera olaman?", reply_markup=main_menu_keyboard())
+        back_msg = "Yana nima yordam bera olaman?" if lang == 'uz' else "Чем еще я могу вам помочь?"
+        bot.send_message(user_id, back_msg, reply_markup=main_menu_keyboard(user_id=user_id, lang=lang))
             
     except Exception as e:
         print(f"AI QA Error: {e}")
@@ -134,22 +149,26 @@ def handle_shopping_list(message, bot, user_id=None):
 
 @require_premium
 def handle_recipe_gen(message, bot, user_id=None):
+    if user_id is None: user_id = message.from_user.id
+    lang = db.get_user_language(user_id)
+    msg_text = "🍳 <b>AI Retsept</b>\n\nMuzlatgichda bor mahsulotlarni yozing (masalan: tovuq, guruch, pomidor). Men sizga mos sog'lom retsept tuzib beraman:" if lang == 'uz' else "🍳 <b>AI Рецепт</b>\n\nНапишите продукты, которые есть в холодильнике (например: курица, рис, помидоры). Я составлю для вас здоровый рецепт:"
     try:
         msg = bot.send_message(
             message.chat.id, 
-            "🍳 <b>AI Retsept</b>\n\nMuzlatgichda bor mahsulotlarni yozing (masalan: tovuq, guruch, pomidor). Men sizga mos sog'lom retsept tuzib beraman:", 
+            msg_text, 
             reply_markup=types.ForceReply(),
             parse_mode="HTML"
         )
         bot.register_next_step_handler(msg, process_recipe_input, bot)
     except Exception as e:
         print(f"Handle Recipe Error: {e}")
-        bot.send_message(message.chat.id, "❌ Xatolik yuz berdi. Iltimos qayta urinib ko'ring.")
+        bot.send_message(message.chat.id, "❌ Error")
 
 def process_recipe_input(message, bot):
     user_id = message.from_user.id
+    lang = db.get_user_language(user_id)
     if not message.text:
-        bot.send_message(message.chat.id, "Iltimos, mahsulotlarni matn ko'rinishida yozing.")
+        bot.send_message(message.chat.id, "Iltimos, mahsulotlarni matn ko'rinishida yozing." if lang == 'uz' else "Пожалуйста, введите список продуктов текстом.")
         return
         
     ingredients = message.text
@@ -157,32 +176,34 @@ def process_recipe_input(message, bot):
     
     status_msg = bot.send_message(message.chat.id, "⏳ <b>Retsept yaratilmoqda...</b>", parse_mode="HTML")
     
-    system_prompt = f"""
-    Siz professional dietolog va oshpazsiz.
-    
-    Foydalanuvchi Profili:
-    - Maqsad: {user.get('goal')}
-    - Faollik: {user.get('activity_level')}
-    - Allergiya: {user.get('allergies')}
-    
-    Vazifa: Foydalanuvchi kiritgan mahsulotlardan foydalanib, uning maqsadiga mos 1 ta sog'lom va mazali retsept taklif qiling.
-    
-    QAT'IY QOIDALAR (Strict Rules):
-    1. Foydalanuvchi yozmagan asosiy mahsulotlarni (go'sht, tuxum, sabzavotlar, sut kabi) o'zingdan qo'shib yozma!
-    2. Faqat suv, tuz, yog', murch, shakar kabi eng oddiy "uyda har doim bor" narsalarni bor deb hisobla.
-    3. Agar berilgan mahsulotlardan tuzuk ovqat chiqmasa, shuni to'g'ri tushuntir ("Bu mahsulotlardan faqat ... qilish mumkin" yoki "To'yimli taom uchun yana ... kerak").
-    4. Xayoliy retsept to'qima. Bor narsadan maksimal foydalan.
-    
-    FORMAT TALABLARI:
-    - Maksimal 1000 belgi.
-    - Markdown ishlata ko'rmang (* yoki _).
-    - Faqat HTML teglar: <b>, <i>.
-    - Struktura:
-      * <b>Taom Nomi</b>
-      * <b>Masalliqlar</b> (Faqat bor narsalar + suv/yog'/ziravor)
-      * <b>Tayyorlash</b> (3-6 qadam)
-      * <b>Foydali maslahat</b> (1 gap)
     - O'zbek tilida.
+    """
+    if user.get('language') == 'ru':
+        system_prompt = f"""
+    You are a professional nutritionist and chef.
+    
+    User Profile:
+    - Goal: {user.get('goal')}
+    - Activity: {user.get('activity_level')}
+    - Allergy: {user.get('allergies')}
+    
+    Task: Suggest 1 healthy recipe based on ingredients provided.
+    
+    STRICT RULES:
+    1. DO NOT invent main ingredients not mentioned.
+    2. Only assume basic staples like water, salt, oil, pepper.
+    3. If no good meal can be made, explain why.
+    4. Don't make up fantasy recipes.
+    
+    FORMAT:
+    - Max 1000 chars.
+    - NO Markdown. Use HTML.
+    - Structure:
+      * <b>Recipe Name</b>
+      * <b>Ingredients</b>
+      * <b>Preparation</b> (3-6 steps)
+      * <b>Tip</b> (1 sentence)
+    - Respond strictly in RUSSIAN.
     """
     
     try:

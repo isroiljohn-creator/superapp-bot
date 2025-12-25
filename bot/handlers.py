@@ -84,22 +84,28 @@ def register_all_handlers(bot):
         pass
 
     # --- Main Menu Navigation ---
-    # --- Main Menu Navigation ---
-    @bot.message_handler(func=lambda message: message.text == "⬅️ Asosiy menyu" or message.text == "⬅️ Orqaga")
+    @bot.message_handler(func=lambda message: message.text in ["⬅️ Asosiy menyu", "⬅️ Orqaga", "⬅️ Главное меню", "⬅️ Назад"])
     def back_to_main(message):
-        bot.send_message(message.chat.id, "🏠 Asosiy menyu", reply_markup=main_menu_keyboard(user_id=message.from_user.id))
+        user_id = message.from_user.id
+        lang = db.get_user_language(user_id)
+        msg_text = "🏠 Asosiy menyu" if lang == 'uz' else "🏠 Главное меню"
+        bot.send_message(message.chat.id, msg_text, reply_markup=main_menu_keyboard(user_id=user_id, lang=lang))
 
-    @bot.message_handler(func=lambda message: message.text == "⬅️ Premium menyu")
+    @bot.message_handler(func=lambda message: message.text in ["⬅️ Premium menyu", "⬅️ Премиум меню"])
     def back_to_premium(message):
         premium.handle_premium_menu(message, bot)
 
-    @bot.message_handler(func=lambda message: "Kunlik odatlar" in message.text)
+    @bot.message_handler(func=lambda message: "Kunlik odatlar" in message.text or "Ежедневные привычки" in message.text)
     def menu_habits(message):
         trackers.handle_habits_menu(message, bot)
 
-    @bot.message_handler(func=lambda message: message.text == "🤖 AI murabbiy")
+    @bot.message_handler(func=lambda message: message.text in ["🤖 AI murabbiy", "🤖 AI тренер"])
     def menu_ai(message):
-        bot.send_message(message.chat.id, "🤖 <b>AI Murabbiy</b>\n\nBugun nima qilamiz? Quyidagilardan birini tanlang 👇", reply_markup=ai_coach_inline_keyboard(), parse_mode="HTML")
+        user_id = message.from_user.id
+        lang = db.get_user_language(user_id)
+        from bot.languages import get_text
+        txt = "🤖 <b>AI Murabbiy</b>\n\nBugun nima qilamiz? Quyidagilardan birini tanlang 👇" if lang == 'uz' else "🤖 <b>AI Тренер</b>\n\nЧто будем делать сегодня? Выберите один из вариантов ниже 👇"
+        bot.send_message(message.chat.id, txt, reply_markup=ai_coach_inline_keyboard(lang=lang), parse_mode="HTML")
 
 
     # Challenges handler is now moved to YASHA Plus callback
@@ -139,10 +145,11 @@ def register_all_handlers(bot):
         try:
             user = db.get_user(user_id)
             if not user: return
+            lang = user.get('language', 'uz')
 
             # 2. AI Call
             from core.ai import ai_suggest_recipe
-            recipe = ai_suggest_recipe(user, text)
+            recipe = ai_suggest_recipe(user, text, lang=lang)
             
             if recipe:
                 # 3. Result

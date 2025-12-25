@@ -115,6 +115,19 @@ class Database:
                 print(f"MIGRATION ERROR 2.1: {e}")
 
             try:
+                # 2.2 Check users.language
+                check_sql = text("SELECT column_name FROM information_schema.columns WHERE table_name='users' AND column_name='language'")
+                result = session.execute(check_sql).fetchone()
+                if not result:
+                    print("MIGRATION: Adding language to users table...")
+                    session.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS language VARCHAR DEFAULT 'uz'"))
+                    session.commit()
+                    print("MIGRATION: users.language added!")
+            except Exception as e:
+                session.rollback()
+                print(f"MIGRATION ERROR 2.2: {e}")
+
+            try:
                 # 3. Create exercises table if not exists (Manual fallback for sync issues)
                 from sqlalchemy import text
                 check_sql = text("SELECT to_regclass('public.exercises')")
@@ -1317,7 +1330,8 @@ class Database:
                         referral_code=ref_code,
                         referrer_id=referrer_pk,
                         active=True,
-                        created_at=datetime.utcnow()
+                        created_at=datetime.utcnow(),
+                        language=profile_data.get('language', 'uz')
                     )
                     session.add(user)
                     session.flush() # Ensure user is attached
@@ -1620,16 +1634,37 @@ class Database:
                 user.onboarding_data = "{}"
                 session.commit()
 
-    def ensure_user_exists(self, user_id, username=None):
+    def ensure_user_exists(self, user_id, username=None, language="uz"):
         """Ensures a user record exists for onboarding."""
         with get_sync_db() as session:
             user = session.query(User).filter(User.telegram_id == user_id).first()
             if not user:
-                user = User(telegram_id=user_id, username=username, active=True)
+                user = User(telegram_id=user_id, username=username, active=True, language=language)
                 session.add(user)
                 session.commit()
                 return True
             return False
+
+    def get_user_language(self, user_id):
+        """Get user language preference"""
+        with get_sync_db() as session:
+            user = session.query(User).filter(User.telegram_id == user_id).first()
+            return user.language if user else "uz"
+
+    def set_user_language(self, user_id, language):
+        """Set user language preference"""
+        with get_sync_db() as session:
+            try:
+                user = session.query(User).filter(User.telegram_id == user_id).first()
+                if user:
+                    user.language = language
+                    session.commit()
+                    return True
+                return False
+            except Exception as e:
+                session.rollback()
+                print(f"Set User Language Error: {e}")
+                return False
 
     # --- Monthly Menu Logic ---
 

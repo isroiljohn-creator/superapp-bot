@@ -89,6 +89,8 @@ class User(Base):
     utm_raw = Column(String, nullable=True)
     utm_source = Column(String, nullable=True)
     utm_campaign = Column(String, nullable=True)
+    
+    language = Column(String, default="uz") # uz, ru
 
 class DailyLog(Base):
     __tablename__ = "daily_logs"

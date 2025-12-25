@@ -1,53 +1,79 @@
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardMarkup, KeyboardButton, WebAppInfo
 import os
 from core.config import ADMIN_IDS
+from bot.languages import get_text
 
-def phone_request_keyboard():
+def language_selection_keyboard():
+    """Keyboard for selecting bot language"""
+    markup = InlineKeyboardMarkup()
+    markup.row(
+        InlineKeyboardButton("🇺🇿 O'zbekcha", callback_data="lang_uz"),
+        InlineKeyboardButton("🇷🇺 Русский", callback_data="lang_ru")
+    )
+    return markup
+
+def phone_request_keyboard(lang="uz"):
     """Request phone number from user"""
     markup = ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
-    markup.add(KeyboardButton("📱 Telefon raqamni yuborish", request_contact=True))
+    btn_text = "📱 Telefon raqamni yuborish" if lang == "uz" else "📱 Отправить номер телефона"
+    markup.add(KeyboardButton(btn_text, request_contact=True))
     return markup
 
-def gender_keyboard():
+def gender_keyboard(lang="uz"):
     markup = InlineKeyboardMarkup()
+    male_text = "Erkak 🧑🏻‍🦱" if lang == "uz" else "Мужчина 🧑🏻‍🦱"
+    female_text = "Ayol 👩🏻" if lang == "uz" else "Женщина 👩🏻"
     markup.row(
-        InlineKeyboardButton("Erkak 🧑🏻‍🦱", callback_data="gender_male"),
-        InlineKeyboardButton("Ayol 👩🏻", callback_data="gender_female")
+        InlineKeyboardButton(male_text, callback_data="gender_male"),
+        InlineKeyboardButton(female_text, callback_data="gender_female")
     )
     return markup
 
-def goal_keyboard():
+def goal_keyboard(lang="uz"):
     markup = InlineKeyboardMarkup()
-    markup.add(InlineKeyboardButton("Vazn tashlash 🔻", callback_data="goal_weight_loss"))
-    markup.add(InlineKeyboardButton("Vazn olish 🔺", callback_data="goal_muscle_gain"))
-    markup.add(InlineKeyboardButton("Vaznni ushlab turish ❤️", callback_data="goal_health"))
+    if lang == "ru":
+        markup.add(InlineKeyboardButton("Похудение 🔻", callback_data="goal_weight_loss"))
+        markup.add(InlineKeyboardButton("Набор массы 🔺", callback_data="goal_muscle_gain"))
+        markup.add(InlineKeyboardButton("Поддержание веса ❤️", callback_data="goal_health"))
+    else:
+        markup.add(InlineKeyboardButton("Vazn tashlash 🔻", callback_data="goal_weight_loss"))
+        markup.add(InlineKeyboardButton("Vazn olish 🔺", callback_data="goal_muscle_gain"))
+        markup.add(InlineKeyboardButton("Vaznni ushlab turish ❤️", callback_data="goal_health"))
     return markup
 
-def activity_level_keyboard():
+def activity_level_keyboard(lang="uz"):
     markup = InlineKeyboardMarkup(row_width=1)
-    markup.add(
-        InlineKeyboardButton("Kam harakat 🪑", callback_data="activity_sedentary"),
-        InlineKeyboardButton("Yengil faol 🚶‍♂️", callback_data="activity_light"),
-        InlineKeyboardButton("O'rtacha faol 🏃‍♂️", callback_data="activity_moderate"),
-        InlineKeyboardButton("Juda faol 🏋️‍♂️", callback_data="activity_active"),
-        InlineKeyboardButton("Atlet 🔥", callback_data="activity_athlete")
-    )
+    if lang == "ru":
+        markup.add(
+            InlineKeyboardButton("Малоподвижный 🪑", callback_data="activity_sedentary"),
+            InlineKeyboardButton("Легкая активность 🚶‍♂️", callback_data="activity_light"),
+            InlineKeyboardButton("Умеренная активность 🏃‍♂️", callback_data="activity_moderate"),
+            InlineKeyboardButton("Высокая активность 🏋️‍♂️", callback_data="activity_active"),
+            InlineKeyboardButton("Атлет 🔥", callback_data="activity_athlete")
+        )
+    else:
+        markup.add(
+            InlineKeyboardButton("Kam harakat 🪑", callback_data="activity_sedentary"),
+            InlineKeyboardButton("Yengil faol 🚶‍♂️", callback_data="activity_light"),
+            InlineKeyboardButton("O'rtacha faol 🏃‍♂️", callback_data="activity_moderate"),
+            InlineKeyboardButton("Juda faol 🏋️‍♂️", callback_data="activity_active"),
+            InlineKeyboardButton("Atlet 🔥", callback_data="activity_athlete")
+        )
     return markup
 
-def allergy_keyboard():
+def allergy_keyboard(lang="uz"):
     markup = InlineKeyboardMarkup()
+    no_text = "Yo‘q ❌" if lang == "uz" else "Нет ❌"
+    yes_text = "Ha ✅" if lang == "uz" else "Да ✅"
     markup.row(
-        InlineKeyboardButton("Yo‘q ❌", callback_data="allergy_no"),
-        InlineKeyboardButton("Ha ✅", callback_data="allergy_yes")
+        InlineKeyboardButton(no_text, callback_data="allergy_no"),
+        InlineKeyboardButton(yes_text, callback_data="allergy_yes")
     )
     return markup
 
-def main_menu_keyboard(is_admin=False, user_id=None):
+def main_menu_keyboard(is_admin=False, user_id=None, lang=None):
     """
     Generate Main Menu Reply Keyboard.
-    Args:
-        is_admin (bool): Legacy override.
-        user_id (int): If provided, checks against ADMIN_IDS.
     """
     markup = ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
     
@@ -55,32 +81,32 @@ def main_menu_keyboard(is_admin=False, user_id=None):
     real_admin = False
     if user_id:
         real_admin = int(user_id) in ADMIN_IDS
-    elif is_admin: # Fallback
-        real_admin = True
-    
-    # Calculate habit progress if user_id is present
-    habit_text = "📅 Kunlik odatlar"
-    if user_id:
-        try:
+        if lang is None:
             from core.db import db
-            completed, total = db.get_daily_habit_progress(user_id)
-            habit_text = f"📅 Kunlik odatlar ({completed}/{total})"
-        except Exception as e:
-            print(f"Error getting habit progress for menu: {e}")
-        
+            lang = db.get_user_language(user_id)
+    
+    if lang is None: lang = "uz"
+
+    # Row 1: AI Murabbiy | Ilovani ochish
+    coach_text = "🤖 AI murabbiy" if lang == "uz" else "🤖 AI тренер"
+    app_text = "📱 Ilovani ochish" if lang == "uz" else "📱 Открыть приложение"
+    
     mini_app_url = os.getenv("MINI_APP_URL", "https://obsid.uz")
     
-    # Row 1: AI Murabbiy | Ilovani ochish
     markup.add(
-        KeyboardButton("🤖 AI murabbiy"),
-        KeyboardButton("📱 Ilovani ochish", web_app=WebAppInfo(url=mini_app_url))
+        KeyboardButton(coach_text),
+        KeyboardButton(app_text, web_app=WebAppInfo(url=mini_app_url))
     )
     
     # Row 2: Kaloriya tahlili | YASHA Plus
-    markup.add(KeyboardButton("🍽 Kaloriya tahlili"), KeyboardButton("💚 YASHA Plus"))
+    scan_text = "🍽 Kaloriya tahlili" if lang == "uz" else "🍽 Анализ калорий"
+    plus_text = "💚 YASHA Plus"
+    markup.add(KeyboardButton(scan_text), KeyboardButton(plus_text))
     
     # Row 3: Profil | Yordam
-    markup.add(KeyboardButton("👤 Profil"), KeyboardButton("📩 Yordam"))
+    profile_text = "👤 Profil" if lang == "uz" else "👤 Профиль"
+    help_text = "📩 Yordam" if lang == "uz" else "📩 Помощь"
+    markup.add(KeyboardButton(profile_text), KeyboardButton(help_text))
     
     return markup
 

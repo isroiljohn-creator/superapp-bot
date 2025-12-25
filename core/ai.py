@@ -283,10 +283,15 @@ MOCK_MENU_DATA = {
   ]
 }
 
-def ai_generate_weekly_meal_plan_json(user_profile, daily_target=2000):
+def ai_generate_weekly_meal_plan_json(user_profile, daily_target=2000, lang="uz"):
     """Generates a 7-day structured meal plan + shopping list in JSON. (Unified logic)"""
     AI_USAGE_STATS["meal"] += 1
     AI_USAGE_STATS["total_requests"] += 1
+
+    # language context
+    lang_instruction = "FAQAT O‘ZBEK TILI (LOTIN ALIFBOSIDA)."
+    if lang == "ru":
+        lang_instruction = "FAQAT RUS TILI (CYRILLIC). Respond strictly in Russian."
 
     # allergy_info
     allergy_text = user_profile.get('allergies')
@@ -309,8 +314,8 @@ CRITICAL RULES (VERY IMPORTANT):
 
 1. OUTPUT MUST BE VALID JSON ONLY. NO TEXT OUTSIDE JSON.
 2. JSON STRUCTURE MUST NEVER CHANGE.
-3. LANGUAGE: FAQAT O‘ZBEK TILI. HECH QANDAY INGLIZCHA SO‘Z YO‘Q (Values must be Uzbek, but JSON Keys must be English matching the schema).
-4. USERGA DOIM "SIZ" DEB MUROJAAT QILING.
+3. LANGUAGE: {lang_instruction} (Values must be in {lang}, but JSON Keys must be English matching the schema).
+4. USERGA DOIM "{'SIZ' if lang == 'uz' else 'ВЫ'} DEB MUROJAAT QILING.
 
 CALORIE RULES (STRICT):
 - DAILY_TOTAL_KCAL MUST BE BETWEEN {daily_target-50} AND {daily_target+50} (Adjust steps/ingredients to fit).
@@ -837,7 +842,7 @@ def ai_provide_psychological_support(reason):
         return response_text
     return "Tushunaman, ba'zida shunday kunlar bo'ladi. O'zingizni ehtiyot qiling va chuqur nafas oling. 💚"
 
-def ai_generate_weekly_workout_json(user_profile):
+def ai_generate_weekly_workout_json(user_profile, lang="uz"):
     """
     Generates a 7-DAY Weekly Workout Plan in strict JSON format.
     Mirrors the logic of the menu system.
@@ -870,6 +875,11 @@ def ai_generate_weekly_workout_json(user_profile):
     # 1. System Prompt (JSON enforcer)
     # 1. System Prompt (JSON enforcer)
     # 1. System Prompt (JSON enforcer)
+# language context
+    lang_instruction = "FAQAT O‘ZBEK TILI (LOTIN ALIFBOSIDA)."
+    if lang == "ru":
+        lang_instruction = "FAQAT RUS TILI (CYRILLIC). Respond strictly in Russian."
+
     system_prompt = f"""
 ROLE:
 You are a professional fitness coach system for a Telegram bot.
@@ -877,7 +887,7 @@ Your task is to generate REALISTIC, SAFE, EFFECTIVE workout plans using ONLY the
 
 {get_exercises_string()}
 
-IMPORTANT: GENERATE EVERYTHING IN STRICT UZBEK LANGUAGE (LATIN SCRIPT).
+IMPORTANT: {lang_instruction}
 
 IMPORTANT RULES:
 1. USE ONLY EXERCISES FROM THE LIST ABOVE. DO NOT INVENT EXERCISES.

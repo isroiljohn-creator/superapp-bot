@@ -13,30 +13,41 @@ def handle_profile(message, bot, user_id=None):
             user_id = message.from_user.id
             
         user = db.get_user(user_id)
-        
         if not user:
             bot.send_message(user_id, "Siz hali ro'yxatdan o'tmagansiz. /start ni bosing.")
             return
 
+        lang = user.get('language', 'uz')
+
         # Translation Maps
-        GENDER_MAP = {
-            "male": "Erkak",
-            "female": "Ayol"
-        }
-        
-        GOAL_MAP = {
-            "weight_loss": "Vazn tashlash 🔻",
-            "muscle_gain": "Vazn olish 🔺",
-            "health": "Vaznni ushlab turish ❤️"
-        }
-        
-        ACTIVITY_MAP = {
-            "sedentary": "Kam harakat",
-            "light": "Yengil faol",
-            "moderate": "O'rtacha faol",
-            "active": "Juda faol",
-            "athlete": "Atlet"
-        }
+        if lang == 'ru':
+            GENDER_MAP = {"male": "Мужчина", "female": "Женщина"}
+            GOAL_MAP = {
+                "weight_loss": "Похудение 🔻",
+                "muscle_gain": "Набор массы 🔺",
+                "health": "Здоровье ❤️"
+            }
+            ACTIVITY_MAP = {
+                "sedentary": "Малоподвижный",
+                "light": "Легкий",
+                "moderate": "Умеренный",
+                "active": "Активный",
+                "athlete": "Атлет"
+            }
+        else:
+            GENDER_MAP = {"male": "Erkak", "female": "Ayol"}
+            GOAL_MAP = {
+                "weight_loss": "Vazn tashlash 🔻",
+                "muscle_gain": "Vazn olish 🔺",
+                "health": "Vaznni ushlab turish ❤️"
+            }
+            ACTIVITY_MAP = {
+                "sedentary": "Kam harakat",
+                "light": "Yengil faol",
+                "moderate": "O'rtacha faol",
+                "active": "Juda faol",
+                "athlete": "Atlet"
+            }
 
         # Helper to escape HTML special characters
         def esc(text):
@@ -54,22 +65,35 @@ def handle_profile(message, bot, user_id=None):
         display_activity = ACTIVITY_MAP.get(activity_raw, activity_raw)
 
         # Format profile text
-        # Format profile text
-        text = (
-            f"👤 <b>Sizning profilingiz</b>\n\n"
-            f"- Ism: {esc(display_name)}\n"
-            f"- Yosh: {esc(user.get('age', '-'))} yosh\n"
-            f"- Jins: {esc(display_gender)}\n"
-            f"- Bo'y: {esc(user.get('height', '-'))} sm\n"
-            f"- Vazn: {esc(user.get('weight', '-'))} kg\n"
-            f"- Faollik: {esc(display_activity)}\n"
-            f"- Maqsad: {esc(display_goal)}\n"
-            f"- Allergiya: {esc(user.get('allergies') or 'Yo‘q')}\n\n"
-            f"<b>Keyingi qadamni tanlang👇🏻</b>"
-        )
+        if lang == 'ru':
+            text = (
+                f"👤 <b>Ваш профиль</b>\n\n"
+                f"- Имя: {esc(display_name)}\n"
+                f"- Возраст: {esc(user.get('age', '-'))}\n"
+                f"- Пол: {esc(display_gender)}\n"
+                f"- Рост: {esc(user.get('height', '-'))} см\n"
+                f"- Вес: {esc(user.get('weight', '-'))} кг\n"
+                f"- Активность: {esc(display_activity)}\n"
+                f"- Цель: {esc(display_goal)}\n"
+                f"- Аллергия: {esc(user.get('allergies') or 'Нет')}\n\n"
+                f"<b>Выберите следующее действие 👇🏻</b>"
+            )
+        else:
+            text = (
+                f"👤 <b>Sizning profilingiz</b>\n\n"
+                f"- Ism: {esc(display_name)}\n"
+                f"- Yosh: {esc(user.get('age', '-'))} yosh\n"
+                f"- Jins: {esc(display_gender)}\n"
+                f"- Bo'y: {esc(user.get('height', '-'))} sm\n"
+                f"- Vazn: {esc(user.get('weight', '-'))} kg\n"
+                f"- Faollik: {esc(display_activity)}\n"
+                f"- Maqsad: {esc(display_goal)}\n"
+                f"- Allergiya: {esc(user.get('allergies') or 'Yo‘q')}\n\n"
+                f"<b>Keyingi qadamni tanlang👇🏻</b>"
+            )
         
         with open("assets/profil.png", "rb") as photo:
-            bot.send_photo(user_id, photo, caption=text, reply_markup=profile_inline_keyboard(), parse_mode="HTML")
+            bot.send_photo(user_id, photo, caption=text, reply_markup=profile_inline_keyboard(lang=lang), parse_mode="HTML")
         
     except Exception as e:
         print(f"Profile Error: {e}")

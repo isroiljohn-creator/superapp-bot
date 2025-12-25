@@ -647,96 +647,123 @@ def show_daily_menu(bot, user_id, link_data, day_idx=None, meal_type='breakfast'
             bot.send_message(user_id, "⚠️ Bu kun uchun ma'lumot yo'q.")
             return
 
+        # NEW: The AI JSON has a 'meals' field. Check for it.
+        meals_root = day_data.get('meals', day_data)
+
         # Prepare formatting data
         current_view_date = start_date + timedelta(days=day_idx-1)
         weekday_name = get_weekday_name(current_view_date)
+        user_lang = db.get_user_language(user_id)
         user_goal = db.get_user(user_id).get('goal', 'Sog\'lom Hayot')
         
         # Translate goal (Quick map)
-        goal_map = {"weight_loss": "Vazn yo'qotish", "muscle_gain": "Mushak o'stirish", "health": "Sog'lom turmush"}
+        if user_lang == 'ru':
+            goal_map = {"weight_loss": "Похудение", "muscle_gain": "Набор массы", "health": "Здоровье"}
+        else:
+            goal_map = {"weight_loss": "Vazn yo'qotish", "muscle_gain": "Mushak o'stirish", "health": "Sog'lom turmush"}
         user_goal = goal_map.get(user_goal, user_goal)
 
         # 1. Header
-        txt = f"🍽 <b>✨ {day_idx}-KUN MENYU</b>\n"
-        txt += f"🎯 <b>Maqsad:</b> {_esc(user_goal)} | 📅 {weekday_name}\n\n"
+        header_text = "✨ {}-KUN MENYU" if user_lang == 'uz' else "✨ ДЕНЬ {}. МЕНЮ"
+        txt = f"🍽 <b>{header_text.format(day_idx)}</b>\n"
+        
+        goal_label = "Maqsad" if user_lang == 'uz' else "Цель"
+        txt += f"🎯 <b>{goal_label}:</b> {_esc(user_goal)} | 📅 {weekday_name}\n\n"
         
         # 2. Meal Content
-        meal_data = day_data.get(meal_type)
+        meal_data = meals_root.get(meal_type)
         
-        meal_labels = {
-            'breakfast': '🍳 Nonushta',
-            'lunch': '🥗 Tushlik',
-            'dinner': '🍲 Kechki ovqat',
-            'snack': '🍏 Tamaddi'
-        }
+        if user_lang == 'ru':
+            meal_labels = {
+                'breakfast': '🍳 Завтрак',
+                'lunch': '🥗 Обед',
+                'dinner': '🍲 Ужин',
+                'snack': '🍏 Перекус'
+            }
+        else:
+            meal_labels = {
+                'breakfast': '🍳 Nonushta',
+                'lunch': '🥗 Tushlik',
+                'dinner': '🍲 Kechki ovqat',
+                'snack': '🍏 Tamaddi'
+            }
         
         label = meal_labels.get(meal_type, meal_type.title())
         
         if isinstance(meal_data, dict):
-            title = meal_data.get('title', 'Noma\'lum taom')
-            kcal = meal_data.get('calories', 0) # Use 'calories' as per new schema
+            title = meal_data.get('title', 'Noma\'lum taom' if user_lang == 'uz' else 'Неизвестное блюдо')
+            kcal = meal_data.get('calories', 0)
             
             txt += f"{label}: {_esc(title)}\n"
             if kcal: txt += f"🔥 {kcal} kkal\n\n"
             
             # Ingredients
-            ings = meal_data.get('items', []) # Use 'items'
+            ings = meal_data.get('items', [])
             if ings:
+                label_ings = "Tarkibi" if user_lang == 'uz' else "Ингредиенты"
                 safe_ings = [_esc(i) for i in ings]
-                txt += "<b>Tarkibi:</b> " + ", ".join(safe_ings) + "\n\n"
+                txt += f"<b>{label_ings}:</b> " + ", ".join(safe_ings) + "\n\n"
             
             # Steps
-            steps = meal_data.get('steps', []) # Use 'steps'
+            steps = meal_data.get('steps', [])
             if steps:
-                txt += "<b>Tayyorlanishi:</b>\n"
+                label_prep = "Tayyorlanishi" if user_lang == 'uz' else "Приготовление"
+                txt += f"<b>{label_prep}:</b>\n"
                 for i, step in enumerate(steps, 1):
                     txt += f"{i}. {_esc(step)}\n"
                 txt += "\n"
-            
         else:
-            safe_val = _esc(meal_data) if isinstance(meal_data, str) else 'Ma\'lumot yo\'q'
+            none_text = 'Ma\'lumot yo\'q' if user_lang == 'uz' else 'Нет данных'
+            safe_val = _esc(meal_data) if isinstance(meal_data, str) else none_text
             txt += f"{label}: {safe_val}\n"
 
         # 3. Dynamic Buttons
         markup = InlineKeyboardMarkup()
         
+        from bot.languages import get_text
+        
         # Row 1: "Iste'mol qildim"
-        markup.row(InlineKeyboardButton("🍽 Iste'mol qildim (+kaloriya)", callback_data=f"eat_{day_idx}_{meal_type}"))
+        eat_btn_text = "🍽 Iste'mol qildim (+kaloriya)" if user_lang == 'uz' else "🍽 Я съел (+калории)"
+        markup.row(InlineKeyboardButton(eat_btn_text, callback_data=f"eat_{day_idx}_{meal_type}"))
         
         # Row 2: Other Main Meals
         main_meals_row = []
         if meal_type == 'breakfast':
-            main_meals_row.append(InlineKeyboardButton("🥗 Tushlik", callback_data=f"menu_view_{day_idx}_lunch"))
-            main_meals_row.append(InlineKeyboardButton("🍲 Kechki", callback_data=f"menu_view_{day_idx}_dinner"))
+            main_meals_row.append(InlineKeyboardButton(meal_labels['lunch'], callback_data=f"menu_view_{day_idx}_lunch"))
+            main_meals_row.append(InlineKeyboardButton(meal_labels['dinner'], callback_data=f"menu_view_{day_idx}_dinner"))
         elif meal_type == 'lunch':
-            main_meals_row.append(InlineKeyboardButton("🍳 Nonushta", callback_data=f"menu_view_{day_idx}_breakfast"))
-            main_meals_row.append(InlineKeyboardButton("🍲 Kechki", callback_data=f"menu_view_{day_idx}_dinner"))
+            main_meals_row.append(InlineKeyboardButton(meal_labels['breakfast'], callback_data=f"menu_view_{day_idx}_breakfast"))
+            main_meals_row.append(InlineKeyboardButton(meal_labels['dinner'], callback_data=f"menu_view_{day_idx}_dinner"))
         elif meal_type == 'dinner':
-            main_meals_row.append(InlineKeyboardButton("🍳 Nonushta", callback_data=f"menu_view_{day_idx}_breakfast"))
-            main_meals_row.append(InlineKeyboardButton("🥗 Tushlik", callback_data=f"menu_view_{day_idx}_lunch"))
+            main_meals_row.append(InlineKeyboardButton(meal_labels['breakfast'], callback_data=f"menu_view_{day_idx}_breakfast"))
+            main_meals_row.append(InlineKeyboardButton(meal_labels['lunch'], callback_data=f"menu_view_{day_idx}_lunch"))
         else: # Snack
-            main_meals_row.append(InlineKeyboardButton("🥗 Tushlik", callback_data=f"menu_view_{day_idx}_lunch"))
-            main_meals_row.append(InlineKeyboardButton("🍲 Kechki", callback_data=f"menu_view_{day_idx}_dinner"))
+            main_meals_row.append(InlineKeyboardButton(meal_labels['lunch'], callback_data=f"menu_view_{day_idx}_lunch"))
+            main_meals_row.append(InlineKeyboardButton(meal_labels['dinner'], callback_data=f"menu_view_{day_idx}_dinner"))
         
         markup.row(*main_meals_row)
         
         # Row 3: Snack + Navigation
         snack_nav_row = []
         if meal_type != 'snack':
-             snack_nav_row.append(InlineKeyboardButton("🍏 Tamaddi", callback_data=f"menu_view_{day_idx}_snack"))
+             snack_nav_row.append(InlineKeyboardButton(meal_labels['snack'], callback_data=f"menu_view_{day_idx}_snack"))
         
         # Day Navigation
         if day_idx < total_days:
-            snack_nav_row.append(InlineKeyboardButton("➡️ Ertangi menyu", callback_data=f"menu_view_{day_idx+1}_breakfast"))
+            next_text = "➡️ Ertangi menyu" if user_lang == 'uz' else "➡️ Завтрашнее меню"
+            snack_nav_row.append(InlineKeyboardButton(next_text, callback_data=f"menu_view_{day_idx+1}_breakfast"))
         elif day_idx > 1:
-             snack_nav_row.append(InlineKeyboardButton("⬅️ Kechagi menyu", callback_data=f"menu_view_{day_idx-1}_breakfast"))
+             prev_text = "⬅️ Kechagi menyu" if user_lang == 'uz' else "⬅️ Вчерашнее меню"
+             snack_nav_row.append(InlineKeyboardButton(prev_text, callback_data=f"menu_view_{day_idx-1}_breakfast"))
         
         markup.row(*snack_nav_row)
         
         # Row 4: Tools
+        shop_text = "🛒 Bozorlik" if user_lang == 'uz' else "🛒 Список покупок"
+        swap_text = "🔄 Almashtirish (VIP)" if user_lang == 'uz' else "🔄 Заменить (VIP)"
         markup.row(
-            InlineKeyboardButton("🛒 Bozorlik", callback_data="menu_shopping"),
-            InlineKeyboardButton("🔄 Almashtirish (VIP)", callback_data=f"menu_swap_vip_{day_idx}_{meal_type}")
+            InlineKeyboardButton(shop_text, callback_data="menu_shopping"),
+            InlineKeyboardButton(swap_text, callback_data=f"menu_swap_vip_{day_idx}_{meal_type}")
         )
         
         bot.send_message(user_id, txt, parse_mode="HTML", reply_markup=markup)
@@ -794,10 +821,11 @@ def handle_menu_callback(call, bot):
                     return
                 
                 # Get Meal Kcal
-                meal_obj = day_data.get(meal_type)
+                meals_root = day_data.get('meals', day_data)
+                meal_obj = meals_root.get(meal_type)
                 kcal = 0
                 if meal_obj and isinstance(meal_obj, dict):
-                    kcal = meal_obj.get('kcal', 0)
+                    kcal = meal_obj.get('calories', meal_obj.get('kcal', 0))
                 
                 if kcal > 0:
                     # 2. Add to Daily Log
