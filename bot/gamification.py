@@ -2,6 +2,7 @@ from datetime import datetime
 from telebot import types
 from core.db import db
 from bot.keyboards import gamification_keyboard, points_inline_keyboard
+from bot.languages import get_text
 
 def handle_points_menu(message, bot, user_id=None):
     if user_id is None:
@@ -11,19 +12,22 @@ def handle_points_menu(message, bot, user_id=None):
         bot.send_message(message.chat.id, "⚠️ Foydalanuvchi topilmadi. Iltimos /start ni bosing.")
         return
     points = user.get('yasha_points', 0)
+    lang = user.get('language', 'uz')
+    
+    title = get_text("points_title", lang)
+    balance = get_text("points_balance", lang, points=points)
+    desc = get_text("points_desc", lang)
+    footer = get_text("profile_next_step", lang) # Reusing "Choose next step"
     
     text = (
-        f"<b>🟡 Yasha coin</b>\n\n"
-        f"Sizning coinlaringiz: {points}\n\n"
-        "Coinlarni qanday ishlash mumkin?\n"
-        "- Odatlar (suv, uyqu) → +1-5 coin\n"
-        "- Do'stlarni taklif qilish → +1 coin\n"
-        "- Chellenjlar → +50 coingacha\n\n"
-        "<b>Keyingi qadamni tanlang👇🏻</b>"
+        f"{title}\n\n"
+        f"{balance}\n\n"
+        f"{desc}\n\n"
+        f"{footer}"
     )
     
     markup = points_inline_keyboard()
-    markup.add(types.InlineKeyboardButton("🔗 Referal havola", callback_data="points_referral"))
+    markup.add(types.InlineKeyboardButton(get_text("btn_referral", lang), callback_data="points_referral"))
     
     # If called from callback, maybe edit message? But for now send new.
     # Actually, if we want to be nice, we can try to edit if it's a callback message.
@@ -46,11 +50,15 @@ def handle_referral_link(message, bot, user_id=None):
         
     bot_username = bot.get_me().username
     link = f"https://t.me/{bot_username}?start={code}"
+    lang = user.get('language', 'uz')
+    
+    title = get_text("referral_title", lang)
+    desc = get_text("referral_desc", lang)
     
     text = (
-        "🔗 <b>Sizning referal havolangiz:</b>\n\n"
+        f"{title}\n\n"
         f"{link}\n\n"
-        "Bu havolani do'stlaringizga yuboring. Ular ro'yxatdan o'tsa, sizga +1 coin beriladi! 🟡"
+        f"{desc}"
     )
     
     with open("assets/referal.png", "rb") as photo:
@@ -75,23 +83,25 @@ def handle_rewards(message, bot, user_id=None):
         bot.send_message(message.chat.id, "⚠️ Foydalanuvchi topilmadi. Iltimos /start ni bosing.")
         return
     points = user.get('yasha_points', 0)
+    lang = user.get('language', 'uz')
     
     breakdown = db.get_todays_points_breakdown(user_id)
     
+    title = get_text("rewards_title", lang)
+    balance = get_text("rewards_balance", lang, points=points)
+    daily = get_text("rewards_daily", lang, total=breakdown['total'], water=breakdown['water'], steps=breakdown['steps'], sleep=breakdown['sleep'], mood=breakdown['mood'])
+    choose = get_text("rewards_choose", lang)
+    
     text = (
-        f"🎁 **Mukofotlar Marketi**\n\n"
-        f"💰 Sizning hisobingiz: **{points} ball**\n\n"
-        f"📊 **Bugungi daromad (+{breakdown['total']}):**\n"
-        f"💧 Suv: +{breakdown['water']}\n"
-        f"🚶 Qadam: +{breakdown['steps']}\n"
-        f"😴 Uyqu: +{breakdown['sleep']}\n"
-        f"😊 Kayfiyat: +{breakdown['mood']}\n\n"
-        "👇 **Ballarni almashtirish:**"
+        f"{title}\n\n"
+        f"{balance}\n\n"
+        f"{daily}\n\n"
+        f"{choose}"
     )
     
     markup = types.InlineKeyboardMarkup()
-    markup.add(types.InlineKeyboardButton("💎 1 Hafta Premium (100 ball)", callback_data="redeem_prem_7"))
-    markup.add(types.InlineKeyboardButton("💎 1 Oy Premium (500 ball)", callback_data="redeem_prem_30"))
+    markup.add(types.InlineKeyboardButton(get_text("btn_redeem_7", lang), callback_data="redeem_prem_7"))
+    markup.add(types.InlineKeyboardButton(get_text("btn_redeem_30", lang), callback_data="redeem_prem_30"))
     
     bot.send_message(message.chat.id, text, reply_markup=markup, parse_mode="Markdown")
 
@@ -115,24 +125,26 @@ def handle_tasks(message, bot, user_id=None):
     
     # Check if already checked in
     user = db.get_user(user_id)
+    lang = user.get('language', 'uz')
     checked_in = user.get('last_checkin') == today
     
     status_icon = "✅" if checked_in else "❌"
     
+    title = get_text("tasks_title", lang, date=today)
+    tasks = get_text("tasks_list", lang)
+    
     text = (
-        f"📅 **Bugungi vazifalar ({today}):**\n\n"
-        "1) 6-8 stakan suv ichish\n"
-        "2) 10-15 daqiqa yurish\n"
-        "3) 1 blok mashq bajarish\n\n"
+        f"{title}\n\n"
+        f"{tasks}\n\n"
         f"Status: {status_icon}\n\n"
-        "Vazifalarni bajargan bo‘lsangiz, tugmani bosing:"
+        "👇"
     )
     
     markup = types.InlineKeyboardMarkup()
     if not checked_in:
-        markup.add(types.InlineKeyboardButton("✅ Vazifani bajardim (+1 ball)", callback_data="task_done"))
+        markup.add(types.InlineKeyboardButton(get_text("btn_task_done", lang), callback_data="task_done"))
     else:
-        markup.add(types.InlineKeyboardButton("✅ Bajarildi", callback_data="task_already_done"))
+        markup.add(types.InlineKeyboardButton(get_text("btn_task_already", lang), callback_data="task_already_done"))
     
     bot.send_message(user_id, text, reply_markup=markup, parse_mode="Markdown")
 
@@ -187,17 +199,15 @@ def register_handlers(bot):
             days = 7 if value == "7" else 30
             cost = 100 if value == "7" else 500
             
-            text = (
-                f"💎 **Premium olish**\n\n"
-                f"Muddat: {days} kun\n"
-                f"Narxi: {cost} ball\n\n"
-                f"Davom etishni xohlaysizmi?"
-            )
+            user_id = call.from_user.id
+            lang = db.get_user_language(user_id)
+            
+            text = get_text("redeem_confirm_msg", lang, days=days, cost=cost)
             
             markup = types.InlineKeyboardMarkup()
             markup.row(
-                types.InlineKeyboardButton("✅ Tasdiqlash", callback_data=f"confirm_redeem_{cost}_{days}"),
-                types.InlineKeyboardButton("❌ Bekor qilish", callback_data="cancel_redeem")
+                types.InlineKeyboardButton(get_text("btn_confirm", lang), callback_data=f"confirm_redeem_{cost}_{days}"),
+                types.InlineKeyboardButton(get_text("btn_cancel", lang), callback_data="cancel_redeem")
             )
             
             bot.edit_message_text(text, call.message.chat.id, call.message.message_id, reply_markup=markup, parse_mode="Markdown")

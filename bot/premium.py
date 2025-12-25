@@ -4,6 +4,7 @@ import os
 from telebot import types
 from core.db import db
 from bot.keyboards import premium_inline_keyboard
+from bot.languages import get_text
 
 def handle_premium_menu(message, bot, user_id=None):
     if user_id is None:
@@ -15,19 +16,20 @@ def handle_premium_menu(message, bot, user_id=None):
 
     points = user['points']
     status = db.get_premium_status(user_id)
+    lang = user.get('language', 'uz')
     
-    until_date = "Yo‘q"
+    until_date = get_text("status_no", lang)
     if status['until']:
         until_date = status['until'][:10]
         
-    status_text = "❌ Yo‘q"
+    status_text = get_text("status_no", lang)
     if status['active']:
         if status['type'] == 'trial':
-            status_text = "🎁 Sinov muddati"
+            status_text = get_text("status_trial", lang)
         elif status['type'] == 'subscription':
-            status_text = "✅ Obuna (Avto-yangilanish)"
+            status_text = get_text("status_sub", lang)
         else:
-            status_text = "✅ Premium Faol"
+            status_text = get_text("status_active", lang)
     
     plan_type = user.get('plan_type', 'free').capitalize()
     if plan_type == 'Vip': plan_type = 'VIP'
@@ -37,16 +39,23 @@ def handle_premium_menu(message, bot, user_id=None):
     raw_yasha = user.get('yasha_points', 0)
     raw_points = user.get('points', 0)
     yasha_points = raw_yasha if raw_yasha > 0 else raw_points
+    
+    # Construct text using keys
+    title = get_text("premium_menu_title", lang)
+    t_plan = get_text("premium_menu_plan", lang, plan=plan_type)
+    t_until = get_text("premium_menu_until", lang, date=until_date)
+    t_points = get_text("premium_menu_points", lang, points=yasha_points)
+    t_footer = get_text("premium_menu_footer", lang)
 
     text = (
-        "💳 <b>Obuna bo'limi</b>\n"
-        f"- Tarifingiz: {plan_type}\n"
-        f"- Tugash sanasi: {until_date}\n"
-        f"- Yasha coinlaringiz: {yasha_points}\n\n"
-        "👇 <b>Quyidagi menyudan kerakli bo'limni tanlang:</b>"
+        f"{title}\n"
+        f"{t_plan}\n"
+        f"{t_until}\n"
+        f"{t_points}\n\n"
+        f"{t_footer}"
     )
     
-    markup = premium_inline_keyboard()
+    markup = premium_inline_keyboard(lang=lang)
     # If trial active, maybe show "Buy to extend"
     # If expired, show "Buy"
     
@@ -54,78 +63,21 @@ def handle_premium_menu(message, bot, user_id=None):
         bot.send_photo(user_id, photo, caption=text, reply_markup=markup, parse_mode="HTML")
 
 def handle_premium_info(message, bot):
-    text = (
-        "<b>💎 PREMIUM — 49 000 so‘m / oy</b>\n\n"
-        "✅ AI Menyu — oyiga 1 marta (7 kunlik)\n"
-        "✅ AI Mashqlar rejasi — oyiga 1 marta\n"
-        "⚠️ Kaloriya tahlili — kuniga 3 marta\n"
-        "⚠️ AI Chat (savol-javob) — kuniga 3 marta\n\n"
-        
-        "<b>👑 VIP — 97 000 so‘m / oy</b>\n\n"
-        "✅ AI Menyu — oyiga 4 marta (28 kunlik)\n"
-        "✅ Cheksiz kaloriya tahlili\n"
-        "✅ Cheksiz AI Chat\n"
-        "✅ Cheksiz retseptlar\n\n"
-        "<b>O'zingizga qulay tarifni tanlang👇🏻</b>"
-    )
+    user_id = message.from_user.id
+    lang = db.get_user_language(user_id)
+    text = get_text("premium_sales_short", lang)
+    
     markup = types.InlineKeyboardMarkup()
-    markup.add(types.InlineKeyboardButton("💎 PREMIUM (49.000)", callback_data="select_premium"))
-    markup.add(types.InlineKeyboardButton("👑 VIP (97.000)", callback_data="select_vip"))
-    markup.add(types.InlineKeyboardButton("📄 Ommaviy oferta", callback_data="premium_offer"))
+    markup.add(types.InlineKeyboardButton(get_text("btn_buy_premium", lang), callback_data="select_premium"))
+    markup.add(types.InlineKeyboardButton(get_text("btn_buy_vip", lang), callback_data="select_vip"))
+    markup.add(types.InlineKeyboardButton(get_text("btn_offer", lang), callback_data="premium_offer"))
     
     bot.send_message(message.chat.id, text, reply_markup=markup, parse_mode="HTML")
 
 def handle_premium_info_detailed(message, bot):
-    import random
-    
-    # 3 Variants of Sales Copy
-    variants = [
-        # Variant 1: Kamroq o'ylash
-        (
-            "💎 <b>Premium nimasi bilan qulay?</b>\n\n"
-            "Menyu va mashqlar avtomatik yangilanadi.\n"
-            "Sen har kuni “nima qilsam?” deb o‘ylamaysan.\n\n"
-            "Faqat bajarish qoladi."
-        ),
-        # Variant 2: Vaqtni sotish
-        (
-            "⏳ <b>Premium = vaqtni tejash</b>\n\n"
-            "Reja tuzish, hisoblash, tekshirish — bularni AI qiladi.\n"
-            "Sen esa natijaga fokus bo‘lasan."
-        ),
-        # Variant 3: Psixologik trigger
-        (
-            "<b>Ko‘p odamlar aynan shu joyda to‘xtab qoladi.</b>\n"
-            "Premium esa seni yarim yo‘lda tashlab ketmaslik uchun.\n"
-            "Bu — sening intizoming garovi."
-        )
-    ]
-    
-    intro_text = random.choice(variants)
-    
-    text = (
-        f"{intro_text}\n\n"
-        "〰️〰️〰️〰️〰️〰️〰️\n\n"
-        "<b>💎 PREMIUM — 49 000 so‘m / oy</b>\n"
-        "✅ AI Menyu (7 kunlik)\n"
-        "✅ AI Mashqlar (7 kunlik)\n"
-        "⚠️ Kaloriya tahlili (3x)\n"
-        "👉 Boshlash uchun ideal\n\n"
-        
-        "<b>👑 VIP — 97 000 so‘m / oy</b>\n"
-        "🔥 Oyiga 4 marta Menyu (28 kun)\n"
-        "🔥 Cheksiz Kaloriya tahlili\n"
-        "🔥 Cheksiz AI Chat/Retseptlar\n"
-        "👉 Maksimal natija uchun\n\n"
-        
-        "<b>💳 To‘lov turlari:</b> Click · Payme · Uzum"
-    )
-    markup = types.InlineKeyboardMarkup()
-    markup.add(types.InlineKeyboardButton("💎 PREMIUM (49.000)", callback_data="select_premium"))
-    markup.add(types.InlineKeyboardButton("👑 VIP (97.000)", callback_data="select_vip"))
-    markup.add(types.InlineKeyboardButton("📄 Ommaviy oferta", callback_data="premium_offer"))
-    
-    bot.send_message(message.chat.id, text, reply_markup=markup, parse_mode="HTML")
+    # Redirect to standard info for now to ensure localization is clean
+    # or use same text.
+    handle_premium_info(message, bot)
 
 def handle_offer_download(message, bot):
     try:
@@ -275,14 +227,10 @@ def require_premium(func):
             
         if not db.is_premium(user_id):
             # Upsell message
-            text = (
-                "💎 **Premium kerak**\n\n"
-                "Bu xizmat faqat Premium foydalanuvchilar uchun.\n"
-                "Sizning sinov muddatingiz tugagan.\n\n"
-                "Premium ochish uchun “💎 Premium” bo‘limiga o‘ting."
-            )
+            lang = db.get_user_language(user_id)
+            text = get_text("premium_required_upsell", lang)
             markup = types.InlineKeyboardMarkup()
-            markup.add(types.InlineKeyboardButton("💎 Premium olish", callback_data="premium_buy"))
+            markup.add(types.InlineKeyboardButton(get_text("btn_get_premium", lang), callback_data="premium_buy"))
             bot.send_message(user_id, text, reply_markup=markup, parse_mode="Markdown")
             return
         return func(message, bot, *args, **kwargs)

@@ -9,7 +9,8 @@ def handle_ai_tools_menu(message, bot):
     user_id = message.from_user.id
     lang = db.get_user_language(user_id)
     with open("assets/ai_murabbiy.png", "rb") as photo:
-        caption = "<b>🤖 AI shaxsiy murabbiy</b>\n\nMaqsadingizga tezroq yetishingizga yordam beraman.\nTayyormisiz? — Keyingi qadamni tanlang👇🏻" if lang == 'uz' else "<b>🤖 Личный AI тренер</b>\n\nЯ помогу вам достичь вашей цели быстрее.\nГотовы? — Выберите следующий шаг 👇🏻"
+        lang = db.get_user_language(user_id)
+    caption = get_text("ai_coach_caption", lang)
         bot.send_photo(
             message.chat.id,
             photo,
@@ -145,9 +146,10 @@ def handle_shopping_list(message, bot, user_id=None):
     try:
         import json
         shopping_list = json.loads(active_link['shopping_list_json'])
+        lang = db.get_user_language(user_id)
         
         if not shopping_list:
-            bot.send_message(user_id, "⚠️ Xaridlar ro'yxati bo'sh.", parse_mode="HTML")
+            bot.send_message(user_id, get_text("shopping_list_empty", lang), parse_mode="HTML")
             return
             
         # Log Event [NEW]
@@ -155,8 +157,11 @@ def handle_shopping_list(message, bot, user_id=None):
 
             
         # 3. Format and Send
-        txt = "🛒 <b>30 KUNLIK XARIDLAR RO'YXATI</b>\n\n"
-        txt += "<i>(Sizning joriy menyuingiz asosida)</i>\n\n"
+        title = get_text("shopping_list_title_30", lang)
+        sub = get_text("shopping_list_sub", lang)
+        
+        txt = f"{title}\n\n"
+        txt += f"{sub}\n\n"
         
         for item in shopping_list:
             txt += f"▫️ {item}\n"
@@ -165,7 +170,7 @@ def handle_shopping_list(message, bot, user_id=None):
         
     except Exception as e:
         print(f"Shopping List Error: {e}")
-        bot.send_message(user_id, "⚠️ Xatolik yuz berdi. Iltimos, qayta menyu tuzing.")
+        bot.send_message(user_id, get_text("error_generic", lang))
 
 @require_premium
 def handle_recipe_gen(message, bot, user_id=None):
@@ -290,6 +295,10 @@ def handle_weekly_report(message, bot, user_id=None):
         return
 
     # Construct prompt with real data
+    lang_instruction = "Javob O'zbek tilida."
+    if user.get('language') == 'ru':
+        lang_instruction = "Respond strictly in Russian."
+
     prompt = f"""
     Foydalanuvchi: {user.get('full_name')}
     Maqsad: {user.get('goal')}
@@ -304,7 +313,7 @@ def handle_weekly_report(message, bot, user_id=None):
     Vazifa: Yuqoridagi ma'lumotlarga asoslanib, foydalanuvchiga qisqa, motivatsion haftalik hisobot yozing.
     
     FORMAT:
-    📊 **Haftalik Hisobot**
+    📊 **Haftalik Hisobot** (Translate title if needed)
     
     ✅ **Natijalar:**
     - (Aniq raqamlarni keltiring)
@@ -315,7 +324,7 @@ def handle_weekly_report(message, bot, user_id=None):
     🔥 **Keyingi hafta uchun:**
     - (Qisqa motivatsiya)
     
-    Maksimal 800 belgi. O'zbek tilida.
+    Maksimal 800 belgi. {lang_instruction}
     """
     
     response = call_gemini(prompt)

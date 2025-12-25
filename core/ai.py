@@ -19,11 +19,14 @@ if GEMINI_API_KEY:
 else:
     print("DEBUG: GEMINI_API_KEY not found in environment variables.")
 
-def get_offline_workout(user_profile):
+def get_offline_workout(user_profile, lang="uz"):
     goal = user_profile.get('goal', 'Sog‘liq')
     name = user_profile.get('name', 'Foydalanuvchi')
     
-    header = f"⚠️ <b>AI hozircha band, {name}!</b>\nAmmo sizning maqsadingiz ({goal}) uchun maxsus offline rejani tayyorlab berdim:"
+    if lang == 'ru':
+         header = f"⚠️ <b>AI сейчас занят, {name}!</b>\nНо я подготовил офлайн-план для вашей цели ({goal}):"
+    else:
+         header = f"⚠️ <b>AI hozircha band, {name}!</b>\nAmmo sizning maqsadingiz ({goal}) uchun maxsus offline rejani tayyorlab berdim:"
     
     if "Ozish" in goal or "weight_loss" in goal or "Vazn tashlash" in goal:
         return f"""{header}
@@ -89,11 +92,14 @@ def get_offline_workout(user_profile):
 4. Nafas mashqlari
 """
 
-def get_offline_menu(user_profile):
+def get_offline_menu(user_profile, lang="uz"):
     goal = user_profile.get('goal', 'Sog‘liq')
     name = user_profile.get('name', 'Foydalanuvchi')
     
-    header = f"⚠️ <b>AI hozircha band, {name}!</b>\nAmmo sizning maqsadingiz ({goal}) uchun maxsus offline rejani tayyorlab berdim:"
+    if lang == 'ru':
+        header = f"⚠️ <b>AI сейчас занят, {name}!</b>\nНо я подготовил офлайн-меню для вашей цели ({goal}):"
+    else:
+        header = f"⚠️ <b>AI hozircha band, {name}!</b>\nAmmo sizning maqsadingiz ({goal}) uchun maxsus offline rejani tayyorlab berdim:"
     
     if "Ozish" in goal or "weight_loss" in goal or "Vazn tashlash" in goal:
         return f"""{header}
@@ -582,17 +588,23 @@ VAZIFA: Menga 7 kunlik (Dushanba-Yakshanba) ovqatlanish rejasi kerak.
         
 
 
-def ai_answer_question(question):
+def ai_answer_question(question, lang="uz"):
     """Answers a general fitness question using Gemini."""
     AI_USAGE_STATS["chat"] += 1
     AI_USAGE_STATS["total_requests"] += 1
-    response_text = call_gemini(f"Siz fitnes murabbiyisiz. Savolga qisqa va aniq javob bering (o'zbek tilida): {question}")
+    
+    prompt = f"Siz fitnes murabbiyisiz. Savolga qisqa va aniq javob bering (o'zbek tilida): {question}"
+    if lang == 'ru':
+        prompt = f"Вы фитнес-тренер. Ответьте на вопрос коротко и ясно (на русском): {question}"
+        
+    response_text = call_gemini(prompt)
     if response_text:
-        return format_gemini_text(response_text, "Savolingizga javob")
+        title = "Javob" if lang != 'ru' else "Ответ"
+        return format_gemini_text(response_text, title)
             
     return "⚠️ AI hozircha band. Iltimos, keyinroq urinib ko‘ring."
 
-def ai_generate_shopping_list(user_profile):
+def ai_generate_shopping_list(user_profile, lang="uz"):
     """Generates a shopping list based on user profile and health context."""
     AI_USAGE_STATS["shopping"] += 1
     AI_USAGE_STATS["total_requests"] += 1
@@ -600,8 +612,10 @@ def ai_generate_shopping_list(user_profile):
     # Build allergy/health warning
     allergy_text = user_profile.get('allergies')
     health_context = ""
-    if allergy_text and allergy_text.lower() not in ['yo\'q', 'no', 'none', 'yoq']:
+    if allergy_text and allergy_text.lower() not in ['yo\'q', 'no', 'none', 'yoq', 'net']:
         health_context = f"\n⚠️ DIQQAT: Foydalanuvchida {allergy_text} ga allergiya bor. Ro'yxatga bularni qo'shmang!\n"
+        if lang == 'ru':
+            health_context = f"\n⚠️ ВНИМАНИЕ: У пользователя аллергия на {allergy_text}. Не добавляйте это!\n"
         
     prompt = f"""
     Foydalanuvchi maqsadi: {user_profile.get('goal')}
@@ -630,12 +644,41 @@ def ai_generate_shopping_list(user_profile):
     Muhim joylarni **qalin** qilib yoz.
     """
     
+    if lang == 'ru':
+        prompt = f"""
+        Users Goal: {user_profile.get('goal')}
+        {health_context}
+        
+        Task: Create a shopping list for 3 days of healthy eating.
+        
+        📌 RULES:
+        1. Products must be easily found in Uzbekistan (Bazaar/Korzinka).
+        2. Use local alternatives instead of expensive items (quinoa, avocado, salmon).
+        3. STRICTLY respect allergies.
+        
+        FORMAT:
+        🛒 **Список Покупок**
+        
+        **Овощи и Фрукты:**
+        - ...
+        
+        **Белки (Мясо/Яйца):**
+        - ...
+        
+        **Крупы:**
+        - ...
+        
+        Keep it short and clear. Use **bold** for importance.
+        Respond in RUSSIAN.
+        """
+    
     response = call_gemini(prompt)
     if response:
-        return format_gemini_text(response, "Xaridlar Ro'yxati")
+        title = "Xaridlar Ro'yxati" if lang != 'ru' else "Список Покупок"
+        return format_gemini_text(response, title)
     return None
 
-def analyze_food_image(image_data):
+def analyze_food_image(image_data, lang="uz"):
     """
     Analyzes food image using Gemini Vision.
     Returns structured text in Uzbek.
@@ -674,7 +717,28 @@ def analyze_food_image(image_data):
     5. 🧮 CALCULATION:
        - Example: Coca-Cola 0.5L -> 500ml * 0.42 = 210 kcal. (Show this math mentally and output final result).
 
-    OUTPUT FORMAT (FAQAT O'zbek tilida, lotin alifbosida):
+    OUTPUT FORMAT:
+    """
+    
+    if lang == 'ru':
+        prompt += """
+    🍽 <b>Анализ Калорий</b>
+
+    🥘 <b>Продукт:</b> [Точный Бренд и Название]
+    📏 <b>Объем/Вес:</b> [Точное измерение, напр. 0.5 Л]
+
+    🔥 <b>Всего:</b> [Точный расчет] ккал
+
+    📊 <b>БЖУ (на порцию, не на 100г):</b>
+    🥩 Белки: ... г
+    🥑 Жиры: ... г
+    🍞 Углеводы: ... г
+
+    <i>Рассчитано на основе данных упаковки и стандартов.</i> ✅
+    Respond strictly in RUSSIAN.
+    """
+    else:
+        prompt += """
     🍽 <b>Kaloriya Tahlili</b>
 
     🥘 <b>Mahsulot:</b> [Aniq Brend va Nomi]
@@ -688,6 +752,7 @@ def analyze_food_image(image_data):
     🍞 Uglevod: ... g
 
     <i>Qadoqdagi ma'lumotlar va standartlarga asoslanib hisoblandi.</i> ✅
+    Respond strictly in UZBEK.
     """
 
     # Ensure config is set (idempotent if already set globally, but good to be sure)
@@ -715,7 +780,7 @@ def analyze_food_image(image_data):
             
     return None
 
-def analyze_food_text(text):
+def analyze_food_text(text, lang="uz"):
     """
     Analyzes food text description using Gemini.
     Returns structured text in Uzbek.
@@ -731,7 +796,31 @@ def analyze_food_text(text):
         if not model:
              model = genai.GenerativeModel(os.getenv("GEMINI_MODEL", "gemini-1.5-flash"))
 
-        prompt = f"""
+        if lang == 'ru':
+             prompt = f"""
+        Пользователь съел: "{text}"
+        
+        Задача:
+        - Проанализируй состав и порцию.
+        - Рассчитай калории и БЖУ.
+        
+        Формат ответа (НА РУССКОМ):
+        🍽 <b>Анализ Калорий</b>
+
+        🥘 <b>Еда:</b> ...
+        📏 <b>Порция:</b> ...
+
+        🔥 <b>Всего:</b> ... ккал
+
+        📊 <b>БЖУ:</b>
+        🥩 Белки: ... г
+        🥑 Жиры: ... г
+        🍞 Углеводы: ... г
+
+        <i>Это приблизительный расчет.</i> ✅
+        """
+        else:
+             prompt = f"""
         Foydalanuvchi yedi: "{text}"
         
         Vazifa:
@@ -841,7 +930,7 @@ def format_gemini_text(raw_text, title):
     
     return f"<b>{title}</b>\n\n{text}"
 
-def ai_provide_psychological_support(reason):
+def ai_provide_psychological_support(reason, lang="uz"):
     """Provides psychological support based on user's mood reason."""
     AI_USAGE_STATS["support"] += 1
     AI_USAGE_STATS["total_requests"] += 1
@@ -853,8 +942,14 @@ def ai_provide_psychological_support(reason):
     - Agar muammo jiddiy bo'lsa, oddiy maslahat ber (nafas olish mashqi, sayr qilish, va h.k.).
     - Do'stona va samimiy ohangda bo'lsin.
     - Maksimal 500 belgi.
-    - FAQAT O'zbek tilida (lotin alifbosida).
+    """
     
+    if lang == 'ru':
+        prompt += "\n     - Respond strictly in RUSSIAN.\n"
+    else:
+        prompt += "\n     - FAQAT O'zbek tilida (lotin alifbosida).\n"
+    
+    prompt += """
     Javob formati:
     [Matn]
     """
@@ -902,6 +997,10 @@ def ai_generate_weekly_workout_json(user_profile, lang="uz"):
     if lang == "ru":
         lang_instruction = "FAQAT RUS TILI (CYRILLIC). Respond strictly in Russian."
 
+    today_plan_template = "🏋️ Bugungi mashq rejasi"
+    if lang == "ru":
+        today_plan_template = "🏋️ План тренировки на сегодня"
+
     system_prompt = f"""
 ROLE:
 You are a professional fitness coach system for a Telegram bot.
@@ -941,9 +1040,9 @@ Weekly logic:
 	•	3–4 workout days per week
 	•	1–2 rest days
 	•	Muscle split logic:
-	•	Upper Body -> Yuqori Tana
-	•	Lower Body -> Pastki Tana
-	•	Core / Full Body -> Butun Tana
+	•	Upper Body -> Yuqori Tana (Ru: Верх тела)
+	•	Lower Body -> Pastki Tana (Ru: Низ тела)
+	•	Core / Full Body -> Butun Tana (Ru: Всё тело)
 	•	Never train same muscle groups on consecutive days
 
 ⸻
@@ -958,28 +1057,28 @@ Weekly logic:
 
 For workout days, the 'exercises' string MUST look exactly like this (use HTML bold tags <b>):
 
-🏋️ Bugungi mashq rejasi ({{Yuqori Tana / Pastki Tana / Butun Tana}})
+{today_plan_template} ({{Target Body Part Localized}})
 
-⏱ Umumiy vaqt: 30–40 daqiqa
-🎯 Maqsad: {{Vazn yo'qotish / Mushak o'stirish}} (Uzbek)
+⏱ Umumiy vaqt: 30–40 daqiqa (Ru: Общее время: 30-40 мин)
+🎯 Maqsad: {{Vazn yo'qotish / Mushak o'stirish}} (Localized)
 
-🔹 <b>Razminka (5 daqiqa)</b>
+🔹 <b>Razminka (5 daqiqa)</b> (Ru: Разминка (5 мин))
 - Yengil cho‘zilish
 - Bo‘g‘imlarni aylantirish
 - Yengil harakatlar
 
-💪 <b>Asosiy mashqlar</b>
+💪 <b>Asosiy mashqlar</b> (Ru: Основные упражнения)
 
 1️⃣ <b>Exercise Name</b>
-📌 Mushaklar: (Uzbek)
-🔁 3 set × 12 marta
-⏸ Dam: 60 soniya
-🎥 Link: <a href="Instagram URL">Video darslik</a>
+📌 Mushaklar: (Localized)
+🔁 3 set × 12 marta (Ru: 3 подхода x 12 раз)
+⏸ Dam: 60 soniya (Ru: Отдых 60 сек)
+🎥 Link: <a href="Instagram URL">Video</a>
 
 2️⃣ <b>Next Exercise Name</b>
 ... (Repeat for 4-5 exercises) ...
 
-🧘 <b>Sovitish</b>
+🧘 <b>Sovitish</b> (Ru: Заминка)
 - Mushaklarni cho'zish
 
 ❌ DO NOT ADD SEPARATOR LINES LIKE "_______________________" AT THE END.
@@ -988,6 +1087,7 @@ For workout days, the 'exercises' string MUST look exactly like this (use HTML b
 
 For REST DAYS, the 'exercises' field MUST be exactly:
 "🧘‍♂️ <b>Bugun dam olish kuni</b>\\n\\nBugun tanani tiklaymiz.\\nYengil yurish yoki cho‘zilish tavsiya etiladi.\\n\\n👉 Ertaga mashq rejalashtirilgan"
+(If Russian: "🧘‍♂️ <b>Сегодня День Отдыха</b>\\n\\nВосстанавливаем силы.\\nРекомендуется легкая прогулка.\\n\\n👉 Завтра тренировка")
 
 ⸻
 
@@ -1091,14 +1191,18 @@ Talablar:
 # -------------------------------------------------------------------------
 # NEW: Single Meal Generation (VIP Swap)
 # -------------------------------------------------------------------------
-def ai_generate_single_meal(user_profile, meal_type, day_name="Bugun"):
+def ai_generate_single_meal(user_profile, meal_type, day_name="Bugun", lang="uz"):
     """Generates a SINGLE meal object for VIP swap."""
     
     # 1. Prompt
+    lang_instruction = "Javob FAQAT O'zbek tilida (lotin alifbosida) bo'lsin."
+    if lang == 'ru':
+        lang_instruction = "Respond strictly in RUSSIAN."
+
     prompt = f"""
     Siz professional dietologsiz.
     Vazifa: "{day_name}" uchun yangi "{meal_type.upper()}" (Taom) o'ylab toping.
-    Javob FAQAT O'zbek tilida (lotin alifbosida) bo'lsin.
+    {lang_instruction}
     
     Foydalanuvchi:
     - Maqsad: {user_profile.get('goal', 'Sog‘liq')}
@@ -1160,49 +1264,79 @@ def ai_generate_single_meal(user_profile, meal_type, day_name="Bugun"):
 # NEW: Free Tier Static Templates (Zero AI)
 # -------------------------------------------------------------------------
 
-def get_free_workout_template(user_profile):
+def get_free_workout_template(user_profile, lang="uz"):
     """Returns a STATIC workout plan based on goal. No AI cost."""
     goal = user_profile.get('goal', 'Sog‘liq')
     is_weight_loss = "Ozish" in goal or "weight_loss" in goal or "Vazn tashlash" in goal
     
+    # Localized text vars
+    if lang == 'ru':
+        t_focus = "Фокус"
+        t_rest = "Отдых"
+        t_week_end = "Конец недели"
+        t_prep = "Подготовка к новой неделе"
+        t_rest_desc_1 = "Сегодня день полного восстановления. Пейте больше воды."
+        t_rest_desc_2 = "Погуляйте и отдохните."
+        t_rest_desc_3 = "Для роста мышц нужен отдых."
+        t_rest_desc_4 = "День восстановления."
+        t_upper = "Верх тела"
+        t_lower = "Низ тела"
+        t_core = "Кор + Кардио"
+        t_chest = "Грудь + Руки"
+        t_shoulder = "Плечи + Кор"
+    else:
+        t_focus = "Focus"
+        t_rest = "Dam olish (Rest)"
+        t_week_end = "Haftalik yakun."
+        t_prep = "Yangi haftaga tayyorgarlik."
+        t_rest_desc_1 = "Bugun to'liq tiklanish kuni. Ko'proq suv iching."
+        t_rest_desc_2 = "Sayr qiling va dam oling."
+        t_rest_desc_3 = "Mushaklar o'sishi uchun dam kerak."
+        t_rest_desc_4 = "Tiklanish kuni."
+        t_upper = "Yuqori tana"
+        t_lower = "Pastki tana"
+        t_core = "Core + Kardio"
+        t_chest = "Ko‘krak + Qo‘l"
+        t_shoulder = "Yelka + Core"
+
     # Template 1: Weight Loss (Uy sharoiti)
     if is_weight_loss:
         return {
             "schedule": [
                 {
                     "day": 1,
-                    "focus": "Pastki tana",
+                    "focus": t_lower,
                     "exercises": "1. Squat — 3×12\n2. O‘tirib turish (Chair squat) — 3×15\n3. Oyoq ko‘tarish (Leg raise) — 3×10\n4. Yengil cho‘zilish — 5 daqiqa"
                 },
                 {
                     "day": 2,
-                    "focus": "Dam olish (Rest)", 
-                    "exercises": "Bugun to'liq tiklanish kuni. Ko'proq suv iching."
+                    "focus": t_rest, 
+                    "exercises": t_rest_desc_1
                 },
                 {
                     "day": 3,
-                    "focus": "Yuqori tana",
+                    "focus": t_upper,
                     "exercises": "1. Knee push-up — 3×10\n2. Devorga suyangan push-up — 3×12\n3. Yelka aylantirish — 3×15\n4. Cho‘zilish — 5 daqiqa"
                 },
                 {
                     "day": 4,
-                    "focus": "Dam olish (Rest)",
-                    "exercises": "Sayr qiling va dam oling."
+                    "focus": t_rest,
+                    "exercises": t_rest_desc_2
                 },
                 {
                     "day": 5,
-                    "focus": "Core + Kardio",
+                    "focus": t_core,
                     "exercises": "1. Plank — 3×20 soniya\n2. Crunch — 3×12\n3. Joyida yurish — 5 daqiqa\n4. Nafas mashqlari — 3 daqiqa"
                 },
                 {
                     "day": 6,
-                    "focus": "Dam olish (Rest)",
-                    "exercises": "Haftalik yakun."
+                    "focus": t_rest,
+                    "exercises": t_week_end
                 },
                 {
                     "day": 7,
-                    "focus": "Dam olish (Rest)",
-                    "exercises": "Yangi haftaga tayyorgarlik."
+                    "focus": t_rest,
+                    "exercises": t_prep
                 }
             ]
         }
@@ -1212,84 +1346,129 @@ def get_free_workout_template(user_profile):
         "schedule": [
             {
                 "day": 1,
-                "focus": "Ko‘krak + Qo‘l",
+                "focus": t_chest,
                 "exercises": "1. Push-up — 4×10\n2. Dumbbell curl — 3×12\n3. Triceps dip — 3×10"
             },
             {
                 "day": 2,
-                "focus": "Dam olish (Rest)",
-                "exercises": "Mushaklar o'sishi uchun dam kerak."
+                "focus": t_rest,
+                "exercises": t_rest_desc_3
             },
             {
                 "day": 3,
-                "focus": "Oyoq",
+                "focus": "Oyoq" if lang != 'ru' else "Ноги",
                 "exercises": "1. Squat — 4×12\n2. Lunge — 3×10\n3. Calf raise — 3×15"
             },
             {
                 "day": 4,
-                "focus": "Dam olish (Rest)",
-                "exercises": "Tiklanish kuni."
+                "focus": t_rest,
+                "exercises": t_rest_desc_4
             },
             {
                 "day": 5,
-                "focus": "Yelka + Core",
+                "focus": t_shoulder,
                 "exercises": "1. Shoulder press — 3×10\n2. Plank — 3×30 soniya"
             },
             {
                 "day": 6,
-                "focus": "Dam olish (Rest)",
-                "exercises": "Dam olish."
+                "focus": t_rest,
+                "exercises": "Dam olish." if lang != 'ru' else "Отдых."
             },
             {
                 "day": 7,
-                "focus": "Dam olish (Rest)",
-                "exercises": "Tayyorgarlik."
+                "focus": t_rest,
+                "exercises": "Tayyorgarlik." if lang != 'ru' else "Подготовка."
             }
         ]
     }
 
-def get_free_menu_template():
+def get_free_menu_template(lang="uz"):
     """Returns a STATIC 1-day menu template. Zero AI cost."""
     # This is a 1-day template replicated for structure compliance
     # But for Free users, we only show "Bugungi Menyu".
     
+    if lang == 'ru':
+        day_name = "Сегодня"
+        advice = "Вы на верном пути 🔥."
+        t_egg = "Яйца и овощи"
+        i_egg = ["Яйца (2 шт)", "Помидор (1)", "Огурец (1)"]
+        s_egg = ["Сварить яйца", "Нарезать овощи"]
+        t_snack_title = "Яблоко"
+        i_apple = ["Яблоко (1 шт)"]
+        s_snack = ["Помыть и съесть"]
+        t_soup = "Куриный суп"
+        i_soup = ["Курица (150г)", "Картофель (1)", "Морковь (1)"]
+        s_soup = ["Сварить мясо", "Добавить овощи"]
+        t_dinner = "Гречка + салат"
+        i_dinner = ["Гречка (80г)", "Капуста (100г)"]
+        s_dinner = ["Гречку запарить", "Нарезать салат"]
+        cost = "Эконом"
+        place = "Дом"
+        
+        l_title = "🔒 Только Premium"
+        l_steps = "Меню в YASHA Plus"
+        l_status = "День X (Premium)"
+        l_advice = "Полное меню только в YASHA Plus."
+    else:
+        day_name = "Bugun"
+        advice = "Siz yaxshi ketayapsiz 🔥. Natija davomiylikda."
+        t_egg = "Tuxum va sabzavot"
+        i_egg = ["Tuxum (2 dona)", "Pomidor (1 dona)", "Bodring (1 dona)"]
+        s_egg = ["Tuxumni qaynating", "Sabzavotlarni to'g'rang"]
+        t_snack_title = "Olma"
+        i_apple = ["Olma (1 dona)"]
+        s_snack = ["Yuvib iste'mol qiling"]
+        t_soup = "Tovuq sho‘rvasi"
+        i_soup = ["Tovuq (150g)", "Kartoshka (1)", "Sabzi (1)"]
+        s_soup = ["Go'shtni qaynatib oling", "Sabzavot soling"]
+        t_dinner = "Grechka + salat"
+        i_dinner = ["Grechka (80g)", "Karam (100g)"]
+        s_dinner = ["Grechkani dimlang", "Salat to'g'rang"]
+        cost = "Arzon"
+        place = "uy"
+        
+        l_title = "🔒 Faqat Premiumda"
+        l_steps = "YASHA Plus taomnomasi"
+        l_status = "Kun {i} (Premium)"
+        l_advice = "To'liq menyu faqat YASHA Plus'da."
+
     daily_plan = {
         "day": 1,
-        "day_name": "Bugun",
+        "day_name": day_name,
         "total_kcal": 1400,
-        "micro_advice": "Siz yaxshi ketayapsiz 🔥. Natija davomiylikda.",
+        "micro_advice": advice,
         "breakfast": {
-            "title": "Tuxum va sabzavot",
+            "title": t_egg,
             "kcal": 350,
-            "ingredients": ["Tuxum (2 dona)", "Pomidor (1 dona)", "Bodring (1 dona)"],
-            "preparation_steps": ["Tuxumni qaynating", "Sabzavotlarni to'g'rang"],
+            "ingredients": i_egg,
+            "preparation_steps": s_egg,
             "time_minutes": 10,
-            "cost_level": "Arzon",
-            "place": "uy"
+            "cost_level": cost,
+            "place": place
         },
         "snack": {
-            "title": "Olma",
+            "title": t_snack_title,
             "kcal": 150,
-            "ingredients": ["Olma (1 dona)"], 
-            "preparation_steps": ["Yuvib iste'mol qiling"]
+            "ingredients": i_apple, 
+            "preparation_steps": s_snack
         },
         "lunch": {
-            "title": "Tovuq sho‘rvasi",
+            "title": t_soup,
             "kcal": 500,
-            "ingredients": ["Tovuq (150g)", "Kartoshka (1)", "Sabzi (1)"],
-            "preparation_steps": ["Go'shtni qaynatib oling", "Sabzavot soling"],
+            "ingredients": i_soup,
+            "preparation_steps": s_soup,
             "time_minutes": 45,
-            "cost_level": "Arzon",
-            "place": "uy"
+            "cost_level": cost,
+            "place": place
         },
         "dinner": {
-            "title": "Grechka + salat",
+            "title": t_dinner,
             "kcal": 400,
-            "ingredients": ["Grechka (80g)", "Karam (100g)"],
-            "preparation_steps": ["Grechkani dimlang", "Salat to'g'rang"],
+            "ingredients": i_dinner,
+            "preparation_steps": s_dinner,
             "time_minutes": 25,
-            "cost_level": "Arzon",
-            "place": "uy"
+            "cost_level": cost,
+            "place": place
         }
     }
     
@@ -1298,10 +1477,10 @@ def get_free_menu_template():
     
     # Locked Meal Object
     locked_meal = {
-         "title": "🔒 Faqat Premiumda",
+         "title": l_title,
          "kcal": 0,
          "ingredients": ["..."],
-         "preparation_steps": ["YASHA Plus taomnomasi"],
+         "preparation_steps": [l_steps],
          "time_minutes": 0,
          "cost_level": "-",
          "place": "-"
@@ -1313,9 +1492,9 @@ def get_free_menu_template():
         else:
             day_copy = {
                 "day": i,
-                "day_name": f"Kun {i} (Premium)",
+                "day_name": l_status.replace("{i}", str(i)),
                 "total_kcal": 0,
-                "micro_advice": "To'liq menyu faqat YASHA Plus'da.",
+                "micro_advice": l_advice,
                 "breakfast": locked_meal,
                 "lunch": locked_meal,
                 "dinner": locked_meal,
@@ -1331,7 +1510,7 @@ def get_free_menu_template():
 # -------------------------------------------------------------------------
 # NEW: Fridge / Recipe Suggestion (Premium)
 # -------------------------------------------------------------------------
-def ai_suggest_recipe(user_profile, ingredients_text):
+def ai_suggest_recipe(user_profile, ingredients_text, lang="uz"):
     """Suggests a healthy recipe based on user ingredients."""
     
     prompt = f"""
@@ -1359,6 +1538,31 @@ def ai_suggest_recipe(user_profile, ingredients_text):
     Qisqa, lo'nda va tushunarli bo'lsin.
     """
     
+    if lang == 'ru':
+        prompt = f"""
+    You are a professional nutritionist.
+    
+    Goal: {user_profile.get('goal', 'Sog‘liq')}
+    Ingredients in fridge: "{ingredients_text}"
+    
+    TASK:
+    Create ONE healthy recipe using these ingredients.
+    
+    Format (Response strictly in RUSSIAN):
+    🍽 **Название Блюда**
+    
+    🛒 **Ингредиенты:**
+    - ...
+    
+    👩‍🍳 **Приготовление:**
+    1. ...
+    2. ...
+    
+    💡 **Польза:** ...
+    
+    Keep it short and clear.
+    """
+    
     try:
         response_text = ask_gemini("You are a professional nutritionist expert.", prompt)
         return response_text
@@ -1369,33 +1573,58 @@ def ai_suggest_recipe(user_profile, ingredients_text):
 # -------------------------------------------------------------------------
 # Free Tier Mood Support (Static)
 # -------------------------------------------------------------------------
-def get_free_mood_support_template():
+def get_free_mood_support_template(lang="uz"):
     """Returns a static supportive message for Free users."""
     import random
     
-    templates = [
-        (
-            "😔 **Tushunaman, ba'zan shunday bo'ladi.**\n\n"
-            "Hozir eng muhimi — o'zingizga vaqt ajratish. "
-            "Chuqur nafas oling va bir stakan suv iching. "
-            "Muammolar vaqtinchalik, siz esa kuchlisiz. ��\n\n"
-            "💡 _YASHA Plus'da AI sizning vaziyatingizni tahlil qilib, "
-            "aniq psixologik maslahatlar bera oladi._"
-        ),
-        (
-            "🫂 **Siz yolg'iz emassiz.**\n\n"
-            "Har bir inson qiyin kunlarni boshdan kechiradi. "
-            "Bugun shunchaki dam olishga harakat qiling. "
-            "Hammasi yaxshi bo'ladi ✨\n\n"
-            "💡 _YASHA Plus'da AI murabbiy siz bilan suhbatlashib, "
-            "stressni yengishga yordam beradi._"
-        ),
-        (
-            "🌧 **Yomg'irdan keyin albatta quyosh chiqadi.**\n\n"
-            "Kayfiyat o'zgaruvchan, lekin maqsadingiz o'zgarmasin. "
-            "O'zingizni ehtiyot qiling.\n\n"
-            "�� _YASHA Plus foydalanuvchilari uchun AI har qanday vaziyatda "
-            "individual yechim taklif qiladi._"
-        )
-    ]
+    if lang == 'ru':
+        templates = [
+            (
+                "😔 **Понимаю, бывают такие дни.**\n\n"
+                "Сейчас главное — уделить время себе. "
+                "Сделайте глубокий вдох и выпейте стакан воды. "
+                "Трудности временны, а вы сильны. 💚\n\n"
+                "💡 _В YASHA Plus AI может проанализировать ваше состояние и дать "
+                "персональные психологические советы._"
+            ),
+            (
+                "🫂 **Вы не одни.**\n\n"
+                "У каждого бывают трудные дни. "
+                "Постарайтесь сегодня просто отдохнуть. "
+                "Все будет хорошо ✨\n\n"
+                "💡 _В YASHA Plus AI тренер может пообщаться с вами "
+                "и помочь справиться со стрессом._"
+            ),
+            (
+                "🌧 **После дождя всегда выходит солнце.**\n\n"
+                "Настроение меняется, но цель остается. "
+                "Берегите себя.\n\n"
+            )
+        ]
+    else:
+        templates = [
+            (
+                "😔 **Tushunaman, ba'zan shunday bo'ladi.**\n\n"
+                "Hozir eng muhimi — o'zingizga vaqt ajratish. "
+                "Chuqur nafas oling va bir stakan suv iching. "
+                "Muammolar vaqtinchalik, siz esa kuchlisiz. 💚\n\n"
+                "💡 _YASHA Plus'da AI sizning vaziyatingizni tahlil qilib, "
+                "aniq psixologik maslahatlar bera oladi._"
+            ),
+            (
+                "🫂 **Siz yolg'iz emassiz.**\n\n"
+                "Har bir inson qiyin kunlarni boshdan kechiradi. "
+                "Bugun shunchaki dam olishga harakat qiling. "
+                "Hammasi yaxshi bo'ladi ✨\n\n"
+                "💡 _YASHA Plus'da AI murabbiy siz bilan suhbatlashib, "
+                "stressni yengishga yordam beradi._"
+            ),
+            (
+                "🌧 **Yomg'irdan keyin albatta quyosh chiqadi.**\n\n"
+                "Kayfiyat o'zgaruvchan, lekin maqsadingiz o'zgarmasin. "
+                "O'zingizni ehtiyot qiling.\n\n"
+                "💡 _YASHA Plus foydalanuvchilari uchun AI har qanday vaziyatda "
+                "individual yechim taklif qiladi._"
+            )
+        ]
     return random.choice(templates)

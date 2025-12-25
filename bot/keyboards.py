@@ -110,12 +110,13 @@ def main_menu_keyboard(is_admin=False, user_id=None, lang=None):
     
     return markup
 
-def plan_inline_keyboard():
+def plan_inline_keyboard(lang="uz"):
+    from bot.languages import get_text
     markup = InlineKeyboardMarkup(row_width=1)
     markup.add(
-        InlineKeyboardButton("🤖 AI mashg‘ulot rejasi", callback_data="plan_ai_workout"),
-        InlineKeyboardButton("🥦 AI ovqatlanish rejasi", callback_data="plan_ai_meal"),
-        InlineKeyboardButton("🍽 Kaloriya tahlili (premium)", callback_data="plan_calorie_scan")
+        InlineKeyboardButton(get_text("btn_ai_workout", lang=lang), callback_data="plan_ai_workout"),
+        InlineKeyboardButton(get_text("btn_ai_meal", lang=lang), callback_data="plan_ai_meal"),
+        InlineKeyboardButton(get_text("btn_calorie_scan", lang=lang), callback_data="plan_calorie_scan")
     )
     return markup
 
@@ -162,35 +163,28 @@ def challenges_inline_keyboard():
     return markup
 
 def profile_inline_keyboard(lang="uz"):
+    from bot.languages import get_text
     markup = InlineKeyboardMarkup(row_width=1)
     
-    if lang == "ru":
-        edit_text = "✏️ Изменить анкету"
-        stats_text = "📊 Статистика здоровья"
-        goal_text = "🎯 Изменить цель"
-    else:
-        edit_text = "✏️ Anketani yangilash"
-        stats_text = "📊 Sog‘liq statistikasi"
-        goal_text = "🎯 Maqsadni o‘zgartirish"
-
     markup.add(
-        InlineKeyboardButton(edit_text, callback_data="profile_edit"),
-        InlineKeyboardButton(stats_text, callback_data="profile_stats"),
-        InlineKeyboardButton(goal_text, callback_data="profile_change_goal")
+        InlineKeyboardButton(get_text("btn_edit_profile", lang), callback_data="profile_edit"),
+        InlineKeyboardButton(get_text("btn_stats", lang), callback_data="profile_stats"),
+        InlineKeyboardButton(get_text("btn_change_goal", lang), callback_data="profile_change_goal")
     )
     return markup
 
-def premium_inline_keyboard():
+def premium_inline_keyboard(lang="uz"):
+    from bot.languages import get_text
     markup = InlineKeyboardMarkup()
     # Big button for Buy Premium
-    markup.row(InlineKeyboardButton("💳 Tarifni almashtirish", callback_data="premium_buy"))
+    markup.row(InlineKeyboardButton(get_text("btn_change_plan", lang), callback_data="premium_buy"))
     # Two buttons in one row: Tariffs and Yasha Coin
     markup.row(
-        InlineKeyboardButton("ℹ️ Tariflar", callback_data="premium_info"),
-        InlineKeyboardButton("🟡 Yasha Coin", callback_data="premium_coins")
+        InlineKeyboardButton(get_text("btn_tariffs", lang), callback_data="premium_info"),
+        InlineKeyboardButton(get_text("btn_coins", lang), callback_data="premium_coins")
     )
     # Challenges inside Yasha Plus
-    markup.row(InlineKeyboardButton("🔥 Chellenjlar", callback_data="premium_challenges"))
+    markup.row(InlineKeyboardButton(get_text("btn_challenges_menu", lang), callback_data="premium_challenges"))
     return markup
 
 def gamification_keyboard():

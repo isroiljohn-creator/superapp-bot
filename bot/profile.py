@@ -5,6 +5,7 @@ from bot.keyboards import main_menu_keyboard, gender_keyboard, goal_keyboard, al
 import traceback
 
 from bot.keyboards import profile_inline_keyboard
+from bot.languages import get_text
 
 def handle_profile(message, bot, user_id=None):
     """Show user profile with sub-menu"""
@@ -19,36 +20,6 @@ def handle_profile(message, bot, user_id=None):
 
         lang = user.get('language', 'uz')
 
-        # Translation Maps
-        if lang == 'ru':
-            GENDER_MAP = {"male": "Мужчина", "female": "Женщина"}
-            GOAL_MAP = {
-                "weight_loss": "Похудение 🔻",
-                "muscle_gain": "Набор массы 🔺",
-                "health": "Здоровье ❤️"
-            }
-            ACTIVITY_MAP = {
-                "sedentary": "Малоподвижный",
-                "light": "Легкий",
-                "moderate": "Умеренный",
-                "active": "Активный",
-                "athlete": "Атлет"
-            }
-        else:
-            GENDER_MAP = {"male": "Erkak", "female": "Ayol"}
-            GOAL_MAP = {
-                "weight_loss": "Vazn tashlash 🔻",
-                "muscle_gain": "Vazn olish 🔺",
-                "health": "Vaznni ushlab turish ❤️"
-            }
-            ACTIVITY_MAP = {
-                "sedentary": "Kam harakat",
-                "light": "Yengil faol",
-                "moderate": "O'rtacha faol",
-                "active": "Juda faol",
-                "athlete": "Atlet"
-            }
-
         # Helper to escape HTML special characters
         def esc(text):
             if not text: return "-"
@@ -60,37 +31,40 @@ def handle_profile(message, bot, user_id=None):
         goal_raw = user.get('goal')
         activity_raw = user.get('activity_level')
         
-        display_gender = GENDER_MAP.get(gender_raw, gender_raw)
-        display_goal = GOAL_MAP.get(goal_raw, goal_raw)
-        display_activity = ACTIVITY_MAP.get(activity_raw, activity_raw)
+        display_gender = get_text(f"gender_{gender_raw}", lang)
+        # Fallback if key missing (e.g. raw is None or invalid), usually not needed if robust
+        if f"gender_{gender_raw}" not in ["gender_male", "gender_female"]:
+             display_gender = gender_raw
+
+        display_goal = get_text(f"goal_{goal_raw}", lang)
+        display_activity = get_text(f"activity_{activity_raw}", lang)
 
         # Format profile text
-        if lang == 'ru':
-            text = (
-                f"👤 <b>Ваш профиль</b>\n\n"
-                f"- Имя: {esc(display_name)}\n"
-                f"- Возраст: {esc(user.get('age', '-'))}\n"
-                f"- Пол: {esc(display_gender)}\n"
-                f"- Рост: {esc(user.get('height', '-'))} см\n"
-                f"- Вес: {esc(user.get('weight', '-'))} кг\n"
-                f"- Активность: {esc(display_activity)}\n"
-                f"- Цель: {esc(display_goal)}\n"
-                f"- Аллергия: {esc(user.get('allergies') or 'Нет')}\n\n"
-                f"<b>Выберите следующее действие 👇🏻</b>"
-            )
-        else:
-            text = (
-                f"👤 <b>Sizning profilingiz</b>\n\n"
-                f"- Ism: {esc(display_name)}\n"
-                f"- Yosh: {esc(user.get('age', '-'))} yosh\n"
-                f"- Jins: {esc(display_gender)}\n"
-                f"- Bo'y: {esc(user.get('height', '-'))} sm\n"
-                f"- Vazn: {esc(user.get('weight', '-'))} kg\n"
-                f"- Faollik: {esc(display_activity)}\n"
-                f"- Maqsad: {esc(display_goal)}\n"
-                f"- Allergiya: {esc(user.get('allergies') or 'Yo‘q')}\n\n"
-                f"<b>Keyingi qadamni tanlang👇🏻</b>"
-            )
+        title = get_text("profile_title", lang)
+        l_name = get_text("profile_name", lang)
+        l_age = get_text("profile_age", lang)
+        l_gender = get_text("profile_gender", lang)
+        l_height = get_text("profile_height", lang)
+        l_weight = get_text("profile_weight", lang)
+        l_activity = get_text("profile_activity", lang)
+        l_goal = get_text("profile_goal", lang)
+        l_allergy = get_text("profile_allergies", lang)
+        footer = get_text("profile_next_step", lang)
+        
+        allergies = user.get('allergies') or "—"
+        
+        text = (
+            f"{title}\n\n"
+            f"- {l_name}: {esc(display_name)}\n"
+            f"- {l_age}: {esc(user.get('age', '-'))}\n"
+            f"- {l_gender}: {esc(display_gender)}\n"
+            f"- {l_height}: {esc(user.get('height', '-'))} sm/см\n"
+            f"- {l_weight}: {esc(user.get('weight', '-'))} kg/кг\n"
+            f"- {l_activity}: {esc(display_activity)}\n"
+            f"- {l_goal}: {esc(display_goal)}\n"
+            f"- {l_allergy}: {esc(allergies)}\n\n"
+            f"{footer}"
+        )
         
         with open("assets/profil.png", "rb") as photo:
             bot.send_photo(user_id, photo, caption=text, reply_markup=profile_inline_keyboard(lang=lang), parse_mode="HTML")
@@ -102,18 +76,21 @@ def handle_profile(message, bot, user_id=None):
 
 def handle_edit_profile_command(message, bot):
     """Show inline menu for editing fields"""
+    user_id = message.from_user.id
+    lang = db.get_user_language(user_id)
+    
     markup = types.InlineKeyboardMarkup(row_width=2)
     markup.add(
-        types.InlineKeyboardButton("Ism", callback_data="edit_field_full_name"),
-        types.InlineKeyboardButton("Yosh", callback_data="edit_field_age"),
-        types.InlineKeyboardButton("Jins", callback_data="edit_field_gender"),
-        types.InlineKeyboardButton("Bo'y", callback_data="edit_field_height"),
-        types.InlineKeyboardButton("Vazn", callback_data="edit_field_weight"),
-        types.InlineKeyboardButton("Faollik", callback_data="edit_field_activity"),
-        types.InlineKeyboardButton("Maqsad", callback_data="edit_field_goal"),
-        types.InlineKeyboardButton("Allergiya", callback_data="edit_field_allergies")
+        types.InlineKeyboardButton(get_text("profile_name", lang), callback_data="edit_field_full_name"),
+        types.InlineKeyboardButton(get_text("profile_age", lang), callback_data="edit_field_age"),
+        types.InlineKeyboardButton(get_text("profile_gender", lang), callback_data="edit_field_gender"),
+        types.InlineKeyboardButton(get_text("profile_height", lang), callback_data="edit_field_height"),
+        types.InlineKeyboardButton(get_text("profile_weight", lang), callback_data="edit_field_weight"),
+        types.InlineKeyboardButton(get_text("profile_activity", lang), callback_data="edit_field_activity"),
+        types.InlineKeyboardButton(get_text("profile_goal", lang), callback_data="edit_field_goal"),
+        types.InlineKeyboardButton(get_text("profile_allergies", lang), callback_data="edit_field_allergies")
     )
-    bot.send_message(message.chat.id, "✏️ <b>Nimani o'zgartirmoqchisiz?</b>", reply_markup=markup, parse_mode="HTML")
+    bot.send_message(message.chat.id, get_text("edit_prompt_start", lang), reply_markup=markup, parse_mode="HTML")
 
 def handle_profile_stats(message, bot, user_id=None):
     if user_id is None:

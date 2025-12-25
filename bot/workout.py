@@ -4,6 +4,7 @@ from core.db import db
 from core.ai import ai_generate_weekly_workout_json, ai_generate_weekly_meal_plan_json
 from bot.keyboards import plan_inline_keyboard
 from bot.premium import require_premium
+from bot.languages import get_text
 from core.flags import is_flag_enabled
 import traceback
 
@@ -12,10 +13,12 @@ GENERATION_LOCKS = set()
 
 
 def handle_plan_menu(message, bot):
+    user_id = message.from_user.id
+    lang = db.get_user_language(user_id)
     bot.send_message(
         message.chat.id,
-        "🏋️ **Mening Rejam**\n\nQaysi reja kerak?",
-        reply_markup=plan_inline_keyboard(),
+        f"🏋️ **{get_text('menu_plan', lang)}**\n\n{get_text('choose_plan_type', lang)}",
+        reply_markup=plan_inline_keyboard(lang=lang),
         parse_mode="Markdown"
     )
 
@@ -62,10 +65,11 @@ def generate_ai_workout(message, bot, user_id=None):
 
     # 0. Check Plan
     is_premium = db.is_premium(user_id)
+    lang = user.get('language', 'uz')
     
     if not is_premium:
         # FREE TIER LOGIC
-        data = get_free_workout_template(user)
+        data = get_free_workout_template(user, lang=lang)
         
         # Save Template
         # Key: free_workout_Goal
@@ -79,9 +83,14 @@ def generate_ai_workout(message, bot, user_id=None):
              exist = db.get_workout_template(profile_key)
              template_id = exist['id'] if exist else None
              
+             template_id = exist['id'] if exist else None
+             
         if template_id:
              db.create_user_workout_link(user_id, template_id)
-             bot.send_message(user_id, "Siz uchun mos boshlang‘ich mashq rejasi tayyor 💪\nBu rejani bajaring — natijani his qilasiz.")
+             
+             # LOCALIZED
+             lang = user.get('language', 'uz')
+             bot.send_message(user_id, get_text("free_workout_ready", lang))
              
              # Log Event [NEW]
              db.log_event(user_id, "workout_generated", {"type": "template", "tier": "free"})
@@ -89,22 +98,16 @@ def generate_ai_workout(message, bot, user_id=None):
              
              # Enhanced Plus Teaser
              markup = types.InlineKeyboardMarkup()
-             markup.add(types.InlineKeyboardButton("👉 Plus’ga o‘ting", callback_data="premium_info"))
+             markup.add(types.InlineKeyboardButton(get_text("btn_get_plus", lang), callback_data="premium_info"))
              
-             upsell_msg = (
-                 "⚡️ **YASHA Plus’da mashqlar shaxsiy bo‘ladi.**\n\n"
-                 "AI sizning vazningiz, yoshingiz va holatingizga qarab:\n"
-                 "• **to‘g‘ri yuklama tanlaydi**\n"
-                 "• **dam olish kunlarini hisobga oladi**\n"
-                 "• **har bir mashqni video bilan ko‘rsatadi**\n\n"
-                 "💎 **Natija uchun o‘ylash shart emas — AI rejalashtiradi.**"
-             )
+             upsell_msg = get_text("upsell_workout_plus", lang)
              bot.send_message(user_id, upsell_msg, parse_mode="Markdown", reply_markup=markup)
              
              new_link = db.get_user_workout_link(user_id)
              show_daily_workout(bot, user_id, new_link, override_day_idx=1)
         else:
-             bot.send_message(user_id, "❌ Shablon yuklashda xatolik.")
+             lang = user.get('language', 'uz')
+             bot.send_message(user_id, get_text("error_template", lang))
         return
 
     # 0. Check Limit (Premium Only)
@@ -142,7 +145,7 @@ def generate_ai_workout(message, bot, user_id=None):
         existing_template = db.get_workout_template(profile_key)
         
         if existing_template:
-            bot.send_message(user_id, "💡 Sizga mos tayyor reja topildi! Yuklanmoqda...")
+            bot.send_message(user_id, get_text("found_existing_plan", lang))
             db.create_user_workout_link(user_id, existing_template['id'])
             
             new_link = db.get_user_workout_link(user_id)
@@ -151,7 +154,7 @@ def generate_ai_workout(message, bot, user_id=None):
             return
 
         # If no template, generate new
-        msg = bot.send_message(user_id, "⏳ Siz uchun 7 kunlik mashg'ulotlar rejasini tuzyapman... Biroz kuting.")
+        msg = bot.send_message(user_id, get_text("wait_generating", lang))
             
         try:
             # [SAFE LOGGING ADDITION]
@@ -167,7 +170,7 @@ def generate_ai_workout(message, bot, user_id=None):
             for attempt in range(max_retries):
                 try:
                     try:
-                        bot.edit_message_text(f"🧘‍♀️ Siz uchun 7 kunlik mashg'ulotlar rejasini tuzyapman...", user_id, msg.message_id) # Safe edit
+                        bot.edit_message_text(get_text("wait_generating", lang), user_id, msg.message_id) # Safe edit
                     except: pass
                     
                     # [SMART CONTEXT INJECTION]
@@ -188,7 +191,7 @@ def generate_ai_workout(message, bot, user_id=None):
                         current_goal = user_ctx.get('goal', '')
                         user_ctx['goal'] = f"{current_goal}. {extra_ctx}"
                         
-                    data = ai_generate_weekly_workout_json(user_ctx)
+                    data = ai_generate_weekly_workout_json(user_ctx, lang=lang)
                     
                     if data and 'schedule' in data and isinstance(data['schedule'], list):
                         item_count = len(data['schedule'])
@@ -209,15 +212,15 @@ def generate_ai_workout(message, bot, user_id=None):
                         return
             
             if not data or 'schedule' not in data:
-                bot.edit_message_text(f"❌ AI javob bermadi.", user_id, msg.message_id)
+                bot.edit_message_text(get_text("error_generic", lang), user_id, msg.message_id)
                 return
 
             final_count = len(data['schedule'])
             if final_count < 5:
-                 bot.edit_message_text(f"❌ Juda qisqa natija ({final_count} kun). Qayta urining.", user_id, msg.message_id)
+                 bot.edit_message_text(get_text("error_short_result", lang), user_id, msg.message_id)
                  return
 
-            bot.edit_message_text("💾 Bazaga saqlanmoqda...", user_id, msg.message_id)
+            bot.edit_message_text(get_text("saving_db", lang), user_id, msg.message_id)
             
             try:
                 template_id = db.create_workout_template(
@@ -238,7 +241,7 @@ def generate_ai_workout(message, bot, user_id=None):
             db.create_user_workout_link(user_id, template_id)
             
             bot.delete_message(user_id, msg.message_id)
-            bot.send_message(user_id, "✅ Haftalik mashqlar rejasi tayyor! Marhamat:")
+            bot.send_message(user_id, get_text("plan_ready", lang))
             
             new_link = db.get_user_workout_link(user_id)
             db.increment_ai_usage(user_id, 'workout')
@@ -309,7 +312,7 @@ def show_daily_workout(bot, user_id, link_data, override_day_idx=None):
         
         # Helper map to ensure Uzbek (fallback)
         tr_map = {
-            "Upper Body": "Yuqori Tana",
+            "Upper Body": "Yuqori Tana", 
             "Lower Body": "Pastki Tana",
             "Full Body": "Butun Tana",
             "Core": "Press / Bel",
@@ -318,29 +321,23 @@ def show_daily_workout(bot, user_id, link_data, override_day_idx=None):
             "Dam olish (Rest)": "Dam olish"
         }
         # If the AI returns English, map it. If it returns Uzbek, keep it.
+        # Ideally, AI returns Russian if lang=ru, but we can't guarantee it yet.
+        # We will assume AI does its job or we leave it as is.
         final_focus = tr_map.get(focus_uu, focus_uu)
         
-        txt = f"🏋️ <b>{day_idx}-KUN REJASI</b> (Jami {total_days} kun)\n"
-        txt += f"🎯 <b>Fokus:</b> {final_focus}\n\n"
+        txt = f"🏋️ <b>{get_text('workout_title_day', lang, day=day_idx)}</b> (Total {total_days})\n"
+        txt += f"{get_text('workout_focus', lang, focus=final_focus)}\n\n"
         
         exercises_text = day_data.get('exercises', '-')
         
         # REST DAY LOGIC
-        if "dam" in final_focus.lower() or "rest" in final_focus.lower():
+        if "dam" in final_focus.lower() or "rest" in final_focus.lower() or "отдых" in final_focus.lower():
              import random
+             # Use keys for rest messages
              variants = [
-                 # Variant 1 - Ayb hissini yo'qotish
-                 ("😌 <b>Bugun dam</b>\n\n"
-                  "Dam olish — bu ortga qaytish emas.\n"
-                  "Mushaklar aynan bugun tiklanadi va kuchayadi.\n\n"
-                  "Ertaga tanang “rahmat” deydi."),
-                 # Variant 2 - Ilmiy + Oddiy
-                 ("🧠 <b>Bilasanmi?</b>\n\n"
-                  "O‘sish mashq vaqtida emas, dam olishda bo‘ladi.\n"
-                  "Bugun tana ishlayapti — sen sezmasang ham."),
-                 # Variant 3 - Qisqa, ammo kuchli
-                 ("<b>Bugun dam — bu ham rejaga kiradi.</b>\n"
-                  "Rejani buzmadik, to‘g‘ri bajaryapmiz ✅")
+                 f"{get_text('rest_day_title', lang)}\n\n{get_text('rest_day_desc', lang)}",
+                 f"{get_text('rest_day_tip_1', lang)}",
+                 f"{get_text('rest_day_tip_2', lang)}"
              ]
              rest_msg = random.choice(variants)
              txt += f"{rest_msg}\n\n"
@@ -362,24 +359,27 @@ def show_daily_workout(bot, user_id, link_data, override_day_idx=None):
         btns = []
             
         if day_idx > 1:
-            btns.append(InlineKeyboardButton("⬅️ Oldingi", callback_data=f"workout_prev_{day_idx}"))
+            btns.append(InlineKeyboardButton(get_text("btn_prev", lang), callback_data=f"workout_prev_{day_idx}"))
         
         if day_idx < total_days:
-            btns.append(InlineKeyboardButton("Keyingi ➡️", callback_data=f"workout_next_{day_idx}"))
+            btns.append(InlineKeyboardButton(get_text("btn_next", lang), callback_data=f"workout_next_{day_idx}"))
             
         markup.row(*btns)
         
         # Regenerate Button
         if day_idx == total_days:
-             markup.row(InlineKeyboardButton("🔄 Yangi Reja Tuzish", callback_data="workout_regenerate"))
+             markup.row(InlineKeyboardButton(get_text("btn_regenerate", lang), callback_data="workout_regenerate"))
         else:
-             markup.row(InlineKeyboardButton("🔄 Yangilash (Reset)", callback_data="workout_regenerate"))
+             markup.row(InlineKeyboardButton(get_text("btn_reset", lang), callback_data="workout_regenerate"))
         
         bot.send_message(user_id, txt, parse_mode="HTML", reply_markup=markup, disable_web_page_preview=True)
 
     except Exception as e:
         print(f"Show Workout Error: {e}")
-        bot.send_message(user_id, "❌ Mashqni ochishda xatolik.")
+        try:
+             # Need lang here, but might fail if earlier error. default to uz.
+             bot.send_message(user_id, "❌ Error opening workout.")
+        except: pass
 
 from bot.premium import require_premium
 
@@ -399,10 +399,11 @@ def generate_ai_meal(message, bot, user_id=None):
 
     # 0. Check Plan
     is_premium = db.is_premium(user_id)
+    lang = user.get('language', 'uz')
     
     if not is_premium:
         # FREE TIER LOGIC
-        data = get_free_menu_template()
+        data = get_free_menu_template(lang=lang)
         
         # Save Template
         profile_key = "free_menu_v1"
@@ -415,26 +416,23 @@ def generate_ai_meal(message, bot, user_id=None):
              
         if template_id:
              db.create_user_menu_link(user_id, template_id)
-             bot.send_message(user_id, "🍽 Bugungi menyu tayyor.\nOddiy, arzon va vazn nazoratiga mos.")
+             
+             # LOCALIZED
+             lang = user.get('language', 'uz')
+             bot.send_message(user_id, get_text("free_menu_ready", lang))
              
              # Enhanced Menu Upsell
              markup = types.InlineKeyboardMarkup()
-             markup.add(types.InlineKeyboardButton("👉 Plus’ga o‘ting", callback_data="premium_info"))
+             markup.add(types.InlineKeyboardButton(get_text("btn_get_plus", lang), callback_data="premium_info"))
              
-             upsell_msg = (
-                 "🍽 **YASHA Plus’da menyu — tayyor reja.**\n\n"
-                 "AI sizga:\n"
-                 "• **7 kunlik kaloriyali menyu**\n"
-                 "• **retsept + tayyorlash bosqichlari**\n"
-                 "• **avtomatik xarid ro‘yxati beradi.**\n\n"
-                 "💎 **Kamroq o‘ylaysiz, to‘g‘ri ovqatlanasiz.**"
-             )
+             upsell_msg = get_text("upsell_menu_plus", lang)
              bot.send_message(user_id, upsell_msg, parse_mode="Markdown", reply_markup=markup)
              
              new_link = db.get_user_menu_link(user_id)
              show_daily_menu(bot, user_id, new_link, override_day_idx=1)
         else:
-             bot.send_message(user_id, "❌ Shablon yuklashda xatolik.")
+             lang = user.get('language', 'uz')
+             bot.send_message(user_id, get_text("error_template", lang))
         return
 
     # 0. Check Limit (Premium Only)
@@ -482,7 +480,7 @@ def generate_ai_meal(message, bot, user_id=None):
 
         # If no template, generate new
         # If no template, generate new
-        msg = bot.send_message(user_id, "🚀 **Jarayon boshlandi...**\n\n🥗 Siz uchun 7 kunlik ovqatlanish menyusini tuzyapman...", parse_mode="Markdown")
+        msg = bot.send_message(user_id, get_text("process_started", lang) + "\n\n" + get_text("wait_generating", lang), parse_mode="Markdown")
             
         # [SAFE LOGGING ADDITION]
         try:
@@ -498,7 +496,7 @@ def generate_ai_meal(message, bot, user_id=None):
             for attempt in range(max_retries):
                 try:
                     try:
-                        bot.edit_message_text(f"🥗 Siz uchun 7 kunlik ovqatlanish menyusini tuzyapman...", user_id, msg.message_id)
+                        bot.edit_message_text(get_text("wait_generating", lang), user_id, msg.message_id)
                     except: pass
                     
                     # [SMART CONTEXT INJECTION]
@@ -518,7 +516,7 @@ def generate_ai_meal(message, bot, user_id=None):
                     if user.get('goal') == 'lose': target -= 500
                     elif user.get('goal') == 'gain': target += 300
 
-                    data = ai_generate_weekly_meal_plan_json(user_ctx, daily_target=target)
+                    data = ai_generate_weekly_meal_plan_json(user_ctx, daily_target=target, lang=lang)
                     
                     if data and 'menu' in data and isinstance(data['menu'], list):
                         item_count = len(data['menu'])
@@ -540,19 +538,19 @@ def generate_ai_meal(message, bot, user_id=None):
             
             if not data or 'menu' not in data:
                 try:
-                    bot.edit_message_text("❌ AI javob bermadi.", user_id, msg.message_id)
+                    bot.edit_message_text(get_text("error_generic", lang), user_id, msg.message_id)
                 except: pass
                 return
 
             final_count = len(data['menu'])
             if final_count < 5:
                  try:
-                    bot.edit_message_text(f"❌ Juda qisqa natija ({final_count} kun). Qayta urining.", user_id, msg.message_id)
+                    bot.edit_message_text(get_text("error_short_result", lang), user_id, msg.message_id)
                  except: pass
                  return
 
             try:
-                bot.edit_message_text("💾 Bazaga saqlanmoqda...", user_id, msg.message_id)
+                bot.edit_message_text(get_text("saving_db", lang), user_id, msg.message_id)
             except: pass
             
             try:
@@ -578,7 +576,7 @@ def generate_ai_meal(message, bot, user_id=None):
             try:
                 bot.delete_message(user_id, msg.message_id)
             except: pass
-            bot.send_message(user_id, "✅ Haftalik reja tayyor! Marhamat:")
+            bot.send_message(user_id, get_text("plan_ready", lang))
             
             new_link = db.get_user_menu_link(user_id)
             db.increment_ai_usage(user_id, 'menu')
@@ -664,34 +662,25 @@ def show_daily_menu(bot, user_id, link_data, day_idx=None, meal_type='breakfast'
         user_goal = goal_map.get(user_goal, user_goal)
 
         # 1. Header
-        header_text = "✨ {}-KUN MENYU" if user_lang == 'uz' else "✨ ДЕНЬ {}. МЕНЮ"
-        txt = f"🍽 <b>{header_text.format(day_idx)}</b>\n"
+        txt = f"🍽 <b>{get_text('menu_header_day', user_lang, day=day_idx)}</b>\n"
         
-        goal_label = "Maqsad" if user_lang == 'uz' else "Цель"
+        goal_label = get_text("goal", user_lang)
         txt += f"🎯 <b>{goal_label}:</b> {_esc(user_goal)} | 📅 {weekday_name}\n\n"
         
         # 2. Meal Content
         meal_data = meals_root.get(meal_type)
         
-        if user_lang == 'ru':
-            meal_labels = {
-                'breakfast': '🍳 Завтрак',
-                'lunch': '🥗 Обед',
-                'dinner': '🍲 Ужин',
-                'snack': '🍏 Перекус'
-            }
-        else:
-            meal_labels = {
-                'breakfast': '🍳 Nonushta',
-                'lunch': '🥗 Tushlik',
-                'dinner': '🍲 Kechki ovqat',
-                'snack': '🍏 Tamaddi'
-            }
+        meal_labels = {
+            'breakfast': get_text('meal_breakfast', user_lang),
+            'lunch': get_text('meal_lunch', user_lang),
+            'dinner': get_text('meal_dinner', user_lang),
+            'snack': get_text('meal_snack', user_lang)
+        }
         
         label = meal_labels.get(meal_type, meal_type.title())
         
         if isinstance(meal_data, dict):
-            title = meal_data.get('title', 'Noma\'lum taom' if user_lang == 'uz' else 'Неизвестное блюдо')
+            title = meal_data.get('title', 'Noma\'lum taom')
             kcal = meal_data.get('calories', 0)
             
             txt += f"{label}: {_esc(title)}\n"
@@ -700,22 +689,22 @@ def show_daily_menu(bot, user_id, link_data, day_idx=None, meal_type='breakfast'
             # Ingredients
             ings = meal_data.get('items', [])
             if ings:
-                label_ings = "Tarkibi" if user_lang == 'uz' else "Ингредиенты"
+                label_ings = get_text("ingredients", user_lang)
                 safe_ings = [_esc(i) for i in ings]
                 txt += f"<b>{label_ings}:</b> " + ", ".join(safe_ings) + "\n\n"
             
             # Steps
             steps = meal_data.get('steps', [])
             if steps:
-                label_prep = "Tayyorlanishi" if user_lang == 'uz' else "Приготовление"
+                label_prep = get_text("preparation", user_lang)
                 txt += f"<b>{label_prep}:</b>\n"
                 for i, step in enumerate(steps, 1):
                     txt += f"{i}. {_esc(step)}\n"
                 txt += "\n"
         else:
-            none_text = 'Ma\'lumot yo\'q' if user_lang == 'uz' else 'Нет данных'
-            safe_val = _esc(meal_data) if isinstance(meal_data, str) else none_text
-            txt += f"{label}: {safe_val}\n"
+             none_text = get_text("error_no_data", user_lang)
+             safe_val = _esc(meal_data) if isinstance(meal_data, str) else none_text
+             txt += f"{label}: {safe_val}\n"
 
         # 3. Dynamic Buttons
         markup = InlineKeyboardMarkup()
@@ -723,8 +712,10 @@ def show_daily_menu(bot, user_id, link_data, day_idx=None, meal_type='breakfast'
         from bot.languages import get_text
         
         # Row 1: "Iste'mol qildim"
-        eat_btn_text = "🍽 Iste'mol qildim (+kaloriya)" if user_lang == 'uz' else "🍽 Я съел (+калории)"
-        markup.row(InlineKeyboardButton(eat_btn_text, callback_data=f"eat_{day_idx}_{meal_type}"))
+        eat_btn = get_text("btn_eaten", user_lang)
+        markup.row(InlineKeyboardButton(eat_btn, callback_data=f"eat_{day_idx}_{meal_type}"))
+        
+        # ... Other rows kept same structure ...
         
         # Row 2: Other Main Meals
         main_meals_row = []
@@ -750,20 +741,16 @@ def show_daily_menu(bot, user_id, link_data, day_idx=None, meal_type='breakfast'
         
         # Day Navigation
         if day_idx < total_days:
-            next_text = "➡️ Ertangi menyu" if user_lang == 'uz' else "➡️ Завтрашнее меню"
-            snack_nav_row.append(InlineKeyboardButton(next_text, callback_data=f"menu_view_{day_idx+1}_breakfast"))
+            snack_nav_row.append(InlineKeyboardButton(get_text("menu_next_day", user_lang), callback_data=f"menu_view_{day_idx+1}_breakfast"))
         elif day_idx > 1:
-             prev_text = "⬅️ Kechagi menyu" if user_lang == 'uz' else "⬅️ Вчерашнее меню"
-             snack_nav_row.append(InlineKeyboardButton(prev_text, callback_data=f"menu_view_{day_idx-1}_breakfast"))
+             snack_nav_row.append(InlineKeyboardButton(get_text("menu_prev_day", user_lang), callback_data=f"menu_view_{day_idx-1}_breakfast"))
         
         markup.row(*snack_nav_row)
         
         # Row 4: Tools
-        shop_text = "🛒 Bozorlik" if user_lang == 'uz' else "🛒 Список покупок"
-        swap_text = "🔄 Almashtirish (VIP)" if user_lang == 'uz' else "🔄 Заменить (VIP)"
         markup.row(
-            InlineKeyboardButton(shop_text, callback_data="menu_shopping"),
-            InlineKeyboardButton(swap_text, callback_data=f"menu_swap_vip_{day_idx}_{meal_type}")
+            InlineKeyboardButton(get_text("btn_shopping_list", user_lang), callback_data="menu_shopping"),
+            InlineKeyboardButton(get_text("btn_swap", user_lang), callback_data=f"menu_swap_vip_{day_idx}_{meal_type}")
         )
         
         bot.send_message(user_id, txt, parse_mode="HTML", reply_markup=markup)

@@ -38,7 +38,78 @@ TRANS = {
         "onboarding_saving": "⏳ Ma'lumotlar saqlanmoqda...",
         "onboarding_welcome_trial": "✅ Ro‘yxatdan o‘tdingiz! YASHA ga xush kelibsiz.\n\n🎁 **Sizga 7 kunlik Premium (Trial) ochildi!**\nHech qanday cheklovsiz barcha AI xizmatlardan foydalanishingiz mumkin.\n\nHozir esa maksimal foydalanib qoling! 👇",
         
-        # Main Menu
+        # General / Status
+        "wait_generating": "⏳ Sabr qiling, reja tuzilmoqda...",
+        "process_started": "🚀 **Jarayon boshlandi...**",
+        "error_template": "❌ Shablon yuklashda xatolik.",
+        "error_no_data": "⚠️ Bu kun uchun ma'lumot yo'q.",
+        "found_existing_plan": "💡 Sizga mos tayyor reja topildi! Yuklanmoqda...",
+        "plan_ready": "✅ Haftalik reja tayyor! Marhamat:",
+        
+        # Workout / Exercises
+        "workout_title_day": "🏋️ {day}-KUN REJASI",
+        "workout_focus": "🎯 **Fokus:** {focus}",
+        "rest_day_title": "😌 **Bugun dam**",
+        "rest_day_desc": "Dam olish — bu ortga qaytish emas.\nMushaklar aynan bugun tiklanadi va kuchayadi.\n\nErtaga tanang “rahmat” deydi.",
+        "rest_day_tip_1": "🧠 **Bilasanmi?**\nO‘sish mashq vaqtida emas, dam olishda bo‘ladi.\nBugun tana ishlayapti — sen sezmasang ham.",
+        "rest_day_tip_2": "**Bugun dam — bu ham rejaga kiradi.**\nRejani buzmadik, to‘g‘ri bajaryapmiz ✅",
+        
+        "btn_prev": "⬅️ Oldingi",
+        "btn_next": "Keyingi ➡️",
+        "btn_regenerate": "🔄 Yangi Reja Tuzish",
+        "btn_reset": "🔄 Yangilash (Reset)",
+        
+        # Menu / Meals
+        "menu_header_day": "✨ {day}-KUN MENYU",
+        "meal_breakfast": "🍳 Nonushta",
+        "meal_lunch": "🥗 Tushlik",
+        "meal_dinner": "🍲 Kechki ovqat",
+        "meal_snack": "🍏 Tamaddi",
+        "ingredients": "Tarkibi",
+        "preparation": "Tayyorlanishi",
+        "btn_eaten": "🍽 Iste'mol qildim (+kaloriya)",
+        "btn_shopping_list": "🛒 Bozorlik",
+        "btn_swap": "🔄 Almashtirish (VIP)",
+        
+        "menu_next_day": "➡️ Ertangi menyu",
+        "menu_prev_day": "⬅️ Kechagi menyu",
+        
+        # Shopping List
+        "shopping_list_title": "🛒 **XARIDLAR RO'YXATI** (1-Hafta)",
+        "shopping_list_empty": "🛒 Ro'yxat bo'sh.",
+        "shopping_list_need_menu": "🛒 Xaridlar ro'yxatini tuzish uchun avval Menyu yarating:",
+        "shopping_list_premium_only": "🛒 **Xarid ro‘yxati faqat YASHA Plus foydalanuvchilar uchun.**\n\nSababi u menyuga bog‘liq holda avtomatik hisoblanadi.",
+        "shopping_advice": "\n🧠 **Coach Maslahati:**\n<i>\"Bozorlikni oldindan qilsang, 'fastfood' seni ushlolmaydi 😄\"</i>",
+        "category_protein": "🥩 Oqsil (Go'sht/Tuxum)",
+        "category_veg": "🥦 Sabzavot va Meva",
+        "category_carbs": "🍚 Don mahsulotlari",
+        "category_dairy": "🥛 Sut mahsulotlari",
+        "category_misc": "🧂 Boshqa",
+
+        # Premium / Payment
+        "status_no": "❌ Yo‘q",
+        "status_trial": "🎁 Sinov muddati",
+        "status_sub": "✅ Obuna (Avto-yangilanish)",
+        "status_active": "✅ Premium Faol",
+        "premium_menu_title": "💳 <b>Obuna bo'limi</b>",
+        "premium_menu_plan": "- Tarifingiz: {plan}",
+        "premium_menu_until": "- Tugash sanasi: {date}",
+        "premium_menu_points": "- Yasha coinlaringiz: {points}",
+        "premium_menu_footer": "👇 <b>Quyidagi menyudan kerakli bo'limni tanlang:</b>",
+        
+        "premium_sales_short": "<b>💎 PREMIUM — 49 000 so‘m / oy</b>\n\n✅ AI Menyu — oyiga 1 marta (7 kunlik)\n✅ AI Mashqlar rejasi — oyiga 1 marta\n⚠️ Kaloriya tahlili — kuniga 3 marta\n⚠️ AI Chat — kuniga 3 marta\n\n<b>👑 VIP — 97 000 so‘m / oy</b>\n\n✅ AI Menyu — oyiga 4 marta (28 kunlik)\n✅ Cheksiz kaloriya tahlili\n✅ Cheksiz AI Chat\n✅ Cheksiz retseptlar\n\n<b>O'zingizga qulay tarifni tanlang👇🏻</b>",
+        "btn_buy_premium": "💎 PREMIUM (49.000)",
+        "btn_buy_vip": "👑 VIP (97.000)",
+        "btn_offer": "📄 Ommaviy oferta",
+        
+        "premium_required_upsell": "💎 **Premium kerak**\n\nBu xizmat faqat Premium foydalanuvchilar uchun.\nSizning sinov muddatingiz tugagan.\n\nPremium ochish uchun “💎 Premium” bo‘limiga o‘ting.",
+        "btn_get_premium": "💎 Premium olish",
+        
+        # Handlers & Help
+        "help_intro": "Nima tushunarsiz bo'ldi?",
+        "recipe_searching": "👩‍🍳 **Retsept qidirilmoqda...**\n\nAI sizning masalliqlaringizga mos taom o'ylayapti...",
+        "recipe_not_found": "❌ Uzr, retsept topa olmadim. Boshqa masalliq kiritib ko'ring.",
+        "recipe_found_upsell": "Yana retsept kerakmi? Yana masalliq yozishingiz yoki /start bosib menyuga qaytishingiz mumkin.",
         "menu_plan": "📅 Mening rejam",
         "menu_profile": "👤 Profil",
         "menu_premium": "💎 Premium",
@@ -76,6 +147,17 @@ TRANS = {
         
         # Errors
         "error_generic": "❌ Xatolik yuz berdi.",
+        "error_auth": "⚠️ Iltimos, avval /start ni bosing.",
+        "error_short_result": "❌ Natija juda qisqa bo'ldi. Qayta urining.",
+        "saving_db": "💾 Bazaga saqlanmoqda...",
+        
+        # Free Tier & Upsell
+        "free_workout_ready": "💪 Siz uchun mos boshlang‘ich mashq rejasi tayyor.\nBu rejani bajaring — natijani his qilasiz.",
+        "free_menu_ready": "🍽 Bugungi menyu tayyor.\nOddiy, arzon va vazn nazoratiga mos.",
+        "upsell_workout_plus": "⚡️ **YASHA Plus’da mashqlar shaxsiy bo‘ladi.**\n\nAI sizning vazningiz, yoshingiz va holatingizga qarab:\n• **to‘g‘ri yuklama tanlaydi**\n• **dam olish kunlarini hisobga oladi**\n• **har bir mashqni video bilan ko‘rsatadi**\n\n💎 **Natija uchun o‘ylash shart emas — AI rejalashtiradi.**",
+        "upsell_menu_plus": "🍽 **YASHA Plus’da menyu — tayyor reja.**\n\nAI sizga:\n• **7 kunlik kaloriyali menyu**\n• **retsept + tayyorlash bosqichlari**\n• **avtomatik xarid ro‘yxati beradi.**\n\n💎 **Kamroq o‘ylaysiz, to‘g‘ri ovqatlanasiz.**",
+        "btn_get_plus": "👉 Plus’ga o‘ting",
+        
         "error_number": "❌ Iltimos, raqam kiriting.",
     },
     "ru": {
@@ -116,6 +198,157 @@ TRANS = {
         "onboarding_saving": "⏳ Данные сохраняются...",
         "onboarding_welcome_trial": "✅ Вы зарегистрированы! Добро пожаловать в YASHA.\n\n🎁 **Вам открыт 7-дневный Premium (Trial)!**\nВы можете пользоваться всеми AI услугами без ограничений.\n\nИспользуйте возможности по максимуму! 👇",
         
+        # General / Status
+        "wait_generating": "⏳ Подождите, план составляется...",
+        "process_started": "🚀 **Процесс запущен...**",
+        "error_template": "❌ Ошибка загрузки шаблона.",
+        "error_no_data": "⚠️ Нет данных на этот день.",
+        "found_existing_plan": "💡 Найден подходящий план! Загружаю...",
+        "plan_ready": "✅ Недельный план готов! Прошу:",
+        
+        # Workout / Exercises
+        "workout_title_day": "🏋️ ДЕНЬ {day}",
+        "workout_focus": "🎯 **Фокус:** {focus}",
+        "rest_day_title": "😌 **Сегодня отдых**",
+        "rest_day_desc": "Отдых — это не шаг назад.\nМышцы растут именно во время восстановления.\n\nЗавтра тело скажет вам «спасибо».",
+        "rest_day_tip_1": "🧠 **Знаете ли вы?**\nРост происходит не во время тренировки, а во время отдыха.\nСегодня тело работает — даже если вы этого не чувствуете.",
+        "rest_day_tip_2": "**Сегодня отдых — это часть плана.**\nМы не нарушаем режим, мы следуем ему ✅",
+        
+        "btn_prev": "⬅️ Пред.",
+        "btn_next": "След. ➡️",
+        "btn_regenerate": "🔄 Создать новый план",
+        "btn_reset": "🔄 Обновить (Сброс)",
+        
+        # Menu / Meals
+        "menu_header_day": "✨ ДЕНЬ {day}. МЕНЮ",
+        "meal_breakfast": "🍳 Завтрак",
+        "meal_lunch": "🥗 Обед",
+        "meal_dinner": "🍲 Ужин",
+        "meal_snack": "🍏 Перекус",
+        "ingredients": "Ингредиенты",
+        "preparation": "Приготовление",
+        "btn_eaten": "🍽 Я съел (+калории)",
+        "btn_shopping_list": "🛒 Список покупок",
+        "btn_swap": "🔄 Заменить (VIP)",
+        
+        "menu_next_day": "➡️ Завтрашнее меню",
+        "menu_prev_day": "⬅️ Вчерашнее меню",
+        
+        # Shopping List
+        "shopping_list_title": "🛒 **СПИСОК ПОКУПОК** (1-я неделя)",
+        "shopping_list_empty": "🛒 Список пуст.",
+        "shopping_list_need_menu": "🛒 Чтобы создать список покупок, сначала создайте Меню:",
+        "shopping_list_premium_only": "🛒 **Список покупок доступен только пользователям YASHA Plus.**\n\nОн рассчитывается автоматически на основе вашего меню.",
+        "shopping_advice": "\n🧠 **Совет Тренера:**\n<i>\"Если купить продукты заранее, 'фастфуд' вас не догонит 😄\"</i>",
+        "category_protein": "🥩 Белок (Мясо/Яйца)",
+        "category_veg": "🥦 Овощи и Фрукты",
+        "category_carbs": "🍚 Крупы и Злаки",
+        "category_dairy": "🥛 Молочные продукты",
+        "category_misc": "🧂 Другое",
+
+        # Premium / Payment
+        "status_no": "❌ Нет",
+        "status_trial": "🎁 Пробный период",
+        "status_sub": "✅ Подписка (Авто)",
+        "status_active": "✅ Premium Активен",
+        "premium_menu_title": "💳 <b>Отдел Подписки</b>",
+        "premium_menu_plan": "- Ваш тариф: {plan}",
+        "premium_menu_until": "- Истекает: {date}",
+        "premium_menu_points": "- Yasha coin: {points}",
+        "premium_menu_footer": "👇 <b>Выберите нужный раздел:</b>",
+        
+        "premium_sales_short": "<b>💎 PREMIUM — 49 000 сум / мес</b>\n\n✅ AI Меню — 1 раз в мес (на 7 дней)\n✅ AI План тренировок — 1 раз в мес\n⚠️ Анализ калорий — 3 раза в день\n⚠️ AI Чат — 3 раза в день\n\n<b>👑 VIP — 97 000 сум / мес</b>\n\n✅ AI Меню — 4 раза в мес (28 дней)\n✅ Безлимитный анализ калорий\n✅ Безлимитный AI Чат\n✅ Безлимитные рецепты\n\n<b>Выберите удобный тариф👇🏻</b>",
+        "btn_buy_premium": "💎 PREMIUM (49.000)",
+        "btn_buy_vip": "👑 VIP (97.000)",
+        "btn_offer": "📄 Публичная оферта",
+        
+        "premium_required_upsell": "💎 **Нужен Premium**\n\nЭта услуга доступна только для Premium пользователей.\nВаш пробный период истек.\n\nПерейдите в раздел “💎 Premium” для активации.",
+        "btn_get_premium": "💎 Купить Premium",
+
+        # Handlers & Help
+        "help_intro": "Что вам непонятно? Выберите раздел:",
+        "recipe_searching": "👩‍🍳 **Ищу рецепт...**\n\nAI придумывает блюдо из ваших продуктов...",
+        "recipe_not_found": "❌ Извините, не нашел рецепт. Попробуйте ввести другие продукты.",
+        "recipe_found_upsell": "Нужен еще рецепт? Напишите ингредиенты или нажмите /start для возврата в меню.",
+        
+        "btn_ai_workout": "🤖 AI план тренировок",
+        "btn_ai_meal": "🥦 AI план питания",
+        "btn_calorie_scan": "🍽 Анализ калорий (Premium)",
+
+        "btn_change_plan": "💳 Сменить тариф",
+        "btn_tariffs": "ℹ️ Тарифы",
+        "btn_coins": "🟡 Yasha Coin",
+        "btn_challenges_menu": "🔥 Челленджи",
+        
+        # Profile
+        "btn_edit_profile": "✏️ Изменить анкету",
+        "btn_stats": "📊 Статистика здоровья",
+        "btn_change_goal": "🎯 Изменить цель",
+        "gender_male": "Мужчина",
+        "gender_female": "Женщина",
+        "goal_weight_loss": "Похудение 🔻",
+        "goal_muscle_gain": "Набор массы 🔺",
+        "goal_health": "Здоровье ❤️",
+        "activity_sedentary": "Малоподвижный",
+        "activity_light": "Легкий",
+        "activity_moderate": "Умеренный",
+        "activity_active": "Активный",
+        "activity_athlete": "Атлет",
+        
+        "profile_title": "👤 <b>Ваш профиль</b>",
+        "profile_name": "Имя",
+        "profile_age": "Возраст",
+        "profile_gender": "Пол",
+        "profile_height": "Рост",
+        "profile_weight": "Вес",
+        "profile_activity": "Активность",
+        "profile_goal": "Цель",
+        "profile_allergies": "Аллергия",
+        "profile_next_step": "<b>Выберите следующее действие 👇🏻</b>",
+
+        "edit_prompt_start": "✏️ <b>Что хотите изменить?</b>",
+        "edit_prompt_full_name": "Введите новое имя:",
+        "edit_prompt_age": "Введите новый возраст (число):",
+        "edit_prompt_gender": "Выберите пол:",
+        "edit_prompt_height": "Введите новый рост (см):",
+        "edit_prompt_weight": "Введите новый вес (кг):",
+        "edit_prompt_goal": "Выберите новую цель:",
+        "edit_prompt_activity": "Выберите уровень активности:",
+        "edit_prompt_allergies": "Напишите про аллергию (или 'Нет'):",
+        
+        "edit_success": "✅ Обновлено",
+        "edit_error_age": "❌ Введите корректный возраст (10-100).",
+        "edit_error_height": "❌ Введите корректный рост (100-250 см).",
+        "edit_error_weight": "❌ Введите корректный вес (30-300 кг).",
+
+        # Gamification
+        "points_title": "<b>🟡 Yasha coin</b>",
+        "points_balance": "Ваши коины: {points}",
+        "points_desc": "Как заработать коины?\n- Привычки (вода, сон) → +1-5 коинов\n- Приглашение друзей → +1 коин\n- Челленджи → до +50 коинов",
+        "btn_referral": "🔗 Реферальная ссылка",
+        
+        "referral_title": "🔗 <b>Ваша реферальная ссылка:</b>",
+        "referral_desc": "Отправьте ссылку друзьям. Если они зарегистрируются, вы получите +1 коин! 🟡",
+        
+        "rewards_title": "🎁 **Магазин Наград**",
+        "rewards_balance": "💰 Ваш счет: **{points} баллов**",
+        "rewards_daily": "📊 **Доход за сегодня (+{total}):**\n💧 Вода: +{water}\n🚶 Шаги: +{steps}\n😴 Сон: +{sleep}\n😊 Настроение: +{mood}",
+        "rewards_choose": "👇 **Обменять баллы:**",
+        "btn_redeem_7": "💎 1 Неделя Premium (100 баллов)",
+        "btn_redeem_30": "💎 1 Месяц Premium (500 баллов)",
+        
+        "tasks_title": "📅 **Задачи на сегодня ({date}):**",
+        "tasks_list": "1) 6-8 стаканов воды\n2) 10-15 минут ходьбы\n3) 1 тренировка",
+        "btn_task_done": "✅ Выполнил (+1 балл)",
+        "btn_task_already": "✅ Выполнено",
+        "task_done_msg": "Отлично! Задача выполнена, балл добавлен 🎉",
+        "task_already_msg": "Вы уже отметили сегодня, ждем завтра 🙂",
+        "redeem_confirm_msg": "💎 **Получить Premium**\nСрок: {days} дней\nЦена: {cost} баллов\n\nПродолжить?",
+        "btn_confirm": "✅ Подтвердить",
+        "btn_cancel": "❌ Отмена",
+        "redeem_success": "🎉 **Поздравляем!**\n\nВы получили подписку Premium на {days} дней! ✅",
+        "redeem_fail": "❌ Недостаточно баллов!",
+
         # Main Menu
         "menu_plan": "📅 Мой план",
         "menu_profile": "👤 Профиль",
@@ -154,6 +387,17 @@ TRANS = {
         
         # Errors
         "error_generic": "❌ Произошла ошибка.",
+        "error_auth": "⚠️ Пожалуйста, сначала нажмите /start.",
+        "error_short_result": "❌ Результат слишком короткий. Попробуйте снова.",
+        "saving_db": "💾 Сохранение в базу...",
+        
+         # Free Tier & Upsell
+        "free_workout_ready": "💪 Ваш начальный план тренировок готов.\nВыполняйте его — и почувствуете результат.",
+        "free_menu_ready": "🍽 Меню на сегодня готово.\nПросто, доступно и полезно.",
+        "upsell_workout_plus": "⚡️ **В YASHA Plus тренировки персональные.**\n\nAI учитывает ваш вес, возраст и состояние:\n• **подбирает нагрузку**\n• **учитывает дни отдыха**\n• **показывает видео упражнений**\n\n💎 **Не нужно думать о плане — AI всё сделает.**",
+        "upsell_menu_plus": "🍽 **Меню в YASHA Plus — это готовый план.**\n\nAI дает вам:\n• **Меню на 7 дней с калориями**\n• **Рецепты + этапы готовки**\n• **Автоматический список покупок**\n\n💎 **Меньше думаете, правильнее питаетесь.**",
+        "btn_get_plus": "👉 Перейти на Plus",
+        
         "error_number": "❌ Пожалуйста, введите число.",
     },
     "en": {
@@ -177,6 +421,84 @@ TRANS = {
         "enter_allergy": "What are you allergic to? Please type:",
         "calculating": "⏳ Analyzing your data...",
         "onboarding_complete": "✅ Congratulations! You have successfully registered.",
+        
+        "btn_ai_workout": "🤖 AI Workout Plan",
+        "btn_ai_meal": "🥦 AI ovqatlanish rejasi",
+        "btn_calorie_scan": "🍽 Kaloriya tahlili (premium)",
+        
+        "btn_change_plan": "💳 Tarifni almashtirish",
+        "btn_tariffs": "ℹ️ Tariflar",
+        "btn_coins": "🟡 Yasha Coin",
+        "btn_challenges_menu": "🔥 Chellenjlar",
+        
+        # Profile
+        "btn_edit_profile": "✏️ Anketani yangilash",
+        "btn_stats": "📊 Sog‘liq statistikasi",
+        "btn_change_goal": "🎯 Maqsadni o‘zgartirish",
+        "gender_male": "Erkak",
+        "gender_female": "Ayol",
+        "goal_weight_loss": "Vazn tashlash 🔻",
+        "goal_muscle_gain": "Vazn olish 🔺",
+        "goal_health": "Vaznni ushlab turish ❤️",
+        "activity_sedentary": "Kam harakat",
+        "activity_light": "Yengil faol",
+        "activity_moderate": "O'rtacha faol",
+        "activity_active": "Juda faol",
+        "activity_athlete": "Atlet",
+        
+        "profile_title": "👤 <b>Sizning profilingiz</b>",
+        "profile_name": "Ism",
+        "profile_age": "Yosh",
+        "profile_gender": "Jins",
+        "profile_height": "Bo'y",
+        "profile_weight": "Vazn",
+        "profile_activity": "Faollik",
+        "profile_goal": "Maqsad",
+        "profile_allergies": "Allergiya",
+        "profile_next_step": "<b>Keyingi qadamni tanlang👇🏻</b>",
+        
+        "edit_prompt_start": "✏️ <b>Nimani o'zgartirmoqchisiz?</b>",
+        "edit_prompt_full_name": "Yangi ismingizni kiriting:",
+        "edit_prompt_age": "Yangi yoshingizni kiriting (raqamda):",
+        "edit_prompt_gender": "Jinsingizni tanlang:",
+        "edit_prompt_height": "Yangi bo'yingizni kiriting (sm):",
+        "edit_prompt_weight": "Yangi vazningizni kiriting (kg):",
+        "edit_prompt_goal": "Yangi maqsadingizni tanlang:",
+        "edit_prompt_activity": "Yangi faollik darajasini tanlang:",
+        "edit_prompt_allergies": "Yangi allergiya ma'lumotlarini yozing (yoki 'Yo'q' deb yozing):",
+        
+        "edit_success": "✅ Yangilandi",
+        "edit_error_age": "❌ Iltimos, to'g'ri yosh kiriting (10-100).",
+        "edit_error_height": "❌ Iltimos, to'g'ri bo'y kiriting (100-250 sm).",
+        "edit_error_weight": "❌ Iltimos, to'g'ri vazn kiriting (30-300 kg).",
+        
+        # Gamification
+        "points_title": "<b>🟡 Yasha coin</b>",
+        "points_balance": "Sizning coinlaringiz: {points}",
+        "points_desc": "Coinlarni qanday ishlash mumkin?\n- Odatlar (suv, uyqu) → +1-5 coin\n- Do'stlarni taklif qilish → +1 coin\n- Chellenjlar → +50 coingacha",
+        "btn_referral": "🔗 Referal havola",
+        
+        "referral_title": "🔗 <b>Sizning referal havolangiz:</b>",
+        "referral_desc": "Bu havolani do'stlaringizga yuboring. Ular ro'yxatdan o'tsa, sizga +1 coin beriladi! 🟡",
+        
+        "rewards_title": "🎁 **Mukofotlar Marketi**",
+        "rewards_balance": "💰 Sizning hisobingiz: **{points} ball**",
+        "rewards_daily": "📊 **Bugungi daromad (+{total}):**\n💧 Suv: +{water}\n🚶 Qadam: +{steps}\n😴 Uyqu: +{sleep}\n😊 Kayfiyat: +{mood}",
+        "rewards_choose": "👇 **Ballarni almashtirish:**",
+        "btn_redeem_7": "💎 1 Hafta Premium (100 ball)",
+        "btn_redeem_30": "💎 1 Oy Premium (500 ball)",
+        
+        "tasks_title": "📅 **Bugungi vazifalar ({date}):**",
+        "tasks_list": "1) 6-8 stakan suv ichish\n2) 10-15 daqiqa yurish\n3) 1 blok mashq bajarish",
+        "btn_task_done": "✅ Vazifani bajardim (+1 ball)",
+        "btn_task_already": "✅ Bajarildi",
+        "task_done_msg": "Zo‘r! Bugungi vazifa bajarildi, ball qo‘shildi 🎉",
+        "task_already_msg": "Bugun allaqachon belgilagansiz, ertaga yana kutamiz 🙂",
+        "redeem_confirm_msg": "💎 **Premium olish**\nMuddat: {days} kun\nNarxi: {cost} ball\n\nDavom etishni xohlaysizmi?",
+        "btn_confirm": "✅ Tasdiqlash",
+        "btn_cancel": "❌ Bekor qilish",
+        "redeem_success": "🎉 **Tabriklaymiz!**\n\nSiz {days} kunlik Premium obunani qo'lga kiritdingiz! ✅",
+        "redeem_fail": "❌ Ballar yetarli emas!",
         
         # Main Menu
         "menu_plan": "📅 My Plan",

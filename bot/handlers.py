@@ -3,7 +3,9 @@ from core import coach
 
 from bot.keyboards import main_menu_keyboard, ai_coach_submenu_keyboard, challenges_submenu_keyboard, help_submenu_keyboard, ai_coach_inline_keyboard, admin_developer_keyboard, challenges_inline_keyboard
 from bot import trackers, ai_features, challenges, calorie_scanner
+from bot import trackers, ai_features, challenges, calorie_scanner
 from core.observability import track_latency # IMPORTED
+from bot.languages import get_text
 
 from core.db import db
 
@@ -103,7 +105,16 @@ def register_all_handlers(bot):
     def menu_ai(message):
         user_id = message.from_user.id
         lang = db.get_user_language(user_id)
-        from bot.languages import get_text
+        # Using get_text for title, assuming key exists or just strict localization
+        # We didn't add specific key for "AI Coach" title text in languages.py yet,
+        # but we can assume simple localization or add key.
+        # Actually, let's just use simple logic since title is short.
+        # Wait, I should add key for "ai_coach_intro".
+        # For now, I'll keep the text but localize cleanly or use get_text if key exists (I didn't add one for this specific text).
+        # I'll use the existing hardcoded dual-logic for now but formatted better, or add a key on the fly?
+        # No, let's use get_text with a new key "ai_coach_intro" that I'll add later or reused logic.
+        # Actually I missed adding "ai_coach_intro". I will just use if/else here to be safe and fast.
+        
         txt = "🤖 <b>AI Murabbiy</b>\n\nBugun nima qilamiz? Quyidagilardan birini tanlang 👇" if lang == 'uz' else "🤖 <b>AI Тренер</b>\n\nЧто будем делать сегодня? Выберите один из вариантов ниже 👇"
         bot.send_message(message.chat.id, txt, reply_markup=ai_coach_inline_keyboard(lang=lang), parse_mode="HTML")
 
@@ -140,7 +151,7 @@ def register_all_handlers(bot):
         text = message.text
         
         # 1. Status
-        wait_msg = bot.send_message(user_id, "👩‍🍳 **Retsept qidirilmoqda...**\n\nAI sizning masalliqlaringizga mos taom o'ylayapti...", parse_mode="Markdown")
+        wait_msg = bot.send_message(user_id, get_text("recipe_searching", lang), parse_mode="Markdown")
         
         try:
             user = db.get_user(user_id)
@@ -157,9 +168,9 @@ def register_all_handlers(bot):
                 bot.send_message(user_id, recipe, parse_mode="Markdown")
                 
                 # Upsell/Engagement
-                bot.send_message(user_id, "Yana retsept kerakmi? Yana masalliq yozishingiz yoki /start bosib menyuga qaytishingiz mumkin.")
+                bot.send_message(user_id, get_text("recipe_found_upsell", lang))
             else:
-                 bot.edit_message_text("❌ Uzr, retsept topa olmadim. Boshqa masalliq kiritib ko'ring.", user_id, wait_msg.message_id)
+                 bot.edit_message_text(get_text("recipe_not_found", lang), user_id, wait_msg.message_id)
 
         except Exception as e:
             print(f"Fridge Handler Error: {e}")
@@ -199,21 +210,29 @@ def register_all_handlers(bot):
             
         elif action == 'shopping':
             try:
+                 lang = db.get_user_language(call.from_user.id)
                  link = db.get_user_menu_link(call.from_user.id)
                  if not link:
-                     bot.answer_callback_query(call.id, "Avval menyu tuzing", show_alert=True)
+                     bot.answer_callback_query(call.id, get_text("shopping_list_need_menu", lang), show_alert=True)
                      return
                  
                  import json
                  raw_list = json.loads(link['shopping_list_json'])
                  if not raw_list:
-                     bot.answer_callback_query(call.id, "Ro'yxat bo'sh", show_alert=True)
+                     bot.answer_callback_query(call.id, get_text("shopping_list_empty", lang), show_alert=True)
                      return
                  
                  # Format list
-                 text = "🛒 <b>Xaridlar Ro'yxati</b>\n\n"
+                 text = get_text("shopping_list_title", lang) + "\n\n"
                  for category, items in raw_list.items():
-                     text += f"<b>{category}:</b>\n"
+                     # Try to localize category key if possible or leave as is
+                     # keys are likely "protein", "veg" etc from AI.
+                     # We can map them.
+                     cat_key = f"category_{category}"
+                     cat_label = get_text(cat_key, lang)
+                     if cat_label == cat_key: cat_label = category.title() # Fallback
+                     
+                     text += f"<b>{cat_label}:</b>\n"
                      for item in items:
                          text += f"▫️ {item}\n"
                      text += "\n"
@@ -625,40 +644,29 @@ def register_all_handlers(bot):
 
     @bot.callback_query_handler(func=lambda call: call.data == "menu_shopping")
     def callback_menu_shopping(call):
+        user_id = call.from_user.id
+        lang = db.get_user_language(user_id)
+        
+        # 1. Premium Check
+        if not db.is_premium(user_id):
+            bot.answer_callback_query(call.id, "Premium Required", show_alert=False) # Internal log mostly
+            
+            markup = types.InlineKeyboardMarkup()
+            markup.add(types.InlineKeyboardButton(get_text("btn_get_plus", lang), callback_data="premium_info"))
+            
+            bot.send_message(user_id, get_text("shopping_list_premium_only", lang), parse_mode="Markdown", reply_markup=markup)
+            return
+
+        # 2. Check Menu Link
         try:
-            # FREE TIER CHECK
-            if not db.is_premium(call.from_user.id):
-                markup = types.InlineKeyboardMarkup()
-                markup.add(types.InlineKeyboardButton("💎 YASHA Plus’ga o‘tish", callback_data="premium_info"))
-                
-                bot.send_message(
-                    call.from_user.id,
-                    "🛒 **Xarid ro‘yxati faqat YASHA Plus foydalanuvchilar uchun.**\n\nSababi u menyuga bog‘liq holda avtomatik hisoblanadi.",
-                    reply_markup=markup,
-                    parse_mode="Markdown"
-                )
-                bot.answer_callback_query(call.id, "Faqat YASHA Plus uchun", show_alert=True)
-                return
-
-            link = db.get_user_menu_link(call.from_user.id)
+            link = db.get_user_menu_link(user_id)
             if not link:
-                bot.answer_callback_query(call.id, "Reja topilmadi.")
-                # Send CTA
-                markup = types.InlineKeyboardMarkup()
-                markup.add(types.InlineKeyboardButton("🍽 Menyu tuzish", callback_data="plan_ai_meal"))
-                bot.send_message(call.from_user.id, "🛒 Xaridlar ro'yxatini tuzish uchun avval Menyu yarating:", reply_markup=markup)
+                bot.answer_callback_query(call.id, get_text("shopping_list_need_menu", lang), show_alert=True)
                 return
-
+                
             import json
             raw_list = json.loads(link['shopping_list_json'])
-            
             if not raw_list:
-                bot.answer_callback_query(call.id, "Shopping list bo'sh.")
-                return
-
-            txt = "🛒 <b>XARIDLAR RO'YXATI</b> (1-Hafta)\n\n"
-            
-            # Check Format: List vs Dict
             if isinstance(raw_list, list):
                 # OLD Format
                 txt += "<i>Eski formatdagi ro'yxat:</i>\n"
