@@ -667,6 +667,14 @@ def register_all_handlers(bot):
             import json
             raw_list = json.loads(link['shopping_list_json'])
             if not raw_list:
+                bot.answer_callback_query(call.id, get_text("shopping_list_empty", lang), show_alert=True)
+                return
+
+            # Initialize txt
+            title = get_text("shopping_list_title_30", lang)
+            sub = get_text("shopping_list_sub", lang)
+            txt = f"{title}\n\n{sub}\n\n"
+
             if isinstance(raw_list, list):
                 # OLD Format
                 txt += "<i>Eski formatdagi ro'yxat:</i>\n"
