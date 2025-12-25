@@ -125,16 +125,22 @@ def register_handlers(bot):
         if call.data == "select_premium":
             amount = 4900000 # 49 000 UZS
             plan_name = "premium"
-            title = "Fitness Bot Premium (1 oy)"
+            # Title localized later
         else:
             amount = 9700000 # 97 000 UZS
             plan_name = "vip"
-            title = "Fitness Bot VIP (1 oy)"
+            # Title localized later
             
         # Format for display (e.g. 49 000)
         price_display = f"{amount // 100:,}".replace(",", " ")
         
-        description = f"{title}. Narxi: {price_display} so'm"
+        lang = db.get_user_language(call.from_user.id)
+        if plan_name == "premium":
+            title = get_text("invoice_title_premium", lang)
+        else:
+            title = get_text("invoice_title_vip", lang)
+            
+        description = get_text("invoice_desc", lang, title=title, price=price_display)
         payload = f"{plan_name}_{days}" # e.g. premium_30
         currency = "UZS"
         prices = [types.LabeledPrice(label=title, amount=amount)]

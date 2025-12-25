@@ -108,6 +108,17 @@ TRANS = {
         
         "premium_required_upsell": "💎 **Premium kerak**\n\nBu xizmat faqat Premium foydalanuvchilar uchun.\nSizning sinov muddatingiz tugagan.\n\nPremium ochish uchun “💎 Premium” bo‘limiga o‘ting.",
         "btn_get_premium": "💎 Premium olish",
+
+        "btn_change_plan": "💳 Tarifni almashtirish",
+        "btn_tariffs": "ℹ️ Tariflar",
+        "btn_coins": "🟡 Yasha Coin",
+        "btn_challenges_menu": "🔥 Chellenjlar",
+        "btn_ai_workout": "🤖 AI mashq rejasi",
+        "btn_ai_meal": "🥦 AI menyu",
+        "btn_calorie_scan": "🍽 Kaloriya tahlili (premium)",
+        "btn_get_premium_short": "💎 Premium olish",
+        "btn_get_plus": "👉 Plus’ga o‘ting",
+        "btn_campaign": "🎉 Aksiya",
         
         # Handlers & Help
         "help_intro": "Nima tushunarsiz bo'ldi?",
@@ -183,7 +194,12 @@ TRANS = {
         # Premium
         "payment_success_title": "✅ <b>To'lov muvaffaqiyatli amalga oshirildi!</b>",
         "payment_success_desc": "Sizga {days} kunlik **{plan}** obuna faollashtirildi. 🎉\nBarcha imkoniyatlardan foydalanishingiz mumkin!",
+        "payment_success_desc": "Sizga {days} kunlik **{plan}** obuna faollashtirildi. 🎉\nBarcha imkoniyatlardan foydalanishingiz mumkin!",
         "payment_system_error": "⚠️ <b>To'lov tizimi hozircha sozlanmagan.</b>\n\nIltimos, admin bilan bog'laning yoki keyinroq urinib ko'ring.\n\n📞 Qayta aloqa: @admin",
+        
+        "invoice_title_premium": "Fitness Bot Premium (1 oy)",
+        "invoice_title_vip": "Fitness Bot VIP (1 oy)",
+        "invoice_desc": "{title}. Narxi: {price} so'm",
         
         # Profile Keys (Mz)
         "btn_edit_profile": "✏️ Tahrirlash",
@@ -369,6 +385,10 @@ TRANS = {
         "payment_success_title": "✅ <b>Оплата прошла успешно!</b>",
         "payment_success_desc": "Вам активирована подписка **{plan}** на {days} дней. 🎉\nТеперь вам доступны все возможности!",
         "payment_system_error": "⚠️ <b>Платежная система пока не настроена.</b>\n\nПожалуйста, свяжитесь с админом или попробуйте позже.\n\n📞 Админ: @admin",
+
+        "invoice_title_premium": "Fitness Bot Premium (1 месяц)",
+        "invoice_title_vip": "Fitness Bot VIP (1 месяц)",
+        "invoice_desc": "{title}. Цена: {price} сум",
         
         "btn_ai_workout": "🤖 AI план тренировок",
         "btn_ai_meal": "🥦 AI план питания",

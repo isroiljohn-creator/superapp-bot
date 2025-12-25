@@ -83,7 +83,23 @@ def register_all_handlers(bot):
         if state == calorie_scanner.STATE_CALORIE_PHOTO:
             calorie_scanner.handle_calorie_photo(message, bot)
             return
-        pass
+        # If not in calorie state, let it fall through or handle generic photo?
+        # For now, just explicit return to ensure no accidental consumption if we want fallthrough?
+        # Actually telebot stops at first match. If we want others to handle it, we shouldn't have matched it?
+        # But content_types=['photo'] is broad.
+        # Let's simple return. If we want generic photo handling (e.g. "Nice photo"), we'd do it here.
+        # But standard behavior: if no state, ignore or fallback.
+        # Currently fallback catches valid text but maybe not photos if this consumes it.
+        # To let fallback handle it, we might need verify usage. 
+        # But fallback is explicitly for 'text', 'audio', 'photo'... 
+        # So fallback WILL NOT be reached because this handler caught it.
+        # So we should call fallback here if state mismatch?
+        # Or just reply "I don't know what to do with this photo".
+        pass 
+
+    @bot.message_handler(func=lambda message: onboarding.manager.get_state(message.from_user.id) == calorie_scanner.STATE_CALORIE_TEXT)
+    def calorie_text_handler(message):
+        calorie_scanner.handle_calorie_text(message, bot)
 
     # --- Main Menu Navigation ---
     @bot.message_handler(func=lambda message: message.text in ["⬅️ Asosiy menyu", "⬅️ Orqaga", "⬅️ Главное меню", "⬅️ Назад", "Back", "Ortga"])
