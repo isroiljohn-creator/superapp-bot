@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Lock, Calendar, Coffee, Apple, Moon, Cookie, Loader2, RefreshCw } from 'lucide-react';
+import { Lock, Calendar, Coffee, Apple, Moon, Cookie, Loader2, RefreshCw, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Paywall } from '@/components/Paywall';
 import { DaySelector } from '@/components/DaySelector';
+import { MealDetailsSheet } from '@/components/MealDetailsSheet';
 import { useUser } from '@/contexts/UserContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useHaptic } from '@/hooks/useHaptic';
@@ -68,8 +69,11 @@ export const MenuScreen: React.FC = () => {
   const [showPaywall, setShowPaywall] = useState(false);
 
   const [weeklyPlan, setWeeklyPlan] = useState<any[] | null>(null);
+  const [textPlan, setTextPlan] = useState<string | null>(null);
   const [isLoadingPlan, setIsLoadingPlan] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [selectedMeal, setSelectedMeal] = useState<any | null>(null);
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
 
   const fetchPlan = async () => {
     try {
@@ -81,8 +85,14 @@ export const MenuScreen: React.FC = () => {
         headers: { Authorization: `Bearer ${token}` }
       });
 
-      if (res.data.plan && Array.isArray(res.data.plan)) {
-        setWeeklyPlan(res.data.plan);
+      if (res.data.plan) {
+        if (Array.isArray(res.data.plan)) {
+          setWeeklyPlan(res.data.plan);
+          setTextPlan(null);
+        } else if (typeof res.data.plan === 'string') {
+          setTextPlan(res.data.plan);
+          setWeeklyPlan(null);
+        }
       }
     } catch (e) {
       console.error("Failed to load plan", e);
@@ -104,12 +114,19 @@ export const MenuScreen: React.FC = () => {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (res.data.plan) {
-        setWeeklyPlan(res.data.plan);
+        if (Array.isArray(res.data.plan)) {
+          setWeeklyPlan(res.data.plan);
+          setTextPlan(null);
+        } else if (typeof res.data.plan === 'string') {
+          setTextPlan(res.data.plan);
+          setWeeklyPlan(null);
+        }
         toast.success("Yangi menyu tayyor!");
       }
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
-      toast.error("Xatolik yuz berdi");
+      const msg = e.response?.data?.detail || "Xatolik yuz berdi";
+      toast.error(msg);
     } finally {
       setIsGenerating(false);
     }
@@ -199,14 +216,18 @@ export const MenuScreen: React.FC = () => {
           type,
           title: m.title,
           calories: m.calories,
-          items: m.items || []
+          items: m.items || [],
+          recipe: m.recipe,
+          steps: m.steps
         };
       }).filter(Boolean);
     }
   }
 
+  const isMock = displayMeals.length === 0 && !weeklyPlan && !textPlan;
+
   // 3. Fallback to Mock
-  if (displayMeals.length === 0 && !weeklyPlan) {
+  if (isMock) {
     const getSuggestedMeals = (dayIndex: number) => {
       const mealTypes = ['breakfast', 'lunch', 'dinner', 'snack'] as const;
       return mealTypes.map(type => {
@@ -315,12 +336,31 @@ export const MenuScreen: React.FC = () => {
           <div className="flex justify-center py-10">
             <Loader2 className="w-8 h-8 animate-spin text-primary" />
           </div>
+        ) : textPlan ? (
+          <motion.div
+            variants={itemVariants}
+            className="p-5 rounded-xl bg-card border border-border/50 text-foreground"
+          >
+            <div
+              className="prose prose-sm dark:prose-invert max-w-none break-words whitespace-pre-wrap"
+              dangerouslySetInnerHTML={{ __html: textPlan.replace(/\n/g, '<br/>') }}
+            />
+          </motion.div>
         ) : (
           displayMeals.map((meal, index) => (
             <motion.div
               key={index}
               variants={itemVariants}
-              className={`p-4 rounded-xl bg-card border border-border/50 ${selectedDay > 0 && !isPremium() ? 'opacity-60' : ''
+              onClick={() => {
+                if (selectedDay > 0 && !isPremium()) {
+                  setShowPaywall(true);
+                } else {
+                  vibrate('light');
+                  setSelectedMeal(meal);
+                  setIsSheetOpen(true);
+                }
+              }}
+              className={`p-4 rounded-xl bg-card border border-border/50 transition-all active:scale-[0.98] cursor-pointer ${selectedDay > 0 && !isPremium() ? 'opacity-60' : 'hover:border-primary/40'
                 }`}
             >
               <div className="flex items-start gap-3">
@@ -338,8 +378,10 @@ export const MenuScreen: React.FC = () => {
                     {meal.items && meal.items.length > 3 && ` +${meal.items.length - 3}`}
                   </p>
                 </div>
-                {selectedDay > 0 && !isPremium() && (
+                {selectedDay > 0 && !isPremium() ? (
                   <Lock className="w-4 h-4 text-muted-foreground shrink-0" />
+                ) : (
+                  <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0 mt-1" />
                 )}
               </div>
             </motion.div>
@@ -411,6 +453,12 @@ export const MenuScreen: React.FC = () => {
         isOpen={showPaywall}
         onClose={() => setShowPaywall(false)}
         feature={t('paywall.aiMenu')}
+      />
+
+      <MealDetailsSheet
+        meal={selectedMeal}
+        isOpen={isSheetOpen}
+        onClose={() => setIsSheetOpen(false)}
       />
     </div>
   );

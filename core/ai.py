@@ -12,7 +12,7 @@ if GEMINI_API_KEY:
     try:
         client = genai.Client(api_key=GEMINI_API_KEY)
         # Configurable model with fallback
-        model_name = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+        model_name = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
         print(f"DEBUG: Gemini AI initialized successfully using {model_name}.")
     except Exception as e:
         print(f"Error initializing Gemini: {e}")
@@ -163,7 +163,7 @@ SAFETY_SETTINGS = [
 # Primary: from Env (default 2.5-flash)
 # Fallback: 1.5-flash (more stable/faster/cheaper)
 MODELS_TO_TRY = []
-primary = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+primary = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
 MODELS_TO_TRY.append(primary)
 if primary != "gemini-1.5-flash":
     MODELS_TO_TRY.append("gemini-1.5-flash")
@@ -497,7 +497,7 @@ Talablar:
 
     
     # 3. Model Configuration
-    model_name = 'gemini-2.5-flash'
+    model_name = 'gemini-1.5-flash'
     global client
     if not client:
         client = genai.Client(api_key=GEMINI_API_KEY)
@@ -813,7 +813,7 @@ def analyze_food_image(image_data):
         print(f"DEBUG: Image open error: {e}")
         return None
 
-    models_to_try = ['gemini-2.5-flash']
+    models_to_try = [os.getenv("GEMINI_MODEL", "gemini-1.5-flash")]
     
     prompt = """
     You are an AI NUTRITIONIST with access to a vast database of food products.
@@ -833,7 +833,7 @@ def analyze_food_image(image_data):
     5. 🧮 CALCULATION:
        - Example: Coca-Cola 0.5L -> 500ml * 0.42 = 210 kcal. (Show this math mentally and output final result).
 
-    OUTPUT FORMAT (Uzbek):
+    OUTPUT FORMAT (FAQAT O'zbek tilida, lotin alifbosida):
     🍽 <b>Kaloriya Tahlili</b>
 
     🥘 <b>Mahsulot:</b> [Aniq Brend va Nomi]
@@ -888,7 +888,7 @@ def analyze_food_text(text):
     try:
         # Use global model if available and it supports text (2.5 flash does)
         if not model:
-             model = genai.GenerativeModel('gemini-2.5-flash')
+             model = genai.GenerativeModel(os.getenv("GEMINI_MODEL", "gemini-1.5-flash"))
 
         prompt = f"""
         Foydalanuvchi yedi: "{text}"
@@ -897,7 +897,7 @@ def analyze_food_text(text):
         - Ovqat tarkibi va porsiyasini tahlil qiling.
         - Umumiy kaloriya va BJU (Oqsil, Yog', Uglevod) ni hisoblang.
         
-        Javob formati (O'zbek tilida):
+        Javob formati (FAQAT O'zbek tilida, lotin alifbosida):
         🍽 <b>Kaloriya Tahlili</b>
 
         🥘 <b>Ovqat:</b> ...
@@ -962,6 +962,7 @@ Bor mahsulotlar: {available_ingredients}
 
 VAZIFA:
 Shu mahsulotlardan 1 ta eng zo'r va tez pishadigan retsept yozing.
+Javob FAQAT o'zbek tilida (lotin alifbosida) bo'lsin.
 
 QAT'IY QOIDALAR:
 1. ⚠️ JUDA QISQA BO'LSIN (Maksimal 200 belgi).
@@ -1011,7 +1012,7 @@ def ai_provide_psychological_support(reason):
     - Agar muammo jiddiy bo'lsa, oddiy maslahat ber (nafas olish mashqi, sayr qilish, va h.k.).
     - Do'stona va samimiy ohangda bo'lsin.
     - Maksimal 500 belgi.
-    - O'zbek tilida.
+    - FAQAT O'zbek tilida (lotin alifbosida).
     
     Javob formati:
     [Matn]
@@ -1061,6 +1062,8 @@ You are a professional fitness coach system for a Telegram bot.
 Your task is to generate REALISTIC, SAFE, EFFECTIVE workout plans using ONLY the exercises provided below.
 
 {get_exercises_string()}
+
+IMPORTANT: GENERATE EVERYTHING IN STRICT UZBEK LANGUAGE (LATIN SCRIPT).
 
 IMPORTANT RULES:
 1. USE ONLY EXERCISES FROM THE LIST ABOVE. DO NOT INVENT EXERCISES.
@@ -1249,6 +1252,7 @@ def ai_generate_single_meal(user_profile, meal_type, day_name="Bugun"):
     prompt = f"""
     Siz professional dietologsiz.
     Vazifa: "{day_name}" uchun yangi "{meal_type.upper()}" (Taom) o'ylab toping.
+    Javob FAQAT O'zbek tilida (lotin alifbosida) bo'lsin.
     
     Foydalanuvchi:
     - Maqsad: {user_profile.get('goal', 'Sog‘liq')}
@@ -1264,7 +1268,8 @@ def ai_generate_single_meal(user_profile, meal_type, day_name="Bugun"):
         "title": "Taom nomi",
         "kcal": 450,
         "ingredients": ["..."],
-        "preparation_steps": ["..."],
+        "recipe": "...",
+        "steps": ["..."],
         "time_minutes": 15,
         "cost_level": "O'rtacha",
         "place": "uy"
@@ -1283,12 +1288,13 @@ def ai_generate_single_meal(user_profile, meal_type, day_name="Bugun"):
                         "title": {"type": "string"},
                         "kcal": {"type": "integer"},
                         "ingredients": {"type": "array", "items": {"type": "string"}},
-                        "preparation_steps": {"type": "array", "items": {"type": "string"}},
+                        "recipe": {"type": "string"},
+                        "steps": {"type": "array", "items": {"type": "string"}},
                         "time_minutes": {"type": "integer"},
                         "cost_level": {"type": "string"},
                         "place": {"type": "string"}
                     },
-                    "required": ["title", "kcal", "ingredients", "preparation_steps"]
+                    "required": ["title", "kcal", "ingredients", "recipe", "steps"]
                 }
             },
             request_options={'timeout': 25}
@@ -1498,7 +1504,7 @@ def ai_suggest_recipe(user_profile, ingredients_text):
     Shu mahsulotlardan (va qo'shimcha oddiy narsalardan) foydalanib, 
     bitta sog'lom va foydali retsept tuzing.
     
-    Javob formati (O'zbek tilida):
+    Javob formati (FAQAT O'zbek tilida, lotin alifbosida):
     🍽 **Taom nomi**
     
     🛒 **Kerakli masalliqlar:**

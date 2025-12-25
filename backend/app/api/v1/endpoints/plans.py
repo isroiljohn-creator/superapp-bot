@@ -94,6 +94,33 @@ async def generate_meal(
             "template_name": template["name"]
         }
     
+    # Calculate daily calorie goal (TDEE) based on profile
+    bmr = 0
+    if current_user.gender == 'male':
+        bmr = 88.362 + (13.397 * current_user.weight) + (4.799 * current_user.height) - (5.677 * current_user.age)
+    else:
+        bmr = 447.593 + (9.247 * current_user.weight) + (3.098 * current_user.height) - (4.330 * current_user.age)
+    
+    activity_multipliers = {
+        "sedentary": 1.2,
+        "light": 1.375,
+        "moderate": 1.55,
+        "active": 1.725,
+        "very_active": 1.9
+    }
+    
+    activity = current_user.activity_level or "moderate"
+    multiplier = activity_multipliers.get(activity, 1.55)
+    tdee = bmr * multiplier
+    
+    # Adjust for goal
+    if current_user.goal == 'lose':
+        tdee -= 500
+    elif current_user.goal == 'gain':
+        tdee += 300
+    
+    daily_target = round(tdee)
+    
     # Generate AI plan for premium users
     allergy_note = f"Allergies: {current_user.allergies}." if current_user.allergies else ""
     
@@ -104,16 +131,29 @@ async def generate_meal(
     Cuisine: Uzbek/Central Asian mostly.
     {allergy_note}
     
+    CALORIE TARGET: {daily_target} kcal per day (STRICT LIMIT).
+    Each day must have breakfast, lunch, dinner, and 1 snack.
+    The sum of calories for all 4 meals MUST be close to {daily_target} kcal (±50 kcal).
+    
+    IMPORTANT: All text content (titles, items, descriptions, recipes, steps) MUST be in UZBEK language (Latin script).
+    
     Return STRICT JSON array with 7 items.
     Format:
     [
       {{
         "day": 1,
+        "total_calories": {daily_target},
         "meals": {{
-           "breakfast": {{ "title": "...", "calories": 0, "items": ["item1", "item2"] }},
-           "lunch": {{ "title": "...", "calories": 0, "items": ["..."] }},
-           "dinner": {{ "title": "...", "calories": 0, "items": ["..."] }},
-           "snack": {{ "title": "...", "calories": 0, "items": ["..."] }}
+           "breakfast": {{ 
+             "title": "Taom nomi", 
+             "calories": 0, 
+             "items": ["masalliq 1", "masalliq 2"],
+             "recipe": "Kerakli masalliqlar va miqdori haqida qisqa ma'lumot",
+             "steps": ["1-qadam", "2-qadam"]
+           }},
+           "lunch": {{ "title": "...", "calories": 0, "items": ["..."], "recipe": "...", "steps": ["..."] }},
+           "dinner": {{ "title": "...", "calories": 0, "items": ["..."], "recipe": "...", "steps": ["..."] }},
+           "snack": {{ "title": "...", "calories": 0, "items": ["..."], "recipe": "...", "steps": ["..."] }}
         }}
       }}
     ]
@@ -176,6 +216,8 @@ async def generate_workout(
     prompt = f"""
     Create a 7-day workout plan for {current_user.age}y/o {current_user.gender}. 
     Goal: {current_user.goal}. (weight_loss = focus on cardio/hiit, muscle_gain = focus on hypertrophy).
+    
+    IMPORTANT: All text content (titles, exercise names, instructions) MUST be in UZBEK language (Latin script).
     
     Return STRICT JSON array with 7 items.
     Format:

@@ -307,7 +307,7 @@ class AIUsageLog(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, index=True) # Decoupled from User table to avoid FK locking issues on high volume
     feature = Column(String) # 'menu', 'chat', 'workout'
-    model_name = Column(String, default="gemini-2.5-flash")
+    model_name = Column(String, default="gemini-1.5-flash")
     input_tokens = Column(Integer, default=0)
     output_tokens = Column(Integer, default=0)
     total_tokens = Column(Integer, default=0)

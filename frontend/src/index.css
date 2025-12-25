@@ -129,6 +129,7 @@
 
   .safe-area-bottom {
     padding-bottom: env(safe-area-inset-bottom);
+    background-color: hsl(var(--card));
   }
 }
 

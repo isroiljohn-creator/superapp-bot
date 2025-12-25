@@ -68,7 +68,7 @@ def main_menu_keyboard(is_admin=False, user_id=None):
         except Exception as e:
             print(f"Error getting habit progress for menu: {e}")
         
-    mini_app_url = os.getenv("MINI_APP_URL", "https://web-production-b606.up.railway.app")
+    mini_app_url = os.getenv("MINI_APP_URL", "https://obsid.uz")
     
     # Row 1: AI Murabbiy | Ilovani ochish
     markup.add(
