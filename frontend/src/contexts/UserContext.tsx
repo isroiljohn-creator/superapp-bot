@@ -264,7 +264,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     saveState(newState);
   }, [state, saveState]);
 
-  const addWater = useCallback((ml: number) => {
+  const addWater = useCallback(async (ml: number) => {
     const today = getTodayDate();
     const currentLog = state.todayLog?.date === today
       ? state.todayLog
@@ -297,10 +297,16 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
       todayLog: { ...currentLog, water_ml: newWater },
     };
     saveState(newState);
+
+    try {
+      await axios.post(`${API_URL}/entry/water`, { amount: ml });
+    } catch (e) {
+      console.error("Sync water failed", e);
+    }
   }, [state, saveState]);
 
   // Meals management
-  const addMeal = useCallback((meal: Omit<Meal, 'id' | 'date'>) => {
+  const addMeal = useCallback(async (meal: Omit<Meal, 'id' | 'date'>) => {
     const today = getTodayDate();
     const newMeal: Meal = {
       ...meal,
@@ -330,9 +336,31 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
       todayLog: { ...currentLog, calories_consumed: totalCalories },
     };
     saveState(newState);
+
+    try {
+      await axios.post(`${API_URL}/entry/meals`, {
+        name: meal.name,
+        calories: meal.calories,
+        protein: meal.protein,
+        carbs: meal.carbs,
+        fat: meal.fat,
+        meal_type: meal.mealType, // Camel to Snake? Backend expects meal_type, Pydantic handles validation? 
+        // Backend Pydantic uses 'meal_type'. 
+        // Check UserContext 'mealType' vs Backend expected. 
+        // Frontend interface Meal has 'mealType'.
+        // Backend MealEntry has 'meal_type'.
+        // So I must map it.
+        date: today
+      });
+    } catch (e) {
+      console.error("Sync meal failed", e);
+    }
   }, [state, saveState]);
 
   const removeMeal = useCallback((id: string) => {
+    // Sync removal is tricky as backend might rely on ID? 
+    // Backend API doesn't support DELETE yet. 
+    // Skipping sync for removal for MVP or add TODO.
     const today = getTodayDate();
     const newMeals = state.meals.filter(m => m.id !== id);
     const todayMeals = newMeals.filter(m => m.date === today);
@@ -371,7 +399,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [state.meals]);
 
   // Workouts management
-  const addWorkout = useCallback((workout: Omit<WorkoutLog, 'id' | 'date'>) => {
+  const addWorkout = useCallback(async (workout: Omit<WorkoutLog, 'id' | 'date'>) => {
     const today = getTodayDate();
     const newWorkout: WorkoutLog = {
       ...workout,
@@ -408,6 +436,18 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
       todayLog: { ...currentLog, workout_done: true },
     };
     saveState(newState);
+
+    try {
+      await axios.post(`${API_URL}/entry/workouts`, {
+        name: workout.name,
+        duration: workout.duration,
+        calories_burned: workout.caloriesBurned, // Frontend camelCase to Snake?
+        // Backend expects 'calories_burned'
+        date: today
+      });
+    } catch (e) {
+      console.error("Sync workout failed", e);
+    }
   }, [state, saveState]);
 
   const getTodayWorkouts = useCallback(() => {

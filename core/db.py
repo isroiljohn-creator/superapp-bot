@@ -14,6 +14,42 @@ class Database:
         init_db_sync()
         # self.check_schema() # Deprecated: Use Alembic
 
+    def log_water(self, user_id, amount_ml):
+        """Log water intake (Increment)"""
+        with get_sync_db() as session:
+            try:
+                today = datetime.utcnow().date()
+                log = session.query(DailyLog).filter(DailyLog.user_id == user_id, DailyLog.date == today).first()
+                if not log:
+                    log = DailyLog(user_id=user_id, date=today, water_ml=0, steps=0)
+                    session.add(log)
+                
+                log.water_ml = (log.water_ml or 0) + amount_ml
+                session.commit()
+                return log.water_ml
+            except Exception as e:
+                session.rollback()
+                print(f"Log Water Error: {e}")
+                return None
+
+    def log_steps(self, user_id, steps):
+        """Log steps (Increment)"""
+        with get_sync_db() as session:
+            try:
+                today = datetime.utcnow().date()
+                log = session.query(DailyLog).filter(DailyLog.user_id == user_id, DailyLog.date == today).first()
+                if not log:
+                    log = DailyLog(user_id=user_id, date=today, water_ml=0, steps=0)
+                    session.add(log)
+                
+                log.steps = (log.steps or 0) + steps
+                session.commit()
+                return log.steps
+            except Exception as e:
+                session.rollback()
+                print(f"Log Steps Error: {e}")
+                return None
+
     # check_schema removed in favor of Alembic
 
     def run_migrations(self):

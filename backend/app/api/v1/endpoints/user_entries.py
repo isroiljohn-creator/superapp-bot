@@ -59,3 +59,19 @@ async def add_workout(workout: ExerciseEntry, current_user: User = Depends(get_c
 async def get_workouts(date: str, current_user: User = Depends(get_current_user)):
     logs = db_helper.get_exercise_logs(current_user.id, date)
     return logs
+
+class WaterEntry(BaseModel):
+    amount: int  # ml to add
+
+class StepsEntry(BaseModel):
+    steps: int   # steps to add
+
+@router.post("/water")
+async def add_water_entry(entry: WaterEntry, current_user: User = Depends(get_current_user)):
+    total = db_helper.log_water(current_user.id, entry.amount)
+    return {"status": "success", "total": total}
+
+@router.post("/steps")
+async def add_steps_entry(entry: StepsEntry, current_user: User = Depends(get_current_user)):
+    total = db_helper.log_steps(current_user.id, entry.steps)
+    return {"status": "success", "total": total}
