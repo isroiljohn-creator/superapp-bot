@@ -45,6 +45,7 @@ class User(Base):
     subscriptions = relationship("Subscription", back_populates="user")
     meal_logs = relationship("MealLog", back_populates="user")
     exercise_logs = relationship("ExerciseLog", back_populates="user")
+    coach_messages = relationship("CoachMessage", back_populates="user", cascade="all, delete-orphan")
 
     # Missing Columns from core/db.py
     last_checkin = Column(String, nullable=True) # Stored as text in legacy
@@ -333,7 +334,7 @@ class CoachMessage(Base):
     is_read = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.utcnow)
 
-    # user = relationship("User") # implied FK
+    user = relationship("User", back_populates="coach_messages")
 
 class EventLog(Base):
     __tablename__ = "event_logs"
