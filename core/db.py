@@ -356,16 +356,16 @@ class Database:
                 
                 usage = user.ai_menu_count
                 
-                # Limits
-                if plan == 'vip': limit = 4
-                elif plan == 'premium': limit = 1 # 1 week only
+                # Limits (Updated as per plan)
+                if plan == 'vip': limit = 999 
+                elif plan == 'premium': limit = 999
                 elif plan == 'trial': limit = 1
                 else: limit = 0 # Free
                 
                 if usage >= limit:
                     msg = "⚠️ Sizning limitingiz tugadi."
-                    if plan == 'premium':
-                        msg += "\n\nPremium tarifida oyiga 1 marta AI menyu olish mumkin. Ko'proq imkoniyat uchun VIP ga o'ting."
+                    if plan == 'premium' or plan == 'vip':
+                        msg += "\n\nOylik limitga yetdingiz."
                     elif plan == 'trial':
                          msg += "\n\nSinov davri uchun Menyular limiti (1 ta) tugadi. Davom etish uchun tarif tanlang."
                     elif plan == 'free':
@@ -379,15 +379,15 @@ class Database:
                 usage = user.ai_workout_count
                 
                 # Limits (Same structure as menu)
-                if plan == 'vip': limit = 4
-                elif plan == 'premium': limit = 1
+                if plan == 'vip': limit = 999
+                elif plan == 'premium': limit = 999
                 elif plan == 'trial': limit = 1
                 else: limit = 0
                 
                 if usage >= limit:
                     msg = "⚠️ Sizning limitingiz tugadi."
-                    if plan == 'premium':
-                        msg += "\n\nPremium tarifida oyiga 1 marta AI mashq rejasi olish mumkin."
+                    if plan == 'premium' or plan == 'vip':
+                        msg += "\n\nOylik limitga yetdingiz."
                     elif plan == 'trial':
                          msg += "\n\nSinov davri uchun Mashqlar limiti (1 ta) tugadi."
                     elif plan == 'free':

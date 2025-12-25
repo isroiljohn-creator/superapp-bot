@@ -121,57 +121,25 @@ async def generate_meal(
     
     daily_target = round(tdee)
     
-    # Generate AI plan for premium users
-    allergy_note = f"Allergies: {current_user.allergies}." if current_user.allergies else ""
-    
-    prompt = f"""
-    Create a 7-day meal plan for a {current_user.age} year old {current_user.gender}.
-    Height: {current_user.height}cm, Weight: {current_user.weight}kg.
-    Goal: {current_user.goal}. (weight_loss = Deficit, muscle_gain = Surplus).
-    Cuisine: Uzbek/Central Asian mostly.
-    {allergy_note}
-    
-    CALORIE TARGET: {daily_target} kcal per day (STRICT LIMIT).
-    Each day must have breakfast, lunch, dinner, and 1 snack.
-    The sum of calories for all 4 meals MUST be close to {daily_target} kcal (±50 kcal).
-    
-    IMPORTANT: All text content (titles, items, descriptions, recipes, steps) MUST be in UZBEK language (Latin script).
-    
-    Return STRICT JSON array with 7 items.
-    Format:
-    [
-      {{
-        "day": 1,
-        "total_calories": {daily_target},
-        "meals": {{
-           "breakfast": {{ 
-             "title": "Taom nomi", 
-             "calories": 0, 
-             "items": ["masalliq 1", "masalliq 2"],
-             "recipe": "Kerakli masalliqlar va miqdori haqida qisqa ma'lumot",
-             "steps": ["1-qadam", "2-qadam"]
-           }},
-           "lunch": {{ "title": "...", "calories": 0, "items": ["..."], "recipe": "...", "steps": ["..."] }},
-           "dinner": {{ "title": "...", "calories": 0, "items": ["..."], "recipe": "...", "steps": ["..."] }},
-           "snack": {{ "title": "...", "calories": 0, "items": ["..."], "recipe": "...", "steps": ["..."] }}
-        }}
-      }}
-    ]
-    IMPORTANT: Return ONLY valid JSON. No markdown backticks.
-    """
-    
     try:
-        from core.ai import ask_gemini
-        raw_text = ask_gemini("You are a nutritionist expert. Output ONLY JSON.", prompt)
+        from core.ai import ai_generate_weekly_meal_plan_json
         
-        # Robust JSON cleaning
-        cleaned_text = raw_text.strip()
-        if "```json" in cleaned_text:
-            cleaned_text = cleaned_text.split("```json")[1].split("```")[0].strip()
-        elif "```" in cleaned_text:
-            cleaned_text = cleaned_text.split("```")[1].split("```")[0].strip()
-            
-        plan_json = json.loads(cleaned_text)
+        # Unified call
+        full_data = ai_generate_weekly_meal_plan_json(
+            user_profile={
+                "age": current_user.age,
+                "gender": current_user.gender,
+                "height": current_user.height,
+                "weight": current_user.weight,
+                "goal": current_user.goal,
+                "activity_level": current_user.activity_level,
+                "allergies": current_user.allergies,
+                "telegram_id": current_user.telegram_id
+            },
+            daily_target=daily_target
+        )
+        
+        plan_json = full_data.get('menu', [])
         
         # Save to DB
         plan = Plan(user_id=current_user.id, type="meal", content=json.dumps(plan_json))
@@ -185,7 +153,7 @@ async def generate_meal(
         }
     except Exception as e:
         print(f"Meal Gen Error: {e}")
-        raise HTTPException(status_code=500, detail="AI xizmatida xatolik. Keyinroq urinib ko'ring.")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/workout")
 async def generate_workout(
@@ -213,37 +181,21 @@ async def generate_workout(
             "template_name": template["name"]
         }
     
-    prompt = f"""
-    Create a 7-day workout plan for {current_user.age}y/o {current_user.gender}. 
-    Goal: {current_user.goal}. (weight_loss = focus on cardio/hiit, muscle_gain = focus on hypertrophy).
-    
-    IMPORTANT: All text content (titles, exercise names, instructions) MUST be in UZBEK language (Latin script).
-    
-    Return STRICT JSON array with 7 items.
-    Format:
-    [
-      {{
-        "day": 1,
-        "title": "Day Name",
-        "exercises": [
-           {{ "name": "...", "sets": "3x12", "rest": "60s" }}
-        ]
-      }}
-    ]
-    IMPORTANT: Return ONLY valid JSON. No markdown backticks.
-    """
-    
     try:
-        from core.ai import ask_gemini
-        raw_text = ask_gemini("You are a professional fitness coach. Output ONLY JSON.", prompt)
+        from core.ai import ai_generate_weekly_workout_json
         
-        cleaned_text = raw_text.strip()
-        if "```json" in cleaned_text:
-            cleaned_text = cleaned_text.split("```json")[1].split("```")[0].strip()
-        elif "```" in cleaned_text:
-            cleaned_text = cleaned_text.split("```")[1].split("```")[0].strip()
-            
-        plan_json = json.loads(cleaned_text)
+        full_data = ai_generate_weekly_workout_json({
+                "age": current_user.age,
+                "gender": current_user.gender,
+                "height": current_user.height,
+                "weight": current_user.weight,
+                "goal": current_user.goal,
+                "activity_level": current_user.activity_level,
+                "telegram_id": current_user.telegram_id
+        })
+        
+        # Extract schedule from unified workout format
+        plan_json = full_data.get('schedule', [])
         
         plan = Plan(user_id=current_user.id, type="workout", content=json.dumps(plan_json))
         db_session.add(plan)
@@ -256,4 +208,4 @@ async def generate_workout(
         }
     except Exception as e:
         print(f"Workout Gen Error: {e}")
-        raise HTTPException(status_code=500, detail="AI xizmatida xatolik. Keyinroq urinib ko'ring.")
+        raise HTTPException(status_code=500, detail=str(e))

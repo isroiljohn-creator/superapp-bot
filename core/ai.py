@@ -160,13 +160,15 @@ SAFETY_SETTINGS = [
 ]
 
 # Models to try in order
-# Primary: from Env (default 2.5-flash)
-# Fallback: 1.5-flash (more stable/faster/cheaper)
+# Primary: from Env (default 1.5-flash)
+# Fallback: versions with different suffixes to handle 404s in different regions/API versions
 MODELS_TO_TRY = []
 primary = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
 MODELS_TO_TRY.append(primary)
-if primary != "gemini-1.5-flash":
-    MODELS_TO_TRY.append("gemini-1.5-flash")
+fallbacks = ["gemini-1.5-flash-latest", "gemini-1.5-flash", "gemini-1.5-flash-001", "gemini-1.5-flash-002", "gemini-2.0-flash-exp"]
+for fb in fallbacks:
+    if fb not in MODELS_TO_TRY:
+        MODELS_TO_TRY.append(fb)
 
 def get_profile_key(profile):
     """Generates a cache key for deduplication."""
@@ -187,16 +189,16 @@ AI_USAGE_STATS = {
     "total_requests": 0
 }
 
-def ask_gemini(system_prompt, user_prompt):
+def ask_gemini(system_prompt, user_prompt, response_mime_type=None, response_schema=None):
     """
-    Centralized helper to call Gemini with model fallback.
+    Centralized helper to call Gemini with robust model fallback.
     Returns plain text response or raises Exception.
     """
     global client
     
     if not client:
         if not GEMINI_API_KEY:
-            raise Exception("API Key not found")
+            raise Exception("API Key topilmadi (GEMINI_API_KEY).")
         client = genai.Client(api_key=GEMINI_API_KEY)
 
     # Combine system and user prompt
@@ -208,27 +210,45 @@ def ask_gemini(system_prompt, user_prompt):
         try:
             print(f"DEBUG: Attempting AI generation with model: {model_name}")
             
+            config_kwargs = {
+                "safety_settings": SAFETY_SETTINGS,
+                "max_output_tokens": 15000,
+            }
+            if response_mime_type:
+                config_kwargs["response_mime_type"] = response_mime_type
+            if response_schema:
+                config_kwargs["response_schema"] = response_schema
+
             response = client.models.generate_content(
                 model=model_name,
                 contents=full_prompt,
-                config=types.GenerateContentConfig(
-                    safety_settings=SAFETY_SETTINGS,
-                    # timeout is handled differently in the new SDK or at client level
-                )
+                config=types.GenerateContentConfig(**config_kwargs)
             )
             
             if response.text:
                 return response.text.strip()
             
         except Exception as e:
+            err_str = str(e).lower()
             print(f"DEBUG: Model {model_name} failed: {e}")
             last_error = e
-            continue # Try next model
+            
+            # If it's a 404, we definitely want to try the next model
+            if "404" in err_str or "not found" in err_str:
+                continue
+            
+            # If it's a safety block, maybe try another model too
+            if "finish_reason" in err_str and "safety" in err_str:
+                continue
+                
+            # For other errors, keep trying until we run out of models
+            continue
             
     # If all models fail
     print("ERROR: All AI models failed.")
     AI_USAGE_STATS["errors"] += 1
-    raise last_error or Exception("All AI models failed")
+    # User friendly error
+    raise Exception(f"AI tizimi bilan bog'lanishda xatolik yuz berdi. Iltimos, bir ozdan so'ng qayta urining. (Error: {last_error})")
 
 def call_gemini(prompt):
     """Legacy wrapper for backward compatibility, redirects to ask_gemini"""
@@ -239,128 +259,12 @@ def call_gemini(prompt):
         return None
 
 def ai_generate_workout(user_profile):
-    """Generates a weekly workout plan using Gemini or fallback."""
-    AI_USAGE_STATS["workout"] += 1
-    AI_USAGE_STATS["total_requests"] += 1
-    prompt = f"""
-Siz Telegram uchun qisqa, silliq, tushunarli mashq rejalari tuzadigan professional fitness trenerisiz.
-
-Foydalanuvchi profili:
-Yosh: {user_profile.get('age')}
-Jins: {user_profile.get('gender')}
-Maqsad: {user_profile.get('goal')}
-Bo‘y: {user_profile.get('height')}
-Vazn: {user_profile.get('weight')}
-Faollik darajasi: {user_profile.get('activity_level', 'Belgilanmagan')}
-
-🎯 Vazifa:
-Foydalanuvchiga 7 kunlik mashq rejasi tuzing.
-
-📌 FORMAT TALABLARI:
-- JSON formatda qaytar. "schedule" array ichida 7 ta kun bo'lsin.
-- Mashq kunlari (1, 3, 5-kunlar) va Dam olish kunlari (2, 4, 6, 7-kunlar) bo'lsin.
-- Dam olish kunlari uchun "focus": "Dam olish (Rest)" deb yozilsin va "exercises": "Bugun to'liq tiklanish kuni..." kabi matn bo'lsin.
-- Mashq kunlari uchun "focus": "Ko'krak", "Oyoq" kabi bo'lsin.
-- Javob FAQAT JSON bo'lsin.
-
-Example structure:
-{
-  "schedule": [
-    { "day": 1, "focus": "Ko'krak", "exercises": "..." },
-    { "day": 2, "focus": "Dam olish (Rest)", "exercises": "..." },
-    ...
-  ]
-}
-"""
-    
-    response_text = call_gemini(prompt)
-    if response_text and len(response_text) > 50: # Ensure meaningful response
-        return format_gemini_text(response_text, "🏋️‍♂️ Sizning Individual Mashq Rejangiz")
-        
-    print(f"DEBUG: AI failed or returned empty. Using fallback for user {user_profile.get('name')}")
-    return get_offline_workout(user_profile)
+    """Generates a weekly workout plan using the robust unified logic."""
+    return ai_generate_weekly_workout_json(user_profile)
 
 def ai_generate_menu(user_profile):
-    """Generates a weekly meal plan using Gemini or fallback."""
-    AI_USAGE_STATS["meal"] += 1
-    AI_USAGE_STATS["total_requests"] += 1
-    
-    # Build allergy warning if present
-    allergy_text = user_profile.get('allergies')
-    allergy_section = ""
-    if allergy_text and allergy_text.lower() not in ['yo\'q', 'no', 'none', 'yoq']:
-        allergy_section = f"\n\n⚠️ ⚠️ ⚠️ JUDA MUHIM ⚠️ ⚠️ ⚠️\nFoydalanuvchida {allergy_text} ga ALLERGIYA BOR!\nTavsiya qilingan ovatlarda BU MAHSULOTLAR BO'LMASLIGI KERAK!\nAlternativ mahsulotlar tavsiya qiling.\n"
-    
-    # Map goals to Uzbek
-    goal_map = {
-        "weight_loss": "Vazn tashlash",
-        "muscle_gain": "Vazn olish",
-        "health": "Sog'lomlikni saqlash"
-    }
-    default_goal = "Sog'lomlik"
-    goal_uz = goal_map.get(user_profile.get('goal'), user_profile.get('goal', default_goal))
-    
-    activity_level = user_profile.get('activity_level', "O'rtacha")
-    prompt = f"""
-Siz professional dietolog va fitness murabbiysiz.
-Vazifa: O'zbek tilida 1 KUNLIK professional ovqatlanish rejasi tuzing.
-
-Foydalanuvchi ma'lumotlari:
-- Maqsad: {goal_uz}
-- Faollik: {activity_level}
-- Yoshi: {user_profile.get('age')}
-- Vazni: {user_profile.get('weight')} kg
-{allergy_section}
-
-O'QISH FORMATI (QAT'IY RIAOYA QILING):
-Format buzulmasin. Jadval ishlatmang.
-
-🍽 [X]-kun uchun sog'lom menyu — [XXXX] kcal
-
-🥣 Nonushta: [Taom nomi va kkal]
-• [Masalliqlar ro'yxati]
-- Tayyorlanishi: [1-2 gapda aniq tushuntirish]
-- ⏱ [Vaqt] | 💰 [Narx darajasi] | 🏠
-
-🍎 Tamaddi: [Nomi va kkal]
-• [Masalliq]
-- Tayyorlanishi: [Qisqa yo'riqnoma]
-
-🍛 Tushlik: [Taom nomi va kkal]
-• [Masalliqlar]
-- Tayyorlanishi: [Qisqa retsept]
-- ⏱ [Vaqt] | 💰 [Narx] | 🍲
-
-🥗 Kechki ovqat: [Taom nomi va kkal]
-• [Masalliqlar]
-- Tayyorlanishi: [Qisqa retsept]
-- ⏱ [Vaqt] | 💰 [Narx] | 🌙
-
-📊 Kun yakuni
-- 🔥 Jami kcal: [XXXX]
-- 🎯 Maqsad: {goal_uz} uchun mos
-- ✅ [Qisqa xulosa 1 gap]
-
-TALABLAR:
-1. O'zbek tilida so'zlashuv uslubida, tushunarli yozing.
-2. Tarkibida O'zbekistonda bor mahsulotlar bo'lsin.
-3. Tayyorlash jarayoni juda qisqa va aniq bo'lsin.
-4. AI haqida gapirmang, faqat reja.
-5. 1 kunlik reja tuzing.
-"""
-
-    response_text = call_gemini(prompt)
-    
-    if response_text:
-        print(f"DEBUG: AI Response Length: {len(response_text)}")
-    else:
-        print("DEBUG: AI Response was None or Empty.")
-
-    if response_text and len(response_text) > 50:
-        return format_gemini_text(response_text, "Sizning ovqatlanish rejangiz")
-
-    print(f"DEBUG: AI failed validation (len > 50). Using fallback for user {user_profile.get('name')}")
-    return get_offline_menu(user_profile)
+    """Generates a weekly meal plan using the robust unified logic."""
+    return ai_generate_weekly_meal_plan_json(user_profile)
 
 
 MOCK_MENU_DATA = {
@@ -379,39 +283,17 @@ MOCK_MENU_DATA = {
   ]
 }
 
-def ai_generate_monthly_menu_json(user_profile):
-    """Generates a 30-day structured meal plan + shopping list in JSON."""
+def ai_generate_weekly_meal_plan_json(user_profile, daily_target=2000):
+    """Generates a 7-day structured meal plan + shopping list in JSON. (Unified logic)"""
     AI_USAGE_STATS["meal"] += 1
     AI_USAGE_STATS["total_requests"] += 1
 
-    # 0. CACHE CHECK
-    from core.db import db
-    import json
-    
-    profile_key = get_profile_key(user_profile)
-    cached = db.get_menu_template(profile_key)
-    
-    if cached:
-        print(f"DEBUG: Cache Hit for Menu: {profile_key}")
-        try:
-             return {
-                 "menu": json.loads(cached['menu_json']),
-                 "shopping_list": json.loads(cached['shopping_list_json'])
-             }
-        except Exception as e:
-             print(f"Cache Corrupt: {e}")
-
+    # allergy_info
     allergy_text = user_profile.get('allergies')
-    allergy_section = ""
-    if allergy_text and allergy_text.lower() not in ['yo\'q', 'no', 'none', 'yoq']:
-        allergy_section = f"DIQQAT: Foydalanuvchida {allergy_text} ga allergiya bor. Menyuda bular qat'iyan bo'lmasin!"
+    allergy_info = allergy_text if (allergy_text and allergy_text.lower() not in ['yo\'q', 'no', 'none', 'yoq']) else "Yo'q"
 
-    
-    
-    
     # 1. System Prompt (Rich Nutritional Role)
-    # 1. System Prompt (Rich Nutritional Role - UPDATED STRICT)
-    system_prompt = """
+    system_prompt = f"""
 You are a professional Uzbek nutritionist, home chef, and supportive fitness coach.
 
 Your task is to generate a 7-day meal plan in STRICT JSON format.
@@ -431,245 +313,196 @@ CRITICAL RULES (VERY IMPORTANT):
 4. USERGA DOIM "SIZ" DEB MUROJAAT QILING.
 
 CALORIE RULES (STRICT):
-- DAILY_TOTAL_KCAL MUST BE BETWEEN 1400 AND 1500 (Adjust steps/ingredients to fit).
-- EVERY MEAL MUST HAVE 'kcal' (INTEGER).
-- DAILY kcal MUST BE LOGICALLY DISTRIBUTED:
+- DAILY_TOTAL_KCAL MUST BE BETWEEN {daily_target-50} AND {daily_target+50} (Adjust steps/ingredients to fit).
+- EVERY MEAL MUST HAVE 'calories' (INTEGER).
+- DAILY calories MUST BE LOGICALLY DISTRIBUTED:
   - Nonushta: 25–30%
   - Tushlik: 35–40%
   - Kechki ovqat: 20–25%
   - Tamaddi: 5–10%
-- If kcal does NOT fit → YOU MUST FIX IT.
 
 MEAL STRUCTURE (DO NOT CHANGE):
 Each meal object MUST include:
 - title (string)
-- ingredients (array of strings WITH QUANTITIES)
-- preparation_steps (array of strings, step-by-step)
-- time_minutes (integer)
-- cost_level ('Arzon' | 'O\'rtacha' | 'Qimmat')
-- place ('uy')
-- kcal (integer)
+- items (array of strings WITH QUANTITIES)
+- recipe (string, tips or short context)
+- steps (array of strings, step-by-step preparation)
+- calories (integer)
 
 SNACK (TAMADDI):
 - MUST be an OBJECT
 - title MUST be very short (2–3 words)
-- kcal is REQUIRED
+- calories is REQUIRED
 
 SHOPPING LIST:
-- MUST be an OBJECT
-- GROUPED BY CATEGORIES: 'protein', 'veg', 'carbs', 'dairy', 'misc'
-- Quantities MUST be TOTAL for 7 DAYS (Masalan: "Tovuq filesi — 1.5 kg")
+- Categorized into 'protein', 'veg', 'carbs', 'dairy', 'misc'
+- TOTAL quantities for 7 DAYS.
 
 DAILY OBJECT MUST INCLUDE:
 - day (integer, 1-7)
 - day_name (string, e.g. "Dushanba")
-- breakfast, lunch, dinner, snack
-- total_kcal (integer)
-- micro_advice (1–2 short motivating sentences)
+- meals (object containing breakfast, lunch, dinner, snack)
+- total_calories (integer)
 
 """
 
-    # 2. User Prompt (Data)
-    if 'allergies' in user_profile and user_profile['allergies']:
-         allergy_info = user_profile['allergies']
-    else:
-         allergy_info = "yo‘q"
-
+    # 2. User Prompt (Context)
     user_prompt = f"""
-🔹 USER PROMPT (DYNAMIC)
-
-Ma'lumotlar:
+Foydalanuvchi ma'lumotlari:
 Yosh: {user_profile.get('age')}
 Jins: {user_profile.get('gender')}
+Maqsad: {user_profile.get('goal')}
 Bo‘y: {user_profile.get('height')}
 Vazn: {user_profile.get('weight')}
 Faollik: {user_profile.get('activity_level', 'O’rtacha')}
-Maqsad: {user_profile.get('goal', 'Vazn yo‘qotish')}
 Allergiya: {allergy_info}
 
-Talablar:
-- 7 kunlik menyu
-- Ovqatlar uy sharoitida tayyorlanadigan bo‘lsin
-- Mahsulotlar arzon va topilishi oson bo‘lsin
-- Har kun yakunida aniq kaloriya chiqsin
-- Foydalanuvchini ruhlantiruvchi micro_advice bo‘lsin
+VAZIFA: Menga 7 kunlik (Dushanba-Yakshanba) ovqatlanish rejasi kerak.
 """
-
-    
-    # 3. Model Configuration
-    model_name = 'gemini-1.5-flash'
-    global client
-    if not client:
-        client = genai.Client(api_key=GEMINI_API_KEY)
 
     # -------------------------------------------------------------------------
     # HELPER: Safe JSON Generation with Retry/Repair
     # -------------------------------------------------------------------------
     def _generate_chunk(prompt_text, chunk_desc):
         print(f"DEBUG: Generating {chunk_desc}...")
-        generation_config = {
-            "max_output_tokens": 15000,
-            "response_mime_type": "application/json",
-            "response_schema": {
-                "type": "object",
-                "properties": {
-                    "menu": {
-                        "type": "array",
-                        "items": {
-                            "type": "object",
-                            "properties": {
-                                "day": {"type": "integer"},
-                                "day_name": {"type": "string"},
-                                "total_kcal": {"type": "integer"},
-                                "breakfast": {
-                                    "type": "object",
-                                    "properties": {
-                                        "title": {"type": "string"},
-                                        "kcal": {"type": "integer"},
-                                        "ingredients": {"type": "array", "items": {"type": "string"}},
-                                        "preparation_steps": {"type": "array", "items": {"type": "string"}},
-                                        "time_minutes": {"type": "integer"},
-                                        "cost_level": {"type": "string"},
-                                        "place": {"type": "string"}
-                                    },
-                                    "required": ["title", "ingredients", "preparation_steps"]
-                                },
-                                "lunch": {
-                                    "type": "object",
-                                    "properties": {
-                                        "title": {"type": "string"},
-                                        "kcal": {"type": "integer"},
-                                        "ingredients": {"type": "array", "items": {"type": "string"}},
-                                        "preparation_steps": {"type": "array", "items": {"type": "string"}},
-                                        "time_minutes": {"type": "integer"},
-                                        "cost_level": {"type": "string"},
-                                        "place": {"type": "string"}
-                                    },
-                                    "required": ["title", "ingredients", "preparation_steps"]
-                                },
-                                "dinner": {
-                                    "type": "object",
-                                    "properties": {
-                                        "title": {"type": "string"},
-                                        "kcal": {"type": "integer"},
-                                        "ingredients": {"type": "array", "items": {"type": "string"}},
-                                        "preparation_steps": {"type": "array", "items": {"type": "string"}},
-                                        "time_minutes": {"type": "integer"},
-                                        "cost_level": {"type": "string"},
-                                        "place": {"type": "string"}
-                                    },
-                                    "required": ["title", "ingredients", "preparation_steps"]
-                                },
-                                "snack": {
-                                    "type": "object",
-                                    "properties": {
-                                        "title": {"type": "string"},
-                                        "kcal": {"type": "integer"},
-                                        "ingredients": {"type": "array", "items": {"type": "string"}},
-                                        "preparation_steps": {"type": "array", "items": {"type": "string"}}
-                                    }
-                                },
-                                "micro_advice": {"type": "string"}
-                            },
-                            "required": ["day", "breakfast", "lunch", "dinner", "snack"]
-                        }
-                    },
-                    "shopping_list": {
+        
+        schema = {
+            "type": "object",
+            "properties": {
+                "menu": {
+                    "type": "array",
+                    "items": {
                         "type": "object",
                         "properties": {
-                            "protein": {"type": "array", "items": {"type": "string"}},
-                            "veg": {"type": "array", "items": {"type": "string"}},
-                            "carbs": {"type": "array", "items": {"type": "string"}},
-                            "dairy": {"type": "array", "items": {"type": "string"}},
-                            "misc": {"type": "array", "items": {"type": "string"}}
+                            "day": {"type": "integer"},
+                            "day_name": {"type": "string"}, # Added day_name as per system prompt
+                            "meals": {
+                                "type": "object",
+                                "properties": {
+                                    "breakfast": {
+                                        "type": "object",
+                                        "properties": {
+                                            "title": {"type": "string"},
+                                            "calories": {"type": "integer"},
+                                            "items": {"type": "array", "items": {"type": "string"}},
+                                            "recipe": {"type": "string"},
+                                            "steps": {"type": "array", "items": {"type": "string"}}
+                                        },
+                                        "required": ["title", "calories", "items", "recipe", "steps"]
+                                    },
+                                    "lunch": {
+                                        "type": "object",
+                                        "properties": {
+                                            "title": {"type": "string"},
+                                            "calories": {"type": "integer"},
+                                            "items": {"type": "array", "items": {"type": "string"}},
+                                            "recipe": {"type": "string"},
+                                            "steps": {"type": "array", "items": {"type": "string"}}
+                                        },
+                                        "required": ["title", "calories", "items", "recipe", "steps"]
+                                    },
+                                    "dinner": {
+                                        "type": "object",
+                                        "properties": {
+                                            "title": {"type": "string"},
+                                            "calories": {"type": "integer"},
+                                            "items": {"type": "array", "items": {"type": "string"}},
+                                            "recipe": {"type": "string"},
+                                            "steps": {"type": "array", "items": {"type": "string"}}
+                                        },
+                                        "required": ["title", "calories", "items", "recipe", "steps"]
+                                    },
+                                    "snack": {
+                                        "type": "object",
+                                        "properties": {
+                                            "title": {"type": "string"},
+                                            "calories": {"type": "integer"},
+                                            "items": {"type": "array", "items": {"type": "string"}},
+                                            "recipe": {"type": "string"},
+                                            "steps": {"type": "array", "items": {"type": "string"}}
+                                        },
+                                        "required": ["title", "calories", "items", "recipe", "steps"]
+                                    }
+                                },
+                                "required": ["breakfast", "lunch", "dinner", "snack"]
+                            },
+                            "total_calories": {"type": "integer"}
                         },
-                        "required": ["protein", "veg", "carbs", "dairy", "misc"]
+                        "required": ["day", "day_name", "meals", "total_calories"] # Added day_name to required
                     }
                 },
-                "required": ["menu", "shopping_list"]
-            }
+                "shopping_list": {
+                    "type": "object",
+                    "properties": {
+                        "protein": {"type": "array", "items": {"type": "string"}},
+                        "veg": {"type": "array", "items": {"type": "string"}},
+                        "carbs": {"type": "array", "items": {"type": "string"}},
+                        "dairy": {"type": "array", "items": {"type": "string"}},
+                        "misc": {"type": "array", "items": {"type": "string"}}
+                    },
+                    "required": ["protein", "veg", "carbs", "dairy", "misc"]
+                }
+            },
+            "required": ["menu", "shopping_list"]
         }
 
         try:
-            response = client.models.generate_content(
-                model=model_name,
-                contents=prompt_text,
-                config=types.GenerateContentConfig(
-                    max_output_tokens=15000,
-                    response_mime_type="application/json",
-                    response_schema=generation_config["response_schema"],
-                    safety_settings=SAFETY_SETTINGS,
-                    http_options={'timeout': 90000}
-                )
-            )
+            # Use ask_gemini instead of direct client call for fallback
+            response_text = ask_gemini(system_prompt, prompt_text, response_mime_type="application/json", response_schema=schema)
             
-            # [Added] Granular Logging
+            if not response_text:
+                raise Exception("Empty AI response")
+
+            # Repair Logic (Compact)
+            import re, json
+            start_match = re.search(r'\{', response_text)
+            clean_json = response_text[start_match.start():] if start_match else response_text
+            clean_json = clean_json.split('```')[0].strip()
+            
             try:
-                if response.usage_metadata:
-                    i_tok = response.usage_metadata.prompt_token_count
-                    o_tok = response.usage_metadata.candidates_token_count
-                    
-                    from core.ai_usage_logger import log_ai_usage
-                    # user_profile is available from outer scope
-                    u_id = user_profile.get('telegram_id') 
-                    log_ai_usage(None, u_id, f"menu_{chunk_desc}", input_tokens=i_tok, output_tokens=o_tok, model=model_name)
-            except Exception as log_e:
-                print(f"Usage Log Error: {log_e}")
-                
-        except Exception as api_error:
-            if "429" in str(api_error) or "quota" in str(api_error).lower():
-                 raise Exception("AI charchadi (Limit tugadi). Iltimos, 1-2 daqiqadan keyin urinib ko'ring.")
-            raise Exception(f"Google API Error: {api_error}")
-
-        response_text = response.text
-        if not response_text:
-            if hasattr(response, 'prompt_feedback'):
-                 feedback = response.prompt_feedback
-                 print(f"DEBUG: Safety Feedback: {feedback}")
-                 raise Exception(f"Blocked by Safety Filters: {feedback}")
-            raise Exception("Empty AI response")
-
-        print(f"DEBUG: AI Output ({model_name}): {response_text[:200]}...")
-
-        # Repair Logic (Compact)
-        import re, json
-        start_match = re.search(r'\{', response_text)
-        clean_json = response_text[start_match.start():] if start_match else response_text
-        # Remove any markdown code block suffix if present
-        clean_json = clean_json.split('```')[0].strip()
-        try:
-             return json.loads(clean_json)
-        except json.JSONDecodeError as e:
-             print(f"Initial JSON Parse Error for {chunk_desc}: {e}. Attempting repair...")
-             # Quick Close
-             try:
+                 return json.loads(clean_json)
+            except json.JSONDecodeError:
+                 # Auto-repair common truncation
                  repaired = clean_json
                  if repaired.count('"') % 2 != 0: repaired += '"'
                  repaired += '}' * (repaired.count('{') - repaired.count('}'))
                  repaired += ']' * (repaired.count('[') - repaired.count(']'))
-                 data = json.loads(repaired)
-                 print(f"Repair successful for {chunk_desc} (Method 1: Auto-close).")
-                 return data
-             except:
                  try:
-                    # Trim Last Comma
+                    return json.loads(repaired)
+                 except:
+                    # Trim last comma and try again
                     last_comma = clean_json.rfind(',')
                     if last_comma > 0:
                         repaired = clean_json[:last_comma]
                         repaired += '}' * (repaired.count('{') - repaired.count('}')) 
                         repaired += ']' * (repaired.count('[') - repaired.count(']'))
-                        data = json.loads(repaired)
-                        print(f"Repair successful for {chunk_desc} (Method 2: Trim & Close).")
-                        return data
-                    else:
-                        raise Exception("No comma to backtrack")
-                 except Exception as final_e:     
-                    raise Exception(f"Failed to repair {chunk_desc} JSON: {final_e}")
+                        return json.loads(repaired)
+                    raise
+        except Exception as api_err:
+            print(f"DEBUG: Chunk Generation error ({chunk_desc}): {api_err}")
+            return {"menu": [], "shopping_list": {}}
 
     # -------------------------------------------------------------------------
     # MAIN SPLIT LOGIC
     # -------------------------------------------------------------------------
     try:
+        # 0. CACHE CHECK
+        from core.db import db
+        import json
+        
+        profile_key = get_profile_key(user_profile)
+        cached = db.get_menu_template(profile_key)
+        
+        if cached:
+            print(f"DEBUG: Cache Hit for Menu: {profile_key}")
+            try:
+                 return {
+                     "menu": json.loads(cached['menu_json']),
+                     "shopping_list": json.loads(cached['shopping_list_json'])
+                 }
+            except Exception as e:
+                 print(f"Cache Corrupt: {e}")
+
         base_prompt = f"{system_prompt}\n\nUser Input: {user_prompt}"
         
         # PART 1: Days 1-3
@@ -677,51 +510,34 @@ Talablar:
         data_1 = _generate_chunk(prompt_1, "Days 1-3")
         
         # PART 2: Days 4-7 + Shopping List
-        # We pass summary of Part 1 to help context, but minimal
-        # The model is instructed to generate the full shopping list for the whole week in Part 2.
-        prompt_2 = base_prompt + f"\n\n✅ Days 1-3 Generated Successfully. Now generate remaining.\n\n🚨 IMPORTANT TASK: Generate ONLY Days 4, 5, 6, and 7. \nAND generate valid 'shopping_list' for THE WHOLE WEEK (Days 1-7)."
+        prompt_2 = base_prompt + f"\n\n✅ Days 1-3 Generated. Now generate remaining.\n\n🚨 TASK: Generate ONLY Days 4, 5, 6, and 7. \nAND generate valid 'shopping_list' for THE WHOLE WEEK (Days 1-7)."
         data_2 = _generate_chunk(prompt_2, "Days 4-7")
+        
+        # MERGE LOGIC
+        final_menu = data_1.get('menu', []) + data_2.get('menu', [])
+        final_shopping = data_2.get('shopping_list', {})
         
         merged_data = {
             "menu": final_menu,
             "shopping_list": final_shopping
         }
         
-        # Basic Validation
-        if len(merged_data['menu']) < 2:
-            print("WARNING: Merged menu has < 2 days. Might be error.")
-            
-        # ----------------------------------------------------------------
-        # ROBUST CLEANING (Fix "tuzat" and other AI glitches)
-        # ----------------------------------------------------------------
+        # ROBUST CLEANING
         if "menu" in merged_data and isinstance(merged_data["menu"], list):
             for day in merged_data["menu"]:
-                 for meal in ["breakfast", "lunch", "dinner", "snack"]:
-                     if meal in day and isinstance(day[meal], str):
-                         # Remove "tuzat" or similar command leaks
-                         clean_text = day[meal].replace(" tuzat", "").replace(" yoz", "")
-                         
-                         # Ensure capitalization
-                         if clean_text:
-                             clean_text = clean_text[0].upper() + clean_text[1:]
-                             
-                         day[meal] = clean_text
-
-        if "shopping_list" in merged_data and isinstance(merged_data["shopping_list"], dict):
-            for category in merged_data["shopping_list"]:
-                if isinstance(merged_data["shopping_list"][category], list):
-                    new_list = []
-                    for item in merged_data["shopping_list"][category]:
-                        if isinstance(item, str):
-                            clean_item = item.replace(" tuzat", "").strip()
-                            if clean_item:
-                                 new_list.append(clean_item)
-                    merged_data["shopping_list"][category] = new_list
-        # ----------------------------------------------------------------
+                 if "meals" in day:
+                     for meal_key in day["meals"]:
+                         meal = day["meals"][meal_key]
+                         if isinstance(meal, dict):
+                             for field in ["title", "recipe"]:
+                                 if field in meal and isinstance(meal[field], str):
+                                     meal[field] = meal[field].replace(" tuzat", "").replace(" yoz", "").strip()
+                                     if meal[field]:
+                                         meal[field] = meal[field][0].upper() + meal[field][1:]
 
         # SAVE TO CACHE
         try:
-            # Ensure it's valid data before saving
+             # Ensure it's valid data before saving
             if "menu" in merged_data and "shopping_list" in merged_data:
                  db.create_menu_template(
                      profile_key,
@@ -730,13 +546,11 @@ Talablar:
                  )
         except Exception as e:
              print(f"Cache Save Error: {e}")
+
         return merged_data
             
-
-
     except Exception as e:
         print(f"Split Generation Failed: {e}")
-        # RE-RAISE THE EXACT ERROR so bot/workout.py displays it
         raise e
         
 
@@ -1268,35 +1082,29 @@ def ai_generate_single_meal(user_profile, meal_type, day_name="Bugun"):
         "title": "Taom nomi",
         "kcal": 450,
         "ingredients": ["..."],
-        "recipe": "...",
-        "steps": ["..."],
-        "time_minutes": 15,
-        "cost_level": "O'rtacha",
-        "place": "uy"
-    }}
     """
     
+    schema = {
+        "type": "object",
+        "properties": {
+            "title": {"type": "string"},
+            "kcal": {"type": "integer"},
+            "ingredients": {"type": "array", "items": {"type": "string"}},
+            "recipe": {"type": "string"},
+            "steps": {"type": "array", "items": {"type": "string"}},
+            "time_minutes": {"type": "integer"},
+            "cost_level": {"type": "string"},
+            "place": {"type": "string"}
+        },
+        "required": ["title", "kcal", "ingredients", "recipe", "steps"]
+    }
+    
     try:
-         # Use the new structured generation if possible, strictly enforcing schema
-         response = curr_model.generate_content(
-            prompt,
-            generation_config={
-                "response_mime_type": "application/json",
-                "response_schema": {
-                    "type": "object",
-                    "properties": {
-                        "title": {"type": "string"},
-                        "kcal": {"type": "integer"},
-                        "ingredients": {"type": "array", "items": {"type": "string"}},
-                        "recipe": {"type": "string"},
-                        "steps": {"type": "array", "items": {"type": "string"}},
-                        "time_minutes": {"type": "integer"},
-                        "cost_level": {"type": "string"},
-                        "place": {"type": "string"}
-                    },
-                    "required": ["title", "kcal", "ingredients", "recipe", "steps"]
-                }
-            },
+         response = ask_gemini(
+            system_prompt,
+            user_prompt,
+            response_mime_type="application/json",
+            response_schema=schema,
             request_options={'timeout': 25}
          )
          
@@ -1520,22 +1328,8 @@ def ai_suggest_recipe(user_profile, ingredients_text):
     """
     
     try:
-        response = curr_model.generate_content(
-            prompt,
-            request_options={'timeout': 30}
-        )
-        
-        # Log usage
-        if response.usage_metadata:
-             try:
-                 from core.ai_usage_logger import log_ai_usage
-                 log_ai_usage(None, user_profile.get('telegram_id'), "fridge_recipe", 
-                              input_tokens=response.usage_metadata.prompt_token_count,
-                              output_tokens=response.usage_metadata.candidates_token_count)
-             except: pass
-             
-        return response.text
-             
+        response_text = ask_gemini("You are a professional nutritionist expert.", prompt)
+        return response_text
     except Exception as e:
         print(f"Fridge Gen Error: {e}")
         return None

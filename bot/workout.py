@@ -1,7 +1,7 @@
 import os
 from telebot import types
 from core.db import db
-from core.ai import ai_generate_workout, ai_generate_menu
+from core.ai import ai_generate_weekly_workout_json, ai_generate_weekly_meal_plan_json
 from bot.keyboards import plan_inline_keyboard
 from bot.premium import require_premium
 from core.flags import is_flag_enabled
@@ -384,8 +384,8 @@ def show_daily_workout(bot, user_id, link_data, override_day_idx=None):
 from bot.premium import require_premium
 
 def generate_ai_meal(message, bot, user_id=None):
-    """Generate AI meal plan (Monthly Menu System)"""
-    from core.ai import ai_generate_monthly_menu_json, get_free_menu_template
+    """Generate AI meal plan (7-Day JSON System)"""
+    from core.ai import ai_generate_weekly_meal_plan_json, get_free_menu_template
     import json
     import time
     
@@ -506,16 +506,20 @@ def generate_ai_meal(message, bot, user_id=None):
                     from core.context import get_user_context, get_founder_tone_prompt
                     
                     user_ctx = dict(user) 
-                    extra_ctx = ""
-                    if is_flag_enabled("stateful_ai_context", user_id):
-                        extra_ctx += get_user_context(user_id)
-                    if is_flag_enabled("founder_tone", user_id):
-                        extra_ctx += get_founder_tone_prompt()
-                        
-                    if extra_ctx:
-                        user_ctx['goal'] = f"{user_ctx.get('goal','')}. {extra_ctx}"
+                    
+                    # Calculate target
+                    from backend.app.api.v1.endpoints.plans import round # if available or just calc
+                    # Simplified calc for bot
+                    bmr = (10 * user.get('weight', 70)) + (6.25 * user.get('height', 170)) - (5 * user.get('age', 25))
+                    if user.get('gender') == 'male': bmr += 5
+                    else: bmr -= 161
+                    
+                    mult = {"sedentary": 1.2, "light": 1.375, "moderate": 1.55, "active": 1.725, "very_active": 1.9}.get(user.get('activity_level'), 1.375)
+                    target = int(bmr * mult)
+                    if user.get('goal') == 'lose': target -= 500
+                    elif user.get('goal') == 'gain': target += 300
 
-                    data = ai_generate_monthly_menu_json(user_ctx)
+                    data = ai_generate_weekly_meal_plan_json(user_ctx, daily_target=target)
                     
                     if data and 'menu' in data and isinstance(data['menu'], list):
                         item_count = len(data['menu'])
@@ -671,29 +675,24 @@ def show_daily_menu(bot, user_id, link_data, day_idx=None, meal_type='breakfast'
         
         if isinstance(meal_data, dict):
             title = meal_data.get('title', 'Noma\'lum taom')
-            kcal = meal_data.get('kcal', 0)
+            kcal = meal_data.get('calories', 0) # Use 'calories' as per new schema
             
             txt += f"{label}: {_esc(title)}\n"
             if kcal: txt += f"🔥 {kcal} kkal\n\n"
             
             # Ingredients
-            ings = meal_data.get('ingredients', [])
+            ings = meal_data.get('items', []) # Use 'items'
             if ings:
-                # Escape each ingredient
                 safe_ings = [_esc(i) for i in ings]
                 txt += "<b>Tarkibi:</b> " + ", ".join(safe_ings) + "\n\n"
             
             # Steps
-            steps = meal_data.get('preparation_steps', [])
+            steps = meal_data.get('steps', []) # Use 'steps'
             if steps:
                 txt += "<b>Tayyorlanishi:</b>\n"
                 for i, step in enumerate(steps, 1):
                     txt += f"{i}. {_esc(step)}\n"
                 txt += "\n"
-            
-            # Meta
-            time_m = meal_data.get('time_minutes')
-            if time_m: txt += f"⌛ Tayyorlanish vaqti: {time_m} daqiqa\n"
             
         else:
             safe_val = _esc(meal_data) if isinstance(meal_data, str) else 'Ma\'lumot yo\'q'
