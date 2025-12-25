@@ -599,8 +599,8 @@ Talablar:
                     response_mime_type="application/json",
                     response_schema=generation_config["response_schema"],
                     safety_settings=SAFETY_SETTINGS,
-                ),
-                timeout=90
+                    http_options={'timeout': 90000}
+                )
             )
             
             # [Added] Granular Logging
