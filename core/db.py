@@ -1354,7 +1354,8 @@ class Database:
                         },
                         synchronize_session=False
                     )
-                        
+                
+                session.commit()
                 return True
             except Exception as e:
                 print(f"DB Error in complete_onboarding: {e}")
