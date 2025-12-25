@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from backend.database import get_db
-from backend.app.api.v1.endpoints.auth import get_current_user
+from backend.app.api.v1.endpoints.users import get_current_user
 from backend.models import User
 from core.db import Database
 from pydantic import BaseModel
