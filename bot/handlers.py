@@ -72,9 +72,13 @@ def register_all_handlers(bot):
             bot.send_message(message.chat.id, "👨‍💻 **Dasturchi Paneli**\n\nBuyruqni tanlang:", reply_markup=admin_developer_keyboard(), parse_mode="Markdown")
 
     # --- Calorie Handlers ---
-    @bot.message_handler(func=lambda message: message.text in ["🍽 Kaloriya tahlili (premium)", "🍽 Kaloriya skaneri", "🍽 Kaloriya tahlili", "🍽 Анализ калорий", "🍽 Анализ калорий (premium)", "🍽 Анализ калорий (Premium)"])
+    @bot.message_handler(func=lambda message: message.text and ("Kaloriya" in message.text or "Анализ калорий" in message.text))
     def calorie_handler(message):
-        calorie_scanner.show_calorie_menu(message, bot)
+        try:
+            calorie_scanner.show_calorie_menu(message, bot)
+        except Exception as e:
+            print(f"Error in calorie menu: {e}")
+            bot.send_message(message.chat.id, "❌ Xatolik yuz berdi / Ошибка")
 
     @bot.message_handler(content_types=['photo'])
     def photo_handler(message):
