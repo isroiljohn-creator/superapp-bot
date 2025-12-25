@@ -415,13 +415,23 @@ class Database:
                 else: limit = 0 # Free
                 
                 if usage >= limit:
-                    msg = "⚠️ Sizning limitingiz tugadi."
-                    if plan == 'premium' or plan == 'vip':
-                        msg += "\n\nOylik limitga yetdingiz."
-                    elif plan == 'trial':
-                         msg += "\n\nSinov davri uchun Menyular limiti (1 ta) tugadi. Davom etish uchun tarif tanlang."
-                    elif plan == 'free':
-                         msg = "🔒 Bu funksiya faqat Premium/VIP da mavjud."
+                    lang = getattr(user, 'language', 'uz')
+                    if lang == 'ru':
+                        msg = "⚠️ Ваш лимит исчерпан."
+                        if plan == 'premium' or plan == 'vip':
+                            msg += "\n\nВы достигли месячного лимита."
+                        elif plan == 'trial':
+                             msg += "\n\nЛимит меню для пробного периода (1 шт) исчерпан. Выберите тариф для продолжения."
+                        elif plan == 'free':
+                             msg = "🔒 Эта функция доступна только в Premium/VIP."
+                    else:
+                        msg = "⚠️ Sizning limitingiz tugadi."
+                        if plan == 'premium' or plan == 'vip':
+                            msg += "\n\nOylik limitga yetdingiz."
+                        elif plan == 'trial':
+                             msg += "\n\nSinov davri uchun Menyular limiti (1 ta) tugadi. Davom etish uchun tarif tanlang."
+                        elif plan == 'free':
+                             msg = "🔒 Bu funksiya faqat Premium/VIP da mavjud."
                     return False, msg, f"{usage}/{limit}"
                     
                 return True, "OK", f"{usage}/{limit}"
@@ -437,13 +447,23 @@ class Database:
                 else: limit = 0
                 
                 if usage >= limit:
-                    msg = "⚠️ Sizning limitingiz tugadi."
-                    if plan == 'premium' or plan == 'vip':
-                        msg += "\n\nOylik limitga yetdingiz."
-                    elif plan == 'trial':
-                         msg += "\n\nSinov davri uchun Mashqlar limiti (1 ta) tugadi."
-                    elif plan == 'free':
-                         msg = "🔒 Bu funksiya faqat Premium/VIP da mavjud."
+                    lang = getattr(user, 'language', 'uz')
+                    if lang == 'ru':
+                         msg = "⚠️ Ваш лимит исчерпан."
+                         if plan == 'premium' or plan == 'vip':
+                            msg += "\n\nВы достигли месячного лимита."
+                         elif plan == 'trial':
+                             msg += "\n\nЛимит тренировок для пробного периода (1 шт) исчерпан."
+                         elif plan == 'free':
+                             msg = "🔒 Эта функция доступна только в Premium/VIP."
+                    else:
+                        msg = "⚠️ Sizning limitingiz tugadi."
+                        if plan == 'premium' or plan == 'vip':
+                            msg += "\n\nOylik limitga yetdingiz."
+                        elif plan == 'trial':
+                             msg += "\n\nSinov davri uchun Mashqlar limiti (1 ta) tugadi."
+                        elif plan == 'free':
+                             msg = "🔒 Bu funksiya faqat Premium/VIP da mavjud."
                     return False, msg, f"{usage}/{limit}"
 
                 return True, "OK", f"{usage}/{limit}"
