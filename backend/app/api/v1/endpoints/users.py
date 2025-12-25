@@ -38,11 +38,23 @@ async def get_profile(current_user: User = Depends(get_current_user), db: AsyncS
     )
     today_log = log_result.scalar_one_or_none()
 
-    # Auto-heal onboarding status if data exists
-    if not current_user.is_onboarded and current_user.age and current_user.gender and current_user.weight:
+    # Auto-heal onboarding status if any significant data exists
+    has_data = any([
+        current_user.age and current_user.age > 0,
+        current_user.weight and current_user.weight > 0,
+        current_user.goal,
+        current_user.full_name,
+        current_user.phone
+    ])
+    
+    if not current_user.is_onboarded and has_data:
+        print(f"DEBUG: Auto-healing onboarding status for user {current_user.id} due to existing data")
         current_user.is_onboarded = True
-        await db.commit()
-        await db.refresh(current_user)
+        try:
+            await db.commit()
+            await db.refresh(current_user)
+        except:
+            await db.rollback()
 
     return {
         "id": current_user.id,
@@ -114,6 +126,27 @@ async def update_profile(
         print(f"❌ Transaction Error for {user.id}: {e}")
         await db.rollback()
         raise HTTPException(status_code=500, detail=f"Database commit failed: {e}")
+@router.get("/health/db")
+async def db_health(db: AsyncSession = Depends(get_db)):
+    """Check database connectivity and engine type"""
+    from sqlalchemy import text
+    try:
+        # Check engine type
+        bind = db.get_bind()
+        dialect = bind.dialect.name
+        
+        # Test query
+        await db.execute(text("SELECT 1"))
+        
+        return {
+            "status": "connected",
+            "dialect": dialect,
+            "is_postgres": dialect == "postgresql",
+            "db_url_redacted": os.getenv("DATABASE_URL", "NOT_SET")[:20] + "..." if os.getenv("DATABASE_URL") else "NOT_SET"
+        }
+    except Exception as e:
+        return {"status": "error", "error": str(e)}
+
 @router.post("/reset")
 async def reset_profile(
     current_user: User = Depends(get_current_user),
