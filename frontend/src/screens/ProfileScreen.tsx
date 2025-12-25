@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { 
-  User, Crown, ChevronRight, LogOut, 
+import {
+  User, Crown, ChevronRight, LogOut,
   Bell, HelpCircle, Shield, Star, Trophy,
   Camera, Edit2, ShoppingBag, Target, Settings
 } from 'lucide-react';
@@ -182,15 +182,15 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onNavigate }) => {
 
           <div className="grid grid-cols-2 gap-2 mb-3">
             <div className="flex items-center gap-2 p-2 rounded-xl bg-muted/50">
-              <span className="text-base font-bold text-foreground">{profile?.age || 25}</span>
+              <span className="text-base font-bold text-foreground">{profile?.age || 0}</span>
               <span className="text-xs text-muted-foreground">{labels.age}</span>
             </div>
             <div className="flex items-center gap-2 p-2 rounded-xl bg-muted/50">
-              <span className="text-base font-bold text-foreground">{profile?.height || 170}</span>
+              <span className="text-base font-bold text-foreground">{profile?.height || 0}</span>
               <span className="text-xs text-muted-foreground">{labels.height} (cm)</span>
             </div>
             <div className="flex items-center gap-2 p-2 rounded-xl bg-muted/50">
-              <span className="text-base font-bold text-foreground">{profile?.weight || 70}</span>
+              <span className="text-base font-bold text-foreground">{profile?.weight || 0}</span>
               <span className="text-xs text-muted-foreground">{labels.weight} (kg)</span>
             </div>
             <div className="flex items-center gap-2 p-2 rounded-xl bg-muted/50">

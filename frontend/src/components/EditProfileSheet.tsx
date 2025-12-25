@@ -17,13 +17,13 @@ export const EditProfileSheet: React.FC<EditProfileSheetProps> = ({ isOpen, onCl
   const { profile, setProfile } = useUser();
   const { t } = useLanguage();
   const { vibrate } = useHaptic();
-  
+
   const [formData, setFormData] = useState({
     name: profile?.name || '',
     phone: profile?.phone || '',
-    age: profile?.age || 25,
-    height: profile?.height || 170,
-    weight: profile?.weight || 70,
+    age: profile?.age || 0,
+    height: profile?.height || 0,
+    weight: profile?.weight || 0,
   });
 
   if (!isOpen) return null;
