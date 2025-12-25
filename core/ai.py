@@ -318,9 +318,10 @@ CRITICAL RULES (VERY IMPORTANT):
 4. USERGA DOIM "{'SIZ' if lang == 'uz' else 'ВЫ'} DEB MUROJAAT QILING.
 
 CALORIE RULES (STRICT):
-- DAILY_TOTAL_KCAL MUST BE BETWEEN {daily_target-50} AND {daily_target+50} (Adjust steps/ingredients to fit).
+- DAILY_TOTAL_KCAL MUST BE SUM OF MEALS.
+- DAILY TOTAL MUST BE BETWEEN {daily_target-50} AND {daily_target+50}.
 - EVERY MEAL MUST HAVE 'calories' (INTEGER).
-- DAILY calories MUST BE LOGICALLY DISTRIBUTED:
+- DAILY calories MUST BE LOGIC:
   - Nonushta: 25–30%
   - Tushlik: 35–40%
   - Kechki ovqat: 20–25%
@@ -501,10 +502,31 @@ VAZIFA: Menga 7 kunlik (Dushanba-Yakshanba) ovqatlanish rejasi kerak.
         if cached:
             print(f"DEBUG: Cache Hit for Menu: {profile_key}")
             try:
-                 return {
-                     "menu": json.loads(cached['menu_json']),
-                     "shopping_list": json.loads(cached['shopping_list_json'])
-                 }
+                plan = json.loads(cached['menu_json'])
+                shopping_list = json.loads(cached['shopping_list_json'])
+
+                if not plan:
+                    return None
+
+                # --- Force Recalculate Daily Totals ---
+                # AI often hallucinates the total sum. We must trust the individual meal calories more.
+                total_week_cals = 0
+                for day in plan:
+                    d_sum = 0
+                    if 'meals' in day:
+                        for m_type in ['breakfast', 'lunch', 'dinner', 'snack']:
+                            meal = day['meals'].get(m_type)
+                            if meal and 'calories' in meal:
+                                d_sum += int(meal['calories'])
+                    
+                    # Update the day's total to match the sum of meals
+                    day['total_calories'] = d_sum
+                    total_week_cals += d_sum
+
+                return {
+                    "shopping_list_json": json.dumps(shopping_list, ensure_ascii=False),
+                    "weekly_menu_json": json.dumps(plan, ensure_ascii=False)
+                }
             except Exception as e:
                  print(f"Cache Corrupt: {e}")
 

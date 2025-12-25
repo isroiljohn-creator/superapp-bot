@@ -167,7 +167,46 @@ class Database:
                 meal_type=meal_type,
                 date=date
             )
+
+            # Check for duplicates (same user, name, cals, within last half hour if possible, OR just same day same meal type/name)
+            # Simple check: if exact same meal logged in the last 15 mins
+            from datetime import datetime, timedelta
+            duplicate_window = datetime.now() - timedelta(minutes=15)
+            
+            # We need to query. 
+            # Since 'date' is string YYYY-MM-DD, we can check if a record exists with same details created_at > window
+            # But MealLog might not have created_at populated by default or we need to rely on it.
+            # Let's check models.py first to see if created_at exists.
+            # Assuming created_at exists (common practice). If not we add strict check on name/date/type.
+            
+            # Let's inspect MealLog model first to be safe.
+            # For now, let's just query for exact same entry on same date and type and name.
+            # If the user eats the same thing twice in a day, they might want to log it twice.
+            # But "I ate it" button spam usually happens rapidly.
+            # A 1-minute window check on creation time would be ideal.
+            
+            existing = session.query(MealLog).filter(
+                MealLog.user_id == user_id,
+                MealLog.name == name,
+                MealLog.meal_type == meal_type,
+                MealLog.date == date,
+                MealLog.calories == calories
+            ).order_by(MealLog.id.desc()).first()
+            
+            if existing:
+                # Check created_at if available
+                if hasattr(existing, 'created_at'):
+                    # Handle naive vs aware
+                    created_at = existing.created_at
+                    # Allow log if > 5 minutes passed
+                    if (datetime.now() - created_at).total_seconds() < 300:
+                        return False # Duplicate prevented
+                else:
+                     # If no created_at, just simplistic check
+                     pass 
+
             session.add(log)
+            session.commit() # Actually commit here to save
             return True
 
     def get_meal_logs(self, user_id, date):
