@@ -1,17 +1,22 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Lock, Calendar, Plus, Coffee, Apple, Moon, Cookie } from 'lucide-react';
+import { Lock, Calendar, Coffee, Apple, Moon, Cookie, Loader2, RefreshCw } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { Paywall } from '@/components/Paywall';
 import { DaySelector } from '@/components/DaySelector';
 import { useUser } from '@/contexts/UserContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useHaptic } from '@/hooks/useHaptic';
+import axios from 'axios';
+import { toast } from 'sonner';
+
+const API_URL = import.meta.env.VITE_API_URL || 'https://yasha-bot-production.up.railway.app/api/v1';
 
 const getWeekDays = (t: (key: string) => string) => [
   t('day.mon'), t('day.tue'), t('day.wed'), t('day.thu'), t('day.fri'), t('day.sat'), t('day.sun')
 ];
 
-// Suggested meals template for the weekly menu
+// Suggested meals template for the weekly menu (Fallback)
 const getSuggestedMealTemplates = (t: (key: string) => string) => ({
   breakfast: [
     { title: t('menu.breakfast'), calories: 350, items: ['2x', '1x', '1x', '1x'] },
@@ -62,6 +67,58 @@ export const MenuScreen: React.FC = () => {
   const [selectedDay, setSelectedDay] = useState(0);
   const [showPaywall, setShowPaywall] = useState(false);
 
+  const [weeklyPlan, setWeeklyPlan] = useState<any[] | null>(null);
+  const [isLoadingPlan, setIsLoadingPlan] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
+
+  const fetchPlan = async () => {
+    try {
+      setIsLoadingPlan(true);
+      const token = localStorage.getItem('token');
+      if (!token) return;
+
+      const res = await axios.get(`${API_URL}/ai/meal`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      if (res.data.plan && Array.isArray(res.data.plan)) {
+        setWeeklyPlan(res.data.plan);
+      }
+    } catch (e) {
+      console.error("Failed to load plan", e);
+    } finally {
+      setIsLoadingPlan(false);
+    }
+  };
+
+  const generatePlan = async () => {
+    if (!isPremium()) {
+      setShowPaywall(true);
+      return;
+    }
+    try {
+      setIsGenerating(true);
+      const token = localStorage.getItem('token');
+      // Start generation
+      const res = await axios.post(`${API_URL}/ai/meal`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.data.plan) {
+        setWeeklyPlan(res.data.plan);
+        toast.success("Yangi menyu tayyor!");
+      }
+    } catch (e) {
+      console.error(e);
+      toast.error("Xatolik yuz berdi");
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchPlan();
+  }, []);
+
   const weekDays = getWeekDays(t);
 
   const today = new Date();
@@ -91,14 +148,14 @@ export const MenuScreen: React.FC = () => {
   // Calculate daily goal based on profile
   const calculateDailyGoal = () => {
     if (!profile) return 2000;
-    
+
     let bmr: number;
     if (profile.gender === 'male') {
       bmr = 88.362 + (13.397 * profile.weight) + (4.799 * profile.height) - (5.677 * profile.age);
     } else {
       bmr = 447.593 + (9.247 * profile.weight) + (3.098 * profile.height) - (4.330 * profile.age);
     }
-    
+
     const activityMultipliers = {
       sedentary: 1.2,
       light: 1.375,
@@ -106,43 +163,65 @@ export const MenuScreen: React.FC = () => {
       active: 1.725,
       very_active: 1.9,
     };
-    
-    let tdee = bmr * activityMultipliers[profile.activityLevel];
-    
+
+    let tdee = bmr * (activityMultipliers[profile?.activityLevel] || 1.2);
+
     if (profile.goal === 'lose') tdee -= 500;
     else if (profile.goal === 'gain') tdee += 300;
-    
+
     return Math.round(tdee);
   };
 
   const dailyGoal = calculateDailyGoal();
   const suggestedMealTemplates = getSuggestedMealTemplates(t);
 
-  // Generate suggested meals for the selected day
-  const getSuggestedMeals = (dayIndex: number) => {
-    const mealTypes = ['breakfast', 'lunch', 'dinner', 'snack'] as const;
-    return mealTypes.map(type => {
-      const templates = suggestedMealTemplates[type];
-      const template = templates[dayIndex % templates.length];
-      return {
-        type,
-        ...template,
-      };
-    });
-  };
+  let displayMeals: any[] = [];
 
-  const suggestedMeals = getSuggestedMeals(selectedDay);
-  const suggestedTotalCalories = suggestedMeals.reduce((sum, m) => sum + m.calories, 0);
+  // 1. Show Logged Meals for Today?
+  // Only if selectedDay is 0 (Today) AND we have logs.
+  if (selectedDay === 0 && todayMeals.length > 0) {
+    displayMeals = todayMeals.map(m => ({
+      type: m.mealType,
+      title: m.name,
+      calories: m.calories,
+      items: [`${m.protein}g ${t('menu.protein')}`, `${m.carbs}g ${t('menu.carbs')}`, `${m.fat}g ${t('menu.fat')}`],
+    }));
+  }
+  // 2. Show AI Weekly Plan
+  else if (weeklyPlan && weeklyPlan.length > 0) {
+    const dailyData = weeklyPlan.find(d => d.day === selectedDay + 1);
+    if (dailyData && dailyData.meals) {
+      const types = ['breakfast', 'lunch', 'dinner', 'snack'];
+      displayMeals = types.map(type => {
+        const m = dailyData.meals[type];
+        if (!m) return null;
+        return {
+          type,
+          title: m.title,
+          calories: m.calories,
+          items: m.items || []
+        };
+      }).filter(Boolean);
+    }
+  }
 
-  // For today (selectedDay === 0), show actual meals if any, otherwise show suggested
-  const displayMeals = selectedDay === 0 && todayMeals.length > 0
-    ? todayMeals.map(m => ({
-        type: m.mealType,
-        title: m.name,
-        calories: m.calories,
-        items: [`${m.protein}g ${t('menu.protein')}`, `${m.carbs}g ${t('menu.carbs')}`, `${m.fat}g ${t('menu.fat')}`],
-      }))
-    : suggestedMeals;
+  // 3. Fallback to Mock
+  if (displayMeals.length === 0 && !weeklyPlan) {
+    const getSuggestedMeals = (dayIndex: number) => {
+      const mealTypes = ['breakfast', 'lunch', 'dinner', 'snack'] as const;
+      return mealTypes.map(type => {
+        const templates = suggestedMealTemplates[type];
+        const template = templates[dayIndex % templates.length];
+        return {
+          type,
+          ...template,
+        };
+      });
+    };
+    displayMeals = getSuggestedMeals(selectedDay);
+  }
+
+  const suggestedTotalCalories = displayMeals.reduce((sum, m) => sum + m.calories, 0);
 
   const displayTotalCalories = selectedDay === 0 && todayMeals.length > 0
     ? todayCalories
@@ -169,9 +248,23 @@ export const MenuScreen: React.FC = () => {
           <h1 className="text-2xl font-display font-bold text-foreground">
             {t('menu.title')}
           </h1>
-          <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-            <Calendar className="w-4 h-4" />
-            <span>{t('menu.weekly')}</span>
+          <div className="flex items-center gap-2">
+            {profile && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={generatePlan}
+                disabled={isGenerating}
+                className="h-8 w-8 p-0 sm:w-auto sm:px-3"
+              >
+                <RefreshCw className={`w-4 h-4 ${isGenerating ? 'animate-spin' : ''}`} />
+                <span className="sr-only sm:not-sr-only sm:ml-2 text-xs">AI</span>
+              </Button>
+            )}
+            <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+              <Calendar className="w-4 h-4" />
+              <span className="hidden sm:inline">{t('menu.weekly')}</span>
+            </div>
           </div>
         </div>
 
@@ -218,35 +311,40 @@ export const MenuScreen: React.FC = () => {
           )}
         </motion.div>
 
-        {displayMeals.map((meal, index) => (
-          <motion.div
-            key={index}
-            variants={itemVariants}
-            className={`p-4 rounded-xl bg-card border border-border/50 ${
-              selectedDay > 0 && !isPremium() ? 'opacity-60' : ''
-            }`}
-          >
-            <div className="flex items-start gap-3">
-              <div className="p-2.5 rounded-xl bg-muted shrink-0">
-                {getMealIcon(meal.type)}
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center justify-between mb-1">
-                  <p className="text-xs text-muted-foreground">{getMealTimeLabel(meal.type, t)}</p>
-                  <p className="font-semibold text-foreground">{meal.calories} kcal</p>
+        {isLoadingPlan && !displayMeals.length ? (
+          <div className="flex justify-center py-10">
+            <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          </div>
+        ) : (
+          displayMeals.map((meal, index) => (
+            <motion.div
+              key={index}
+              variants={itemVariants}
+              className={`p-4 rounded-xl bg-card border border-border/50 ${selectedDay > 0 && !isPremium() ? 'opacity-60' : ''
+                }`}
+            >
+              <div className="flex items-start gap-3">
+                <div className="p-2.5 rounded-xl bg-muted shrink-0">
+                  {getMealIcon(meal.type)}
                 </div>
-                <p className="font-semibold text-foreground mb-1">{meal.title}</p>
-                <p className="text-sm text-muted-foreground truncate">
-                  {meal.items.slice(0, 3).join(' • ')}
-                  {meal.items.length > 3 && ` +${meal.items.length - 3}`}
-                </p>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between mb-1">
+                    <p className="text-xs text-muted-foreground">{getMealTimeLabel(meal.type, t)}</p>
+                    <p className="font-semibold text-foreground">{meal.calories} kcal</p>
+                  </div>
+                  <p className="font-semibold text-foreground mb-1">{meal.title}</p>
+                  <p className="text-sm text-muted-foreground truncate">
+                    {meal.items && meal.items.slice(0, 3).join(' • ')}
+                    {meal.items && meal.items.length > 3 && ` +${meal.items.length - 3}`}
+                  </p>
+                </div>
+                {selectedDay > 0 && !isPremium() && (
+                  <Lock className="w-4 h-4 text-muted-foreground shrink-0" />
+                )}
               </div>
-              {selectedDay > 0 && !isPremium() && (
-                <Lock className="w-4 h-4 text-muted-foreground shrink-0" />
-              )}
-            </div>
-          </motion.div>
-        ))}
+            </motion.div>
+          ))
+        )}
 
         {/* Daily summary - improved */}
         <motion.div
@@ -285,7 +383,7 @@ export const MenuScreen: React.FC = () => {
             />
           </div>
           <p className="text-xs text-muted-foreground mt-2 text-center">
-            {displayTotalCalories > dailyGoal 
+            {displayTotalCalories > dailyGoal
               ? `${(displayTotalCalories - dailyGoal).toLocaleString()} kcal ${t('menu.excess')}`
               : `${(dailyGoal - displayTotalCalories).toLocaleString()} kcal ${t('menu.remaining')}`
             }
