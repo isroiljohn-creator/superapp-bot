@@ -79,6 +79,7 @@ async def telegram_auth(req: TelegramAuthRequest, db: AsyncSession = Depends(get
             "telegram_id": user.telegram_id,
             "username": user.username,
             "is_premium": user.is_premium,
+            "is_onboarded": user.is_onboarded,
             "is_admin": is_admin,
             "bot_username": os.getenv("BOT_USERNAME", "YashaBot")
         }

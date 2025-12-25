@@ -59,6 +59,7 @@ async def get_profile(current_user: User = Depends(get_current_user), db: AsyncS
         "allergies": current_user.allergies,
         "is_premium": current_user.is_premium,
         "premium_until": current_user.premium_until,
+        "is_onboarded": current_user.is_onboarded,
         "points": current_user.points,
         "plan_type": current_user.plan_type,
         "streak_water": current_user.streak_water,

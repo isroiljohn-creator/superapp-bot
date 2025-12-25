@@ -126,7 +126,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
   }
 
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true); // Start as loading by default! 
 
   useEffect(() => {
     const initializeUser = async () => {
@@ -163,8 +163,8 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
               allergies: userData.allergies ? String(userData.allergies).split(',') : [],
             };
 
-            // Check if full onboarding is done
-            const isOnboarded = !!(profile.age && profile.height && profile.weight && profile.gender);
+            // Trust backend is_onboarded flag, but fallback to our logic if null
+            const isOnboarded = userData.is_onboarded ?? !!(profile.age && profile.height && profile.weight && profile.gender);
 
             setState(prev => {
               // Merge with previous state to keep streaks/logs if valuable?
@@ -209,6 +209,8 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       } catch (error) {
         console.error("Auth Error:", error);
+      } finally {
+        setIsLoading(false); // Stop loading regardless of success/error
       }
     };
 

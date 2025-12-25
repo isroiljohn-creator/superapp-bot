@@ -1342,6 +1342,7 @@ class Database:
                 now = datetime.now()
                 user.premium_until = now + timedelta(days=3)
                 user.is_premium = True
+                user.is_onboarded = True
                 user.plan_type = 'trial'
                 user.trial_start = now.isoformat()
                 user.trial_used = 1

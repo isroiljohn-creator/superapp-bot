@@ -26,6 +26,7 @@ class User(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     is_premium = Column(Boolean, default=False)
     premium_until = Column(DateTime, nullable=True)
+    is_onboarded = Column(Boolean, default=False)
     points = Column(Integer, default=0)
     
     # Referral
