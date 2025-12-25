@@ -31,7 +31,7 @@ export const Onboarding: React.FC = () => {
     gender: 'male' as 'male' | 'female',
     height: 170,
     weight: 70,
-    goal: '' as 'lose' | 'gain' | 'maintain' | '',
+    goal: '' as 'weight_loss' | 'muscle_gain' | 'health' | '',
     activityLevel: '' as UserProfile['activityLevel'] | '',
     allergies: [] as string[],
   });
@@ -41,13 +41,13 @@ export const Onboarding: React.FC = () => {
     { id: 'light', labelKey: 'onboarding.activityLight', descKey: 'onboarding.activityLightDesc' },
     { id: 'moderate', labelKey: 'onboarding.activityModerate', descKey: 'onboarding.activityModerateDesc' },
     { id: 'active', labelKey: 'onboarding.activityActive', descKey: 'onboarding.activityActiveDesc' },
-    { id: 'very_active', labelKey: 'onboarding.activityVeryActive', descKey: 'onboarding.activityVeryActiveDesc' },
+    { id: 'athlete', labelKey: 'onboarding.activityVeryActive', descKey: 'onboarding.activityVeryActiveDesc' },
   ];
 
   const goals = [
-    { id: 'lose', labelKey: 'onboarding.goalLose', icon: '📉', descKey: 'onboarding.goalLoseDesc' },
-    { id: 'gain', labelKey: 'onboarding.goalGain', icon: '📈', descKey: 'onboarding.goalGainDesc' },
-    { id: 'maintain', labelKey: 'onboarding.goalMaintain', icon: '⚖️', descKey: 'onboarding.goalMaintainDesc' },
+    { id: 'weight_loss', labelKey: 'onboarding.goalLose', icon: '📉', descKey: 'onboarding.goalLoseDesc' },
+    { id: 'muscle_gain', labelKey: 'onboarding.goalGain', icon: '📈', descKey: 'onboarding.goalGainDesc' },
+    { id: 'health', labelKey: 'onboarding.goalMaintain', icon: '⚖️', descKey: 'onboarding.goalMaintainDesc' },
   ];
 
   const commonAllergies = [
@@ -113,7 +113,7 @@ export const Onboarding: React.FC = () => {
       gender: formData.gender,
       height: formData.height,
       weight: formData.weight,
-      goal: formData.goal as 'lose' | 'gain' | 'maintain',
+      goal: formData.goal as 'weight_loss' | 'muscle_gain' | 'health',
       activityLevel: formData.activityLevel as UserProfile['activityLevel'],
       allergies: formData.allergies,
     };
@@ -128,6 +128,8 @@ export const Onboarding: React.FC = () => {
       // but handleComplete is void here. We can make it async.
       // But we can just fire it. The state is local so UI updates immediately.
       axios.put(`${API_URL}/users/profile`, {
+        full_name: profile.name,
+        phone: profile.phone,
         age: profile.age,
         height: profile.height,
         weight: profile.weight,
@@ -158,7 +160,7 @@ export const Onboarding: React.FC = () => {
     setFormData({ ...formData, gender });
   };
 
-  const handleGoalSelect = (goal: 'lose' | 'gain' | 'maintain') => {
+  const handleGoalSelect = (goal: 'weight_loss' | 'muscle_gain' | 'health') => {
     vibrate('medium');
     setFormData({ ...formData, goal });
   };
@@ -355,8 +357,8 @@ export const Onboarding: React.FC = () => {
                     key={g.id}
                     onClick={() => handleGenderSelect(g.id as 'male' | 'female')}
                     className={`flex-1 p-4 rounded-xl border-2 transition-all ${formData.gender === g.id
-                        ? 'border-primary bg-primary/10'
-                        : 'border-border bg-card'
+                      ? 'border-primary bg-primary/10'
+                      : 'border-border bg-card'
                       }`}
                   >
                     <span className="text-2xl mb-1 block">{g.icon}</span>
@@ -428,10 +430,10 @@ export const Onboarding: React.FC = () => {
                 {goals.map((goal) => (
                   <button
                     key={goal.id}
-                    onClick={() => handleGoalSelect(goal.id as 'lose' | 'gain' | 'maintain')}
+                    onClick={() => handleGoalSelect(goal.id as 'weight_loss' | 'muscle_gain' | 'health')}
                     className={`w-full p-4 rounded-xl border-2 text-left transition-all ${formData.goal === goal.id
-                        ? 'border-primary bg-primary/10'
-                        : 'border-border bg-card'
+                      ? 'border-primary bg-primary/10'
+                      : 'border-border bg-card'
                       }`}
                   >
                     <div className="flex items-center gap-3">
@@ -482,8 +484,8 @@ export const Onboarding: React.FC = () => {
                     key={level.id}
                     onClick={() => handleActivitySelect(level.id as UserProfile['activityLevel'])}
                     className={`w-full p-4 rounded-xl border-2 text-left transition-all ${formData.activityLevel === level.id
-                        ? 'border-primary bg-primary/10'
-                        : 'border-border bg-card'
+                      ? 'border-primary bg-primary/10'
+                      : 'border-border bg-card'
                       }`}
                   >
                     <h3 className="font-semibold text-foreground">{t(level.labelKey)}</h3>
@@ -531,8 +533,8 @@ export const Onboarding: React.FC = () => {
                     key={allergy.id}
                     onClick={() => toggleAllergy(allergy.id)}
                     className={`px-4 py-2 rounded-full border-2 transition-all ${formData.allergies.includes(allergy.id)
-                        ? 'border-primary bg-primary/10 text-primary'
-                        : 'border-border bg-card text-foreground'
+                      ? 'border-primary bg-primary/10 text-primary'
+                      : 'border-border bg-card text-foreground'
                       }`}
                   >
                     {t(allergy.key)}

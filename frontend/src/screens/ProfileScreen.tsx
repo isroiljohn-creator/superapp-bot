@@ -63,16 +63,16 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onNavigate }) => {
   const getGoalLabel = () => {
     if (language === 'ru') {
       switch (profile?.goal) {
-        case 'lose': return 'Снижение веса';
-        case 'gain': return 'Набор веса';
-        case 'maintain': return 'Здоровый образ жизни';
+        case 'weight_loss': return 'Снижение веса';
+        case 'muscle_gain': return 'Набор веса';
+        case 'health': return 'Здоровый образ жизни';
         default: return 'Не указано';
       }
     }
     switch (profile?.goal) {
-      case 'lose': return 'Vazn yo\'qotish';
-      case 'gain': return 'Vazn olish';
-      case 'maintain': return 'Sog\'lom turmush';
+      case 'weight_loss': return 'Vazn yo\'qotish';
+      case 'muscle_gain': return 'Vazn olish';
+      case 'health': return 'Sog\'lom turmush';
       default: return 'Belgilanmagan';
     }
   };

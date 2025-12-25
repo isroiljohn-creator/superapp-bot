@@ -19,8 +19,9 @@ def upgrade() -> None:
     # Add column as nullable first
     op.add_column('users', sa.Column('is_onboarded', sa.Boolean(), nullable=True))
     
-    # Set default for existing rows
-    op.execute("UPDATE users SET is_onboarded = FALSE")
+    # Set TRUE for users who already have core data, others FALSE
+    op.execute("UPDATE users SET is_onboarded = TRUE WHERE age IS NOT NULL AND weight IS NOT NULL")
+    op.execute("UPDATE users SET is_onboarded = FALSE WHERE is_onboarded IS NULL")
     
     # Make it non-nullable with server default
     op.alter_column('users', 'is_onboarded',

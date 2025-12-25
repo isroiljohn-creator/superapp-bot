@@ -24,6 +24,8 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: AsyncSession
     return user
 
 class UserProfileUpdate(BaseModel):
+    full_name: Optional[str] = None
+    phone: Optional[str] = None
     age: Optional[int] = None
     gender: Optional[str] = None
     height: Optional[float] = None
@@ -49,6 +51,8 @@ async def get_profile(current_user: User = Depends(get_current_user), db: AsyncS
     return {
         "id": current_user.id,
         "username": current_user.username,
+        "full_name": current_user.full_name,
+        "phone": current_user.phone,
         "age": current_user.age,
         "gender": current_user.gender,
         "height": current_user.height,
@@ -81,6 +85,7 @@ async def update_profile(
     for key, value in update.dict(exclude_unset=True).items():
         setattr(current_user, key, value)
     
+    current_user.is_onboarded = True
     await db.commit()
     return {"status": "success"}
 @router.post("/reset")

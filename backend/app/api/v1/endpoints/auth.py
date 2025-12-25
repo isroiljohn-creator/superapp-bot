@@ -52,7 +52,7 @@ async def telegram_auth(req: TelegramAuthRequest, db: AsyncSession = Depends(get
     print("DEBUG: Hash valid. Proceeding to user lookup.")
     
     user_data = json.loads(parsed_data.get("user", "{}"))
-    telegram_id = user_data.get("id")
+    telegram_id = int(user_data.get("id"))
     
     # Get or create user
     result = await db.execute(select(User).where(User.telegram_id == telegram_id))

@@ -10,8 +10,8 @@ export interface UserProfile {
   gender: 'male' | 'female';
   height: number;
   weight: number;
-  goal: 'lose' | 'gain' | 'maintain';
-  activityLevel: 'sedentary' | 'light' | 'moderate' | 'active' | 'very_active';
+  goal: 'weight_loss' | 'muscle_gain' | 'health';
+  activityLevel: 'sedentary' | 'light' | 'moderate' | 'active' | 'athlete';
   allergies: string[];
 }
 
@@ -158,13 +158,13 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
               gender: userData.gender as 'male' | 'female',
               height: userData.height || 0,
               weight: userData.weight || 0,
-              goal: (userData.goal as 'lose' | 'gain' | 'maintain') || 'lose',
+              goal: (userData.goal as 'weight_loss' | 'muscle_gain' | 'health') || 'weight_loss',
               activityLevel: (userData.activity_level as any) || 'sedentary',
               allergies: userData.allergies ? String(userData.allergies).split(',') : [],
             };
 
-            // Trust backend is_onboarded flag, but fallback to our logic if null
-            const isOnboarded = userData.is_onboarded ?? !!(profile.age && profile.height && profile.weight && profile.gender);
+            // Trust backend is_onboarded flag, but fallback to our logic if it is false (e.g. legacy users)
+            const isOnboarded = userData.is_onboarded || !!(profile.age && profile.height && profile.weight && profile.gender);
 
             setState(prev => {
               // Merge with previous state to keep streaks/logs if valuable?
