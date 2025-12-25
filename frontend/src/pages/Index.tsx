@@ -26,7 +26,7 @@ import { UserProvider, useUser } from '@/contexts/UserContext';
 import { LanguageProvider } from '@/contexts/LanguageContext';
 
 const AppContent: React.FC = () => {
-  const { isOnboarded } = useUser();
+  const { isOnboarded, isLoading } = useUser();
   const [activeTab, setActiveTab] = useState('home');
   const [showSplash, setShowSplash] = useState(true);
 
@@ -45,6 +45,14 @@ const AppContent: React.FC = () => {
 
   if (showSplash) {
     return <SplashScreen onComplete={handleSplashComplete} />;
+  }
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-background">
+        <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
   }
 
   if (!isOnboarded) {

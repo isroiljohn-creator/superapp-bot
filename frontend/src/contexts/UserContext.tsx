@@ -81,7 +81,9 @@ interface UserContextType extends UserState {
   getTodayWorkouts: () => WorkoutLog[];
   markWorkoutDone: () => void;
   resetData: () => Promise<void>;
+  isLoading: boolean;
 }
+
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
 
@@ -549,6 +551,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         getTodayWorkouts,
         markWorkoutDone,
         resetData,
+        isLoading,
       }}
     >
       {children}
