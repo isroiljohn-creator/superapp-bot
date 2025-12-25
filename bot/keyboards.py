@@ -68,14 +68,19 @@ def main_menu_keyboard(is_admin=False, user_id=None):
         except Exception as e:
             print(f"Error getting habit progress for menu: {e}")
         
-    # Row 1: AI Murabbiy | Kaloriya tahlili
-    markup.add(KeyboardButton("🤖 AI murabbiy"), KeyboardButton("🍽 Kaloriya tahlili"))
+    mini_app_url = os.getenv("MINI_APP_URL", "https://web-production-b606.up.railway.app")
     
-    # Row 2: Profil | YASHA Plus
-    markup.add(KeyboardButton("👤 Profil"), KeyboardButton("💚 YASHA Plus"))
+    # Row 1: AI Murabbiy | Ilovani ochish
+    markup.add(
+        KeyboardButton("🤖 AI murabbiy"),
+        KeyboardButton("📱 Ilovani ochish", web_app=WebAppInfo(url=mini_app_url))
+    )
     
-    # Row 3: Yordam
-    markup.add(KeyboardButton("📩 Yordam"))
+    # Row 2: Kaloriya tahlili | YASHA Plus
+    markup.add(KeyboardButton("🍽 Kaloriya tahlili"), KeyboardButton("💚 YASHA Plus"))
+    
+    # Row 3: Profil | Yordam
+    markup.add(KeyboardButton("👤 Profil"), KeyboardButton("📩 Yordam"))
     
     return markup
 
