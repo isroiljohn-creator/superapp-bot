@@ -1607,6 +1607,7 @@ class Database:
                         pass
                 data[key] = value
                 user.onboarding_data = json.dumps(data)
+                session.commit()
 
     def clear_onboarding_state(self, user_id):
         with get_sync_db() as session:
@@ -1614,6 +1615,7 @@ class Database:
             if user:
                 user.onboarding_state = 0
                 user.onboarding_data = "{}"
+                session.commit()
 
     def ensure_user_exists(self, user_id, username=None):
         """Ensures a user record exists for onboarding."""
