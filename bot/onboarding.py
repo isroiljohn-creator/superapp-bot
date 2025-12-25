@@ -92,18 +92,32 @@ def process_language(call, bot):
     
     db.set_user_language(user_id, lang_code)
     manager.update_data(user_id, 'language', lang_code)
-    manager.set_state(user_id, STATE_PHONE)
+    user_data = db.get_user(user_id)
+    is_registered = user_data and user_data.get('is_onboarded')
     
     bot.answer_callback_query(call.id, get_text("language_selected", lang=lang_code))
     
-    # Move to phone request
-    msg = bot.send_message(
-        user_id,
-        get_text("welcome", lang=lang_code, name=call.from_user.first_name) + "\n\n" +
-        get_text("request_phone", lang=lang_code, default="Davom etish uchun telefon raqamingizni yuboring 👇"),
-        reply_markup=phone_request_keyboard(lang=lang_code)
-    )
-    manager.track_message(user_id, msg.message_id)
+    if is_registered:
+        # Already registered? Just update lang and show main menu
+        msg_text = "🇷🇺 Язык успешно изменен!\n🏠 Добро пожаловать в главное меню." if lang_code == 'ru' else "🇺🇿 Til muvaffaqiyatli o'zgartirildi!\n🏠 Asosiy menyuga xush kelibsiz."
+        
+        bot.send_message(
+            user_id,
+            msg_text,
+            reply_markup=main_menu_keyboard(user_id=user_id, lang=lang_code)
+        )
+        # Clear state just in case
+        manager.clear_user(user_id)
+    else:
+        # New user? Continue onboarding
+        manager.set_state(user_id, STATE_PHONE)
+        msg = bot.send_message(
+            user_id,
+            get_text("welcome", lang=lang_code, name=call.from_user.first_name) + "\n\n" +
+            get_text("request_phone", lang=lang_code, default="Davom etish uchun telefon raqamingizni yuboring 👇"),
+            reply_markup=phone_request_keyboard(lang=lang_code)
+        )
+        manager.track_message(user_id, msg.message_id)
 
 def process_phone(message, bot):
     user_id = message.from_user.id
