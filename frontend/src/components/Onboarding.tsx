@@ -123,19 +123,23 @@ export const Onboarding: React.FC = () => {
     try {
       const API_URL = import.meta.env.VITE_API_URL || '/api/v1';
       console.log("Syncing onboarding profile to", API_URL);
-
-      // We must await to ensure backend sets is_onboarded=True before completeOnboarding()
-      await axios.put(`${API_URL}/users/profile`, {
+      const payload: any = {
         full_name: profile.name,
         phone: profile.phone,
-        age: profile.age,
-        height: profile.height,
-        weight: profile.weight,
+        age: parseInt(profile.age) || 0,
+        height: parseInt(profile.height) || 0,
+        weight: parseFloat(profile.weight) || 0,
         gender: profile.gender,
         goal: profile.goal,
         activity_level: profile.activityLevel,
         allergies: profile.allergies.join(',')
-      });
+      };
+
+      console.log("DEBUG: Sending profile update:", payload);
+
+      // We must await to ensure backend sets is_onboarded=True before completeOnboarding()
+      const res = await axios.put(`${API_URL}/users/profile`, payload);
+      console.log("DEBUG: Backend response:", res.data);
 
       setProfile(profile);
       completeOnboarding();

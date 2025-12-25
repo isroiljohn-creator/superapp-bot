@@ -23,17 +23,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: AsyncSession
         raise HTTPException(status_code=401, detail="User not found")
     return user
 
-class UserProfileUpdate(BaseModel):
-    full_name: Optional[str] = None
-    phone: Optional[str] = None
-    age: Optional[int] = None
-    gender: Optional[str] = None
-    height: Optional[float] = None
-    weight: Optional[float] = None
-    target_weight: Optional[float] = None
-    goal: Optional[str] = None
-    activity_level: Optional[str] = None
-    allergies: Optional[str] = None
+from backend.app.schemas.user import UserProfileUpdate
 
 @router.get("/profile")
 async def get_profile(current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
@@ -84,16 +74,46 @@ async def get_profile(current_user: User = Depends(get_current_user), db: AsyncS
 
 @router.put("/profile")
 async def update_profile(
-    update: UserProfileUpdate,
+    update_req: UserProfileUpdate,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    for key, value in update.dict(exclude_unset=True).items():
-        setattr(current_user, key, value)
+    print(f"DEBUG: Profile update attempt for user_id={current_user.id} (telegram_id={current_user.telegram_id})")
+    print(f"DEBUG: Active Session ID: {id(db)}")
     
-    current_user.is_onboarded = True
-    await db.commit()
-    return {"status": "success"}
+    # Reload user in THIS session to be absolutely sure
+    user = await db.get(User, current_user.id)
+    if not user:
+        print(f"ERROR: User {current_user.id} disappeared from DB during update!")
+        raise HTTPException(status_code=404, detail="User not found during update")
+
+    data = update_req.dict(exclude_unset=True)
+    print(f"DEBUG: Update Payload: {data}")
+    
+    for key, value in data.items():
+        if hasattr(user, key):
+            setattr(user, key, value)
+            print(f"  - Updated {key} -> {value}")
+        else:
+            print(f"  - WARNING: '{key}' not found on User model")
+    
+    user.is_onboarded = True
+    user.updated_at = datetime.utcnow()
+    
+    try:
+        await db.commit()
+        await db.refresh(user)
+        print(f"✅ Success: Profile for {user.id} committed and refreshed. is_onboarded={user.is_onboarded}")
+        return {
+            "status": "success", 
+            "is_onboarded": user.is_onboarded,
+            "full_name": user.full_name,
+            "age": user.age
+        }
+    except Exception as e:
+        print(f"❌ Transaction Error for {user.id}: {e}")
+        await db.rollback()
+        raise HTTPException(status_code=500, detail=f"Database commit failed: {e}")
 @router.post("/reset")
 async def reset_profile(
     current_user: User = Depends(get_current_user),

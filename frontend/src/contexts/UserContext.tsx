@@ -148,12 +148,11 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
             const profileRes = await axios.get(`${API_URL}/users/profile`);
             const userData = profileRes.data;
 
-            console.log("User Profile Fetched:", userData);
+            console.log("DEBUG: Initial User Profile Fetched:", userData);
 
-            // Construct new state from backend data
-            // Map snake_case to camelCase
+            // Construct new state from backend data mapping snake_case to camelCase
             const profile: UserProfile = {
-              phone: userData.phone || '', // Note: phone might be missing if created via WebApp only, but Bot creates it
+              phone: userData.phone || '',
               name: userData.full_name || userData.username || 'Foydalanuvchi',
               age: userData.age || 0,
               gender: userData.gender as 'male' | 'female',
@@ -165,7 +164,12 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
             };
 
             // Trust backend is_onboarded flag, but fallback to our logic if it is false (e.g. legacy users)
-            const isOnboarded = userData.is_onboarded || !!(profile.age && profile.height && profile.weight && profile.gender);
+            const isOnboarded = !!(userData.is_onboarded || (
+              profile.age &&
+              profile.gender &&
+              profile.weight
+            ));
+            console.log("DEBUG: Determined isOnboarded:", isOnboarded);
 
             setState(prev => {
               // Merge with previous state to keep streaks/logs if valuable?

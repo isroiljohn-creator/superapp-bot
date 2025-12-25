@@ -37,21 +37,7 @@ app.add_middleware(
 
 # === Pydantic Models ===
 
-class TelegramAuthRequest(BaseModel):
-    initData: str
-
-class UserProfileUpdate(BaseModel):
-    age: Optional[int] = None
-    gender: Optional[str] = None
-    height: Optional[int] = None
-    weight: Optional[float] = None
-    target_weight: Optional[float] = None
-    goal: Optional[str] = None
-    allergies: Optional[str] = None
-
-class DailyTaskUpdate(BaseModel):
-    task_type: str  # water, workout, steps
-    value: bool | int
+from backend.app.schemas.user import TelegramAuthRequest, UserProfileUpdate, DailyTaskUpdate
 
 class BroadcastRequest(BaseModel):
     message: str
