@@ -138,10 +138,17 @@ async def db_health(db: AsyncSession = Depends(get_db)):
         # Test query
         await db.execute(text("SELECT 1"))
         
+        # Check for column existence
+        col_check = await db.execute(text(
+            "SELECT column_name FROM information_schema.columns "
+            "WHERE table_name='users' AND column_name='is_onboarded'"
+        ))
+        has_column = col_check.scalar() is not None
+        
         return {
             "status": "connected",
             "dialect": dialect,
-            "is_postgres": dialect == "postgresql",
+            "has_is_onboarded": has_column,
             "db_url_redacted": os.getenv("DATABASE_URL", "NOT_SET")[:20] + "..." if os.getenv("DATABASE_URL") else "NOT_SET"
         }
     except Exception as e:
