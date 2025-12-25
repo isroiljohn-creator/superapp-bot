@@ -2,15 +2,16 @@ from telebot import types
 from core.ai import call_gemini, format_gemini_text
 from core.db import db
 from bot.premium import require_premium
+from bot.languages import get_text
 
 from bot.keyboards import ai_inline_keyboard
 
 def handle_ai_tools_menu(message, bot):
     user_id = message.from_user.id
     lang = db.get_user_language(user_id)
-    with open("assets/ai_murabbiy.png", "rb") as photo:
-        lang = db.get_user_language(user_id)
     caption = get_text("ai_coach_caption", lang)
+    
+    with open("assets/ai_murabbiy.png", "rb") as photo:
         bot.send_photo(
             message.chat.id,
             photo,
