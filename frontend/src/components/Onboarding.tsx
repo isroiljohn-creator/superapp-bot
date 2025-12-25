@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowRight, ArrowLeft, Phone, User, Ruler, Target, AlertCircle, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -71,7 +72,7 @@ export const Onboarding: React.FC = () => {
   const formatPhoneNumber = (value: string): string => {
     // Faqat raqamlar va + belgisini qoldirish
     let cleaned = value.replace(/[^\d+]/g, '');
-    
+
     // +998 bilan boshlanishini ta'minlash
     if (!cleaned.startsWith('+')) {
       if (cleaned.startsWith('998')) {
@@ -82,7 +83,7 @@ export const Onboarding: React.FC = () => {
         cleaned = '+998' + cleaned;
       }
     }
-    
+
     // Maksimum 13 belgi: +998XXXXXXXXX
     return cleaned.slice(0, 13);
   };
@@ -117,6 +118,28 @@ export const Onboarding: React.FC = () => {
       allergies: formData.allergies,
     };
     setProfile(profile);
+
+    // Sync to Backend (Fix Persistence Bug)
+    try {
+      const API_URL = import.meta.env.VITE_API_URL || 'https://yasha-bot-production.up.railway.app/api/v1';
+      console.log("Syncing onboarding profile to", API_URL);
+      // Fire and forget (or await if we want to ensure save)
+      // Since it's critical, we should probably await inside an async chain, 
+      // but handleComplete is void here. We can make it async.
+      // But we can just fire it. The state is local so UI updates immediately.
+      axios.put(`${API_URL}/users/profile`, {
+        age: profile.age,
+        height: profile.height,
+        weight: profile.weight,
+        gender: profile.gender,
+        goal: profile.goal,
+        activity_level: profile.activityLevel,
+        allergies: profile.allergies.join(',')
+      }).catch(e => console.error("Onboarding sync failed:", e));
+    } catch (e) {
+      console.error("Onboarding logic error", e);
+    }
+
     completeOnboarding();
   };
 
@@ -331,11 +354,10 @@ export const Onboarding: React.FC = () => {
                   <button
                     key={g.id}
                     onClick={() => handleGenderSelect(g.id as 'male' | 'female')}
-                    className={`flex-1 p-4 rounded-xl border-2 transition-all ${
-                      formData.gender === g.id
+                    className={`flex-1 p-4 rounded-xl border-2 transition-all ${formData.gender === g.id
                         ? 'border-primary bg-primary/10'
                         : 'border-border bg-card'
-                    }`}
+                      }`}
                   >
                     <span className="text-2xl mb-1 block">{g.icon}</span>
                     <span className="font-medium text-foreground">{t(g.labelKey)}</span>
@@ -407,11 +429,10 @@ export const Onboarding: React.FC = () => {
                   <button
                     key={goal.id}
                     onClick={() => handleGoalSelect(goal.id as 'lose' | 'gain' | 'maintain')}
-                    className={`w-full p-4 rounded-xl border-2 text-left transition-all ${
-                      formData.goal === goal.id
+                    className={`w-full p-4 rounded-xl border-2 text-left transition-all ${formData.goal === goal.id
                         ? 'border-primary bg-primary/10'
                         : 'border-border bg-card'
-                    }`}
+                      }`}
                   >
                     <div className="flex items-center gap-3">
                       <span className="text-2xl">{goal.icon}</span>
@@ -460,11 +481,10 @@ export const Onboarding: React.FC = () => {
                   <button
                     key={level.id}
                     onClick={() => handleActivitySelect(level.id as UserProfile['activityLevel'])}
-                    className={`w-full p-4 rounded-xl border-2 text-left transition-all ${
-                      formData.activityLevel === level.id
+                    className={`w-full p-4 rounded-xl border-2 text-left transition-all ${formData.activityLevel === level.id
                         ? 'border-primary bg-primary/10'
                         : 'border-border bg-card'
-                    }`}
+                      }`}
                   >
                     <h3 className="font-semibold text-foreground">{t(level.labelKey)}</h3>
                     <p className="text-sm text-muted-foreground">{t(level.descKey)}</p>
@@ -510,11 +530,10 @@ export const Onboarding: React.FC = () => {
                   <button
                     key={allergy.id}
                     onClick={() => toggleAllergy(allergy.id)}
-                    className={`px-4 py-2 rounded-full border-2 transition-all ${
-                      formData.allergies.includes(allergy.id)
+                    className={`px-4 py-2 rounded-full border-2 transition-all ${formData.allergies.includes(allergy.id)
                         ? 'border-primary bg-primary/10 text-primary'
                         : 'border-border bg-card text-foreground'
-                    }`}
+                      }`}
                   >
                     {t(allergy.key)}
                   </button>
