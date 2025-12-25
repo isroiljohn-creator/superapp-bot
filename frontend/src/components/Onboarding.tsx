@@ -123,11 +123,9 @@ export const Onboarding: React.FC = () => {
     try {
       const API_URL = import.meta.env.VITE_API_URL || 'https://yasha-bot-production.up.railway.app/api/v1';
       console.log("Syncing onboarding profile to", API_URL);
-      // Fire and forget (or await if we want to ensure save)
-      // Since it's critical, we should probably await inside an async chain, 
-      // but handleComplete is void here. We can make it async.
-      // But we can just fire it. The state is local so UI updates immediately.
-      axios.put(`${API_URL}/users/profile`, {
+
+      // We must await to ensure backend sets is_onboarded=True before completeOnboarding()
+      await axios.put(`${API_URL}/users/profile`, {
         full_name: profile.name,
         phone: profile.phone,
         age: profile.age,
@@ -137,12 +135,17 @@ export const Onboarding: React.FC = () => {
         goal: profile.goal,
         activity_level: profile.activityLevel,
         allergies: profile.allergies.join(',')
-      }).catch(e => console.error("Onboarding sync failed:", e));
-    } catch (e) {
-      console.error("Onboarding logic error", e);
-    }
+      });
 
-    completeOnboarding();
+      setProfile(profile);
+      completeOnboarding();
+    } catch (e) {
+      console.error("Onboarding sync failed:", e);
+      // Even if it fails, we complete to avoid blocking user, 
+      // but the auto-heal on next load will fix it if data partially saved.
+      setProfile(profile);
+      completeOnboarding();
+    }
   };
 
   const toggleAllergy = (allergyId: string) => {
