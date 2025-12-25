@@ -28,7 +28,7 @@ const translations: Record<Language, Record<string, string>> = {
     'common.minutes': 'daqiqa',
     'common.all': 'Hammasi',
     'common.day': 'Kun',
-    
+
     // Days of week
     'day.mon': 'Du',
     'day.tue': 'Se',
@@ -37,14 +37,14 @@ const translations: Record<Language, Record<string, string>> = {
     'day.fri': 'Ju',
     'day.sat': 'Sha',
     'day.sun': 'Ya',
-    
+
     // Navigation
     'nav.home': 'Bosh sahifa',
     'nav.explore': 'Yana',
     'nav.menu': 'Ovqat',
     'nav.workout': 'Mashq',
     'nav.profile': 'Profil',
-    
+
     // Home Screen
     'home.greeting': 'Salom',
     'home.howAreYou': 'Bugun qanday kayfiyat?',
@@ -59,7 +59,7 @@ const translations: Record<Language, Record<string, string>> = {
     'home.trialPeriod': 'Sinov muddati',
     'home.daysRemaining': 'kun qoldi',
     'home.user': 'Foydalanuvchi',
-    
+
     // Stats
     'stats.water': 'Suv',
     'stats.calories': 'Kaloriya',
@@ -69,7 +69,7 @@ const translations: Record<Language, Record<string, string>> = {
     'stats.mood': 'Kayfiyat',
     'stats.completed': 'Bajarildi',
     'stats.pending': 'Kutilmoqda',
-    
+
     // Menu Screen
     'menu.title': 'Kunlik menyu',
     'menu.weekly': '7 kunlik',
@@ -90,7 +90,9 @@ const translations: Record<Language, Record<string, string>> = {
     'menu.protein': 'oqsil',
     'menu.carbs': 'uglevod',
     'menu.fat': 'yog\'',
-    
+    'menu.iAteIt': 'Iste\'mol qildim',
+    'menu.mealAddedSuccess': 'Ovqat kundalikka qo\'shildi!',
+
     // Workout Screen
     'workout.title': 'Mashqlar',
     'workout.videoWorkouts': 'Video mashqlar',
@@ -104,7 +106,7 @@ const translations: Record<Language, Record<string, string>> = {
     'workout.homeCardio': 'Uyda kardio mashqi',
     'workout.abs': 'Qorin mushaklari',
     'workout.fullBody': 'Butun tana mashqi',
-    
+
     // Habits Screen
     'habits.title': 'Kundalik odatlar',
     'habits.subtitle': 'Sog\'lom odatlarni kuzatib boring',
@@ -124,7 +126,7 @@ const translations: Record<Language, Record<string, string>> = {
     'habits.badMoodMsg2': 'Qiyin kunlar ham o\'tadi. Siz kuchlisiz!',
     'habits.badMoodMsg3': 'Har bir kun yangi imkoniyat. Ertaga yaxshiroq bo\'ladi!',
     'habits.goodMoodMsg': 'Ajoyib! Bugun yaxshi kun!',
-    
+
     // Profile Screen
     'profile.title': 'Profil',
     'profile.personalInfo': 'Shaxsiy ma\'lumotlar',
@@ -141,7 +143,7 @@ const translations: Record<Language, Record<string, string>> = {
     'profile.help': 'Yordam',
     'profile.editProfile': 'Profilni tahrirlash',
     'profile.logout': 'Chiqish',
-    
+
     // Calories Screen
     'calories.title': 'Kaloriya',
     'calories.dailyJournal': 'Kunlik jurnal',
@@ -161,7 +163,7 @@ const translations: Record<Language, Record<string, string>> = {
     'calories.mealDeletedDesc': 'Ovqat o\'chirildi',
     'calories.requiredFields': 'Nom va kaloriya kiritilishi shart',
     'calories.gazak': 'Gazak',
-    
+
     // Recipes Screen
     'recipes.title': 'Retseptlar',
     'recipes.subtitle': 'Sog\'lom taomlar',
@@ -170,7 +172,7 @@ const translations: Record<Language, Record<string, string>> = {
     'recipes.kcal': 'kkal',
     'recipes.time': 'vaqt',
     'recipes.servings': 'porsiya',
-    
+
     // Daily Tasks
     'tasks.title': 'Kundalik Topshiriqlar',
     'tasks.completed': 'bajarildi',
@@ -196,7 +198,7 @@ const translations: Record<Language, Record<string, string>> = {
     'tasks.sleep8hDesc': 'Sifatli uyqu oling',
     'tasks.eat3meals': '3 ta ovqat',
     'tasks.eat3mealsDesc': 'Uchta sog\'lom ovqat yeng',
-    
+
     // Settings
     'settings.title': 'Sozlamalar',
     'settings.language': 'Til',
@@ -206,7 +208,7 @@ const translations: Record<Language, Record<string, string>> = {
     'settings.dark': 'Qorong\'u',
     'settings.light': 'Yorug\'',
     'settings.system': 'Tizim',
-    
+
     // Paywall
     'paywall.title': 'Premium kerak',
     'paywall.feature': 'Bu funksiya uchun Premium talab qilinadi',
@@ -214,7 +216,7 @@ const translations: Record<Language, Record<string, string>> = {
     'paywall.later': 'Keyinroq',
     'paywall.aiMenu': 'AI menyu rejasi',
     'paywall.aiWorkout': 'AI mashq dasturi',
-    
+
     // Explore Screen
     'explore.title': 'Yana ko\'proq',
     'explore.subtitle': 'Barcha xususiyatlar bir joyda',
@@ -244,7 +246,7 @@ const translations: Record<Language, Record<string, string>> = {
     'explore.achievementsDesc': 'Medallar',
     'explore.shop': 'Do\'kon',
     'explore.shopDesc': 'Sovg\'alar',
-    
+
     // Weight Screen
     'weight.title': 'Vazn',
     'weight.subtitle': 'Vazningizni kuzating',
@@ -256,7 +258,7 @@ const translations: Record<Language, Record<string, string>> = {
     'weight.saved': 'Vazn saqlandi!',
     'weight.invalidWeight': 'To\'g\'ri vazn kiriting (30-300 kg)',
     'weight.placeholder': 'Vazn (kg)',
-    
+
     // Reports Screen
     'reports.title': 'Hisobotlar',
     'reports.subtitle': 'Haftalik statistika',
@@ -270,7 +272,7 @@ const translations: Record<Language, Record<string, string>> = {
     'reports.great': 'Ajoyib! Siz maqsadlaringizga yetib boryapsiz. Davom eting!',
     'reports.good': 'Yaxshi! Yana bir oz harakat va maqsadga yetasiz!',
     'reports.start': 'Har bir kun muhim. Kichik qadamlar bilan boshlang!',
-    
+
     // Workout Library Screen
     'workoutLib.title': 'Mashqlar',
     'workoutLib.subtitle': 'Video kutubxona va timer',
@@ -300,7 +302,7 @@ const translations: Record<Language, Record<string, string>> = {
     'workoutLib.absWorkoutDesc': 'Qorin mushaklari uchun mashqlar',
     'workoutLib.tabata': 'Tabata Training',
     'workoutLib.tabataDesc': '4 daqiqalik intensiv mashq',
-    
+
     // Meditation Screen
     'meditation.title': 'Meditatsiya',
     'meditation.subtitle': 'Nafas mashqlari',
@@ -319,7 +321,7 @@ const translations: Record<Language, Record<string, string>> = {
     'meditation.relaxingTip': 'Uxlashdan oldin ishlating. Stressni kamaytiradi.',
     'meditation.energizingTip': 'Ertalab yoki charchaganda ishlating. Energiya beradi.',
     'meditation.calmTip': 'Istalgan vaqtda stressni kamaytirish uchun ishlating.',
-    
+
     // Friends Screen
     'friends.title': 'Do\'stlar',
     'friends.subtitle': 'Raqobatlashing va g\'alaba qozing!',
@@ -335,7 +337,7 @@ const translations: Record<Language, Record<string, string>> = {
     'friends.challengeSentDesc': 'ga challenge yuborildi',
     'friends.enterUsername': 'Iltimos, foydalanuvchi nomini kiriting',
     'friends.you': 'Siz',
-    
+
     // Challenges Screen
     'challenges.title': 'Challenge\'lar',
     'challenges.subtitle': 'Raqobatlashing va yutib chiqing!',
@@ -365,7 +367,7 @@ const translations: Record<Language, Record<string, string>> = {
     'challenges.7days': '7 kun',
     'challenges.14days': '14 kun',
     'challenges.30days': '30 kun',
-    
+
     // Achievements Screen
     'achievements.title': 'Yutuqlar',
     'achievements.subtitle': 'Badjelar va mukofotlar',
@@ -394,7 +396,7 @@ const translations: Record<Language, Record<string, string>> = {
     'achievements.100points': '100 ball',
     'achievements.500points': '500 ball',
     'achievements.allGoals': 'Suv, uyqu, qadam',
-    
+
     // Shop Screen
     'shop.title': 'Do\'kon',
     'shop.subtitle': 'Tangalaringizni sarflang',
@@ -426,7 +428,7 @@ const translations: Record<Language, Record<string, string>> = {
     'shop.starBadgeDesc': '100 ta topshiriq uchun',
     'shop.coinBoost': '3x Tanga Boost',
     'shop.coinBoostDesc': '12 soat davomida 3 barobar tanga',
-    
+
     // AI Coach Screen
     'aiCoach.title': 'AI Murabbiy',
     'aiCoach.subtitle': 'Shaxsiy fitnes yordamchingiz',
@@ -438,7 +440,7 @@ const translations: Record<Language, Record<string, string>> = {
     'aiCoach.question3': 'Uyqu sifatini yaxshilash',
     'aiCoach.error': 'Xatolik yuz berdi',
     'aiCoach.noStream': 'Stream mavjud emas',
-    
+
     // Edit Profile Sheet
     'editProfile.title': 'Profilni tahrirlash',
     'editProfile.save': 'Saqlash',
@@ -449,7 +451,7 @@ const translations: Record<Language, Record<string, string>> = {
     'editProfile.height': 'Bo\'y (sm)',
     'editProfile.weight': 'Vazn (kg)',
     'editProfile.saved': 'Profil yangilandi!',
-    
+
     // Privacy Sheet
     'privacy.title': 'Maxfiylik',
     'privacy.dataSecurity': 'Ma\'lumotlar xavfsizligi',
@@ -463,7 +465,7 @@ const translations: Record<Language, Record<string, string>> = {
     'privacy.deleteAll': 'Barcha ma\'lumotlarni o\'chirish',
     'privacy.confirmDelete': 'Barcha ma\'lumotlarni o\'chirmoqchimisiz? Bu amalni ortga qaytarib bo\'lmaydi.',
     'privacy.deleted': 'Ma\'lumotlar o\'chirildi. Ilova qayta yuklanmoqda...',
-    
+
     // Help Sheet
     'help.title': 'Yordam',
     'help.support': 'Qo\'llab-quvvatlash',
@@ -481,7 +483,7 @@ const translations: Record<Language, Record<string, string>> = {
     'help.faq5': 'Ma\'lumotlarim xavfsizmi?',
     'help.faq5Answer': 'Ha, barcha ma\'lumotlaringiz faqat sizning qurilmangizda saqlanadi. Biz hech qanday shaxsiy ma\'lumotni serverlarimizda saqlamaymiz.',
     'help.copyright': '© 2024 YASHA. Barcha huquqlar himoyalangan.',
-    
+
     // Notifications Sheet
     'notifications.title': 'Bildirishnomalar',
     'notifications.info': 'Bildirishnomalar sizga sog\'lom odatlarni eslatib turadi',
@@ -495,7 +497,7 @@ const translations: Record<Language, Record<string, string>> = {
     'notifications.mealDesc': 'Ovqatlanish vaqtini eslatadi',
     'notifications.enabled': 'Bildirishnoma yoqildi',
     'notifications.disabled': 'Bildirishnoma o\'chirildi',
-    
+
     // Paywall
     'paywall.close': 'Yopish',
     'paywall.hero': 'Premium rejaga o\'ting',
@@ -507,7 +509,7 @@ const translations: Record<Language, Record<string, string>> = {
     'paywall.subscribe': 'Obuna bo\'lish',
     'paywall.telegramInfo': '💬 Obuna bo\'lish uchun Telegram botimizga o\'tasiz',
     'paywall.trial': '7 kunlik bepul sinov • Istalgan vaqtda bekor qilish mumkin',
-    
+
     // Onboarding
     'onboarding.slogan': 'Sog\'lom hayot murabbiyi',
     'onboarding.welcome': 'Shaxsiy AI fitnes va dieta murabbiyi. Sog\'lom hayot yo\'lingizda biz bilan boring!',
@@ -581,7 +583,7 @@ const translations: Record<Language, Record<string, string>> = {
     'common.minutes': 'мин.',
     'common.all': 'Все',
     'common.day': 'День',
-    
+
     // Days of week
     'day.mon': 'Пн',
     'day.tue': 'Вт',
@@ -590,14 +592,14 @@ const translations: Record<Language, Record<string, string>> = {
     'day.fri': 'Пт',
     'day.sat': 'Сб',
     'day.sun': 'Вс',
-    
+
     // Navigation
     'nav.home': 'Главная',
     'nav.explore': 'Ещё',
     'nav.menu': 'Еда',
     'nav.workout': 'Тренировка',
     'nav.profile': 'Профиль',
-    
+
     // Home Screen
     'home.greeting': 'Привет',
     'home.howAreYou': 'Как настроение сегодня?',
@@ -612,7 +614,7 @@ const translations: Record<Language, Record<string, string>> = {
     'home.trialPeriod': 'Пробный период',
     'home.daysRemaining': 'дней осталось',
     'home.user': 'Пользователь',
-    
+
     // Stats
     'stats.water': 'Вода',
     'stats.calories': 'Калории',
@@ -622,7 +624,7 @@ const translations: Record<Language, Record<string, string>> = {
     'stats.mood': 'Настроение',
     'stats.completed': 'Выполнено',
     'stats.pending': 'Ожидается',
-    
+
     // Menu Screen
     'menu.title': 'Ежедневное меню',
     'menu.weekly': '7 дней',
@@ -643,7 +645,9 @@ const translations: Record<Language, Record<string, string>> = {
     'menu.protein': 'белок',
     'menu.carbs': 'углеводы',
     'menu.fat': 'жиры',
-    
+    'menu.iAteIt': 'Я это съел',
+    'menu.mealAddedSuccess': 'Блюдо добавлено в дневник!',
+
     // Workout Screen
     'workout.title': 'Тренировки',
     'workout.videoWorkouts': 'Видео тренировки',
@@ -657,7 +661,7 @@ const translations: Record<Language, Record<string, string>> = {
     'workout.homeCardio': 'Домашнее кардио',
     'workout.abs': 'Мышцы пресса',
     'workout.fullBody': 'Тренировка всего тела',
-    
+
     // Habits Screen
     'habits.title': 'Ежедневные привычки',
     'habits.subtitle': 'Следите за здоровыми привычками',
@@ -677,7 +681,7 @@ const translations: Record<Language, Record<string, string>> = {
     'habits.badMoodMsg2': 'Трудные дни проходят. Вы сильны!',
     'habits.badMoodMsg3': 'Каждый день - новая возможность. Завтра будет лучше!',
     'habits.goodMoodMsg': 'Отлично! Сегодня хороший день!',
-    
+
     // Profile Screen
     'profile.title': 'Профиль',
     'profile.personalInfo': 'Личная информация',
@@ -694,7 +698,7 @@ const translations: Record<Language, Record<string, string>> = {
     'profile.help': 'Помощь',
     'profile.editProfile': 'Редактировать профиль',
     'profile.logout': 'Выйти',
-    
+
     // Calories Screen
     'calories.title': 'Калории',
     'calories.dailyJournal': 'Дневник питания',
@@ -714,7 +718,7 @@ const translations: Record<Language, Record<string, string>> = {
     'calories.mealDeletedDesc': 'Приём пищи удалён',
     'calories.requiredFields': 'Название и калории обязательны',
     'calories.gazak': 'Перекус',
-    
+
     // Recipes Screen
     'recipes.title': 'Рецепты',
     'recipes.subtitle': 'Здоровые блюда',
@@ -723,7 +727,7 @@ const translations: Record<Language, Record<string, string>> = {
     'recipes.kcal': 'ккал',
     'recipes.time': 'время',
     'recipes.servings': 'порций',
-    
+
     // Daily Tasks
     'tasks.title': 'Ежедневные задания',
     'tasks.completed': 'выполнено',
@@ -749,7 +753,7 @@ const translations: Record<Language, Record<string, string>> = {
     'tasks.sleep8hDesc': 'Получите качественный сон',
     'tasks.eat3meals': '3 приёма пищи',
     'tasks.eat3mealsDesc': 'Съешьте три здоровых приёма пищи',
-    
+
     // Settings
     'settings.title': 'Настройки',
     'settings.language': 'Язык',
@@ -759,7 +763,7 @@ const translations: Record<Language, Record<string, string>> = {
     'settings.dark': 'Тёмная',
     'settings.light': 'Светлая',
     'settings.system': 'Системная',
-    
+
     // Paywall
     'paywall.title': 'Нужен Premium',
     'paywall.feature': 'Для этой функции нужен Premium',
@@ -767,7 +771,7 @@ const translations: Record<Language, Record<string, string>> = {
     'paywall.later': 'Позже',
     'paywall.aiMenu': 'AI план меню',
     'paywall.aiWorkout': 'AI программа тренировок',
-    
+
     // Explore Screen
     'explore.title': 'Ещё больше',
     'explore.subtitle': 'Все функции в одном месте',
@@ -797,7 +801,7 @@ const translations: Record<Language, Record<string, string>> = {
     'explore.achievementsDesc': 'Медали',
     'explore.shop': 'Магазин',
     'explore.shopDesc': 'Подарки',
-    
+
     // Weight Screen
     'weight.title': 'Вес',
     'weight.subtitle': 'Отслеживайте свой вес',
@@ -809,7 +813,7 @@ const translations: Record<Language, Record<string, string>> = {
     'weight.saved': 'Вес сохранён!',
     'weight.invalidWeight': 'Введите корректный вес (30-300 кг)',
     'weight.placeholder': 'Вес (кг)',
-    
+
     // Reports Screen
     'reports.title': 'Отчёты',
     'reports.subtitle': 'Недельная статистика',
@@ -823,7 +827,7 @@ const translations: Record<Language, Record<string, string>> = {
     'reports.great': 'Отлично! Вы достигаете своих целей. Продолжайте!',
     'reports.good': 'Хорошо! Ещё немного усилий и достигнете цели!',
     'reports.start': 'Каждый день важен. Начните с маленьких шагов!',
-    
+
     // Workout Library Screen
     'workoutLib.title': 'Тренировки',
     'workoutLib.subtitle': 'Видео библиотека и таймер',
@@ -853,7 +857,7 @@ const translations: Record<Language, Record<string, string>> = {
     'workoutLib.absWorkoutDesc': 'Упражнения для мышц пресса',
     'workoutLib.tabata': 'Табата',
     'workoutLib.tabataDesc': '4-минутная интенсивная тренировка',
-    
+
     // Meditation Screen
     'meditation.title': 'Медитация',
     'meditation.subtitle': 'Дыхательные упражнения',
@@ -872,7 +876,7 @@ const translations: Record<Language, Record<string, string>> = {
     'meditation.relaxingTip': 'Используйте перед сном. Снижает стресс.',
     'meditation.energizingTip': 'Используйте утром или при усталости. Даёт энергию.',
     'meditation.calmTip': 'Используйте в любое время для снижения стресса.',
-    
+
     // Friends Screen
     'friends.title': 'Друзья',
     'friends.subtitle': 'Соревнуйтесь и побеждайте!',
@@ -888,7 +892,7 @@ const translations: Record<Language, Record<string, string>> = {
     'friends.challengeSentDesc': 'отправлен вызов',
     'friends.enterUsername': 'Пожалуйста, введите имя пользователя',
     'friends.you': 'Вы',
-    
+
     // Challenges Screen
     'challenges.title': 'Соревнования',
     'challenges.subtitle': 'Соревнуйтесь и побеждайте!',
@@ -918,7 +922,7 @@ const translations: Record<Language, Record<string, string>> = {
     'challenges.7days': '7 дней',
     'challenges.14days': '14 дней',
     'challenges.30days': '30 дней',
-    
+
     // Achievements Screen
     'achievements.title': 'Достижения',
     'achievements.subtitle': 'Значки и награды',
@@ -947,7 +951,7 @@ const translations: Record<Language, Record<string, string>> = {
     'achievements.100points': '100 очков',
     'achievements.500points': '500 очков',
     'achievements.allGoals': 'Вода, сон, шаги',
-    
+
     // Shop Screen
     'shop.title': 'Магазин',
     'shop.subtitle': 'Тратьте свои монеты',
@@ -979,7 +983,7 @@ const translations: Record<Language, Record<string, string>> = {
     'shop.starBadgeDesc': 'За 100 выполненных заданий',
     'shop.coinBoost': '3x Монет Буст',
     'shop.coinBoostDesc': '3x монет на 12 часов',
-    
+
     // AI Coach Screen
     'aiCoach.title': 'AI Тренер',
     'aiCoach.subtitle': 'Ваш персональный фитнес-помощник',
@@ -991,7 +995,7 @@ const translations: Record<Language, Record<string, string>> = {
     'aiCoach.question3': 'Улучшить качество сна',
     'aiCoach.error': 'Произошла ошибка',
     'aiCoach.noStream': 'Поток недоступен',
-    
+
     // Edit Profile Sheet
     'editProfile.title': 'Редактировать профиль',
     'editProfile.save': 'Сохранить',
@@ -1002,7 +1006,7 @@ const translations: Record<Language, Record<string, string>> = {
     'editProfile.height': 'Рост (см)',
     'editProfile.weight': 'Вес (кг)',
     'editProfile.saved': 'Профиль обновлён!',
-    
+
     // Privacy Sheet
     'privacy.title': 'Конфиденциальность',
     'privacy.dataSecurity': 'Безопасность данных',
@@ -1016,7 +1020,7 @@ const translations: Record<Language, Record<string, string>> = {
     'privacy.deleteAll': 'Удалить все данные',
     'privacy.confirmDelete': 'Вы хотите удалить все данные? Это действие нельзя отменить.',
     'privacy.deleted': 'Данные удалены. Приложение перезагружается...',
-    
+
     // Help Sheet
     'help.title': 'Помощь',
     'help.support': 'Поддержка',
@@ -1034,7 +1038,7 @@ const translations: Record<Language, Record<string, string>> = {
     'help.faq5': 'Мои данные в безопасности?',
     'help.faq5Answer': 'Да, все ваши данные хранятся только на вашем устройстве. Мы не храним личные данные на наших серверах.',
     'help.copyright': '© 2024 YASHA. Все права защищены.',
-    
+
     // Notifications Sheet
     'notifications.title': 'Уведомления',
     'notifications.info': 'Уведомления напоминают вам о здоровых привычках',
@@ -1048,7 +1052,7 @@ const translations: Record<Language, Record<string, string>> = {
     'notifications.mealDesc': 'Напоминает о времени приёма пищи',
     'notifications.enabled': 'Уведомление включено',
     'notifications.disabled': 'Уведомление выключено',
-    
+
     // Paywall
     'paywall.close': 'Закрыть',
     'paywall.hero': 'Перейти на Premium',
@@ -1060,7 +1064,7 @@ const translations: Record<Language, Record<string, string>> = {
     'paywall.subscribe': 'Подписаться',
     'paywall.telegramInfo': '💬 Для подписки вы перейдёте в наш Telegram бот',
     'paywall.trial': '7 дней бесплатно • Можно отменить в любое время',
-    
+
     // Onboarding
     'onboarding.slogan': 'Тренер здорового образа жизни',
     'onboarding.welcome': 'Персональный AI фитнес и диетический тренер. Идите к здоровой жизни вместе с нами!',

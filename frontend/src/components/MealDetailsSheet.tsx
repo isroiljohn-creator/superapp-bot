@@ -5,12 +5,18 @@ import {
     SheetHeader,
     SheetTitle,
 } from "@/components/ui/sheet";
-import { Utensils, Clock, Flame, ListChecks, ChefHat } from 'lucide-react';
+import { Utensils, Clock, Flame, ListChecks, ChefHat, Check } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useUser } from '@/contexts/UserContext';
+import { useHaptic } from '@/hooks/useHaptic';
+import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
+import { useState } from 'react';
 
 interface MealDetails {
     title: string;
     calories: number;
+    mealType: 'breakfast' | 'lunch' | 'dinner' | 'snack';
     items: string[];
     recipe?: string;
     steps?: string[];
@@ -28,8 +34,43 @@ export const MealDetailsSheet: React.FC<MealDetailsSheetProps> = ({
     onClose,
 }) => {
     const { t } = useLanguage();
+    const { addMeal } = useUser();
+    const { vibrate } = useHaptic();
+    const [isAdding, setIsAdding] = useState(false);
+    const [isAdded, setIsAdded] = useState(false);
 
     if (!meal) return null;
+
+    const handleAteClick = async () => {
+        try {
+            setIsAdding(true);
+            vibrate('medium');
+
+            await addMeal({
+                name: meal.title,
+                calories: meal.calories,
+                mealType: meal.mealType,
+                protein: 0,
+                carbs: 0,
+                fat: 0
+            });
+
+            setIsAdded(true);
+            toast.success(t('menu.mealAddedSuccess'));
+            vibrate('success');
+
+            // Close after a short delay
+            setTimeout(() => {
+                onClose();
+                setIsAdded(false);
+            }, 1500);
+        } catch (error) {
+            console.error("Failed to add meal", error);
+            toast.error(t('common.error'));
+        } finally {
+            setIsAdding(false);
+        }
+    };
 
     return (
         <Sheet open={isOpen} onOpenChange={onClose}>
@@ -101,6 +142,22 @@ export const MealDetailsSheet: React.FC<MealDetailsSheetProps> = ({
                             </section>
                         )}
                     </div>
+                </div>
+
+                {/* Fixed Footer with Button */}
+                <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-card via-card to-transparent pt-10">
+                    <Button
+                        size="lg"
+                        className="w-full text-lg h-14 rounded-2xl shadow-lg shadow-primary/20 transition-all active:scale-[0.98]"
+                        onClick={handleAteClick}
+                        disabled={isAdding || isAdded}
+                    >
+                        {isAdded ? (
+                            <><Check className="mr-2 h-6 w-6" /> {t('common.done')}</>
+                        ) : (
+                            <><Flame className="mr-2 h-6 w-6" /> {t('menu.iAteIt')}</>
+                        )}
+                    </Button>
                 </div>
             </SheetContent>
         </Sheet>

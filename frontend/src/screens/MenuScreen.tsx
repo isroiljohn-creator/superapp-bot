@@ -194,18 +194,8 @@ export const MenuScreen: React.FC = () => {
 
   let displayMeals: any[] = [];
 
-  // 1. Show Logged Meals for Today?
-  // Only if selectedDay is 0 (Today) AND we have logs.
-  if (selectedDay === 0 && todayMeals.length > 0) {
-    displayMeals = todayMeals.map(m => ({
-      type: m.mealType,
-      title: m.name,
-      calories: m.calories,
-      items: [`${m.protein}g ${t('menu.protein')}`, `${m.carbs}g ${t('menu.carbs')}`, `${m.fat}g ${t('menu.fat')}`],
-    }));
-  }
-  // 2. Show AI Weekly Plan
-  else if (weeklyPlan && weeklyPlan.length > 0) {
+  // 1. Show AI Weekly Plan (Priority)
+  if (weeklyPlan && weeklyPlan.length > 0) {
     const dailyData = weeklyPlan.find(d => d.day === selectedDay + 1);
     if (dailyData && dailyData.meals) {
       const types = ['breakfast', 'lunch', 'dinner', 'snack'];
@@ -222,6 +212,15 @@ export const MenuScreen: React.FC = () => {
         };
       }).filter(Boolean);
     }
+  }
+  // 2. Show Logged Meals for Today (Fallback or if no AI Plan)
+  else if (selectedDay === 0 && todayMeals.length > 0) {
+    displayMeals = todayMeals.map(m => ({
+      type: m.mealType,
+      title: m.name,
+      calories: m.calories,
+      items: [`${m.protein}g ${t('menu.protein')}`, `${m.carbs}g ${t('menu.carbs')}`, `${m.fat}g ${t('menu.fat')}`],
+    }));
   }
 
   const isMock = displayMeals.length === 0 && !weeklyPlan && !textPlan;
@@ -244,7 +243,7 @@ export const MenuScreen: React.FC = () => {
 
   const suggestedTotalCalories = displayMeals.reduce((sum, m) => sum + m.calories, 0);
 
-  const displayTotalCalories = selectedDay === 0 && todayMeals.length > 0
+  const displayTotalCalories = selectedDay === 0
     ? todayCalories
     : suggestedTotalCalories;
 
@@ -356,7 +355,10 @@ export const MenuScreen: React.FC = () => {
                   setShowPaywall(true);
                 } else {
                   vibrate('light');
-                  setSelectedMeal(meal);
+                  setSelectedMeal({
+                    ...meal,
+                    mealType: meal.type
+                  });
                   setIsSheetOpen(true);
                 }
               }}
