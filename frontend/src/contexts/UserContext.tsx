@@ -181,7 +181,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 ...prev,
                 isOnboarded: isOnboarded,
                 profile: profile,
-                planType: userData.plan_type || 'free',
+                planType: (userData.plan_type || 'free').toLowerCase() as PlanType,
                 premiumUntil: userData.premium_until ? new Date(userData.premium_until) : null,
                 points: userData.points || 0,
                 // Streaks from backend
@@ -240,7 +240,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const newState: UserState = {
       ...state,
       isOnboarded: true,
-      planType: 'trial',
+      planType: (state.planType || 'trial').toLowerCase() as PlanType,
       premiumUntil,
       trialUsed: true,
       todayLog: {
@@ -496,7 +496,8 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [state, saveState]);
 
   const isPremium = useCallback(() => {
-    if (state.planType === 'free') return false;
+    const type = state.planType?.toLowerCase();
+    if (type === 'premium' || type === 'vip' || type === 'trial') return true;
     if (!state.premiumUntil) return false;
     return new Date() < state.premiumUntil;
   }, [state.planType, state.premiumUntil]);

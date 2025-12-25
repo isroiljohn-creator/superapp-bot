@@ -45,14 +45,14 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onNavigate }) => {
 
   const getPlanLabel = () => {
     if (language === 'ru') {
-      switch (planType) {
+      switch (planType?.toLowerCase()) {
         case 'vip': return '👑 VIP';
         case 'premium': return '💎 Премиум';
         case 'trial': return 'Пробный (Премиум)';
         default: return 'Бесплатный';
       }
     }
-    switch (planType) {
+    switch (planType?.toLowerCase()) {
       case 'vip': return '👑 VIP';
       case 'premium': return '💎 Premium';
       case 'trial': return 'Sinov (Premium)';

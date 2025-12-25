@@ -4,6 +4,7 @@ import { Crown, Sparkles, Check, Lock, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useUser } from '@/contexts/UserContext';
 import { useHaptic } from '@/hooks/useHaptic';
 
 interface PaywallProps {
@@ -24,6 +25,9 @@ export const Paywall: React.FC<PaywallProps> = ({
 
   if (!isOpen) return null;
 
+  const { planType } = useUser();
+  const currentTier = planType?.toLowerCase();
+
   const plans = [
     {
       id: 'premium',
@@ -43,6 +47,7 @@ export const Paywall: React.FC<PaywallProps> = ({
         { text: 'AI Murabbiy (QA): Kuniga 3 martagacha savol-javob', included: true, limited: true },
       ],
       popular: true,
+      tier: 1
     },
     {
       id: 'vip',
@@ -64,8 +69,15 @@ export const Paywall: React.FC<PaywallProps> = ({
         { text: 'Shopping List: Mahsulotlar ro\'yxati', included: true },
       ],
       popular: false,
+      tier: 2
     },
-  ];
+  ].filter(p => {
+    // Hide Premium if user is VIP.
+    if (currentTier === 'vip' && p.id === 'premium') return false;
+    // Hide Premium if user is already Premium (optional, but logical)
+    if (currentTier === 'premium' && p.id === 'premium') return false;
+    return true;
+  });
 
   const handleSubscribe = (planId: string) => {
     vibrate('success');
