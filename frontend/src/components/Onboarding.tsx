@@ -126,9 +126,9 @@ export const Onboarding: React.FC = () => {
       const payload: any = {
         full_name: profile.name,
         phone: profile.phone,
-        age: parseInt(profile.age) || 0,
-        height: parseInt(profile.height) || 0,
-        weight: parseFloat(profile.weight) || 0,
+        age: Number(profile.age) || 0,
+        height: Number(profile.height) || 0,
+        weight: Number(profile.weight) || 0,
         gender: profile.gender,
         goal: profile.goal,
         activity_level: profile.activityLevel,
