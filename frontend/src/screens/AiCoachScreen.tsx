@@ -6,6 +6,7 @@ import { useUser } from '@/contexts/UserContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useHaptic } from '@/hooks/useHaptic';
 import { toast } from 'sonner';
+import axios from 'axios';
 
 interface Message {
   id: string;
@@ -13,7 +14,8 @@ interface Message {
   content: string;
 }
 
-const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-coach`;
+const API_URL = import.meta.env.VITE_API_URL || 'https://yasha-bot-production.up.railway.app/api/v1';
+const CHAT_URL = `${API_URL}/coach/chat`;
 
 export const AiCoachScreen: React.FC = () => {
   const { profile, todayLog } = useUser();
@@ -52,86 +54,40 @@ export const AiCoachScreen: React.FC = () => {
     setInput('');
     setIsLoading(true);
 
-    let assistantContent = '';
-
     try {
-      const response = await fetch(CHAT_URL, {
-        method: 'POST',
+      const token = localStorage.getItem('token');
+      const response = await axios.post(CHAT_URL, {
+        messages: messages.filter(m => m.role !== 'assistant' || m.id !== '1').concat(userMessage).map(m => ({
+          role: m.role,
+          content: m.content
+        })),
+        userContext: {
+          name: profile?.name,
+          age: profile?.age,
+          goal: profile?.goal,
+          todayWater: todayLog?.water_ml,
+          todaySteps: todayLog?.steps,
+          todaySleep: todayLog?.sleep_hours,
+        }
+      }, {
         headers: {
-          'Content-Type': 'application/json',
-          'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-        },
-        body: JSON.stringify({
-          messages: messages.filter(m => m.role !== 'assistant' || m.id !== '1').concat(userMessage).map(m => ({
-            role: m.role,
-            content: m.content
-          })),
-          userContext: {
-            name: profile?.name,
-            age: profile?.age,
-            goal: profile?.goal,
-            todayWater: todayLog?.water_ml,
-            todaySteps: todayLog?.steps,
-            todaySleep: todayLog?.sleep_hours,
-          }
-        }),
+          'Authorization': `Bearer ${token}`
+        }
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || t('aiCoach.error'));
+      if (response.data.reply) {
+        const assistantId = (Date.now() + 1).toString();
+        setMessages(prev => [...prev, {
+          id: assistantId,
+          role: 'assistant',
+          content: response.data.reply
+        }]);
+        vibrate('success');
       }
 
-      const reader = response.body?.getReader();
-      if (!reader) throw new Error(t('aiCoach.noStream'));
-
-      const decoder = new TextDecoder();
-      let buffer = '';
-
-      // Add empty assistant message
-      const assistantId = (Date.now() + 1).toString();
-      setMessages(prev => [...prev, { id: assistantId, role: 'assistant', content: '' }]);
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        buffer += decoder.decode(value, { stream: true });
-
-        let newlineIndex;
-        while ((newlineIndex = buffer.indexOf('\n')) !== -1) {
-          let line = buffer.slice(0, newlineIndex);
-          buffer = buffer.slice(newlineIndex + 1);
-
-          if (line.endsWith('\r')) line = line.slice(0, -1);
-          if (line.startsWith(':') || line.trim() === '') continue;
-          if (!line.startsWith('data: ')) continue;
-
-          const jsonStr = line.slice(6).trim();
-          if (jsonStr === '[DONE]') break;
-
-          try {
-            const parsed = JSON.parse(jsonStr);
-            const content = parsed.choices?.[0]?.delta?.content;
-            if (content) {
-              assistantContent += content;
-              setMessages(prev => 
-                prev.map(m => m.id === assistantId ? { ...m, content: assistantContent } : m)
-              );
-            }
-          } catch {
-            // Partial JSON, continue
-          }
-        }
-      }
-
-      vibrate('success');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Chat error:', error);
-      toast.error(error instanceof Error ? error.message : t('aiCoach.error'));
-      // Remove the empty assistant message if error
-      setMessages(prev => prev.filter(m => m.content !== ''));
+      toast.error(error.response?.data?.detail || error.message || t('aiCoach.error'));
     } finally {
       setIsLoading(false);
     }
@@ -175,27 +131,25 @@ export const AiCoachScreen: React.FC = () => {
               animate={{ opacity: 1, y: 0 }}
               className={`flex gap-3 ${message.role === 'user' ? 'flex-row-reverse' : ''}`}
             >
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
-                message.role === 'user' ? 'bg-primary' : 'bg-primary/20'
-              }`}>
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${message.role === 'user' ? 'bg-primary' : 'bg-primary/20'
+                }`}>
                 {message.role === 'user' ? (
                   <User className="w-4 h-4 text-primary-foreground" />
                 ) : (
                   <Bot className="w-4 h-4 text-primary" />
                 )}
               </div>
-              <div className={`max-w-[80%] p-3 rounded-2xl ${
-                message.role === 'user' 
-                  ? 'bg-primary text-primary-foreground rounded-br-md' 
+              <div className={`max-w-[80%] p-3 rounded-2xl ${message.role === 'user'
+                  ? 'bg-primary text-primary-foreground rounded-br-md'
                   : 'bg-card border border-border/50 text-foreground rounded-bl-md'
-              }`}>
+                }`}>
                 <p className="text-sm whitespace-pre-wrap">{message.content}</p>
               </div>
             </motion.div>
           ))}
         </AnimatePresence>
 
-        {isLoading && messages[messages.length - 1]?.content === '' && (
+        {isLoading && (
           <div className="flex gap-3">
             <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
               <Loader2 className="w-4 h-4 text-primary animate-spin" />
