@@ -138,7 +138,7 @@ export const Onboarding: React.FC = () => {
       console.log("DEBUG: Sending profile update:", payload);
 
       // We must await to ensure backend sets is_onboarded=True before completeOnboarding()
-      const res = await axios.put(`${API_URL}/users/profile`, payload);
+      const res = await axios.put(`${API_URL}/user/profile`, payload);
       console.log("DEBUG: Backend response:", res.data);
 
       setProfile(profile);

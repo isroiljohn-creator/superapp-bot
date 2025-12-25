@@ -145,7 +145,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
             axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
 
             // Fetch latest profile
-            const profileRes = await axios.get(`${API_URL}/users/profile`);
+            const profileRes = await axios.get(`${API_URL}/user/profile`);
             const userData = profileRes.data;
 
             console.log("DEBUG: Initial User Profile Fetched:", userData);
