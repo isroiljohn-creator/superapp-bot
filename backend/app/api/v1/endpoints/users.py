@@ -81,6 +81,7 @@ async def update_profile(
         setattr(current_user, key, value)
     
     await db.commit()
+    return {"status": "success"}
 @router.post("/reset")
 async def reset_profile(
     current_user: User = Depends(get_current_user),

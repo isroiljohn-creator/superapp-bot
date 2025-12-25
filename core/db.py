@@ -670,6 +670,7 @@ class Database:
                 for key, value in kwargs.items():
                     if hasattr(user, key):
                         setattr(user, key, value)
+            session.commit()
 
     def get_user(self, user_id):
         with get_sync_db() as session:
@@ -1569,6 +1570,7 @@ class Database:
                     user.streak_water = (user.streak_water or 0) + 1
                 elif type == 'mood':
                     user.streak_mood = (user.streak_mood or 0) + 1
+            session.commit()
 
     # --- Persistent Onboarding Methods ---
     def get_onboarding_state(self, user_id):
