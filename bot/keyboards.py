@@ -68,22 +68,14 @@ def main_menu_keyboard(is_admin=False, user_id=None):
         except Exception as e:
             print(f"Error getting habit progress for menu: {e}")
         
-    # Mini App tugmasi (Qayta tiklandi)
-    mini_app_url = os.getenv("MINI_APP_URL", "https://web-production-b606.up.railway.app")
-    markup.add(KeyboardButton("📱 Ilovani ochish", web_app=WebAppInfo(url=mini_app_url)))
-
-    # Row 1: AI Murabbiy
-    markup.add(KeyboardButton("🤖 AI murabbiy"))
-
+    # Row 1: AI Murabbiy | Kaloriya tahlili
+    markup.add(KeyboardButton("🤖 AI murabbiy"), KeyboardButton("🍽 Kaloriya tahlili"))
     
-    # Row 2: Kunlik odatlar | Kaloriya tahlili
-    markup.add(KeyboardButton(habit_text), KeyboardButton("🍽 Kaloriya tahlili"))
+    # Row 2: Profil | YASHA Plus
+    markup.add(KeyboardButton("👤 Profil"), KeyboardButton("💚 YASHA Plus"))
     
-    # Row 3: YASHA Plus | Profil
-    markup.add(KeyboardButton("💚 YASHA Plus"), KeyboardButton("👤 Profilim"))
-    
-    # Row 4: Chellenjlar | Yordam (Serving separate help menu now)
-    markup.add(KeyboardButton("🔥 Chellenjlar"), KeyboardButton("📩 Yordam"))
+    # Row 3: Yordam
+    markup.add(KeyboardButton("📩 Yordam"))
     
     return markup
 
@@ -156,6 +148,8 @@ def premium_inline_keyboard():
         InlineKeyboardButton("ℹ️ Tariflar", callback_data="premium_info"),
         InlineKeyboardButton("🟡 Yasha Coin", callback_data="premium_coins")
     )
+    # Challenges inside Yasha Plus
+    markup.row(InlineKeyboardButton("🔥 Chellenjlar", callback_data="premium_challenges"))
     return markup
 
 def gamification_keyboard():

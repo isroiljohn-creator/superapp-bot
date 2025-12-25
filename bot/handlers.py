@@ -1,7 +1,7 @@
 from bot import onboarding, gamification, admin, feedback, premium, profile, templates, workout
 from core import coach
 
-from bot.keyboards import main_menu_keyboard, ai_coach_submenu_keyboard, challenges_submenu_keyboard, help_submenu_keyboard, ai_coach_inline_keyboard, admin_developer_keyboard
+from bot.keyboards import main_menu_keyboard, ai_coach_submenu_keyboard, challenges_submenu_keyboard, help_submenu_keyboard, ai_coach_inline_keyboard, admin_developer_keyboard, challenges_inline_keyboard
 from bot import trackers, ai_features, challenges, calorie_scanner
 from core.observability import track_latency # IMPORTED
 
@@ -102,14 +102,11 @@ def register_all_handlers(bot):
         bot.send_message(message.chat.id, "🤖 <b>AI Murabbiy</b>\n\nBugun nima qilamiz? Quyidagilardan birini tanlang 👇", reply_markup=ai_coach_inline_keyboard(), parse_mode="HTML")
 
 
-    # Moved Referral to Challenges submenu, but keeping handler for backward/direct access if needed
+    # Challenges handler is now moved to YASHA Plus callback
+    # Keeping referral handler separately for direct access/links
     @bot.message_handler(func=lambda message: message.text == "🔗 Referal" or message.text == "👥 Do‘st chaqirish")
     def menu_referral(message):
         gamification.handle_referral_link(message, bot)
-
-    @bot.message_handler(func=lambda message: message.text == "🔥 Chellenjlar")
-    def menu_challenges(message):
-        bot.send_message(message.chat.id, "🔥 Bugungi Chellenjlar", reply_markup=challenges_submenu_keyboard())
 
     @bot.message_handler(func=lambda message: message.text == "👤 Profil")
     def menu_profile(message):
@@ -164,6 +161,14 @@ def register_all_handlers(bot):
         # Keep state open for follow-up or clear? Keep open for convenience, clear on /start or button click.
         # For now, let's CLEAR to avoid sticky state confusion, user can click button again.
         onboarding.manager.clear_user(user_id) 
+
+    @bot.callback_query_handler(func=lambda call: call.data == 'premium_challenges')
+    def premium_challenges_callback(call):
+        try:
+             bot.answer_callback_query(call.id)
+             bot.send_message(call.message.chat.id, "🔥 **Chellenjlar**\n\nTanlang:", reply_markup=challenges_inline_keyboard(), parse_mode="Markdown")
+        except:
+             pass
 
     @bot.callback_query_handler(func=lambda call: call.data.startswith('ai_sub_'))
     def ai_coach_callback(call):
