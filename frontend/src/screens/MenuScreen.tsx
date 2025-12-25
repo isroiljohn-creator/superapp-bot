@@ -10,7 +10,7 @@ import { useHaptic } from '@/hooks/useHaptic';
 import axios from 'axios';
 import { toast } from 'sonner';
 
-const API_URL = import.meta.env.VITE_API_URL || 'https://yasha-bot-production.up.railway.app/api/v1';
+const API_URL = import.meta.env.VITE_API_URL || '/api/v1';
 
 const getWeekDays = (t: (key: string) => string) => [
   t('day.mon'), t('day.tue'), t('day.wed'), t('day.thu'), t('day.fri'), t('day.sat'), t('day.sun')
@@ -166,8 +166,8 @@ export const MenuScreen: React.FC = () => {
 
     let tdee = bmr * (activityMultipliers[profile?.activityLevel] || 1.2);
 
-    if (profile.goal === 'lose') tdee -= 500;
-    else if (profile.goal === 'gain') tdee += 300;
+    if (profile.goal === 'weight_loss') tdee -= 500;
+    else if (profile.goal === 'muscle_gain') tdee += 300;
 
     return Math.round(tdee);
   };

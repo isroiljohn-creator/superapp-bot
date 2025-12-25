@@ -1,9 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select, desc
 from backend.database import get_db
 from backend.models import User, Plan
 from backend.app.api.v1.endpoints.users import get_current_user
-from backend.app.services.ai_service import ai_service
 import json
 import os
 import random
@@ -18,8 +18,6 @@ def load_template(category: str, template_id: str):
             return json.load(f)
     except FileNotFoundError:
         return None
-
-from sqlalchemy import select, desc
 
 @router.get("/meal")
 async def get_meal_plan(
@@ -43,7 +41,7 @@ async def get_meal_plan(
     except:
         content = plan.content # Fallback if text
         
-    return {"plan": content, "is_premium": True, "created_at": plan.created_at}
+    return {"plan": content, "is_premium": current_user.is_premium, "created_at": plan.created_at}
 
 @router.get("/workout")
 async def get_workout_plan(
@@ -67,51 +65,7 @@ async def get_workout_plan(
     except:
         content = plan.content
         
-    return {"plan": content, "is_premium": True, "created_at": plan.created_at}
-
-@router.post("/workout")
-async def generate_workout(
-    current_user: User = Depends(get_current_user),
-    db_session: AsyncSession = Depends(get_db)
-):
-    """Generate workout plan - template for free, AI for premium"""
-    
-    if not current_user.is_premium:
-        # Return random template for free users
-        templates = ["beginner_home", "weight_loss", "muscle_gain"]
-        template_id = random.choice(templates)
-        template = load_template("workouts", template_id)
-        
-        if not template:
-            raise HTTPException(status_code=500, detail="Template not found")
-        
-        return {
-            "plan": template["plan"],
-            "is_premium": False,
-            "type": "template",
-            "template_name": template["name"],
-            "upgrade_message": "💎 Individual AI reja uchun Premium obuna oling!"
-        }
-    
-    # Generate AI plan for premium users
-    prompt = f"""
-    Create a 4-day workout plan for {current_user.age} year old {current_user.gender}.
-    Goal: {current_user.goal}.
-    Format: Bold headers, bullet points, no HTML.
-    """
-    
-    raw_text = ai_service.generate_content(prompt)
-    formatted = ai_service.format_text(raw_text, "Haftalik Mashq Rejasi")
-    
-    plan = Plan(user_id=current_user.id, type="workout", content=formatted)
-    db.add(plan)
-    await db.commit()
-    
-    return {
-        "plan": formatted,
-        "is_premium": True,
-        "type": "ai"
-    }
+    return {"plan": content, "is_premium": current_user.is_premium, "created_at": plan.created_at}
 
 @router.post("/meal")
 async def generate_meal(
@@ -127,25 +81,26 @@ async def generate_meal(
         template = load_template("meals", template_id)
         
         if not template:
-            raise HTTPException(status_code=500, detail="Template not found")
+            return {
+                "plan": None,
+                "is_premium": False,
+                "message": "Premium obuna orqali AI menyu oling!"
+            }
         
         return {
             "plan": template["plan"],
             "is_premium": False,
             "type": "template",
-            "template_name": template["name"],
-            "message": "Sample Plan"
+            "template_name": template["name"]
         }
     
     # Generate AI plan for premium users
-    allergy_note = ""
-    if current_user.allergies:
-        allergy_note = f"Allergies: {current_user.allergies}. AVOID THESE FOODS."
+    allergy_note = f"Allergies: {current_user.allergies}." if current_user.allergies else ""
     
     prompt = f"""
     Create a 7-day meal plan for a {current_user.age} year old {current_user.gender}.
     Height: {current_user.height}cm, Weight: {current_user.weight}kg.
-    Goal: {current_user.goal}. (Lose Weight = Deficit, Gain = Surplus).
+    Goal: {current_user.goal}. (weight_loss = Deficit, muscle_gain = Surplus).
     Cuisine: Uzbek/Central Asian mostly.
     {allergy_note}
     
@@ -167,13 +122,18 @@ async def generate_meal(
     
     try:
         from core.ai import ask_gemini
-        raw_text = ask_gemini("You are a nutritionist API.", prompt)
+        raw_text = ask_gemini("You are a nutritionist expert. Output ONLY JSON.", prompt)
         
-        # Clean markdown if present
-        cleaned_text = raw_text.replace("```json", "").replace("```", "").strip()
+        # Robust JSON cleaning
+        cleaned_text = raw_text.strip()
+        if "```json" in cleaned_text:
+            cleaned_text = cleaned_text.split("```json")[1].split("```")[0].strip()
+        elif "```" in cleaned_text:
+            cleaned_text = cleaned_text.split("```")[1].split("```")[0].strip()
+            
         plan_json = json.loads(cleaned_text)
         
-        # Save to DB (as stringified JSON)
+        # Save to DB
         plan = Plan(user_id=current_user.id, type="meal", content=json.dumps(plan_json))
         db_session.add(plan)
         await db_session.commit()
@@ -184,8 +144,8 @@ async def generate_meal(
             "type": "ai"
         }
     except Exception as e:
-        print(f"Plan Gen Error: {e}")
-        raise HTTPException(status_code=500, detail=f"AI Error: {str(e)}")
+        print(f"Meal Gen Error: {e}")
+        raise HTTPException(status_code=500, detail="AI xizmatida xatolik. Keyinroq urinib ko'ring.")
 
 @router.post("/workout")
 async def generate_workout(
@@ -195,36 +155,36 @@ async def generate_workout(
     """Generate workout plan - template for free, AI for premium"""
     
     if not current_user.is_premium:
-        # Return random template for free users
         templates = ["beginner_home", "weight_loss", "muscle_gain"]
         template_id = random.choice(templates)
         template = load_template("workouts", template_id)
         
         if not template:
-            raise HTTPException(status_code=500, detail="Template not found")
+            return {
+                "plan": None,
+                "is_premium": False,
+                "message": "Premium obuna orqali AI reja oling!"
+            }
         
         return {
             "plan": template["plan"],
             "is_premium": False,
             "type": "template",
-            "template_name": template["name"],
-             "message": "Sample Plan"
+            "template_name": template["name"]
         }
     
-    # Generate AI plan for premium users
     prompt = f"""
-    Create a weekly workout plan (3-4 days) for {current_user.age} year old {current_user.gender}.
-    Goal: {current_user.goal}.
+    Create a 7-day workout plan for {current_user.age}y/o {current_user.gender}. 
+    Goal: {current_user.goal}. (weight_loss = focus on cardio/hiit, muscle_gain = focus on hypertrophy).
     
-    Return STRICT JSON array.
+    Return STRICT JSON array with 7 items.
     Format:
     [
       {{
-        "day": "Monday",
-        "title": "Chest & Triceps",
+        "day": 1,
+        "title": "Day Name",
         "exercises": [
-           {{ "name": "Pushups", "sets": "3x12", "rest": "60s" }},
-           ...
+           {{ "name": "...", "sets": "3x12", "rest": "60s" }}
         ]
       }}
     ]
@@ -233,9 +193,14 @@ async def generate_workout(
     
     try:
         from core.ai import ask_gemini
-        raw_text = ask_gemini("You are a fitness coach API.", prompt)
+        raw_text = ask_gemini("You are a professional fitness coach. Output ONLY JSON.", prompt)
         
-        cleaned_text = raw_text.replace("```json", "").replace("```", "").strip()
+        cleaned_text = raw_text.strip()
+        if "```json" in cleaned_text:
+            cleaned_text = cleaned_text.split("```json")[1].split("```")[0].strip()
+        elif "```" in cleaned_text:
+            cleaned_text = cleaned_text.split("```")[1].split("```")[0].strip()
+            
         plan_json = json.loads(cleaned_text)
         
         plan = Plan(user_id=current_user.id, type="workout", content=json.dumps(plan_json))
@@ -248,6 +213,5 @@ async def generate_workout(
             "type": "ai"
         }
     except Exception as e:
-         print(f"Workout Gen Error: {e}")
-         raise HTTPException(status_code=500, detail=f"AI Error: {str(e)}")
-
+        print(f"Workout Gen Error: {e}")
+        raise HTTPException(status_code=500, detail="AI xizmatida xatolik. Keyinroq urinib ko'ring.")
