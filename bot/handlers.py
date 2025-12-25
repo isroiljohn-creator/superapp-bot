@@ -72,7 +72,7 @@ def register_all_handlers(bot):
             bot.send_message(message.chat.id, "👨‍💻 **Dasturchi Paneli**\n\nBuyruqni tanlang:", reply_markup=admin_developer_keyboard(), parse_mode="Markdown")
 
     # --- Calorie Handlers ---
-    @bot.message_handler(func=lambda message: message.text in ["🍽 Kaloriya tahlili (premium)", "🍽 Kaloriya skaneri", "🍽 Kaloriya tahlili", "🍽 Анализ калорий", "🍽 Анализ калорий (premium)"])
+    @bot.message_handler(func=lambda message: message.text in ["🍽 Kaloriya tahlili (premium)", "🍽 Kaloriya skaneri", "🍽 Kaloriya tahlili", "🍽 Анализ калорий", "🍽 Анализ калорий (premium)", "🍽 Анализ калорий (Premium)"])
     def calorie_handler(message):
         calorie_scanner.show_calorie_menu(message, bot)
 
