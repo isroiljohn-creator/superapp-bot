@@ -165,9 +165,10 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
             // Trust backend is_onboarded flag, but fallback to our logic if it is false (e.g. legacy users)
             const isOnboarded = !!(userData.is_onboarded || (
-              profile.age &&
-              profile.gender &&
-              profile.weight
+              profile.age > 0 ||
+              profile.weight > 0 ||
+              profile.name !== 'Foydalanuvchi' ||
+              profile.phone
             ));
             console.log("DEBUG: Determined isOnboarded:", isOnboarded);
 
