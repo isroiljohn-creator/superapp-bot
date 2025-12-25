@@ -85,6 +85,18 @@ def start_onboarding(message, bot):
     )
     manager.track_message(user_id, msg.message_id)
 
+def ask_language(message, bot):
+    """Explicitly ask for language change (Re-entry)"""
+    user_id = message.from_user.id
+    manager.set_state(user_id, STATE_LANG)
+    
+    msg = bot.send_message(
+        user_id,
+        "🇺🇿 Tilni tanlang / 🇷🇺 Выберите язык:",
+        reply_markup=language_selection_keyboard()
+    )
+    manager.track_message(user_id, msg.message_id)
+
 def process_language(call, bot):
     """Process language selection"""
     user_id = call.from_user.id
