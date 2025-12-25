@@ -4,6 +4,10 @@ from sqlalchemy import create_engine
 from contextlib import contextmanager
 import os
 import sys
+from dotenv import load_dotenv
+
+# --- Load Environment Variables FIRST ---
+load_dotenv()
 
 # --- Strict Production Config ---
 RAW_DB_URL = os.getenv("DATABASE_URL")
