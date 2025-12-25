@@ -17,7 +17,12 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: AsyncSession
     if not payload:
         raise HTTPException(status_code=401, detail="Invalid token")
     
-    result = await db.execute(select(User).where(User.id == payload["user_id"]))
+    # Support multiple identity keys for resilience
+    user_id = payload.get("user_id") or payload.get("sub") or payload.get("id")
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Token missing user identity")
+        
+    result = await db.execute(select(User).where(User.id == int(user_id)))
     user = result.scalar_one_or_none()
     if not user:
         raise HTTPException(status_code=401, detail="User not found")
