@@ -1,4 +1,7 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import axios from 'axios';
+
+const API_URL = import.meta.env.VITE_API_URL || 'https://yasha-bot-production.up.railway.app/api/v1';
 
 export interface UserProfile {
   phone: string;
@@ -115,6 +118,100 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   });
 
+  const token = localStorage.getItem('token');
+  if (token) {
+    axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+  }
+
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    const initializeUser = async () => {
+      try {
+        const tg = (window as any).Telegram?.WebApp;
+        if (tg?.initData) {
+          console.log("Authenticating with Telegram initData...");
+          const authRes = await axios.post(`${API_URL}/auth/telegram`, {
+            initData: tg.initData
+          });
+
+          if (authRes.data.token) {
+            const token = authRes.data.token;
+            localStorage.setItem('token', token);
+            axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+
+            // Fetch latest profile
+            const profileRes = await axios.get(`${API_URL}/users/profile`);
+            const userData = profileRes.data;
+
+            console.log("User Profile Fetched:", userData);
+
+            // Construct new state from backend data
+            // Map snake_case to camelCase
+            const profile: UserProfile = {
+              phone: userData.phone || '', // Note: phone might be missing if created via WebApp only, but Bot creates it
+              name: userData.full_name || userData.username || 'Foydalanuvchi',
+              age: userData.age || 0,
+              gender: userData.gender as 'male' | 'female',
+              height: userData.height || 0,
+              weight: userData.weight || 0,
+              goal: (userData.goal as 'lose' | 'gain' | 'maintain') || 'lose',
+              activityLevel: (userData.activity_level as any) || 'sedentary',
+              allergies: userData.allergies ? String(userData.allergies).split(',') : [],
+            };
+
+            // Check if full onboarding is done
+            const isOnboarded = !!(profile.age && profile.height && profile.weight && profile.gender);
+
+            setState(prev => {
+              // Merge with previous state to keep streaks/logs if valuable?
+              // But usually backend logic rules.
+              // Let's assume backend is source of truth for Plan/Points too.
+
+              const newState: UserState = {
+                ...prev,
+                isOnboarded: isOnboarded,
+                profile: profile,
+                planType: userData.plan_type || 'free',
+                premiumUntil: userData.premium_until ? new Date(userData.premium_until) : null,
+                points: userData.points || 0,
+                // Streaks from backend
+                streaks: {
+                  ...prev.streaks,
+                  water: userData.streak_water || 0,
+                  sleep: userData.streak_sleep || 0,
+                  mood: userData.streak_mood || 0,
+                },
+                // trialUsed from backend? Not in profile response explicitly but handled via planType logic usually
+                // Backend profile has "plan_type"
+
+                // Sync Today's Log
+                todayLog: {
+                  ...prev.todayLog,
+                  date: getTodayDate(),
+                  water_ml: userData.today_water || 0,
+                  steps: userData.today_steps || 0,
+                  sleep_hours: userData.today_sleep || 0,
+                  // calories/workout status might need separate sync or included in profile stats
+                  calories_consumed: prev.todayLog?.calories_consumed || 0, // Backend doesn't send meal logs sum in profile yet
+                  workout_done: prev.todayLog?.workout_done || false, // Should ideally come from backend
+                  mood: prev.todayLog?.mood || 'ok'
+                } as DailyLog
+              };
+
+              localStorage.setItem('yasha_user', JSON.stringify(newState));
+              return newState;
+            });
+          }
+        }
+      } catch (error) {
+        console.error("Auth Error:", error);
+      }
+    };
+
+    initializeUser();
+  }, []);
+
   const saveState = useCallback((newState: UserState) => {
     localStorage.setItem('yasha_user', JSON.stringify(newState));
     setState(newState);
@@ -128,7 +225,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const completeOnboarding = useCallback(() => {
     const premiumUntil = new Date();
     premiumUntil.setDate(premiumUntil.getDate() + 7);
-    
+
     const newState: UserState = {
       ...state,
       isOnboarded: true,
@@ -153,15 +250,15 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const currentLog = state.todayLog?.date === today
       ? state.todayLog
       : {
-          date: today,
-          water_ml: 0,
-          steps: 0,
-          sleep_hours: 0,
-          mood: 'ok' as const,
-          calories_consumed: 0,
-          workout_done: false,
-        };
-    
+        date: today,
+        water_ml: 0,
+        steps: 0,
+        sleep_hours: 0,
+        mood: 'ok' as const,
+        calories_consumed: 0,
+        workout_done: false,
+      };
+
     const newLog = { ...currentLog, ...log };
     const newState = { ...state, todayLog: newLog };
     saveState(newState);
@@ -172,27 +269,27 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const currentLog = state.todayLog?.date === today
       ? state.todayLog
       : {
-          date: today,
-          water_ml: 0,
-          steps: 0,
-          sleep_hours: 0,
-          mood: 'ok' as const,
-          calories_consumed: 0,
-          workout_done: false,
-        };
-    
+        date: today,
+        water_ml: 0,
+        steps: 0,
+        sleep_hours: 0,
+        mood: 'ok' as const,
+        calories_consumed: 0,
+        workout_done: false,
+      };
+
     const newWater = currentLog.water_ml + ml;
     const wasCompleted = currentLog.water_ml >= 2500;
     const isNowCompleted = newWater >= 2500;
-    
+
     let newPoints = state.points;
     let newStreaks = { ...state.streaks };
-    
+
     if (!wasCompleted && isNowCompleted) {
       newPoints += 10;
       newStreaks.water += 1;
     }
-    
+
     const newState = {
       ...state,
       points: newPoints,
@@ -210,23 +307,23 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
       id: Date.now().toString(),
       date: today,
     };
-    
+
     const newMeals = [...state.meals, newMeal];
     const todayMeals = newMeals.filter(m => m.date === today);
     const totalCalories = todayMeals.reduce((sum, m) => sum + m.calories, 0);
-    
+
     const currentLog = state.todayLog?.date === today
       ? state.todayLog
       : {
-          date: today,
-          water_ml: 0,
-          steps: 0,
-          sleep_hours: 0,
-          mood: 'ok' as const,
-          calories_consumed: 0,
-          workout_done: false,
-        };
-    
+        date: today,
+        water_ml: 0,
+        steps: 0,
+        sleep_hours: 0,
+        mood: 'ok' as const,
+        calories_consumed: 0,
+        workout_done: false,
+      };
+
     const newState = {
       ...state,
       meals: newMeals,
@@ -240,19 +337,19 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const newMeals = state.meals.filter(m => m.id !== id);
     const todayMeals = newMeals.filter(m => m.date === today);
     const totalCalories = todayMeals.reduce((sum, m) => sum + m.calories, 0);
-    
+
     const currentLog = state.todayLog?.date === today
       ? state.todayLog
       : {
-          date: today,
-          water_ml: 0,
-          steps: 0,
-          sleep_hours: 0,
-          mood: 'ok' as const,
-          calories_consumed: 0,
-          workout_done: false,
-        };
-    
+        date: today,
+        water_ml: 0,
+        steps: 0,
+        sleep_hours: 0,
+        mood: 'ok' as const,
+        calories_consumed: 0,
+        workout_done: false,
+      };
+
     const newState = {
       ...state,
       meals: newMeals,
@@ -281,28 +378,28 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
       id: Date.now().toString(),
       date: today,
     };
-    
+
     const newWorkouts = [...state.workouts, newWorkout];
-    
+
     const currentLog = state.todayLog?.date === today
       ? state.todayLog
       : {
-          date: today,
-          water_ml: 0,
-          steps: 0,
-          sleep_hours: 0,
-          mood: 'ok' as const,
-          calories_consumed: 0,
-          workout_done: false,
-        };
-    
+        date: today,
+        water_ml: 0,
+        steps: 0,
+        sleep_hours: 0,
+        mood: 'ok' as const,
+        calories_consumed: 0,
+        workout_done: false,
+      };
+
     let newPoints = state.points + 15;
     let newStreaks = { ...state.streaks };
-    
+
     if (!currentLog.workout_done) {
       newStreaks.workout += 1;
     }
-    
+
     const newState = {
       ...state,
       workouts: newWorkouts,
@@ -323,21 +420,21 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const currentLog = state.todayLog?.date === today
       ? state.todayLog
       : {
-          date: today,
-          water_ml: 0,
-          steps: 0,
-          sleep_hours: 0,
-          mood: 'ok' as const,
-          calories_consumed: 0,
-          workout_done: false,
-        };
-    
+        date: today,
+        water_ml: 0,
+        steps: 0,
+        sleep_hours: 0,
+        mood: 'ok' as const,
+        calories_consumed: 0,
+        workout_done: false,
+      };
+
     if (currentLog.workout_done) return;
-    
+
     let newPoints = state.points + 15;
     let newStreaks = { ...state.streaks };
     newStreaks.workout += 1;
-    
+
     const newState = {
       ...state,
       points: newPoints,
