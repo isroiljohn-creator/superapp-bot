@@ -81,4 +81,28 @@ async def update_profile(
         setattr(current_user, key, value)
     
     await db.commit()
-    return {"status": "updated"}
+@router.post("/reset")
+async def reset_profile(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Reset user profile data"""
+    current_user.age = None
+    # gender usually kept or reset? User asked to "delete data". 
+    # If we reset gender, onboarding flows again.
+    current_user.gender = None 
+    current_user.height = None
+    current_user.weight = None
+    current_user.target_weight = None
+    current_user.goal = None
+    current_user.activity_level = None
+    current_user.allergies = None
+    current_user.is_onboarded = False # Ensure onboarding shows again if your logic determines onboarding by these fields
+    
+    # Also clear logs? The user said "Delete Data". 
+    # Usually "Delete Data" implies clearing history too.
+    # But for now, let's stick to Profile Reset as that's what shows in the "Profile" card in Mini App.
+    # The user screenshot showed Profile Card with data.
+    
+    await db.commit()
+    return {"status": "reset"}

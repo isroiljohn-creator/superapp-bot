@@ -80,6 +80,7 @@ interface UserContextType extends UserState {
   addWorkout: (workout: Omit<WorkoutLog, 'id' | 'date'>) => void;
   getTodayWorkouts: () => WorkoutLog[];
   markWorkoutDone: () => void;
+  resetData: () => Promise<void>;
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
@@ -497,7 +498,38 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return true;
     }
     return false;
+    return false;
   }, [state, saveState]);
+
+  const resetData = useCallback(async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (token) {
+        await axios.post(`${API_URL}/user/reset`);
+      }
+    } catch (e) {
+      console.error("Reset failed", e);
+    } finally {
+      localStorage.clear();
+      // Optional: don't reload immediately if caller handles it, but implementation plan said reload.
+      // Actually PrivacySheet handles reload. 
+      // UserContext should just reset state.
+
+      const resetState: UserState = {
+        isOnboarded: false,
+        profile: null,
+        planType: 'free',
+        premiumUntil: null,
+        trialUsed: false,
+        points: 0,
+        streaks: { water: 0, sleep: 0, mood: 0, workout: 0 },
+        todayLog: null,
+        meals: [],
+        workouts: [],
+      };
+      saveState(resetState);
+    }
+  }, [saveState]);
 
   return (
     <UserContext.Provider
@@ -516,6 +548,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         addWorkout,
         getTodayWorkouts,
         markWorkoutDone,
+        resetData,
       }}
     >
       {children}

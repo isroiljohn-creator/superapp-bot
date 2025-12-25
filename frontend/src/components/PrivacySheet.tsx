@@ -2,6 +2,7 @@ import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Shield, Lock, Eye, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useUser } from '@/contexts/UserContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useHaptic } from '@/hooks/useHaptic';
 import { toast } from 'sonner';
@@ -14,6 +15,7 @@ interface PrivacySheetProps {
 export const PrivacySheet: React.FC<PrivacySheetProps> = ({ isOpen, onClose }) => {
   const { t } = useLanguage();
   const { vibrate } = useHaptic();
+  const { resetData } = useUser();
 
   if (!isOpen) return null;
 
@@ -22,13 +24,16 @@ export const PrivacySheet: React.FC<PrivacySheetProps> = ({ isOpen, onClose }) =
     onClose();
   };
 
-  const handleClearData = () => {
+  const handleClearData = async () => {
     vibrate('error');
     if (confirm(t('privacy.confirmDelete'))) {
-      localStorage.clear();
-      sessionStorage.clear();
+      await resetData();
       toast.success(t('privacy.deleted'));
-      setTimeout(() => window.location.reload(), 1500);
+      onClose();
+      // resetData handles state reset, navigation/reload can be handled here or inside context.
+      // Context reload page logic was removed in favor of state reset. 
+      // If we want to force reload to show onboarding, we can do it here.
+      window.location.reload();
     }
   };
 
@@ -93,8 +98,8 @@ export const PrivacySheet: React.FC<PrivacySheetProps> = ({ isOpen, onClose }) =
                 </p>
               </div>
             </div>
-            <Button 
-              variant="destructive" 
+            <Button
+              variant="destructive"
               className="w-full"
               onClick={handleClearData}
             >
