@@ -991,8 +991,6 @@ def register_all_handlers(bot):
 
         try:
             # Coach Tone Response
-            bot.send_message(
-                message.chat.id,
             lang = db.get_user_language(user_id)
             if lang == 'ru':
                 txt = "Я вас понял 😄 Выберите один из разделов ниже, я помогу вам там 👇"
