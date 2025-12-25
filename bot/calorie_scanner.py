@@ -10,17 +10,19 @@ STATE_CALORIE_PHOTO = 200
 STATE_CALORIE_TEXT = 201
 
 def show_calorie_menu(message, bot):
+    lang = db.get_user_language(message.from_user.id)
     markup = types.InlineKeyboardMarkup()
     markup.add(
-        types.InlineKeyboardButton("📷 Rasm orqali", callback_data="calorie_mode_photo"),
-        types.InlineKeyboardButton("📝 Matn orqali", callback_data="calorie_mode_text")
+        types.InlineKeyboardButton(get_text("btn_calorie_photo", lang), callback_data="calorie_mode_photo"),
+        types.InlineKeyboardButton(get_text("btn_calorie_text", lang), callback_data="calorie_mode_text")
     )
     
+    lang = db.get_user_language(message.from_user.id)
     with open("assets/kaloriya_tahlili.png", "rb") as photo:
         bot.send_photo(
             message.chat.id,
             photo,
-            caption="<b>🍽 Kaloriya tahlili</b>\n\nRasm yuboring, taxminiy hisoblaymiz 👇🏻",
+            caption=get_text("calorie_title", lang),
             reply_markup=markup,
             parse_mode="HTML"
         )
@@ -30,14 +32,15 @@ def calorie_mode_callback(call, bot):
     mode = call.data.split('_')[2]
     
     # Check Limit
+    lang = db.get_user_language(user_id)
     allowed, reason = db.check_calorie_limit(user_id)
     if not allowed:
         markup = types.InlineKeyboardMarkup()
-        markup.add(types.InlineKeyboardButton("💎 Premium olish", callback_data="premium_info"))
+        markup.add(types.InlineKeyboardButton(get_text("btn_get_premium_short", lang), callback_data="premium_info"))
         
         bot.send_message(
             user_id,
-            "🚫 <b>Limit tugadi</b>\n\nKaloriya skaneri Premium paketiga kiradi. Siz bugungi bepul limitdan foydalanib bo‘ldingiz. 💚",
+            f"{get_text('calorie_limit_title', lang)}\n\n{get_text('calorie_limit_desc', lang)}",
             reply_markup=markup,
             parse_mode="HTML"
         )
@@ -54,21 +57,17 @@ def handle_calorie_mode(call, bot):
         mode = parts[2]
         user_id = call.from_user.id
         
+        lang = db.get_user_language(user_id)
         # FREE TIER LOGIC (NO AI)
         if not db.is_premium(user_id):
              markup = types.InlineKeyboardMarkup()
-             markup.add(types.InlineKeyboardButton("💎 YASHA Plus’ga o‘tish", callback_data="premium_info"))
+             markup.add(types.InlineKeyboardButton(get_text("btn_get_plus", lang), callback_data="premium_info"))
              
-             msg = "📸 **Foto orqali aniqlash faqat YASHA Plus’da.**\n"
-             msg += "Bepul rejada umumiy taxminiy kaloriyalar beriladi:\n\n"
-             msg += "🍚 1 kosa osh — 500-600 kkal\n"
-             msg += "🥚 2 dona tuxum — 140-160 kkal\n"
-             msg += "🍞 1 bo‘lak non — 80-100 kkal\n"
-             msg += "🍎 1 dona olma — 50-60 kkal\n"
-             msg += "🍗 Tovuq (100g) — 160 kkal"
+             msg = f"{get_text('calorie_free_limit_title', lang)}\n"
+             msg += f"{get_text('calorie_free_limit_desc', lang)}"
              
              bot.send_message(call.message.chat.id, msg, reply_markup=markup, parse_mode="Markdown")
-             bot.answer_callback_query(call.id, "Faqat YASHA Plus uchun", show_alert=True)
+             bot.answer_callback_query(call.id, get_text("toast_premium_only", lang), show_alert=True)
              return
 
         # PREMIUM LOGIC (AI Access)
@@ -97,10 +96,10 @@ def handle_calorie_mode(call, bot):
         try:
             if mode == 'photo':
                 onboarding.manager.set_state(call.from_user.id, STATE_CALORIE_PHOTO)
-                bot.send_message(call.message.chat.id, "📷 Ovqat rasmini yuboring:")
+                bot.send_message(call.message.chat.id, get_text("prompt_calorie_photo", lang))
             elif mode == 'text':
                 onboarding.manager.set_state(call.from_user.id, STATE_CALORIE_TEXT)
-                bot.send_message(call.message.chat.id, "📝 Ovqat haqida yozing (masalan: 100g palov, 1 ta non):")
+                bot.send_message(call.message.chat.id, get_text("prompt_calorie_text", lang))
         except Exception as e:
             print(f"State Error in calorie check: {e}")
             bot.send_message(call.message.chat.id, f"⚠️ State Error: {str(e)}")
@@ -120,8 +119,9 @@ def register_handlers(bot):
 @require_premium
 def handle_calorie_photo(message, bot):
     user_id = message.from_user.id
+    lang = db.get_user_language(user_id)
     
-    status_msg = bot.send_message(user_id, "🔍 <b>Rasm tahlil qilinmoqda...</b>\n\nBiroz kuting, AI hisoblamoqda...", parse_mode="HTML")
+    status_msg = bot.send_message(user_id, get_text("status_analyzing_photo", lang), parse_mode="HTML")
     
     try:
         # [SAFE LOGGING ADDITION]
@@ -154,8 +154,9 @@ def handle_calorie_photo(message, bot):
 @require_premium
 def handle_calorie_text(message, bot):
     user_id = message.from_user.id
+    lang = db.get_user_language(user_id)
     
-    status_msg = bot.send_message(user_id, "🧮 <b>Hisoblanmoqda...</b>\n\nAI ma'lumotlarni qayta ishlamoqda...", parse_mode="HTML")
+    status_msg = bot.send_message(user_id, get_text("status_analyzing_text", lang), parse_mode="HTML")
     
     try:
         # [SAFE LOGGING ADDITION]
@@ -183,15 +184,12 @@ def handle_calorie_text(message, bot):
     onboarding.manager.clear_user(user_id)
 
 def send_fallback_message(bot, chat_id, message_id=None):
-    text = (
-        "⚠️ **Uzr, tahlil qila olmadim.**\n\n"
-        "AI serverida vaqtincha yuklama yuqori yoki xatolik yuz berdi. 😔\n\n"
-        "📊 **Taxminiy hisob-kitob:**\n"
-        "🍚 Guruch/Makaron: 100g ≈ 130-150 kkal\n"
-        "🥩 Go'sht/Tovuq: 100g ≈ 150-200 kkal\n"
-        "🧈 Yog': 1 osh qoshiq ≈ 100-120 kkal\n\n"
-        "🔄 _Iltimos, birozdan so'ng qayta urinib ko'ring._"
-    )
+    from bot.languages import get_text
+    from core.db import db
+    
+    lang = db.get_user_language(chat_id)
+    text = get_text("calorie_error_ai", lang)
+    
     if message_id:
         bot.edit_message_text(text, chat_id, message_id, parse_mode="Markdown")
     else:

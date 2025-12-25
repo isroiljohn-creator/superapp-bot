@@ -1,6 +1,7 @@
 import os
 from telebot import types
 import time
+from bot.languages import get_text
 from core.db import db
 from core.content import content_manager
 from dotenv import load_dotenv
@@ -989,7 +990,8 @@ def register_handlers(bot):
             bot.send_message(message.chat.id, text, parse_mode="HTML")
             
         except ValueError:
-            bot.send_message(message.chat.id, "❌ Noto'g'ri format. Faqat raqam kiriting.")
+            lang = db.get_user_language(message.from_user.id)
+            bot.send_message(message.chat.id, get_text("error_only_numbers", lang))
         except Exception as e:
             print(f"Search error: {e}")
             bot.send_message(message.chat.id, f"❌ Xatolik: {str(e)[:100]}")

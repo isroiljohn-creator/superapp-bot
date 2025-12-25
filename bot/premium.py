@@ -112,11 +112,10 @@ def register_handlers(bot):
         
         if not provider_token:
             bot.answer_callback_query(call.id)
+            lang = db.get_user_language(call.from_user.id)
             bot.send_message(
                 call.message.chat.id,
-                "⚠️ <b>To'lov tizimi hozircha sozlanmagan.</b>\n\n"
-                "Iltimos, admin bilan bog'laning yoki keyinroq urinib ko'ring.\n\n"
-                "📞 Qayta aloqa: @admin",
+                get_text("payment_system_error", lang),
                 parse_mode="HTML"
             )
             return
@@ -181,7 +180,11 @@ def register_handlers(bot):
         # Set Auto-Renew flag
         db.update_user_profile(user_id, auto_renew=True)
         
-        bot.send_message(user_id, f"✅ <b>To'lov muvaffaqiyatli amalga oshirildi!</b>\n\nSizga {days} kunlik <b>{plan_type.upper()}</b> obuna faollashtirildi. 🎉\nBarcha imkoniyatlardan foydalanishingiz mumkin!", parse_mode="HTML")
+        lang = db.get_user_language(user_id)
+        msg_title = get_text("payment_success_title", lang)
+        msg_desc = get_text("payment_success_desc", lang, days=days, plan=plan_type.upper())
+        
+        bot.send_message(user_id, f"{msg_title}\n\n{msg_desc}", parse_mode="HTML")
         
         # Notify Admins
         for admin_id in ADMIN_IDS:

@@ -3,6 +3,7 @@ from core.db import db
 from core.ai import ai_provide_psychological_support
 from core.utils import parse_callback
 from datetime import datetime
+from bot.languages import get_text
 
 # States for inputs (Must be Integers to match User.onboarding_state)
 STATE_STEPS_INPUT = 101
@@ -96,13 +97,15 @@ def process_steps_input(message, bot):
     user_id = message.from_user.id
     
     if not message.text:
-        bot.send_message(user_id, "Iltimos, faqat raqam yozing.")
+        lang = db.get_user_language(user_id)
+        bot.send_message(user_id, get_text("error_only_numbers", lang))
         return
 
     text = message.text.strip()
     
     if not text.isdigit():
-        bot.send_message(user_id, "Iltimos, faqat raqam kiriting.")
+        lang = db.get_user_language(user_id)
+        bot.send_message(user_id, get_text("error_only_numbers", lang))
         return
         
     steps = int(text)

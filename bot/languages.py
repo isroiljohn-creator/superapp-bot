@@ -4,6 +4,10 @@ TRANS = {
         "select_language": "🇺🇿 Tilni tanlang / 🇷🇺 Выберите язык / 🇬🇧 Select language",
         "language_selected": "✅ O'zbek tili tanlandi.",
         "welcome": "Assalomu alaykum, {name}! YASHA Fitness Botiga xush kelibsiz.",
+        
+        "error_only_numbers": "❌ Iltimos, faqat raqam yozing.",
+        "error_format_invalid": "❌ Noto'g'ri format.",
+        
         "enter_name": "Ismingizni kiriting:",
         "enter_age": "Yoshingizni kiriting (faqat raqam):",
         "enter_gender": "Jinsingizni tanlang:",
@@ -160,6 +164,27 @@ TRANS = {
         
         "error_number": "❌ Iltimos, raqam kiriting.",
         
+        # Calorie Scanner
+        "calorie_title": "<b>🍽 Kaloriya tahlili</b>\n\nRasm yuboring, taxminiy hisoblaymiz 👇🏻",
+        "btn_calorie_photo": "📷 Rasm orqali",
+        "btn_calorie_text": "📝 Matn orqali",
+        "calorie_limit_title": "🚫 <b>Limit tugadi</b>",
+        "calorie_limit_desc": "Kaloriya skaneri Premium paketiga kiradi. Siz bugungi bepul limitdan foydalanib bo‘ldingiz. 💚",
+        "btn_get_premium_short": "💎 Premium olish",
+        "calorie_free_limit_title": "📸 **Foto orqali aniqlash faqat YASHA Plus’da.**",
+        "calorie_free_limit_desc": "Bepul rejada umumiy taxminiy kaloriyalar beriladi:\n\n🍚 1 kosa osh — 500-600 kkal\n🥚 2 dona tuxum — 140-160 kkal\n🍞 1 bo‘lak non — 80-100 kkal\n🍎 1 dona olma — 50-60 kkal\n🍗 Tovuq (100g) — 160 kkal",
+        "toast_premium_only": "Faqat YASHA Plus uchun",
+        "prompt_calorie_photo": "📷 Ovqat rasmini yuboring:",
+        "prompt_calorie_text": "📝 Ovqat haqida yozing (masalan: 100g palov, 1 ta non):",
+        "status_analyzing_photo": "🔍 <b>Rasm tahlil qilinmoqda...</b>\n\nBiroz kuting, AI hisoblamoqda...",
+        "status_analyzing_text": "🧮 <b>Hisoblanmoqda...</b>\n\nAI ma'lumotlarni qayta ishlamoqda...",
+        "calorie_error_ai": "⚠️ **Uzr, tahlil qila olmadim.**\n\nAI serverida vaqtincha yuklama yuqori yoki xatolik yuz berdi. 😔\n\n📊 **Taxminiy hisob-kitob:**\n🍚 Guruch/Makaron: 100g ≈ 130-150 kkal\n🥩 Go'sht/Tovuq: 100g ≈ 150-200 kkal\n🧈 Yog': 1 osh qoshiq ≈ 100-120 kkal\n\n🔄 _Iltimos, birozdan so'ng qayta urinib ko'ring._",
+
+        # Premium
+        "payment_success_title": "✅ <b>To'lov muvaffaqiyatli amalga oshirildi!</b>",
+        "payment_success_desc": "Sizga {days} kunlik **{plan}** obuna faollashtirildi. 🎉\nBarcha imkoniyatlardan foydalanishingiz mumkin!",
+        "payment_system_error": "⚠️ <b>To'lov tizimi hozircha sozlanmagan.</b>\n\nIltimos, admin bilan bog'laning yoki keyinroq urinib ko'ring.\n\n📞 Qayta aloqa: @admin",
+        
         # Profile Keys (Mz)
         "btn_edit_profile": "✏️ Tahrirlash",
         "btn_stats": "📊 Statistika",
@@ -208,6 +233,10 @@ TRANS = {
         "select_language": "🇺🇿 Tilni tanlang / 🇷🇺 Выберите язык / 🇬🇧 Select language",
         "language_selected": "✅ Выбран Русский язык.",
         "welcome": "Здравствуйте, {name}! Добро пожаловать в YASHA Fitness Bot.",
+        
+        "error_only_numbers": "❌ Пожалуйста, вводите только цифры.",
+        "error_format_invalid": "❌ Неверный формат.",
+        
         "enter_name": "Введите ваше имя:",
         "enter_age": "Введите ваш возраст (только цифры):",
         "enter_gender": "Выберите ваш пол:",
@@ -318,7 +347,28 @@ TRANS = {
         "help_intro": "Что вам непонятно? Выберите раздел:",
         "recipe_searching": "👩‍🍳 **Ищу рецепт...**\n\nAI придумывает блюдо из ваших продуктов...",
         "recipe_not_found": "❌ Извините, не нашел рецепт. Попробуйте ввести другие продукты.",
-        "recipe_found_upsell": "Нужен еще рецепт? Напишите ингредиенты или нажмите /start для возврата в меню.",
+        "recipe_found_upsell": "\n🥕 **Хотите больше рецептов?**\nВ YASHA Plus — доступ к шеф-повару 24/7.",
+        
+        # Calorie Scanner (Ru)
+        "calorie_title": "<b>🍽 Анализ калорий</b>\n\nОтправьте фото, мы посчитаем примерные калории 👇🏻",
+        "btn_calorie_photo": "📷 По фото",
+        "btn_calorie_text": "📝 Текстом",
+        "calorie_limit_title": "🚫 <b>Лимит исчерпан</b>",
+        "calorie_limit_desc": "Сканер калорий входит в Premium пакет. Вы использовали свой бесплатный лимит на сегодня. 💚",
+        "btn_get_premium_short": "💎 Купить Premium",
+        "calorie_free_limit_title": "📸 **Определение по фото — только в YASHA Plus.**",
+        "calorie_free_limit_desc": "В бесплатном режиме доступны общие оценки:\n\n🍚 1 порция плова — 500-600 ккал\n🥚 2 яйца — 140-160 ккал\n🍞 1 кусок хлеба — 80-100 ккал\n🍎 1 яблоко — 50-60 ккал\n🍗 Курица (100г) — 160 ккал",
+        "toast_premium_only": "Только для YASHA Plus",
+        "prompt_calorie_photo": "📷 Отправьте фото еды:",
+        "prompt_calorie_text": "📝 Напишите о еде (например: 100г плова, 1 лепешка):",
+        "status_analyzing_photo": "🔍 <b>Анализирую фото...</b>\n\nПодождите, AI считает...",
+        "status_analyzing_text": "🧮 <b>Считаю...</b>\n\nAI обрабатывает данные...",
+        "calorie_error_ai": "⚠️ **Извините, не удалось проанализировать.**\n\nСервер AI временно перегружен. 😔\n\n📊 **Примерный расчет:**\n🍚 Рис/Макароны: 100г ≈ 130-150 ккал\n🥩 Мясо/Курица: 100г ≈ 150-200 ккал\n🧈 Масло: 1 ст. ложка ≈ 100-120 ккал\n\n🔄 _Пожалуйста, попробуйте позже._",
+
+        # Premium (Ru)
+        "payment_success_title": "✅ <b>Оплата прошла успешно!</b>",
+        "payment_success_desc": "Вам активирована подписка **{plan}** на {days} дней. 🎉\nТеперь вам доступны все возможности!",
+        "payment_system_error": "⚠️ <b>Платежная система пока не настроена.</b>\n\nПожалуйста, свяжитесь с админом или попробуйте позже.\n\n📞 Админ: @admin",
         
         "btn_ai_workout": "🤖 AI план тренировок",
         "btn_ai_meal": "🥦 AI план питания",
