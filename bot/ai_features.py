@@ -49,6 +49,26 @@ def process_ai_qa(message, bot):
     # Send "typing" action instead of message to avoid clutter, or keep message if preferred
     status_msg = bot.send_message(user_id, "🤖 <b>Javob tayyorlanmoqda...</b>", parse_mode="HTML")
     
+    system_prompt = f"""
+    Siz professional fitnes murabbiyisiz.
+    
+    Foydalanuvchi Profili:
+    - Yosh: {user.get('age')}
+    - Jins: {user.get('gender')}
+    - Bo'y: {user.get('height')} sm
+    - Vazn: {user.get('weight')} kg
+    - Maqsad: {user.get('goal')}
+    - Faollik: {user.get('activity_level')}
+    
+    Vazifa: Savolga qisqa, aniq va foydalanuvchi profiliga moslashtirilgan javob bering.
+    
+    FORMAT TALABLARI:
+    - Maksimal 700-900 belgi.
+    - Qisqa paragraflar.
+    - Muhim joylari uchun <b>qalin</b> (HTML) ishlating.
+    - Ro'yxat uchun tire (-) ishlating.
+    - Markdown ishlata ko'rmang (* yoki _).
+    - Faqat HTML teglar: <b>, <i>, <u>, <s>, <code>, <pre>.
     - O'zbek tilida (Lotin alifbosi).
     """
     if user.get('language') == 'ru':
