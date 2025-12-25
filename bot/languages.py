@@ -275,8 +275,8 @@ TRANS = {
         "btn_shopping_list": "🛒 Список покупок",
         "btn_swap": "🔄 Заменить (VIP)",
         
-        "menu_next_day": "➡️ Завтрашнее меню",
-        "menu_prev_day": "⬅️ Вчерашнее меню",
+        "menu_next_day": "➡️ Завтра",
+        "menu_prev_day": "⬅️ Вчера",
         
         # Shopping List
         "shopping_list_title": "🛒 **СПИСОК ПОКУПОК** (1-я неделя)",
@@ -309,6 +309,11 @@ TRANS = {
         "premium_required_upsell": "💎 **Нужен Premium**\n\nЭта услуга доступна только для Premium пользователей.\nВаш пробный период истек.\n\nПерейдите в раздел “💎 Premium” для активации.",
         "btn_get_premium": "💎 Купить Premium",
 
+        "btn_change_plan": "💳 Сменить тариф",
+        "btn_tariffs": "ℹ️ Тарифы",
+        "btn_coins": "🟡 Yasha Coin",
+        "btn_challenges_menu": "🔥 Челленджи",
+        
         # Handlers & Help
         "help_intro": "Что вам непонятно? Выберите раздел:",
         "recipe_searching": "👩‍🍳 **Ищу рецепт...**\n\nAI придумывает блюдо из ваших продуктов...",

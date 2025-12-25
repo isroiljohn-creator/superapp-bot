@@ -72,7 +72,7 @@ def register_all_handlers(bot):
             bot.send_message(message.chat.id, "👨‍💻 **Dasturchi Paneli**\n\nBuyruqni tanlang:", reply_markup=admin_developer_keyboard(), parse_mode="Markdown")
 
     # --- Calorie Handlers ---
-    @bot.message_handler(func=lambda message: message.text == "🍽 Kaloriya tahlili (premium)" or message.text == "🍽 Kaloriya skaneri" or message.text == "🍽 Kaloriya tahlili")
+    @bot.message_handler(func=lambda message: message.text in ["🍽 Kaloriya tahlili (premium)", "🍽 Kaloriya skaneri", "🍽 Kaloriya tahlili", "🍽 Анализ калорий", "🍽 Анализ калорий (premium)"])
     def calorie_handler(message):
         calorie_scanner.show_calorie_menu(message, bot)
 
@@ -86,7 +86,7 @@ def register_all_handlers(bot):
         pass
 
     # --- Main Menu Navigation ---
-    @bot.message_handler(func=lambda message: message.text in ["⬅️ Asosiy menyu", "⬅️ Orqaga", "⬅️ Главное меню", "⬅️ Назад"])
+    @bot.message_handler(func=lambda message: message.text in ["⬅️ Asosiy menyu", "⬅️ Orqaga", "⬅️ Главное меню", "⬅️ Назад", "Back", "Ortga"])
     def back_to_main(message):
         user_id = message.from_user.id
         lang = db.get_user_language(user_id)
@@ -97,7 +97,7 @@ def register_all_handlers(bot):
     def back_to_premium(message):
         premium.handle_premium_menu(message, bot)
 
-    @bot.message_handler(func=lambda message: "Kunlik odatlar" in message.text or "Ежедневные привычки" in message.text)
+    @bot.message_handler(func=lambda message: "Kunlik odatlar" in message.text or "Ежедневные привычки" in message.text or "Odatlar" in message.text or "Привычки" in message.text)
     def menu_habits(message):
         trackers.handle_habits_menu(message, bot)
 
@@ -125,16 +125,26 @@ def register_all_handlers(bot):
     def menu_referral(message):
         gamification.handle_referral_link(message, bot)
 
-    @bot.message_handler(func=lambda message: message.text == "👤 Profil")
+    @bot.message_handler(func=lambda message: message.text == "👤 Profil" or message.text == "👤 Профиль")
     def menu_profile(message):
         profile.handle_profile(message, bot)
         
     @bot.message_handler(func=lambda message: message.text == "💚 YASHA Plus")
     def menu_yasha_plus(message):
         # Soft paywall message
-        bot.send_message(message.chat.id, "🚀 YASHA Plus bilan natija 2x tezroq\nBugun Plus bilan menyu tuzing!", reply_markup=premium.premium_inline_keyboard())
+        user_id = message.from_user.id
+        lang = db.get_user_language(user_id)
+        msg_text = get_text("upsell_workout_plus", lang) # Reusing upsell text or a generic one? 
+        # Actually better to have a specific text. Let's use simple hardcoded localized split for now to be safe.
+        
+        if lang == 'ru':
+            txt = "🚀 Результат с YASHA Plus в 2x быстрее\nСоставьте план с Plus сегодня!"
+        else:
+            txt = "🚀 YASHA Plus bilan natija 2x tezroq\nBugun Plus bilan menyu tuzing!"
+            
+        bot.send_message(message.chat.id, txt, reply_markup=premium.premium_inline_keyboard(lang=lang))
 
-    @bot.message_handler(func=lambda message: message.text in ["💳 Obuna", "💎 Premium"])
+    @bot.message_handler(func=lambda message: message.text in ["💳 Obuna", "💎 Premium", "💳 Подписка", "💎 Премиум", "💎 Премиум Подписка"])
     def menu_premium(message):
         premium.handle_premium_menu(message, bot)
 
@@ -983,8 +993,16 @@ def register_all_handlers(bot):
             # Coach Tone Response
             bot.send_message(
                 message.chat.id,
-                "Men seni tushundim 😄 Pastdagi bo‘limlardan birini tanla, men o‘sha yerda yordam beraman 👇",
-                reply_markup=main_menu_keyboard(user_id=message.from_user.id)
+            lang = db.get_user_language(user_id)
+            if lang == 'ru':
+                txt = "Я вас понял 😄 Выберите один из разделов ниже, я помогу вам там 👇"
+            else:
+                txt = "Men seni tushundim 😄 Pastdagi bo‘limlardan birini tanla, men o‘sha yerda yordam beraman 👇"
+
+            bot.send_message(
+                message.chat.id,
+                txt,
+                reply_markup=main_menu_keyboard(user_id=message.from_user.id, lang=lang)
             )
         except Exception as e:
             print(f"Fallback error: {e}")
