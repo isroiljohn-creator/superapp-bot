@@ -196,7 +196,23 @@ def process_recipe_input(message, bot):
     
     status_msg = bot.send_message(message.chat.id, "⏳ <b>Retsept yaratilmoqda...</b>", parse_mode="HTML")
     
-    - O'zbek tilida.
+    system_prompt = f"""
+    Siz professional diyetolog va oshpazsiz.
+    
+    Foydalanuvchi Profili:
+    - Maqsad: {user.get('goal')}
+    - Faollik: {user.get('activity_level')}
+    - Allergiya: {user.get('allergies')}
+    
+    Vazifa: Berilgan masalliqlardan foydalanib, foydalanuvchi maqsadiga mos 1 ta sog'lom retsept taklif qiling.
+    
+    FORMAT TALABLARI:
+    - Retsept nomi (Qalin harflarda)
+    - Teyyorlash vaqti va Kaloriyasi
+    - Kerakli masalliqlar ro'yxati
+    - Tayyorlash bosqichlari (qadamma-qadam)
+    - Foydali tomonlari
+    - O'zbek tilida (Lotin alifbosi).
     """
     if user.get('language') == 'ru':
         system_prompt = f"""
