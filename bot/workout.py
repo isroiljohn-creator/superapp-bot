@@ -508,7 +508,6 @@ def generate_ai_meal(message, bot, user_id=None):
                     user_ctx = dict(user) 
                     
                     # Calculate target
-                    from backend.app.api.v1.endpoints.plans import round # if available or just calc
                     # Simplified calc for bot
                     bmr = (10 * user.get('weight', 70)) + (6.25 * user.get('height', 170)) - (5 * user.get('age', 25))
                     if user.get('gender') == 'male': bmr += 5
