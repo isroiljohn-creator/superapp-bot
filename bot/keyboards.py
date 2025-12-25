@@ -161,12 +161,22 @@ def challenges_inline_keyboard():
     )
     return markup
 
-def profile_inline_keyboard():
+def profile_inline_keyboard(lang="uz"):
     markup = InlineKeyboardMarkup(row_width=1)
+    
+    if lang == "ru":
+        edit_text = "✏️ Изменить анкету"
+        stats_text = "📊 Статистика здоровья"
+        goal_text = "🎯 Изменить цель"
+    else:
+        edit_text = "✏️ Anketani yangilash"
+        stats_text = "📊 Sog‘liq statistikasi"
+        goal_text = "🎯 Maqsadni o‘zgartirish"
+
     markup.add(
-        InlineKeyboardButton("✏️ Anketani yangilash", callback_data="profile_edit"),
-        InlineKeyboardButton("📊 Sog‘liq statistikasi", callback_data="profile_stats"),
-        InlineKeyboardButton("🎯 Maqsadni o‘zgartirish", callback_data="profile_change_goal")
+        InlineKeyboardButton(edit_text, callback_data="profile_edit"),
+        InlineKeyboardButton(stats_text, callback_data="profile_stats"),
+        InlineKeyboardButton(goal_text, callback_data="profile_change_goal")
     )
     return markup
 
