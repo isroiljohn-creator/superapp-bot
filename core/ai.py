@@ -1605,8 +1605,8 @@ def ai_generate_single_meal(user_profile, meal_type, day_name="Bugun", lang="uz"
     
     try:
          response = ask_gemini(
-            system_prompt,
-            user_prompt,
+            "",  # No system prompt needed for this simple task
+            prompt,
             response_mime_type="application/json",
             response_schema=schema,
             request_options={'timeout': 25}
