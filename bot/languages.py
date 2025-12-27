@@ -43,11 +43,11 @@ TRANS = {
         "onboarding_welcome_trial": "✅ Ro‘yxatdan o‘tdingiz! YASHA ga xush kelibsiz.\n\n🎁 **Sizga 7 kunlik Premium (Trial) ochildi!**\nHech qanday cheklovsiz barcha AI xizmatlardan foydalanishingiz mumkin.\n\nHozir esa maksimal foydalanib qoling! 👇",
         
         # General / Status
-        "wait_generating": "⏳ Sabr qiling, reja tuzilmoqda...",
+        "wait_generating": "⏳ Siz uchun individual reja tuzilmoqda, iltimos bir daqiqa kuting...",
         "process_started": "🚀 **Jarayon boshlandi...**",
         "error_template": "❌ Shablon yuklashda xatolik.",
         "error_no_data": "⚠️ Bu kun uchun ma'lumot yo'q.",
-        "found_existing_plan": "💡 Sizga mos tayyor reja topildi! Yuklanmoqda...",
+        "found_existing_plan": "💪 Siz uchun individual mashq rejasini tuzyapman, iltimos kuting...",
         "plan_ready": "✅ Haftalik reja tayyor! Marhamat:",
         
         # Workout / Exercises
@@ -179,7 +179,7 @@ TRANS = {
         "btn_workout": "🏋️‍♂️ Mashqlar rejasi",
         "btn_meal": "🍏 Ovqatlanish rejasi",
         "choose_plan_type": "Qaysi reja kerak?",
-        "generating_plan": "⏳ AI reja tuzmoqda...",
+        "generating_plan": "⏳ Siz uchun individual ovqatlanish menyusini tuzyapman, bir daqiqa kuting...",
         
         # Errors
         "error_generic": "❌ Xatolik yuz berdi.",
@@ -360,11 +360,11 @@ TRANS = {
         "onboarding_welcome_trial": "✅ Вы зарегистрированы! Добро пожаловать в YASHA.\n\n🎁 **Вам открыт 7-дневный Premium (Trial)!**\nВы можете пользоваться всеми AI услугами без ограничений.\n\nИспользуйте возможности по максимуму! 👇",
         
         # General / Status
-        "wait_generating": "⏳ Подождите, план составляется...",
+        "wait_generating": "⏳ Создаю индивидуальный план для вас, подождите минуту...",
         "process_started": "🚀 **Процесс запущен...**",
         "error_template": "❌ Ошибка загрузки шаблона.",
         "error_no_data": "⚠️ Нет данных на этот день.",
-        "found_existing_plan": "💡 Найден подходящий план! Загружаю...",
+        "found_existing_plan": "💪 Создаю для вас индивидуальный план тренировок, подождите...",
         "plan_ready": "✅ Недельный план готов! Прошу:",
         
         # Workout / Exercises
@@ -594,7 +594,7 @@ TRANS = {
         "btn_workout": "🏋️‍♂️ План тренировок",
         "btn_meal": "🍏 План питания",
         "choose_plan_type": "Какой план вам нужен?",
-        "generating_plan": "⏳ AI составляет план...",
+        "generating_plan": "⏳ Создаю для вас индивидуальное меню питания, подождите минуту...",
         
         # Errors
         "error_generic": "❌ Произошла ошибка.",
