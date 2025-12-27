@@ -4,14 +4,12 @@ from core.db import db
 from bot.keyboards import challenges_inline_keyboard
 
 def handle_challenges_menu(message, bot):
-    with open("assets/chellenjlar.png", "rb") as photo:
-        bot.send_photo(
-            message.chat.id,
-            photo,
-            caption="🔥 <b>Chellenjlar bo'limi</b>\n\nChellendjlarda qatnashing <b>YASHA coinlar</b> to'plang va ularni obunaga almashtiring\n\n<b>Leaderboard</b> menyusida boshqa foydalanuvchilar bilan bellashing👇🏻",
-            reply_markup=challenges_inline_keyboard(),
-            parse_mode="HTML"
-        )
+    bot.send_message(
+        message.chat.id,
+        "🔥 <b>Chellenjlar bo'limi</b>\n\nChellendjlarda qatnashing <b>YASHA coinlar</b> to'plang va ularni obunaga almashtiring\n\n<b>Leaderboard</b> menyusida boshqa foydalanuvchilar bilan bellashing👇🏻",
+        reply_markup=challenges_inline_keyboard(),
+        parse_mode="HTML"
+    )
 
 def handle_weekly_challenge(message, bot):
     text = (

@@ -61,8 +61,7 @@ def handle_referral_link(message, bot, user_id=None):
         f"{desc}"
     )
     
-    with open("assets/referal.png", "rb") as photo:
-        bot.send_photo(message.chat.id, photo, caption=text, parse_mode="HTML")
+    bot.send_message(message.chat.id, text, parse_mode="HTML")
 
 def handle_my_points(message, bot, user_id=None):
     if user_id is None:

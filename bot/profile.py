@@ -55,19 +55,18 @@ def handle_profile(message, bot, user_id=None):
         
         text = (
             f"{title}\n\n"
-            f"- {l_name}: {esc(display_name)}\n"
-            f"- {l_age}: {esc(user.get('age', '-'))}\n"
-            f"- {l_gender}: {esc(display_gender)}\n"
-            f"- {l_height}: {esc(user.get('height', '-'))} sm/см\n"
-            f"- {l_weight}: {esc(user.get('weight', '-'))} kg/кг\n"
-            f"- {l_activity}: {esc(display_activity)}\n"
-            f"- {l_goal}: {esc(display_goal)}\n"
-            f"- {l_allergy}: {esc(allergies)}\n\n"
+            f"👤 <b>{l_name}:</b> {esc(display_name)}\n"
+            f"🎂 <b>{l_age}:</b> {esc(user.get('age', '-'))}\n"
+            f"🚻 <b>{l_gender}:</b> {esc(display_gender)}\n"
+            f"📏 <b>{l_height}:</b> {esc(user.get('height', '-'))} sm\n"
+            f"⚖️ <b>{l_weight}:</b> {esc(user.get('weight', '-'))} kg\n"
+            f"🏃‍♂️ <b>{l_activity}:</b> {esc(display_activity)}\n"
+            f"🎯 <b>{l_goal}:</b> {esc(display_goal)}\n"
+            f"🤧 <b>{l_allergy}:</b> {esc(allergies)}\n\n"
             f"{footer}"
         )
         
-        with open("assets/profil.png", "rb") as photo:
-            bot.send_photo(user_id, photo, caption=text, reply_markup=profile_inline_keyboard(lang=lang), parse_mode="HTML")
+        bot.send_message(user_id, text, reply_markup=profile_inline_keyboard(lang=lang), parse_mode="HTML")
         
     except Exception as e:
         print(f"Profile Error: {e}")

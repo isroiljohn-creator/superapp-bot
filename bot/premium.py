@@ -59,8 +59,7 @@ def handle_premium_menu(message, bot, user_id=None):
     # If trial active, maybe show "Buy to extend"
     # If expired, show "Buy"
     
-    with open("assets/premium.png", "rb") as photo:
-        bot.send_photo(user_id, photo, caption=text, reply_markup=markup, parse_mode="HTML")
+    bot.send_message(user_id, text, reply_markup=markup, parse_mode="HTML")
 
 def handle_premium_info(message, bot):
     user_id = message.from_user.id
