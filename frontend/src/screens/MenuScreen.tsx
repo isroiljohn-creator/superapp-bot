@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Lock, Calendar, Coffee, Apple, Moon, Cookie, Loader2, RefreshCw, ChevronRight } from 'lucide-react';
+import { Lock, Calendar, Coffee, Apple, Moon, Cookie, Loader2, RefreshCw, ChevronRight, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Paywall } from '@/components/Paywall';
 import { DaySelector } from '@/components/DaySelector';
@@ -346,48 +346,59 @@ export const MenuScreen: React.FC = () => {
             />
           </motion.div>
         ) : (
-          displayMeals.map((meal, index) => (
-            <motion.div
-              key={index}
-              variants={itemVariants}
-              onClick={() => {
-                if (selectedDay > 0 && !isPremium()) {
-                  setShowPaywall(true);
-                } else {
-                  vibrate('light');
-                  setSelectedMeal({
-                    ...meal,
-                    mealType: meal.type
-                  });
-                  setIsSheetOpen(true);
-                }
-              }}
-              className={`p-4 rounded-xl bg-card border border-border/50 transition-all active:scale-[0.98] cursor-pointer ${selectedDay > 0 && !isPremium() ? 'opacity-60' : 'hover:border-primary/40'
-                }`}
-            >
-              <div className="flex items-start gap-3">
-                <div className="p-2.5 rounded-xl bg-muted shrink-0">
-                  {getMealIcon(meal.type)}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between mb-1">
-                    <p className="text-xs text-muted-foreground">{getMealTimeLabel(meal.type, t)}</p>
-                    <p className="font-semibold text-foreground">{meal.calories} kcal</p>
+          displayMeals.map((meal, index) => {
+            const isEaten = selectedDay === 0 && todayMeals.some(m => m.mealType === meal.type);
+
+            return (
+              <motion.div
+                key={index}
+                variants={itemVariants}
+                onClick={() => {
+                  if (isEaten) return;
+                  if (selectedDay > 0 && !isPremium()) {
+                    setShowPaywall(true);
+                  } else {
+                    vibrate('light');
+                    setSelectedMeal({
+                      ...meal,
+                      mealType: meal.type
+                    });
+                    setIsSheetOpen(true);
+                  }
+                }}
+                className={`p-4 rounded-xl bg-card border border-border/50 transition-all active:scale-[0.98] ${isEaten ? 'opacity-50 cursor-default' : 'cursor-pointer hover:border-primary/40'
+                  } ${selectedDay > 0 && !isPremium() ? 'opacity-60' : ''}`}
+              >
+                <div className="flex items-start gap-3">
+                  <div className="p-2.5 rounded-xl bg-muted shrink-0 text-primary">
+                    {isEaten ? <Check className="w-5 h-5" /> : getMealIcon(meal.type)}
                   </div>
-                  <p className="font-semibold text-foreground mb-1">{meal.title}</p>
-                  <p className="text-sm text-muted-foreground truncate">
-                    {meal.items && meal.items.slice(0, 3).join(' • ')}
-                    {meal.items && meal.items.length > 3 && ` +${meal.items.length - 3}`}
-                  </p>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between mb-1">
+                      <p className="text-xs text-muted-foreground">{getMealTimeLabel(meal.type, t)}</p>
+                      <p className={`font-semibold ${isEaten ? 'text-muted-foreground' : 'text-foreground'}`}>{meal.calories} kcal</p>
+                    </div>
+                    <p className={`font-semibold mb-1 ${isEaten ? 'text-muted-foreground' : 'text-foreground'}`}>{meal.title}</p>
+                    <p className="text-sm text-muted-foreground truncate">
+                      {meal.items && meal.items.slice(0, 3).join(' • ')}
+                      {meal.items && meal.items.length > 3 && ` +${meal.items.length - 3}`}
+                    </p>
+                  </div>
+                  {isEaten ? (
+                    <div className="mt-1">
+                      <span className="text-[10px] font-bold text-primary uppercase tracking-wider bg-primary/10 px-2 py-0.5 rounded-full">
+                        {t('common.done')}
+                      </span>
+                    </div>
+                  ) : (selectedDay > 0 && !isPremium() ? (
+                    <Lock className="w-4 h-4 text-muted-foreground shrink-0" />
+                  ) : (
+                    <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0 mt-1" />
+                  ))}
                 </div>
-                {selectedDay > 0 && !isPremium() ? (
-                  <Lock className="w-4 h-4 text-muted-foreground shrink-0" />
-                ) : (
-                  <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0 mt-1" />
-                )}
-              </div>
-            </motion.div>
-          ))
+              </motion.div>
+            );
+          })
         )}
 
         {/* Daily summary - improved */}

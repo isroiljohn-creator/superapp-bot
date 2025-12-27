@@ -84,7 +84,7 @@ const translations: Record<Language, Record<string, string>> = {
     'menu.breakfast': 'Nonushta',
     'menu.lunch': 'Tushlik',
     'menu.dinner': 'Kechki ovqat',
-    'menu.snack': 'Yengil taom',
+    'menu.snack': 'Tamaddi',
     'menu.tip': 'Maslahat',
     'menu.tipText': 'Kuniga kamida 2 litr suv iching va ovqatlanish orasida 3-4 soat oraliq saqlang.',
     'menu.premiumInfo': 'Bepul rejada faqat bugungi menyu mavjud. AI shaxsiy menyu uchun Premium kerak.',

@@ -63,7 +63,7 @@ export const MealDetailsSheet: React.FC<MealDetailsSheetProps> = ({
             setTimeout(() => {
                 onClose();
                 setIsAdded(false);
-            }, 1500);
+            }, 800);
         } catch (error) {
             console.error("Failed to add meal", error);
             toast.error(t('common.error'));
