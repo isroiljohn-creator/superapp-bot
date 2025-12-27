@@ -2429,7 +2429,7 @@ class Database:
                         'full_name': u.full_name or "Noma'lum",
                         'plan_type': u.plan_type,
                         'is_premium': u.is_premium,
-                        'premium_until': u.premium_until.strftime("%Y-%m-%d %H:%M") if u.premium_until else "Yo'q"
+                        'premium_until': u.premium_until
                     })
                 return result, total
             except Exception as e:

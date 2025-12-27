@@ -890,7 +890,16 @@ def register_handlers(bot):
                 is_prem = ""
                 if user.get('premium_until'):
                     from datetime import datetime
-                    if user['premium_until'] > datetime.now():
+                    prem_until = user['premium_until']
+                    # Handle string format from DB if necessary or just be safe
+                    if isinstance(prem_until, str):
+                        try:
+                            # Try parsing if it's a string
+                            prem_until = datetime.fromisoformat(prem_until.replace('Z', '+00:00'))
+                        except:
+                            prem_until = None
+                    
+                    if prem_until and isinstance(prem_until, datetime) and prem_until > datetime.now():
                         is_prem = " 💎 Premium"
                 
                 display_name = f"@{username}" if username else name
@@ -1013,7 +1022,12 @@ def register_handlers(bot):
             premium_status = "Yo'q"
             if premium_until:
                 from datetime import datetime
-                if premium_until > datetime.now():
+                # Defensive check for string types
+                if isinstance(premium_until, str):
+                    try: premium_until = datetime.fromisoformat(premium_until.replace('Z', '+00:00'))
+                    except: premium_until = None
+
+                if premium_until and isinstance(premium_until, datetime) and premium_until > datetime.now():
                     premium_status = f"✅ {premium_until.strftime('%Y-%m-%d')}"
             
             text = (
