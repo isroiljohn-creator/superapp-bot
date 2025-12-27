@@ -735,7 +735,7 @@ def register_all_handlers(bot):
     # The clean implementation is below at line 514+
 
     # --- New Menu Navigation Handlers ---
-    @bot.callback_query_handler(func=lambda call: call.data.startswith('menu_view_') or call.data.startswith('eat_') or call.data in ['menu_fridge', 'menu_swap_vip', 'menu_regenerate'])
+    @bot.callback_query_handler(func=lambda call: call.data.startswith('menu_view_') or call.data.startswith('eat_') or call.data.startswith('menu_swap_vip_') or call.data in ['menu_fridge', 'menu_regenerate'])
     def menu_nav_callback(call):
         workout.handle_menu_callback(call, bot)
 
