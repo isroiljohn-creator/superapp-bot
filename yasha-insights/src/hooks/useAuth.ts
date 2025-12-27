@@ -36,18 +36,10 @@ export function useAuth() {
         });
         return;
       } catch (error: unknown) {
-        // Token invalid, clear it
+        // Token invalid, clear it and continue to normal auth
+        console.warn('Stored token invalid, re-authenticating...');
         api.clearToken();
-        const apiError = error as { status?: number; response?: { data?: { detail?: string } } };
-        if (apiError.status === 403 || apiError.response?.data?.detail) {
-          setAuthState({
-            isAuthenticated: false,
-            isLoading: false,
-            error: apiError.response?.data?.detail || 'Access Denied. Admin privileges required.',
-            user: null,
-          });
-          return;
-        }
+        // Do NOT return here, allow fall-through to initData auth
       }
     }
 
