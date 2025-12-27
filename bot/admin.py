@@ -24,7 +24,7 @@ def register_handlers(bot):
 
         # WebApp URL Construction
         import os
-        base_url = os.getenv("MINI_APP_URL", "https://yasha-insights.up.railway.app")
+        base_url = os.getenv("MINI_APP_URL", "https://web-production-b606.up.railway.app")
         if base_url.endswith("/"): base_url = base_url[:-1]
         webapp_url = f"{base_url}/admin-insights/"
 
