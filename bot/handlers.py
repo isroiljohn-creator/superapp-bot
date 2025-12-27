@@ -1099,9 +1099,11 @@ def register_all_handlers(bot):
             return
 
         try:
-            # Coach Tone Response
+            # Coach Tone Response - Random fallback from 3 variations
+            import random
             lang = db.get_user_language(user_id)
-            txt = get_text("fallback_msg", lang=lang)
+            msg_num = random.randint(1, 3)
+            txt = get_text(f"fallback_msg_{msg_num}", lang=lang)
 
             bot.send_message(
                 message.chat.id,
