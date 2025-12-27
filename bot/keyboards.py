@@ -262,8 +262,7 @@ def admin_developer_keyboard():
         InlineKeyboardButton("🚩 Feature Flags", callback_data="dev_flags_menu")
     )
     markup.add(
-        InlineKeyboardButton("🧪 AI ni tekshirish", callback_data="dev_test_ai_start"),
-        InlineKeyboardButton("📢 Xabar yuborish (Broadcast)", callback_data="dev_broadcast_menu")
+        InlineKeyboardButton("🧪 AI ni tekshirish", callback_data="dev_test_ai_start")
     )
     markup.add(
         InlineKeyboardButton("📦 Backup", callback_data="dev_backup_menu"),
