@@ -36,7 +36,7 @@ def verify_telegram_data(init_data: str) -> dict:
     Returns the parsed user dict if valid and authorized.
     """
     print(f"DEBUG AUTH: Received init_data length: {len(init_data)}")
-    print(f"DEBUG AUTH: Received init_data start: {init_data[:50]}")
+    print(f"DEBUG AUTH: Received init_data start (500 chars): {init_data[:500]}")
     # print(f"DEBUG AUTH: Full init_data: {init_data}") # Commented out for security/privacy unless needed
     
     try:

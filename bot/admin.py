@@ -51,6 +51,19 @@ def register_handlers(bot):
     register_subscription_handlers(bot)
 
     
+    @bot.message_handler(commands=['dashboard'])
+    def dashboard_command(message):
+        if message.from_user.id not in ADMIN_IDS: return
+        import os
+        base_url = os.getenv("MINI_APP_URL", "https://web-production-b606.up.railway.app")
+        if base_url.endswith("/"): base_url = base_url[:-1]
+        webapp_url = f"{base_url}/admin-insights/"
+        
+        markup = types.InlineKeyboardMarkup()
+        markup.add(types.InlineKeyboardButton("🚦 Open Dashboard (Inline)", web_app=types.WebAppInfo(url=webapp_url)))
+        
+        bot.send_message(message.chat.id, "👇 **Dashboardga kirish (Muqobil yo'l)**", reply_markup=markup, parse_mode="Markdown")
+
     @bot.message_handler(commands=['analytics_pro'])
     def analytics_pro_command(message):
         if message.from_user.id not in ADMIN_IDS: return

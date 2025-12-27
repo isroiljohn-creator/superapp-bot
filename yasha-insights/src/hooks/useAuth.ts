@@ -61,11 +61,12 @@ export function useAuth() {
         const hashLen = window.location.hash.length;
         const hashStart = window.location.hash.slice(0, 50);
         const unsafeUser = window.Telegram?.WebApp?.initDataUnsafe?.user ? 'Yes' : 'No';
+        const hashKeys = Array.from(new URLSearchParams(window.location.hash.slice(1)).keys()).join(',');
 
         setAuthState({
           isAuthenticated: false,
           isLoading: false,
-          error: `Access Denied. Open in Telegram.\nDebug: TG=${tgType}, WA=${waType}, InitData=${initData.length}, HashLen=${hashLen}, HashStart=${hashStart}, UnsafeUser=${unsafeUser}`,
+          error: `Access Denied. Open in Telegram.\nDebug: TG=${tgType}, WA=${waType}, InitData=${initData.length}, HashLen=${hashLen}, HashStart=${hashStart}, Keys=[${hashKeys}], UnsafeUser=${unsafeUser}`,
           user: null,
         });
         return;
