@@ -253,15 +253,12 @@ def admin_developer_keyboard():
     if base_url.endswith("/"): base_url = base_url[:-1]
     webapp_url = f"{base_url}/admin-insights/"
 
-    markup.add(
+    markup.row(
         InlineKeyboardButton("🗑 AI Bazani Tozalash", callback_data="dev_clear_ai_db"),
-        InlineKeyboardButton("Foydalanuvchini o'chirish", callback_data="dev_delete_user_start")
+        InlineKeyboardButton("👤 Userni o'chirish", callback_data="dev_delete_user_start")
     )
-    markup.add(
-        InlineKeyboardButton("🚩 Feature Flags", callback_data="dev_flags_menu")
-    )
-    markup.add(
+    markup.row(
+        InlineKeyboardButton("🚩 Feature Flags", callback_data="dev_flags_menu"),
         InlineKeyboardButton("🧪 AI ni tekshirish", callback_data="dev_test_ai_start")
     )
-
     return markup
