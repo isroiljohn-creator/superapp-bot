@@ -126,8 +126,8 @@ export const AiCoachScreen: React.FC = () => {
               )}
             </div>
             <div className={`max-w-[85%] p-3 rounded-2xl ${message.role === 'user'
-                ? 'bg-primary text-primary-foreground rounded-br-md'
-                : 'bg-card border border-border/50 text-foreground rounded-bl-md'
+              ? 'bg-primary text-primary-foreground rounded-br-md'
+              : 'bg-card border border-border/50 text-foreground rounded-bl-md'
               }`}>
               <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.content}</p>
             </div>
@@ -152,8 +152,8 @@ export const AiCoachScreen: React.FC = () => {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Input - ALWAYS VISIBLE */}
-      <div className="px-4 pb-4 pt-3 border-t border-border/50 bg-background">
+      {/* Input - ALWAYS VISIBLE - WITH SPACE FOR BOTTOM NAV */}
+      <div className="px-4 pb-28 pt-3 border-t border-border/50 bg-background">
         <div className="flex gap-2">
           <input
             type="text"
