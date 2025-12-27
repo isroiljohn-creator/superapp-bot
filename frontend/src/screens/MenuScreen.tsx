@@ -491,5 +491,6 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onNavigate }) => {
           onClose={() => setIsSheetOpen(false)}
         />
       </div>
-      );
+    </div>
+  );
 };
