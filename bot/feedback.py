@@ -199,3 +199,10 @@ def get_feedback_analytics():
 🏆 <b>Top 10 Loved Coach Messages:</b>
 {top_coach_str}
 """
+
+
+def register_handlers(bot):
+    """Register feedback callback handlers"""
+    @bot.callback_query_handler(func=lambda call: call.data.startswith('fb:'))
+    def feedback_callback(call):
+        handle_feedback_callback(call, bot)
