@@ -197,6 +197,44 @@ export function AICostsTab({ isLoading: externalLoading = false }: AICostsTabPro
           </table>
         </div>
       </div>
+
+      {/* Top Spenders */}
+      {displayData.top_users && displayData.top_users.length > 0 && (
+        <div className="stat-card overflow-hidden p-0">
+          <div className="p-4 border-b border-border">
+            <span className="font-medium">Top 5 Spenders (30 Days)</span>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>User</th>
+                  <th className="text-right">ID</th>
+                  <th className="text-right">Spent</th>
+                </tr>
+              </thead>
+              <tbody>
+                {displayData.top_users.map((user) => (
+                  <tr key={user.user_id}>
+                    <td>
+                      <div className="flex flex-col">
+                        <span className="font-medium">{user.full_name}</span>
+                        <span className="text-xs text-muted-foreground">@{user.username || '—'}</span>
+                      </div>
+                    </td>
+                    <td className="text-right font-mono text-xs text-muted-foreground">
+                      {user.user_id}
+                    </td>
+                    <td className="text-right text-warning font-medium">
+                      ${user.total_spent.toFixed(4)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

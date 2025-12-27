@@ -35,11 +35,19 @@ export interface DailyCost {
   cost_usd: number;
 }
 
+export interface TopUser {
+  user_id: number;
+  full_name: string;
+  username: string;
+  total_spent: number;
+}
+
 export interface AICostsData {
   total_tokens: number;
   total_cost_usd: number;
   by_feature: FeatureCost[];
   daily: DailyCost[];
+  top_users?: TopUser[];
 }
 
 export interface FeedbackCategory {

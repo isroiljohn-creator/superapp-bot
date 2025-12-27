@@ -401,6 +401,27 @@ async def get_cost_stats(db: AsyncSession = Depends(get_db), admin_id: int = Dep
             "cost_usd": res[1] or 0
         })
 
+    # Top Spenders
+    top_q = text("""
+        SELECT l.user_id, u.full_name, u.username, SUM(l.cost_usd) as total_spent
+        FROM ai_usage_logs l
+        JOIN users u ON u.id = l.user_id
+        WHERE l.timestamp >= :d
+        GROUP BY 1, 2, 3
+        ORDER BY 4 DESC
+        LIMIT 5
+    """)
+    top_res = (await db.execute(top_q, {"d": datetime.utcnow() - timedelta(days=30)})).fetchall()
+    
+    top_users = []
+    for r in top_res:
+        top_users.append({
+            "user_id": r[0],
+            "full_name": r[1] or "Unknown",
+            "username": r[2] or "",
+            "total_spent": r[3] or 0.0
+        })
+
     return {
         "total_tokens": res_7d[0] or 0,
         "total_cost_usd": res_7d[1] or 0,
@@ -409,7 +430,8 @@ async def get_cost_stats(db: AsyncSession = Depends(get_db), admin_id: int = Dep
             fmt_feature('workout', workout_total),
             fmt_feature('coach', chat_total)
         ],
-        "daily": daily_stats
+        "daily": daily_stats,
+        "top_users": top_users
     }
 
 
