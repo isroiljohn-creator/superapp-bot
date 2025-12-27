@@ -1133,8 +1133,34 @@ class Database:
             goal_stats = dict(session.query(User.goal, func.count(User.id)).group_by(User.goal).all())
             activity_stats = dict(session.query(User.activity_level, func.count(User.id)).group_by(User.activity_level).all())
             
-            premium_users = session.query(User).filter(User.premium_until > datetime.now()).count()
+            # Detailed Plan Stats (Synchronized with get_user_stats_counts)
+            now = datetime.now()
             
+            # 1. Premium (Paid)
+            premium = session.query(func.count(User.id)).filter(
+                User.plan_type == 'premium', 
+                User.premium_until > now, 
+                User.is_onboarded == True
+            ).scalar() or 0
+            
+            # 2. VIP
+            vip = session.query(func.count(User.id)).filter(
+                User.plan_type == 'vip', 
+                User.premium_until > now, 
+                User.is_onboarded == True
+            ).scalar() or 0
+            
+            # 3. Trial
+            trial = session.query(func.count(User.id)).filter(
+                User.plan_type == 'trial', 
+                User.premium_until > now, 
+                User.is_onboarded == True
+            ).scalar() or 0
+            
+            # 4. Incomplete
+            incomplete = session.query(func.count(User.id)).filter(
+                User.is_onboarded == False
+            ).scalar() or 0
             
             # UTM Stats
             utm_stats = dict(session.query(User.utm_source, func.count(User.id)).group_by(User.utm_source).all())
@@ -1145,7 +1171,10 @@ class Database:
                 "gender": gender_stats,
                 "goal": goal_stats,
                 "activity": activity_stats,
-                "premium": premium_users,
+                "premium": premium,
+                "vip": vip,
+                "trial": trial,
+                "incomplete": incomplete,
                 "utm": utm_stats
             }
 

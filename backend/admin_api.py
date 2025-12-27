@@ -188,14 +188,27 @@ async def get_stats(db: AsyncSession = Depends(get_db), admin_id: int = Depends(
     new_users_q = await db.execute(select(func.count()).where(User.created_at >= one_day_ago))
     new_users = new_users_q.scalar() or 0
 
+    # Premium/VIP/Trial Stats (Active)
+    now = datetime.utcnow()
+    
+    premium_q = await db.execute(select(func.count()).where(User.plan_type == 'premium', User.premium_until > now, User.is_onboarded == True))
+    premium = premium_q.scalar() or 0
+    
+    vip_q = await db.execute(select(func.count()).where(User.plan_type == 'vip', User.premium_until > now, User.is_onboarded == True))
+    vip = vip_q.scalar() or 0
+    
+    trial_q = await db.execute(select(func.count()).where(User.plan_type == 'trial', User.premium_until > now, User.is_onboarded == True))
+    trial = trial_q.scalar() or 0
+
     return {
         "total_users": total_users,
         "active_24h": dau,
         "active_7d": wau,
         "active_30d": mau,
         "premium_users": premium,
-        "free_users": total_users - premium,
-        "trial_users": 0, # Placeholder until trial logic is fully integrated
+        "vip_users": vip,
+        "free_users": total_users - (premium + vip + trial),
+        "trial_users": trial,
         "new_users_24h": new_users,
         "menu_generations_24h": menu_gen,
         "workout_generations_24h": workout_gen

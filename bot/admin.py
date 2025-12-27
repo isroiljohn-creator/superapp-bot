@@ -242,10 +242,13 @@ def register_handlers(bot):
             total = stats.get('total', 0)
             active = stats.get('active', 0)
             premium = stats.get('premium', 0)
+            vip = stats.get('vip', 0)
+            trial = stats.get('trial', 0)
+            incomplete = stats.get('incomplete', 0)
+            
             gender_stats = stats.get('gender', {})
             goal_stats = stats.get('goal', {})
             
-            # Translations
             # Translations
             gender_map = {
                 "male": "Erkak",
@@ -253,17 +256,16 @@ def register_handlers(bot):
                 None: "Ro'yxatdan o'tmagan"
             }
             goal_map = {
-                "weight_loss": "Vazn tashlash 🔻",
-                "muscle_gain": "Vazn olish 🔺",
-                "health": "Vaznni ushlab turish ❤️",
+                "lose_weight": "Vazn tashlash 🔻",
+                "gain_muscle": "Vazn olish 🔺",
+                "maintain": "Vaznni ushlab turish ❤️",
+                "health": "Sog'lom bo'lish 🌿",
                 None: "Ro'yxatdan o'tmagan"
             }
 
             # Dynamic formatting for gender
             gender_text = ""
             for k, v in gender_stats.items():
-                # Handle None key or string "None"
-                if k == "None": k = None
                 label = gender_map.get(k, k if k else "Ro'yxatdan o'tmagan")
                 gender_text += f"- {label}: {v}\n"
             if not gender_text: gender_text = "Ma'lumot yo'q"
@@ -271,7 +273,6 @@ def register_handlers(bot):
             # Dynamic formatting for goal
             goal_text = ""
             for k, v in goal_stats.items():
-                if k == "None": k = None
                 label = goal_map.get(k, k if k else "Ro'yxatdan o'tmagan")
                 goal_text += f"- {label}: {v}\n"
             if not goal_text: goal_text = "Ma'lumot yo'q"
@@ -280,7 +281,12 @@ def register_handlers(bot):
                 f"📊 <b>Statistika</b>\n\n"
                 f"👥 Jami foydalanuvchilar: {total}\n"
                 f"✅ Faol foydalanuvchilar: {active}\n"
-                f"💎 Premium foydalanuvchilar: {premium}\n\n"
+                f"⏸ Ro'yxatdan o'tmagan: {incomplete}\n"
+                f"-------------------\n"
+                f"💎 Premium: {premium}\n"
+                f"👑 VIP: {vip}\n"
+                f"🎁 Trial: {trial}\n"
+                f"-------------------\n\n"
                 f"👨👩 <b>Jins bo'yicha:</b>\n{gender_text}\n"
                 f"🎯 <b>Maqsad bo'yicha:</b>\n{goal_text}\n"
                 f"🏃 <b>Faollik:</b>\n"
