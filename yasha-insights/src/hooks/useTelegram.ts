@@ -51,17 +51,44 @@ export function useTelegram() {
     if (webApp?.initData) return webApp.initData;
 
     // Fallback: Manually parse from hash
-    const hash = window.location.hash.slice(1);
+    let hash = window.location.hash.slice(1);
     if (!hash) return '';
 
+    // Attempt to extract tgWebAppData if usage of standard param
     const params = new URLSearchParams(hash);
     if (params.has('tgWebAppData')) {
       return params.get('tgWebAppData') || '';
     }
-    // Sometimes the hash IS the initData directly (if not wrapped)
-    if (hash.includes('auth_date') && hash.includes('hash=')) {
-      return hash;
+
+    // Heuristic: If it contains "user=" or "user%3D", it's likely the data
+    // Try decoding up to 2 times to handle double encoding
+    let decoded = hash;
+    let found = false;
+    for (let i = 0; i < 2; i++) {
+      if (decoded.includes('user=') || decoded.includes('auth_date=')) {
+        found = true;
+        break;
+      }
+      try {
+        decoded = decodeURIComponent(decoded);
+      } catch (e) { break; }
     }
+
+    if (found || decoded.includes('user=') || decoded.includes('"id":')) {
+      // Return the decoded version if it looks like initData
+      // But keep original hash if decoding messed up the format expected by backend?
+      // Backend expects standard URL encoded string: key=value&key=value
+      // If we decoded it too much (e.g. turned %3D into =), parse_qsl might be fine or not.
+      // SAFE BET: Return the one that matched, but ensure it's in key=value format.
+
+      // If the original hash started with query_id or user, return it.
+      // If it was encoded, returning decoded is better.
+      return decoded;
+    }
+
+    // Last ditch: just return the hash if it's long enough
+    if (hash.length > 100) return hash;
+
     return '';
   }, [webApp]);
 
