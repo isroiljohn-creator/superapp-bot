@@ -5,16 +5,20 @@ nixPkgs = ["python311", "nodejs_20", "gcc"]
 cmds = [
     "python3 -m venv .venv",
     ".venv/bin/pip install --no-binary greenlet -r requirements.txt",
-    "cd frontend && npm install"
+    "echo '📦 Installing dependencies...'",
+    "cd frontend && npm install",
+    "cd yasha-insights && npm install"
 ]
 
 [phases.build]
 cmds = [
-    "echo '🚀 Starting Frontend Build...'",
-    "cd frontend && npm install && npm run build",
-    "echo '✅ Frontend Build Complete'",
-    "ls -R frontend/dist"
+    "echo '🚀 Starting Main Frontend Build...'",
+    "cd frontend && npm run build",
+    "echo '🚀 Starting Admin Insights Build...'",
+    "cd yasha-insights && npm run build",
+    "echo '✅ All Frontends Built'",
+    "ls -d frontend/dist yasha-insights/dist"
 ]
 
 [start]
-cmd = "if [ ! -d 'frontend/dist' ]; then echo '⚠️ frontend/dist missing, building now...'; cd frontend && npm install && npm run build && cd ..; fi && .venv/bin/uvicorn backend.main:app --host 0.0.0.0 --port $PORT"
+cmd = "alembic upgrade head && .venv/bin/uvicorn backend.main:app --host 0.0.0.0 --port $PORT"
