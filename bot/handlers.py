@@ -844,7 +844,7 @@ def register_all_handlers(bot):
                 pass
             
             # Show new day
-            workout.show_daily_menu(bot, call.from_user.id, link, override_day_idx=new_day)
+            workout.show_daily_menu(bot, call.from_user.id, link, day_idx=new_day)
             
         except Exception as e:
             error_msg = f"Xatolik: {str(e)[:50]}"

@@ -459,7 +459,7 @@ def generate_ai_meal(message, bot, user_id=None):
              bot.send_message(user_id, upsell_msg, parse_mode="Markdown", reply_markup=markup)
              
              new_link = db.get_user_menu_link(user_id)
-             show_daily_menu(bot, user_id, new_link, override_day_idx=1)
+             show_daily_menu(bot, user_id, new_link, day_idx=1)
         else:
              lang = user.get('language', 'uz')
              bot.send_message(user_id, get_text("error_template", lang))
@@ -506,7 +506,7 @@ def generate_ai_meal(message, bot, user_id=None):
             
             new_link = db.get_user_menu_link(user_id)
             db.increment_ai_usage(user_id, 'menu')
-            show_daily_menu(bot, user_id, new_link, override_day_idx=1)
+            show_daily_menu(bot, user_id, new_link, day_idx=1)
             return
 
         # If no template, generate new
