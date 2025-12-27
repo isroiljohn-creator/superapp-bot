@@ -48,7 +48,21 @@ export function useTelegram() {
   }, []);
 
   const getInitData = useCallback((): string => {
-    return webApp?.initData || '';
+    if (webApp?.initData) return webApp.initData;
+
+    // Fallback: Manually parse from hash
+    const hash = window.location.hash.slice(1);
+    if (!hash) return '';
+
+    const params = new URLSearchParams(hash);
+    if (params.has('tgWebAppData')) {
+      return params.get('tgWebAppData') || '';
+    }
+    // Sometimes the hash IS the initData directly (if not wrapped)
+    if (hash.includes('auth_date') && hash.includes('hash=')) {
+      return hash;
+    }
+    return '';
   }, [webApp]);
 
   const hapticFeedback = useCallback(
