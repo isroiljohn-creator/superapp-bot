@@ -81,6 +81,8 @@ async def get_profile(current_user: User = Depends(get_current_user), db: AsyncS
         "streak_sleep": current_user.streak_sleep,
         "streak_mood": current_user.streak_mood,
         "referral_code": current_user.referral_code,
+        "language": current_user.language,
+        "notification_settings": current_user.notification_settings,
         "bot_username": os.getenv("BOT_USERNAME", "yashabot"),
         "today_water": today_log.water_ml if today_log else 0,
         "today_steps": today_log.steps if today_log else 0,
@@ -94,36 +96,39 @@ async def update_profile(
     db: AsyncSession = Depends(get_db)
 ):
     print(f"DEBUG: Profile update attempt for user_id={current_user.id} (telegram_id={current_user.telegram_id})")
-    print(f"DEBUG: Active Session ID: {id(db)}")
     
-    # Reload user in THIS session to be absolutely sure
+    # Reload user in THIS session
     user = await db.get(User, current_user.id)
     if not user:
-        print(f"ERROR: User {current_user.id} disappeared from DB during update!")
-        raise HTTPException(status_code=404, detail="User not found during update")
+        raise HTTPException(status_code=404, detail="User not found")
 
     data = update_req.dict(exclude_unset=True)
-    print(f"DEBUG: Update Payload: {data}")
+    
+    # Handle language and notification_settings explicitly if they are in the update
+    # In Pydantic schema they might not be present yet, but let's see.
     
     for key, value in data.items():
         if hasattr(user, key):
             setattr(user, key, value)
-            print(f"  - Updated {key} -> {value}")
-        else:
-            print(f"  - WARNING: '{key}' not found on User model")
     
+    # Force sync language if provided
+    if 'language' in data:
+        user.language = data['language']
+        
+    if 'notification_settings' in data:
+        user.notification_settings = data['notification_settings']
+
     user.is_onboarded = True
     user.updated_at = datetime.utcnow()
     
     try:
         await db.commit()
         await db.refresh(user)
-        print(f"✅ Success: Profile for {user.id} committed and refreshed. is_onboarded={user.is_onboarded}")
         return {
             "status": "success", 
             "is_onboarded": user.is_onboarded,
-            "full_name": user.full_name,
-            "age": user.age
+            "language": user.language,
+            "notification_settings": user.notification_settings
         }
     except Exception as e:
         print(f"❌ Transaction Error for {user.id}: {e}")

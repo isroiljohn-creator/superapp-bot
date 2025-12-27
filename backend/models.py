@@ -95,6 +95,14 @@ class User(Base):
     utm_campaign = Column(String, nullable=True)
     
     language = Column(String, default="uz") # uz, ru
+    notification_settings = Column(JSON, default={
+        "waterReminders": True,
+        "waterInterval": "2",
+        "workoutReminders": True,
+        "workoutTime": "09:00",
+        "sleepReminders": True,
+        "sleepTime": "22:00"
+    })
 
 class DailyLog(Base):
     __tablename__ = "daily_logs"

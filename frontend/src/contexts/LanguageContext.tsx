@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useState, useCallback, useContext, useEffect } from 'react';
+import { useUser } from './UserContext';
 
 export type Language = 'uz' | 'ru';
 
@@ -1124,15 +1125,27 @@ const translations: Record<Language, Record<string, string>> = {
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
 export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { language: userLanguage, updateLanguage } = useUser();
   const [language, setLanguageState] = useState<Language>(() => {
     const saved = localStorage.getItem('yasha_language');
-    return (saved as Language) || 'uz';
+    return (saved as Language) || userLanguage || 'uz';
   });
+
+  // Sync with UserContext when it changes (e.g. from backend)
+  useEffect(() => {
+    if (userLanguage && userLanguage !== language) {
+      setLanguageState(userLanguage as Language);
+      localStorage.setItem('yasha_language', userLanguage);
+    }
+  }, [userLanguage, language]);
 
   const setLanguage = useCallback((lang: Language) => {
     localStorage.setItem('yasha_language', lang);
     setLanguageState(lang);
-  }, []);
+    if (updateLanguage) {
+      updateLanguage(lang);
+    }
+  }, [updateLanguage]);
 
   const t = useCallback((key: string): string => {
     return translations[language][key] || key;

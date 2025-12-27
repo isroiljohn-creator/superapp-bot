@@ -107,7 +107,7 @@ export const AiCoachScreen: React.FC = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-background flex flex-col pb-20">
+    <div className="h-screen bg-background flex flex-col overflow-hidden">
       {/* Header */}
       <div className="px-4 pt-6 pb-4 safe-area-top border-b border-border/50">
         <div className="flex items-center gap-3">
@@ -122,110 +122,111 @@ export const AiCoachScreen: React.FC = () => {
       </div>
 
       {/* Messages */}
-      {(messages.length === 0 && !isLoading) && (
-        <div className="text-center py-20 text-muted-foreground">
-          <Bot className="w-12 h-12 mx-auto mb-4 opacity-20" />
-          <p>{t('aiCoach.noMessages') || 'Xabarlar yo‘q'}</p>
-        </div>
-      )}
+      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        {(messages.length === 0 && !isLoading) && (
+          <div className="text-center py-20 text-muted-foreground">
+            <Bot className="w-12 h-12 mx-auto mb-4 opacity-20" />
+            <p>{t('aiCoach.noMessages') || 'Xabarlar yo‘q'}</p>
+          </div>
+        )}
 
-      <AnimatePresence mode="popLayout">
-        {messages.map((message) => (
+        <AnimatePresence mode="popLayout">
+          {messages.map((message) => (
+            <motion.div
+              key={message.id}
+              initial={{ opacity: 0, y: 5 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className={`flex gap-3 ${message.role === 'user' ? 'flex-row-reverse' : ''}`}
+            >
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${message.role === 'user' ? 'bg-primary' : 'bg-primary/20'
+                }`}>
+                {message.role === 'user' ? (
+                  <User className="w-4 h-4 text-primary-foreground" />
+                ) : (
+                  <Bot className="w-4 h-4 text-primary" />
+                )}
+              </div>
+              <div className={`max-w-[85%] p-3 rounded-2xl ${message.role === 'user'
+                ? 'bg-primary text-primary-foreground rounded-br-md shadow-lg shadow-primary/20'
+                : 'bg-card border border-border/50 text-foreground rounded-bl-md shadow-sm'
+                }`}>
+                <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.content}</p>
+              </div>
+            </motion.div>
+          ))}
+        </AnimatePresence>
+
+        {isLoading && (
           <motion.div
-            key={message.id}
             initial={{ opacity: 0, y: 5 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            className={`flex gap-3 ${message.role === 'user' ? 'flex-row-reverse' : ''}`}
+            className="flex gap-3"
           >
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${message.role === 'user' ? 'bg-primary' : 'bg-primary/20'
-              }`}>
-              {message.role === 'user' ? (
-                <User className="w-4 h-4 text-primary-foreground" />
-              ) : (
-                <Bot className="w-4 h-4 text-primary" />
-              )}
+            <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
+              <Loader2 className="w-4 h-4 text-primary animate-spin" />
             </div>
-            <div className={`max-w-[85%] p-3 rounded-2xl ${message.role === 'user'
-              ? 'bg-primary text-primary-foreground rounded-br-md shadow-lg shadow-primary/20'
-              : 'bg-card border border-border/50 text-foreground rounded-bl-md shadow-sm'
-              }`}>
-              <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.content}</p>
+            <div className="bg-card border border-border/50 p-4 rounded-2xl rounded-bl-md">
+              <div className="flex gap-1.5">
+                <span className="w-1.5 h-1.5 bg-primary/50 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                <span className="w-1.5 h-1.5 bg-primary/50 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                <span className="w-1.5 h-1.5 bg-primary/50 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+              </div>
             </div>
           </motion.div>
-        ))}
-      </AnimatePresence>
+        )}
 
-      {isLoading && (
-        <motion.div
-          initial={{ opacity: 0, y: 5 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="flex gap-3"
-        >
-          <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
-            <Loader2 className="w-4 h-4 text-primary animate-spin" />
-          </div>
-          <div className="bg-card border border-border/50 p-4 rounded-2xl rounded-bl-md">
-            <div className="flex gap-1.5">
-              <span className="w-1.5 h-1.5 bg-primary/50 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-              <span className="w-1.5 h-1.5 bg-primary/50 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-              <span className="w-1.5 h-1.5 bg-primary/50 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+        <div ref={messagesEndRef} />
+      </div>
+
+      {/* Quick questions */}
+      {
+        messages.length === 1 && (
+          <div className="px-4 pb-2">
+            <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2">
+              {quickQuestions.map((q, i) => (
+                <button
+                  key={i}
+                  onClick={() => {
+                    setInput(q);
+                    vibrate('light');
+                  }}
+                  className="px-3 py-2 bg-card border border-border/50 rounded-full text-sm text-foreground whitespace-nowrap hover:bg-muted transition-colors"
+                >
+                  {q}
+                </button>
+              ))}
             </div>
           </div>
-        </motion.div>
-      )}
+        )
+      }
 
-      <div ref={messagesEndRef} />
-    </div>
-
-      {/* Quick questions */ }
-  {
-    messages.length === 1 && (
-      <div className="px-4 pb-2">
-        <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2">
-          {quickQuestions.map((q, i) => (
-            <button
-              key={i}
-              onClick={() => {
-                setInput(q);
-                vibrate('light');
-              }}
-              className="px-3 py-2 bg-card border border-border/50 rounded-full text-sm text-foreground whitespace-nowrap hover:bg-muted transition-colors"
-            >
-              {q}
-            </button>
-          ))}
+      {/* Input */}
+      <div className="px-4 pb-4 border-t border-border/50 pt-3">
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyPress={handleKeyPress}
+            placeholder={t('aiCoach.placeholder')}
+            className="flex-1 h-12 px-4 rounded-full bg-card border border-border/50 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+            disabled={isLoading}
+          />
+          <Button
+            size="icon"
+            onClick={sendMessage}
+            disabled={!input.trim() || isLoading}
+            className="w-12 h-12 rounded-full"
+          >
+            {isLoading ? (
+              <Loader2 className="w-5 h-5 animate-spin" />
+            ) : (
+              <Send className="w-5 h-5" />
+            )}
+          </Button>
         </div>
       </div>
-    )
-  }
-
-  {/* Input */ }
-  <div className="px-4 pb-4 border-t border-border/50 pt-3">
-    <div className="flex gap-2">
-      <input
-        type="text"
-        value={input}
-        onChange={(e) => setInput(e.target.value)}
-        onKeyPress={handleKeyPress}
-        placeholder={t('aiCoach.placeholder')}
-        className="flex-1 h-12 px-4 rounded-full bg-card border border-border/50 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-        disabled={isLoading}
-      />
-      <Button
-        size="icon"
-        onClick={sendMessage}
-        disabled={!input.trim() || isLoading}
-        className="w-12 h-12 rounded-full"
-      >
-        {isLoading ? (
-          <Loader2 className="w-5 h-5 animate-spin" />
-        ) : (
-          <Send className="w-5 h-5" />
-        )}
-      </Button>
-    </div>
-  </div>
     </div >
   );
 };

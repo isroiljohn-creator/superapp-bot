@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useUser } from '@/contexts/UserContext';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Bell, Droplets, Dumbbell, Moon, Clock, Save } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -12,25 +13,28 @@ interface NotificationSettingsScreenProps {
 
 export const NotificationSettingsScreen: React.FC<NotificationSettingsScreenProps> = ({ onBack }) => {
   const { toast } = useToast();
-  
-  const [settings, setSettings] = useState({
-    waterReminders: true,
-    waterInterval: '2',
-    workoutReminders: true,
-    workoutTime: '09:00',
-    sleepReminders: true,
-    sleepTime: '22:00',
-  });
+  const { notificationSettings, updateNotificationSettings } = useUser();
 
-  const handleSave = () => {
-    toast({
-      title: "Saqlandi!",
-      description: "Eslatma sozlamalari muvaffaqiyatli saqlandi",
-    });
+  const [localSettings, setLocalSettings] = useState(notificationSettings);
+
+  const handleSave = async () => {
+    try {
+      await updateNotificationSettings(localSettings);
+      toast({
+        title: "Saqlandi!",
+        description: "Eslatma sozlamalari muvaffaqiyatli saqlandi",
+      });
+    } catch (error) {
+      toast({
+        title: "Xatolik!",
+        description: "Sozlamalarni saqlashda xatolik yuz berdi",
+        variant: "destructive",
+      });
+    }
   };
 
   const updateSetting = (key: string, value: any) => {
-    setSettings(prev => ({ ...prev, [key]: value }));
+    setLocalSettings(prev => ({ ...prev, [key]: value }));
   };
 
   return (
@@ -62,19 +66,19 @@ export const NotificationSettingsScreen: React.FC<NotificationSettingsScreenProp
                 <p className="text-sm text-muted-foreground">Muntazam suv ichishni eslatadi</p>
               </div>
               <Switch
-                checked={settings.waterReminders}
+                checked={localSettings.waterReminders}
                 onCheckedChange={(checked) => updateSetting('waterReminders', checked)}
               />
             </div>
-            
-            {settings.waterReminders && (
+
+            {localSettings.waterReminders && (
               <div className="flex items-center justify-between pt-3 border-t border-border/50">
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <Clock className="w-4 h-4" />
                   <span>Har necha soatda</span>
                 </div>
                 <Select
-                  value={settings.waterInterval}
+                  value={localSettings.waterInterval}
                   onValueChange={(value) => updateSetting('waterInterval', value)}
                 >
                   <SelectTrigger className="w-28">
@@ -102,19 +106,19 @@ export const NotificationSettingsScreen: React.FC<NotificationSettingsScreenProp
                 <p className="text-sm text-muted-foreground">Kunlik mashq qilishni eslatadi</p>
               </div>
               <Switch
-                checked={settings.workoutReminders}
+                checked={localSettings.workoutReminders}
                 onCheckedChange={(checked) => updateSetting('workoutReminders', checked)}
               />
             </div>
-            
-            {settings.workoutReminders && (
+
+            {localSettings.workoutReminders && (
               <div className="flex items-center justify-between pt-3 border-t border-border/50">
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <Clock className="w-4 h-4" />
                   <span>Eslatma vaqti</span>
                 </div>
                 <Select
-                  value={settings.workoutTime}
+                  value={localSettings.workoutTime}
                   onValueChange={(value) => updateSetting('workoutTime', value)}
                 >
                   <SelectTrigger className="w-28">
@@ -145,19 +149,19 @@ export const NotificationSettingsScreen: React.FC<NotificationSettingsScreenProp
                 <p className="text-sm text-muted-foreground">Uxlash vaqti ekanligini eslatadi</p>
               </div>
               <Switch
-                checked={settings.sleepReminders}
+                checked={localSettings.sleepReminders}
                 onCheckedChange={(checked) => updateSetting('sleepReminders', checked)}
               />
             </div>
-            
-            {settings.sleepReminders && (
+
+            {localSettings.sleepReminders && (
               <div className="flex items-center justify-between pt-3 border-t border-border/50">
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <Clock className="w-4 h-4" />
                   <span>Uyqu vaqti</span>
                 </div>
                 <Select
-                  value={settings.sleepTime}
+                  value={localSettings.sleepTime}
                   onValueChange={(value) => updateSetting('sleepTime', value)}
                 >
                   <SelectTrigger className="w-28">

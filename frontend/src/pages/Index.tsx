@@ -31,15 +31,18 @@ const AppContent: React.FC = () => {
   const [showSplash, setShowSplash] = useState(true);
 
   useEffect(() => {
-    // Splash faqat bir marta ko'rsatiladi
-    const hasSeenSplash = sessionStorage.getItem('yasha_splash_seen');
-    if (hasSeenSplash) {
+    // Splash faqat bir marta ko'rsatiladi (kuniga bir marta)
+    const lastSplashDate = localStorage.getItem('yasha_splash_date');
+    const today = new Date().toISOString().split('T')[0];
+
+    if (lastSplashDate === today) {
       setShowSplash(false);
     }
   }, []);
 
   const handleSplashComplete = () => {
-    sessionStorage.setItem('yasha_splash_seen', 'true');
+    const today = new Date().toISOString().split('T')[0];
+    localStorage.setItem('yasha_splash_date', today);
     setShowSplash(false);
   };
 
@@ -95,11 +98,11 @@ const AppContent: React.FC = () => {
 
 const Index: React.FC = () => {
   return (
-    <LanguageProvider>
-      <UserProvider>
+    <UserProvider>
+      <LanguageProvider>
         <AppContent />
-      </UserProvider>
-    </LanguageProvider>
+      </LanguageProvider>
+    </UserProvider>
   );
 };
 

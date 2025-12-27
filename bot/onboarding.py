@@ -64,7 +64,7 @@ def start_onboarding(message, bot):
     
     # Check if user already exists AND has completed onboarding
     existing_user = db.get_user(user_id)
-    if existing_user and existing_user.get('age') and existing_user.get('weight'):
+    if existing_user and existing_user.get('is_onboarded'):
         lang = existing_user.get('language', 'uz')
         bot.send_message(
             user_id, 

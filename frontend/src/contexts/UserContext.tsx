@@ -63,6 +63,15 @@ interface UserState {
   todayLog: DailyLog | null;
   meals: Meal[];
   workouts: WorkoutLog[];
+  notificationSettings: {
+    waterReminders: boolean;
+    waterInterval: string;
+    workoutReminders: boolean;
+    workoutTime: string;
+    sleepReminders: boolean;
+    sleepTime: string;
+  };
+  language: 'uz' | 'ru';
 }
 
 interface UserContextType extends UserState {
@@ -82,6 +91,8 @@ interface UserContextType extends UserState {
   getTodayWorkouts: () => WorkoutLog[];
   markWorkoutDone: () => void;
   resetData: () => Promise<void>;
+  updateNotificationSettings: (settings: Partial<UserState['notificationSettings']>) => Promise<void>;
+  updateLanguage: (lang: 'uz' | 'ru') => Promise<void>;
   isLoading: boolean;
 }
 
@@ -119,6 +130,15 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
       todayLog: null,
       meals: [],
       workouts: [],
+      notificationSettings: {
+        waterReminders: true,
+        waterInterval: '2',
+        workoutReminders: true,
+        workoutTime: '09:00',
+        sleepReminders: true,
+        sleepTime: '22:00',
+      },
+      language: 'uz',
     };
   });
 
@@ -202,10 +222,12 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
                   steps: userData.today_steps || 0,
                   sleep_hours: userData.today_sleep || 0,
                   // calories/workout status might need separate sync or included in profile stats
-                  calories_consumed: prev.todayLog?.calories_consumed || 0, // Backend doesn't send meal logs sum in profile yet
-                  workout_done: prev.todayLog?.workout_done || false, // Should ideally come from backend
+                  calories_consumed: prev.todayLog?.calories_consumed || 0,
+                  workout_done: prev.todayLog?.workout_done || false,
                   mood: prev.todayLog?.mood || 'ok'
-                } as DailyLog
+                } as DailyLog,
+                language: userData.language || 'uz',
+                notificationSettings: userData.notification_settings || prev.notificationSettings
               };
 
               localStorage.setItem('yasha_user', JSON.stringify(newState));
@@ -216,7 +238,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } catch (error) {
         console.error("Auth Error:", error);
       } finally {
-        setIsLoading(false); // Stop loading regardless of success/error
+        setIsLoading(false);
       }
     };
 
@@ -226,6 +248,32 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const saveState = useCallback((newState: UserState) => {
     localStorage.setItem('yasha_user', JSON.stringify(newState));
     setState(newState);
+  }, []);
+
+  const updateNotificationSettings = useCallback(async (newSettings: Partial<UserState['notificationSettings']>) => {
+    const updatedSettings = { ...state.notificationSettings, ...newSettings };
+    setState(prev => ({ ...prev, notificationSettings: updatedSettings }));
+
+    try {
+      await axios.put(`${API_URL}/user/profile`, {
+        notification_settings: updatedSettings
+      });
+    } catch (e) {
+      console.error("Sync notification settings failed", e);
+    }
+  }, [state.notificationSettings]);
+
+  const updateLanguage = useCallback(async (lang: 'uz' | 'ru') => {
+    setState(prev => ({ ...prev, language: lang }));
+    localStorage.setItem('yasha_language', lang); // Also sync with LanguageContext's local storage key
+
+    try {
+      await axios.put(`${API_URL}/user/profile`, {
+        language: lang
+      });
+    } catch (e) {
+      console.error("Sync language failed", e);
+    }
   }, []);
 
   const setProfile = useCallback((profile: UserProfile) => {
@@ -540,6 +588,15 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         todayLog: null,
         meals: [],
         workouts: [],
+        notificationSettings: {
+          waterReminders: true,
+          waterInterval: '2',
+          workoutReminders: true,
+          workoutTime: '09:00',
+          sleepReminders: true,
+          sleepTime: '22:00',
+        },
+        language: 'uz',
       };
       saveState(resetState);
     }
@@ -563,6 +620,8 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         getTodayWorkouts,
         markWorkoutDone,
         resetData,
+        updateNotificationSettings,
+        updateLanguage,
         isLoading,
       }}
     >

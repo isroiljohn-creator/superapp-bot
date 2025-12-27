@@ -13,6 +13,8 @@ class UserProfileUpdate(BaseModel):
     goal: Optional[str] = None
     activity_level: Optional[str] = None
     allergies: Optional[str] = None
+    language: Optional[str] = None
+    notification_settings: Optional[dict] = None
 
 class TelegramAuthRequest(BaseModel):
     initData: str

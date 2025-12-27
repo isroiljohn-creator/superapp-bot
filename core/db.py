@@ -685,6 +685,43 @@ class Database:
                 return {c.name: getattr(user, c.name) for c in user.__table__.columns}
             return None
 
+    def get_active_users_with_settings(self):
+        with get_sync_db() as session:
+            users = session.query(User.telegram_id, User.full_name, User.username, User.notification_settings)\
+                          .filter(User.active == True)\
+                          .all()
+            return [(u.telegram_id, u.full_name, u.username, u.notification_settings) for u in users]
+
+    def check_specific_reminder_sent(self, user_id, date_str, type):
+        with get_sync_db() as session:
+            pk = self._get_user_pk(session, user_id)
+            if not pk: return True
+            
+            # Use event_logs to track various types of reminders
+            day_start = datetime.strptime(date_str, "%Y-%m-%d")
+            day_end = day_start + timedelta(days=1)
+            
+            log = session.query(EventLog).filter(
+                EventLog.user_id == pk,
+                EventLog.event_type == f"reminder_{type}",
+                EventLog.created_at >= day_start,
+                EventLog.created_at < day_end
+            ).first()
+            return log is not None
+
+    def mark_specific_reminder_sent(self, user_id, date_str, type):
+        with get_sync_db() as session:
+            pk = self._get_user_pk(session, user_id)
+            if not pk: return
+            
+            log = EventLog(
+                user_id=pk,
+                event_type=f"reminder_{type}",
+                metadata_json=json.dumps({"date": date_str})
+            )
+            session.add(log)
+            session.commit()
+
     def add_points(self, user_id, points):
         with get_sync_db() as session:
             # Atomic update
