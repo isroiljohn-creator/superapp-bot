@@ -35,12 +35,20 @@ def verify_telegram_data(init_data: str) -> dict:
     Verifies Telegram WebApp initData string provided by the frontend.
     Returns the parsed user dict if valid and authorized.
     """
+    print(f"DEBUG AUTH: Received init_data length: {len(init_data)}")
+    print(f"DEBUG AUTH: Received init_data start: {init_data[:50]}")
+    # print(f"DEBUG AUTH: Full init_data: {init_data}") # Commented out for security/privacy unless needed
+    
     try:
         parsed_data = dict(parse_qsl(init_data))
+        print(f"DEBUG AUTH: Parsed keys: {list(parsed_data.keys())}")
     except ValueError:
+        print("DEBUG AUTH: parse_qsl failed")
         raise HTTPException(status_code=400, detail="Invalid initData format")
 
     if "hash" not in parsed_data:
+        print("DEBUG AUTH: 'hash' key MISSING in parsed data!")
+        # Try to see if it's there but maybe as ' hash' or something?
         raise HTTPException(status_code=400, detail="Missing hash")
 
     hash_check = parsed_data.pop("hash")
