@@ -49,8 +49,8 @@ class Database:
                 # 2. Daily Logs fixes
                 add_col('daily_logs', 'reminder_sent', 'BOOLEAN', 'FALSE')
 
-                # 3. Users table fixes
-                add_col('users', 'language', 'VARCHAR', "'uz'")
+                # 3. Users table fixes (Handled via Alembic)
+                # add_col('users', 'language', 'VARCHAR', "'uz'")
 
                 # 4. Exercises Table Fallback
                 check_table = text("SELECT to_regclass('public.exercises')")
