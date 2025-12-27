@@ -784,20 +784,19 @@ def show_daily_menu(bot, user_id, link_data, day_idx=None, meal_type='breakfast'
         
         # ... Other rows kept same structure ...
         
-        # Row 2: Other Main Meals
-        main_meals_row = []
-        if meal_type == 'breakfast':
-            main_meals_row.append(InlineKeyboardButton(meal_labels['lunch'], callback_data=f"menu_view_{day_idx}_lunch"))
-            main_meals_row.append(InlineKeyboardButton(meal_labels['dinner'], callback_data=f"menu_view_{day_idx}_dinner"))
-        elif meal_type == 'lunch':
-            main_meals_row.append(InlineKeyboardButton(meal_labels['breakfast'], callback_data=f"menu_view_{day_idx}_breakfast"))
-            main_meals_row.append(InlineKeyboardButton(meal_labels['dinner'], callback_data=f"menu_view_{day_idx}_dinner"))
-        elif meal_type == 'dinner':
-            main_meals_row.append(InlineKeyboardButton(meal_labels['breakfast'], callback_data=f"menu_view_{day_idx}_breakfast"))
-            main_meals_row.append(InlineKeyboardButton(meal_labels['lunch'], callback_data=f"menu_view_{day_idx}_lunch"))
-        else: # Snack
-            main_meals_row.append(InlineKeyboardButton(meal_labels['lunch'], callback_data=f"menu_view_{day_idx}_lunch"))
-            main_meals_row.append(InlineKeyboardButton(meal_labels['dinner'], callback_data=f"menu_view_{day_idx}_dinner"))
+        # Row 3: Day Navigation
+        nav_btns = []
+        if day_idx > 1:
+            nav_btns.append(InlineKeyboardButton(get_text("menu_prev_day", user_lang), callback_data=f"menu_view_{day_idx-1}_{meal_type}"))
+        
+        if day_idx < total_days:
+            nav_btns.append(InlineKeyboardButton(get_text("menu_next_day", user_lang), callback_data=f"menu_view_{day_idx+1}_{meal_type}"))
+        
+        if nav_btns:
+            markup.row(*nav_btns)
+            
+        # Row 4: Shopping List
+        markup.row(InlineKeyboardButton(get_text("btn_shopping_list", user_lang), callback_data=f"shopping_list_{day_idx}"))
         
         markup.row(*main_meals_row)
         

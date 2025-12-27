@@ -52,7 +52,7 @@ def handle_profile(message, bot, user_id=None):
         footer = get_text("profile_next_step", lang)
         
         allergies_val = user.get('allergies')
-        if not allergies_val or allergies_val == "—":
+        if not allergies_val or str(allergies_val).lower() in ["yo'q", "—", "absent", "none"]:
             allergies_display = "YO'Q"
         else:
             allergies_display = f"BOR ({allergies_val})"

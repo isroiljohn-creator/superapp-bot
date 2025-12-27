@@ -35,12 +35,9 @@ export const ChallengesScreen: React.FC<ChallengesScreenProps> = ({ onBack }) =>
     days: '7',
   });
 
-  // Demo challenge'lar
-  const challenges: Challenge[] = [
-    { id: '1', title: '10K challenge', type: 'steps', targetValue: 70000, currentValue: 45000, participants: 5, daysLeft: 3, creatorName: 'Aziz' },
-    { id: '2', title: t('challenges.water'), type: 'water', targetValue: 17500, currentValue: 12500, participants: 8, daysLeft: 5, creatorName: 'Malika' },
-    { id: '3', title: t('challenges.workouts'), type: 'workout', targetValue: 7, currentValue: 4, participants: 3, daysLeft: 2, creatorName: '', isCreator: true },
-  ];
+  // Bo'sh ro'yxat (Haqiqiy data uchun)
+  const [challenges, setChallenges] = useState<Challenge[]>([]);
+  const [joinedIds, setJoinedIds] = useState<Set<string>>(new Set());
 
   const getTypeIcon = (type: string) => {
     switch (type) {
@@ -79,10 +76,18 @@ export const ChallengesScreen: React.FC<ChallengesScreenProps> = ({ onBack }) =>
     setNewChallenge({ title: '', type: 'steps', targetValue: '', days: '7' });
   };
 
-  const handleJoinChallenge = (challengeTitle: string) => {
+  const handleJoinChallenge = (id: string, title: string) => {
+    setJoinedIds(prev => new Set(prev).add(id));
     toast({
       title: t('challenges.joined'),
-      description: `"${challengeTitle}" ${t('challenges.joinedDesc')}`,
+      description: `"${title}" ${t('challenges.joinedDesc')}`,
+    });
+  };
+
+  const handleDeleteChallenge = (id: string) => {
+    setChallenges(prev => prev.filter(c => c.id !== id));
+    toast({
+      title: t('challenges.deleted') || "O'chirildi",
     });
   };
 
@@ -113,7 +118,7 @@ export const ChallengesScreen: React.FC<ChallengesScreenProps> = ({ onBack }) =>
               <p className="text-sm text-muted-foreground">{t('challenges.subtitle')}</p>
             </div>
           </div>
-          
+
           <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
             <DialogTrigger asChild>
               <Button size="icon">
@@ -181,10 +186,17 @@ export const ChallengesScreen: React.FC<ChallengesScreenProps> = ({ onBack }) =>
           className="space-y-4"
         >
           <h2 className="text-lg font-bold text-foreground">{t('challenges.active')}</h2>
-          
-          {challenges.map((challenge) => {
+
+          {challenges.length === 0 ? (
+            <div className="text-center py-20 bg-card/30 rounded-3xl border border-dashed border-border">
+              <Swords className="w-12 h-12 mx-auto mb-4 opacity-20" />
+              <p className="text-muted-foreground px-10">
+                {t('challenges.noChallenges') || "Hozircha chellenjlar yo'q. Birinchisini siz boshlang!"}
+              </p>
+            </div>
+          ) : challenges.map((challenge) => {
             const progress = (challenge.currentValue / challenge.targetValue) * 100;
-            
+
             return (
               <motion.div
                 key={challenge.id}
@@ -203,13 +215,23 @@ export const ChallengesScreen: React.FC<ChallengesScreenProps> = ({ onBack }) =>
                       </p>
                     </div>
                   </div>
-                  {!challenge.isCreator && (
+                  {challenge.isCreator ? (
                     <Button
-                      variant="outline"
+                      variant="ghost"
                       size="sm"
-                      onClick={() => handleJoinChallenge(challenge.title)}
+                      onClick={() => handleDeleteChallenge(challenge.id)}
+                      className="text-destructive hover:bg-destructive/10"
                     >
-                      {t('challenges.join')}
+                      {t('common.delete') || "O'chirish"}
+                    </Button>
+                  ) : (
+                    <Button
+                      variant={joinedIds.has(challenge.id) ? "secondary" : "outline"}
+                      size="sm"
+                      onClick={() => handleJoinChallenge(challenge.id, challenge.title)}
+                      disabled={joinedIds.has(challenge.id)}
+                    >
+                      {joinedIds.has(challenge.id) ? (t('challenges.joined') || "Qo'shildingiz") : t('challenges.join')}
                     </Button>
                   )}
                 </div>

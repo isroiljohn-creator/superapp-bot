@@ -297,8 +297,10 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     let newStreaks = { ...state.streaks };
 
     if (!wasCompleted && isNowCompleted) {
-      newPoints += 10;
+      newPoints += 20; // 20 XP for goal
       newStreaks.water += 1;
+    } else {
+      newPoints += 2; // 2 XP per glass
     }
 
     const newState = {
@@ -343,6 +345,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const newState = {
       ...state,
+      points: state.points + 5, // 5 XP per meal logged
       meals: newMeals,
       todayLog: { ...currentLog, calories_consumed: totalCalories },
     };
@@ -432,7 +435,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         workout_done: false,
       };
 
-    let newPoints = state.points + 15;
+    let newPoints = state.points + 50; // 50 XP per workout session
     let newStreaks = { ...state.streaks };
 
     if (!currentLog.workout_done) {
@@ -482,7 +485,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     if (currentLog.workout_done) return;
 
-    let newPoints = state.points + 15;
+    let newPoints = state.points + 50; // 50 XP per workout session
     let newStreaks = { ...state.streaks };
     newStreaks.workout += 1;
 

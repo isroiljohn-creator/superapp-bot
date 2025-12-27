@@ -14,7 +14,7 @@ export function AccessDenied({
           <ShieldX className="h-10 w-10 text-destructive" />
         </div>
         <h1 className="text-2xl font-bold mb-3">Access Denied</h1>
-        <p className="text-muted-foreground mb-6">{message}</p>
+        <p className="text-muted-foreground mb-6 whitespace-pre-wrap">{message}</p>
         <p className="text-xs text-muted-foreground/60">
           Error Code: 403 Forbidden
         </p>

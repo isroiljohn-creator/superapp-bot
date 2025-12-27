@@ -52,7 +52,7 @@ TRANS = {
         
         # Workout / Exercises
         "workout_title_day": "🏋️ {day}-KUN REJASI",
-        "workout_focus": "🎯 **Fokus:** {focus}",
+        "workout_focus": "🎯 Fokus: {focus}",
         "rest_day_title": "😌 **Bugun dam**",
         "rest_day_desc": "Dam olish — bu ortga qaytish emas.\nMushaklar aynan bugun tiklanadi va kuchayadi.\n\nErtaga tanang “rahmat” deydi.",
         "rest_day_tip_1": "🧠 **Bilasanmi?**\nO‘sish mashq vaqtida emas, dam olishda bo‘ladi.\nBugun tana ishlayapti — sen sezmasang ham.",
@@ -79,7 +79,7 @@ TRANS = {
         "menu_prev_day": "⬅️ Kechagi menyu",
         
         # Shopping List
-        "shopping_list_title": "🛒 **XARIDLAR RO'YXATI** (1-Hafta)",
+        "shopping_list_title": "🛒 XARIDLAR RO'YXATI (1-Hafta)",
         "shopping_list_empty": "🛒 Ro'yxat bo'sh.",
         "shopping_list_need_menu": "🛒 Xaridlar ro'yxatini tuzish uchun avval Menyu yarating:",
         "shopping_list_premium_only": "🛒 **Xarid ro‘yxati faqat YASHA Plus foydalanuvchilar uchun.**\n\nSababi u menyuga bog‘liq holda avtomatik hisoblanadi.",
@@ -369,7 +369,7 @@ TRANS = {
         
         # Workout / Exercises
         "workout_title_day": "🏋️ ДЕНЬ {day}",
-        "workout_focus": "🎯 **Фокус:** {focus}",
+        "workout_focus": "🎯 Fokus: {focus}",
         "rest_day_title": "😌 **Сегодня отдых**",
         "rest_day_desc": "Отдых — это не шаг назад.\nМышцы растут именно во время восстановления.\n\nЗавтра тело скажет вам «спасибо».",
         "rest_day_tip_1": "🧠 **Знаете ли вы?**\nРост происходит не во время тренировки, а во время отдыха.\nСегодня тело работает — даже если вы этого не чувствуете.",
@@ -396,7 +396,7 @@ TRANS = {
         "menu_prev_day": "⬅️ Вчера",
         
         # Shopping List
-        "shopping_list_title": "🛒 **СПИСОК ПОКУПОК** (1-я неделя)",
+        "shopping_list_title": "🛒 СПИСОК ПОКУПОК (1-я неделя)",
         "shopping_list_empty": "🛒 Список пуст.",
         "shopping_list_need_menu": "🛒 Чтобы создать список покупок, сначала создайте Меню:",
         "shopping_list_premium_only": "🛒 **Список покупок доступен только пользователям YASHA Plus.**\n\nОн рассчитывается автоматически на основе вашего меню.",
