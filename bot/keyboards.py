@@ -258,9 +258,8 @@ def challenges_submenu_keyboard(lang="uz"):
 def help_submenu_keyboard(lang="uz"):
     """Submenu for '📩 Yordam'"""
     markup = ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
-    markup.add(KeyboardButton(get_text("btn_help_workout", lang=lang)), KeyboardButton(get_text("btn_help_menu", lang=lang)))
-    markup.add(KeyboardButton(get_text("btn_help_sub", lang=lang)), KeyboardButton(get_text("btn_help_lang", lang=lang)))
-    markup.add(KeyboardButton(get_text("btn_help_bug", lang=lang)), KeyboardButton(get_text("btn_back", lang=lang)))
+    markup.add(KeyboardButton(get_text("btn_ask_question", lang=lang)))
+    markup.add(KeyboardButton(get_text("btn_back", lang=lang)))
     return markup
 
 def admin_analytics_keyboard():
