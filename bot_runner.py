@@ -1,5 +1,6 @@
 import os
 import telebot
+# Trigger redeploy: 2025-12-27T18:18:00
 from dotenv import load_dotenv
 from core.db import db
 from bot.handlers import register_all_handlers
