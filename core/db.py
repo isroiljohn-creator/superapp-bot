@@ -926,7 +926,7 @@ class Database:
             offset = (page - 1) * page_size
             
             # Get total count of premium users
-            base_q = session.query(User).filter(User.plan_type == 'premium', User.premium_until > datetime.now())
+            base_q = session.query(User).filter(User.plan_type == 'premium', User.premium_until > datetime.now(), User.is_onboarded == True)
             total_count = base_q.count()
             
             # Get paginated premium users
@@ -958,7 +958,7 @@ class Database:
             
             from datetime import datetime
             # Get users with VIP plan and active status
-            base_q = session.query(User).filter(User.plan_type == 'vip', User.premium_until > datetime.now())
+            base_q = session.query(User).filter(User.plan_type == 'vip', User.premium_until > datetime.now(), User.is_onboarded == True)
             total_count = base_q.count()
             
             users = base_q.order_by(User.premium_until.desc()).limit(page_size).offset(offset).all()
@@ -990,7 +990,8 @@ class Database:
             
             # Users with free plan or expired premium/trial
             base_q = session.query(User).filter(
-                (User.plan_type == 'free') | (User.premium_until == None) | (User.premium_until <= datetime.now())
+                (User.is_onboarded == True),
+                ((User.plan_type == 'free') | (User.premium_until == None) | (User.premium_until <= datetime.now()))
             )
             total_count = base_q.count()
             
@@ -1062,13 +1063,11 @@ class Database:
             offset = (page - 1) * page_size
             
             # Users missing key profile fields
-            total_count = session.query(User).filter(
-                (User.age == None) | (User.height == None) | (User.weight == None) | (User.goal == None)
-            ).count()
+            # Users who haven't finished onboarding flag
+            base_q = session.query(User).filter(User.is_onboarded == False)
+            total_count = base_q.count()
             
-            users = session.query(User).filter(
-                (User.age == None) | (User.height == None) | (User.weight == None) | (User.goal == None)
-            ).order_by(User.id.desc()).limit(page_size).offset(offset).all()
+            users = base_q.order_by(User.id.desc()).limit(page_size).offset(offset).all()
             
             users_list = []
             for user in users:
@@ -2393,14 +2392,15 @@ class Database:
             # All
             total = session.query(func.count(User.id)).scalar() or 0
             
-            # Categories based on active plan_type
-            premium = session.query(func.count(User.id)).filter(User.plan_type == 'premium', User.premium_until > now).scalar() or 0
-            vip = session.query(func.count(User.id)).filter(User.plan_type == 'vip', User.premium_until > now).scalar() or 0
-            trial = session.query(func.count(User.id)).filter(User.plan_type == 'trial', User.premium_until > now).scalar() or 0
+            # Categories based on active plan_type (must be onboarded)
+            premium = session.query(func.count(User.id)).filter(User.plan_type == 'premium', User.premium_until > now, User.is_onboarded == True).scalar() or 0
+            vip = session.query(func.count(User.id)).filter(User.plan_type == 'vip', User.premium_until > now, User.is_onboarded == True).scalar() or 0
+            trial = session.query(func.count(User.id)).filter(User.plan_type == 'trial', User.premium_until > now, User.is_onboarded == True).scalar() or 0
             
-            # Free: Either explicitly free, or expired premium/trial
+            # Free: Either explicitly free, or expired premium/trial (must be onboarded)
             free = session.query(func.count(User.id)).filter(
-                (User.plan_type == 'free') | (User.premium_until == None) | (User.premium_until <= now)
+                (User.is_onboarded == True),
+                ((User.plan_type == 'free') | (User.premium_until == None) | (User.premium_until <= now))
             ).scalar() or 0
             
             # Incomplete (not onboarded)
@@ -2418,7 +2418,9 @@ class Database:
     def get_trial_users_paginated(self, page=1, page_size=10):
         with get_sync_db() as session:
             try:
-                base_query = session.query(User).filter(User.plan_type == 'trial')
+                from datetime import datetime
+                now = datetime.now()
+                base_query = session.query(User).filter(User.plan_type == 'trial', User.premium_until > now, User.is_onboarded == True)
                 total = base_query.count()
                 users = base_query.order_by(User.created_at.desc()).offset((page - 1) * page_size).limit(page_size).all()
                 
