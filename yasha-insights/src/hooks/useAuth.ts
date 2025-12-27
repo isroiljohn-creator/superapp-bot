@@ -58,10 +58,13 @@ export function useAuth() {
         // Production: Require Telegram environment
         const tgType = typeof window.Telegram;
         const waType = window.Telegram?.WebApp ? 'Obj' : 'Undefined';
+        const hashLen = window.location.hash.length;
+        const unsafeUser = window.Telegram?.WebApp?.initDataUnsafe?.user ? 'Yes' : 'No';
+
         setAuthState({
           isAuthenticated: false,
           isLoading: false,
-          error: `Access Denied. Open in Telegram.\nDebug: TG=${tgType}, WA=${waType}, InitData=${initData.length}`,
+          error: `Access Denied. Open in Telegram.\nDebug: TG=${tgType}, WA=${waType}, InitData=${initData.length}, HashLen=${hashLen}, UnsafeUser=${unsafeUser}`,
           user: null,
         });
         return;
