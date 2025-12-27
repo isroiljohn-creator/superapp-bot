@@ -926,11 +926,11 @@ class Database:
             offset = (page - 1) * page_size
             
             # Get total count of premium users
-            total_count = session.query(User).filter(User.premium_until > datetime.now()).count()
+            base_q = session.query(User).filter(User.plan_type == 'premium', User.premium_until > datetime.now())
+            total_count = base_q.count()
             
             # Get paginated premium users
-            users = session.query(User).filter(User.premium_until > datetime.now())\
-                .order_by(User.id.desc()).limit(page_size).offset(offset).all()
+            users = base_q.order_by(User.id.desc()).limit(page_size).offset(offset).all()
             
             users_list = []
             for user in users:
@@ -956,11 +956,12 @@ class Database:
         with get_sync_db() as session:
             offset = (page - 1) * page_size
             
-            # Get users with high points (1000+)
-            total_count = session.query(User).filter(User.points >= 1000).count()
+            from datetime import datetime
+            # Get users with VIP plan and active status
+            base_q = session.query(User).filter(User.plan_type == 'vip', User.premium_until > datetime.now())
+            total_count = base_q.count()
             
-            users = session.query(User).filter(User.points >= 1000)\
-                .order_by(User.points.desc()).limit(page_size).offset(offset).all()
+            users = base_q.order_by(User.premium_until.desc()).limit(page_size).offset(offset).all()
             
             users_list = []
             for user in users:
@@ -987,14 +988,13 @@ class Database:
             from datetime import datetime
             offset = (page - 1) * page_size
             
-            # Users with no premium or expired premium
-            total_count = session.query(User).filter(
-                (User.premium_until == None) | (User.premium_until <= datetime.now())
-            ).count()
+            # Users with free plan or expired premium/trial
+            base_q = session.query(User).filter(
+                (User.plan_type == 'free') | (User.premium_until == None) | (User.premium_until <= datetime.now())
+            )
+            total_count = base_q.count()
             
-            users = session.query(User).filter(
-                (User.premium_until == None) | (User.premium_until <= datetime.now())
-            ).order_by(User.id.desc()).limit(page_size).offset(offset).all()
+            users = base_q.order_by(User.id.desc()).limit(page_size).offset(offset).all()
             
             users_list = []
             for user in users:
@@ -2387,14 +2387,21 @@ class Database:
         Calculates counts for different user categories.
         """
         with get_sync_db() as session:
+            from datetime import datetime
+            now = datetime.now()
+            
             # All
             total = session.query(func.count(User.id)).scalar() or 0
             
-            # Categories based on plan_type
-            premium = session.query(func.count(User.id)).filter(User.plan_type == 'premium').scalar() or 0
-            vip = session.query(func.count(User.id)).filter(User.plan_type == 'vip').scalar() or 0
-            trial = session.query(func.count(User.id)).filter(User.plan_type == 'trial').scalar() or 0
-            free = session.query(func.count(User.id)).filter(User.plan_type == 'free').scalar() or 0
+            # Categories based on active plan_type
+            premium = session.query(func.count(User.id)).filter(User.plan_type == 'premium', User.premium_until > now).scalar() or 0
+            vip = session.query(func.count(User.id)).filter(User.plan_type == 'vip', User.premium_until > now).scalar() or 0
+            trial = session.query(func.count(User.id)).filter(User.plan_type == 'trial', User.premium_until > now).scalar() or 0
+            
+            # Free: Either explicitly free, or expired premium/trial
+            free = session.query(func.count(User.id)).filter(
+                (User.plan_type == 'free') | (User.premium_until == None) | (User.premium_until <= now)
+            ).scalar() or 0
             
             # Incomplete (not onboarded)
             incomplete = session.query(func.count(User.id)).filter(User.is_onboarded == False).scalar() or 0
