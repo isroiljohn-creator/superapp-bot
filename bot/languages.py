@@ -239,7 +239,7 @@ TRANS = {
         "activity_active": "Juda faol",
         "activity_athlete": "Atlet",
 
-        "profile_title": "👤 **Profilingiz**",
+        "profile_title": "👤 Profilingiz",
         "profile_name": "Ism",
         "profile_age": "Yosh",
         "profile_gender": "Jins",
@@ -282,6 +282,7 @@ TRANS = {
         "btn_main_menu": "🏠 Asosiy menyu",
         "btn_ai_murabbiy": "🤖 AI murabbiy",
         "btn_mini_app": "📱 Ilovani ochish",
+        "btn_health_stats": "📊 Sog'liq statistikasi",
         "btn_calorie_tahlili": "🍽 Kaloriya tahlili",
         "btn_yasha_plus": "💚 YASHA Plus",
         "btn_profile": "👤 Profil",
@@ -504,7 +505,7 @@ TRANS = {
         "activity_active": "Активный",
         "activity_athlete": "Атлет",
         
-        "profile_title": "👤 <b>Ваш профиль</b>",
+        "profile_title": "👤 Ваш профиль",
         "profile_name": "Имя",
         "profile_age": "Возраст",
         "profile_gender": "Пол",
@@ -627,6 +628,7 @@ TRANS = {
         "btn_main_menu": "🏠 Главное меню",
         "btn_ai_murabbiy": "🤖 AI тренер",
         "btn_mini_app": "📱 Открыть приложение",
+        "btn_health_stats": "📊 Статистика здоровья",
         "btn_calorie_tahlili": "🍽 Анализ калорий",
         "btn_yasha_plus": "💚 YASHA Plus",
         "btn_profile": "👤 Профиль",
