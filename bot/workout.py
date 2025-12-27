@@ -270,7 +270,13 @@ def show_daily_workout(bot, user_id, link_data, override_day_idx=None):
     import json
     from datetime import datetime, timedelta
     from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
+    from bot.languages import get_text
     
+    if not link_data:
+        bot.send_message(user_id, "⚠️ Hozircha mashg'ulot rejangiz yo'q. /start ni bosing.")
+        return
+
+    lang = db.get_user_language(user_id)
     start_date = link_data['start_date']
     day_idx = link_data['current_day_index']
     
