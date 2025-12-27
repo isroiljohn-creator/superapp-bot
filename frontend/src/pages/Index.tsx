@@ -65,8 +65,8 @@ const AppContent: React.FC = () => {
   const renderScreen = () => {
     switch (activeTab) {
       case 'home': return <HomeScreen onNavigate={setActiveTab} />;
-      case 'menu': return <MenuScreen />;
-      case 'workout': return <WorkoutScreen />;
+      case 'menu': return <MenuScreen onNavigate={setActiveTab} />;
+      case 'workout': return <WorkoutScreen onNavigate={setActiveTab} />;
       case 'habits': return <HabitsScreen />;
       case 'profile': return <ProfileScreen onNavigate={setActiveTab} />;
       case 'ai-coach': return <AiCoachScreen />;

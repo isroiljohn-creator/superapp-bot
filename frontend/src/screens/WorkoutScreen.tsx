@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Lock, Dumbbell, Play, Video, Clock, Flame } from 'lucide-react';
+import { Lock, Dumbbell, Play, Video, Clock, Flame, ChevronRight } from 'lucide-react';
 import { WorkoutCard } from '@/components/WorkoutCard';
 import { Paywall } from '@/components/Paywall';
 import { DaySelector } from '@/components/DaySelector';
@@ -57,7 +57,11 @@ const getVideoWorkouts = (t: (key: string) => string) => [
   },
 ];
 
-export const WorkoutScreen: React.FC = () => {
+interface WorkoutScreenProps {
+  onNavigate?: (tab: string) => void;
+}
+
+export const WorkoutScreen: React.FC<WorkoutScreenProps> = ({ onNavigate }) => {
   const { isPremium, todayLog, markWorkoutDone, getTodayWorkouts } = useUser();
   const { t } = useLanguage();
   const { vibrate } = useHaptic();
@@ -159,6 +163,25 @@ export const WorkoutScreen: React.FC = () => {
             </p>
           </motion.div>
         )}
+
+        {/* Workout Library CTA */}
+        <motion.button
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          onClick={() => onNavigate?.('workout-library')}
+          className="w-full p-4 rounded-xl bg-card border border-border/50 flex items-center justify-between group active:scale-[0.98] transition-all"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary/20 transition-colors">
+              <Dumbbell className="w-5 h-5" />
+            </div>
+            <div className="text-left">
+              <p className="text-sm font-bold text-foreground">{t('explore.workouts')}</p>
+              <p className="text-xs text-muted-foreground">{t('explore.workoutsDesc')}</p>
+            </div>
+          </div>
+          <ChevronRight className="w-5 h-5 text-muted-foreground" />
+        </motion.button>
       </div>
 
       {/* Workouts */}
@@ -199,14 +222,13 @@ export const WorkoutScreen: React.FC = () => {
                 key={video.id}
                 whileTap={{ scale: 0.98 }}
                 onClick={() => handleVideoClick(video.isLocked)}
-                className={`relative w-full rounded-2xl overflow-hidden bg-card border border-border/50 ${
-                  video.isLocked && !isPremium() ? 'opacity-60' : ''
-                }`}
+                className={`relative w-full rounded-2xl overflow-hidden bg-card border border-border/50 ${video.isLocked && !isPremium() ? 'opacity-60' : ''
+                  }`}
               >
                 {/* Thumbnail placeholder */}
                 <div className="aspect-video bg-muted flex items-center justify-center relative">
                   <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent" />
-                  
+
                   {video.isLocked && !isPremium() ? (
                     <div className="w-14 h-14 rounded-full bg-muted-foreground/20 flex items-center justify-center">
                       <Lock className="w-6 h-6 text-muted-foreground" />

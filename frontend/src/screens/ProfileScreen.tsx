@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import {
   User, Crown, ChevronRight, LogOut,
   Bell, HelpCircle, Shield, Star, Trophy,
-  Camera, Edit2, ShoppingBag, Target, Settings
+  Camera, Edit2, ShoppingBag, Target, Settings, BarChart3
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Paywall } from '@/components/Paywall';
@@ -109,7 +109,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onNavigate }) => {
 
   const menuItems = [
     { icon: Edit2, label: t('profile.editProfile'), action: () => { vibrate('light'); setShowEditProfile(true); } },
-    { icon: Target, label: t('home.dailyHabits'), action: () => { vibrate('light'); onNavigate?.('habits'); } },
+    { icon: BarChart3, label: t('explore.reports'), action: () => { vibrate('light'); onNavigate?.('reports'); } },
     { icon: Settings, label: t('profile.settingsLang'), action: () => { vibrate('light'); onNavigate?.('settings'); } },
     { icon: Bell, label: t('profile.notifications'), action: () => { vibrate('light'); onNavigate?.('notifications'); } },
     { icon: ShoppingBag, label: language === 'ru' ? 'Магазин' : 'Do\'kon', action: () => { vibrate('light'); onNavigate?.('shop'); } },

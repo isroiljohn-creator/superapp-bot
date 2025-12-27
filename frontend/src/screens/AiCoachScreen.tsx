@@ -40,14 +40,14 @@ export const AiCoachScreen: React.FC = () => {
     scrollToBottom();
   }, [messages]);
 
-  const sendMessage = async () => {
-    if (!input.trim() || isLoading) return;
+  const submitQuestion = async (text: string) => {
+    if (!text.trim() || isLoading) return;
 
     vibrate('light');
     const userMessage: Message = {
       id: Date.now().toString(),
       role: 'user',
-      content: input.trim()
+      content: text.trim()
     };
 
     setMessages(prev => [...prev, userMessage]);
@@ -93,6 +93,8 @@ export const AiCoachScreen: React.FC = () => {
     }
   };
 
+  const sendMessage = () => submitQuestion(input);
+
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -107,7 +109,7 @@ export const AiCoachScreen: React.FC = () => {
   ];
 
   return (
-    <div className="h-screen bg-background flex flex-col overflow-hidden">
+    <div className="h-[var(--tg-viewport-stable-height,100vh)] bg-background flex flex-col overflow-hidden">
       {/* Header */}
       <div className="px-4 pt-6 pb-4 safe-area-top border-b border-border/50">
         <div className="flex items-center gap-3">
@@ -188,8 +190,8 @@ export const AiCoachScreen: React.FC = () => {
                 <button
                   key={i}
                   onClick={() => {
-                    setInput(q);
                     vibrate('light');
+                    submitQuestion(q);
                   }}
                   className="px-3 py-2 bg-card border border-border/50 rounded-full text-sm text-foreground whitespace-nowrap hover:bg-muted transition-colors"
                 >

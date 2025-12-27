@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Lock, Calendar, Coffee, Apple, Moon, Cookie, Loader2, RefreshCw, ChevronRight, Check } from 'lucide-react';
+import { Lock, Calendar, Coffee, Apple, Moon, Cookie, Loader2, RefreshCw, ChevronRight, Check, ChefHat } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Paywall } from '@/components/Paywall';
 import { DaySelector } from '@/components/DaySelector';
@@ -61,7 +61,11 @@ const getMealTimeLabel = (type: string, t: (key: string) => string) => {
   }
 };
 
-export const MenuScreen: React.FC = () => {
+interface MenuScreenProps {
+  onNavigate?: (tab: string) => void;
+}
+
+export const MenuScreen: React.FC<MenuScreenProps> = ({ onNavigate }) => {
   const { isPremium, getTodayMeals, getTodayCalories, profile } = useUser();
   const { t } = useLanguage();
   const { vibrate } = useHaptic();
@@ -311,6 +315,25 @@ export const MenuScreen: React.FC = () => {
             </p>
           </motion.div>
         )}
+
+        {/* Healthy Recipes CTA */}
+        <motion.button
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          onClick={() => onNavigate?.('recipes')}
+          className="w-full p-4 rounded-xl bg-card border border-border/50 flex items-center justify-between group active:scale-[0.98] transition-all"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-green-500/10 flex items-center justify-center text-green-500 group-hover:bg-green-500/20 transition-colors">
+              <ChefHat className="w-5 h-5" />
+            </div>
+            <div className="text-left">
+              <p className="text-sm font-bold text-foreground">{t('explore.recipes')}</p>
+              <p className="text-xs text-muted-foreground">{t('explore.recipesDesc')}</p>
+            </div>
+          </div>
+          <ChevronRight className="w-5 h-5 text-muted-foreground" />
+        </motion.button>
       </div>
 
       {/* Meals */}

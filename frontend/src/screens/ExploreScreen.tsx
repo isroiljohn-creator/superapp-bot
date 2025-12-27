@@ -1,8 +1,8 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { 
-  Scale, Award, Brain, ChefHat, BarChart3, Users, Swords, 
-  CheckSquare, Dumbbell, ShoppingBag, Flame, ArrowLeft
+import {
+  Scale, Award, Brain, ChefHat, BarChart3, Users, Swords,
+  CheckSquare, Dumbbell, ShoppingBag, Flame, ArrowLeft, ChevronRight
 } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 
@@ -32,13 +32,10 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({ onNavigate, onBack
     { id: 'weight', icon: Scale, labelKey: 'explore.weight', descKey: 'explore.weightDesc', color: 'blue' },
     { id: 'calories', icon: Flame, labelKey: 'explore.calories', descKey: 'explore.caloriesDesc', color: 'orange' },
     { id: 'daily-tasks', icon: CheckSquare, labelKey: 'explore.tasks', descKey: 'explore.tasksDesc', color: 'amber' },
-    { id: 'reports', icon: BarChart3, labelKey: 'explore.reports', descKey: 'explore.reportsDesc', color: 'teal' },
   ];
 
   const wellnessFeatures = [
-    { id: 'workout-library', icon: Dumbbell, labelKey: 'explore.workouts', descKey: 'explore.workoutsDesc', color: 'purple' },
     { id: 'meditation', icon: Brain, labelKey: 'explore.meditation', descKey: 'explore.meditationDesc', color: 'indigo' },
-    { id: 'recipes', icon: ChefHat, labelKey: 'explore.recipes', descKey: 'explore.recipesDesc', color: 'green' },
   ];
 
   const socialFeatures = [
@@ -118,9 +115,22 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({ onNavigate, onBack
             <h2 className="text-base font-bold text-foreground mb-3 flex items-center gap-2">
               🧘 {t('explore.wellness')}
             </h2>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1">
               {wellnessFeatures.map((feature) => (
-                <FeatureButton key={feature.id} feature={feature} />
+                <button
+                  key={feature.id}
+                  onClick={() => onNavigate?.(feature.id)}
+                  className="p-6 rounded-2xl bg-indigo-500/15 border border-indigo-500/30 text-left transition-all active:scale-[0.98] flex items-center gap-4 group"
+                >
+                  <div className="w-14 h-14 rounded-xl bg-indigo-500/20 flex items-center justify-center shrink-0">
+                    <Brain className="w-8 h-8 text-indigo-400" />
+                  </div>
+                  <div>
+                    <p className="text-lg font-bold text-foreground">{t(feature.labelKey)}</p>
+                    <p className="text-sm text-muted-foreground">{t(feature.descKey)}</p>
+                  </div>
+                  <ChevronRight className="w-5 h-5 text-indigo-400 ml-auto opacity-50 group-active:opacity-100" />
+                </button>
               ))}
             </div>
           </motion.div>
