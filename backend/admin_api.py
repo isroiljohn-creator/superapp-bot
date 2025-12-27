@@ -69,8 +69,8 @@ def verify_telegram_data(init_data: str) -> dict:
     str_user_id = str(user_id)
     
     if str_user_id not in str_admin_ids:
-        print(f"❌ ADMIN ACCESS DENIED: User ID {user_id} ({type(user_id)}) not in allowlist {ADMIN_IDS} (types: {[type(x) for x in ADMIN_IDS]})")
-        raise HTTPException(status_code=403, detail="Admin access restricted")
+        print(f"❌ ADMIN ACCESS DENIED: User ID {user_id} ({type(user_id)}) not in allowlist {ADMIN_IDS}")
+        raise HTTPException(status_code=403, detail=f"Admin access restricted. Your ID: {str_user_id}")
 
     print(f"✅ ADMIN ACCESS GRANTED: User ID {user_id}")
     return user_data

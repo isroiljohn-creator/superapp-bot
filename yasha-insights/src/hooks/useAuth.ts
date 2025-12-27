@@ -38,12 +38,12 @@ export function useAuth() {
       } catch (error: unknown) {
         // Token invalid, clear it
         api.clearToken();
-        const apiError = error as { status?: number };
-        if (apiError.status === 403) {
+        const apiError = error as { status?: number; response?: { data?: { detail?: string } } };
+        if (apiError.status === 403 || apiError.response?.data?.detail) {
           setAuthState({
             isAuthenticated: false,
             isLoading: false,
-            error: 'Access Denied. Admin privileges required.',
+            error: apiError.response?.data?.detail || 'Access Denied. Admin privileges required.',
             user: null,
           });
           return;
@@ -73,10 +73,12 @@ export function useAuth() {
         user: telegramUser,
       });
     } catch (error: unknown) {
-      const apiError = error as { detail?: string; status?: number };
+      const apiError = error as { response?: { data?: { detail?: string } }; status?: number; detail?: string };
       let errorMessage = 'Authentication failed';
 
-      if (apiError.status === 403) {
+      if (apiError.response?.data?.detail) {
+        errorMessage = apiError.response.data.detail;
+      } else if (apiError.status === 403) {
         errorMessage = 'Access Denied. Admin privileges required.';
       } else if (apiError.detail) {
         errorMessage = apiError.detail;
