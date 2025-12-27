@@ -67,48 +67,56 @@ from backend.admin_api import router as admin_router
 app.include_router(api_router, prefix="/api/v1")
 app.include_router(admin_router, prefix="/api/v1")
 
-# === Static Files (Optional - only if frontend is built) ===
-dist_path = os.path.join(os.getcwd(), "yasha-insights/dist")
+# === Static Files serving for Two Frontends ===
+FRONTEND_DIST = os.path.join(os.getcwd(), "frontend/dist")
+ADMIN_DIST = os.path.join(os.getcwd(), "yasha-insights/dist")
 
-if os.path.exists(dist_path):
-    @app.get("/{full_path:path}")
-    async def serve_frontend(full_path: str):
-        # 1. Check in root dist (index.html, robots.txt, etc.)
-        file_path = os.path.join(dist_path, full_path)
-        if os.path.exists(file_path) and os.path.isfile(file_path):
-            return FileResponse(file_path)
-            
-        # 2. Check in assets folder (fallback for hashed assets requested from root)
-        asset_file = os.path.join(dist_path, "assets", full_path)
-        if os.path.exists(asset_file) and os.path.isfile(asset_file):
-            return FileResponse(asset_file)
-            
-        # 3. SPA Routing Fallback
-        # If the request contains a dot (e.g. .js, .css, .png) and wasn't found, 404 it
-        # to prevent serving HTML as JS/CSS/Image.
-        if "." in full_path.split("/")[-1]:
-            raise HTTPException(status_code=404, detail="File not found")
-            
-        return FileResponse(os.path.join(dist_path, "index.html"))
-else:
-    @app.get("/")
-    async def root():
-        """API is running - Debug Mode"""
-        cwd = os.getcwd()
-        frontend_exists = os.path.exists("frontend")
-        dist_exists = os.path.exists("frontend/dist")
+@app.get("/admin-insights/{full_path:path}")
+async def serve_admin(full_path: str):
+    if not os.path.exists(ADMIN_DIST):
+        return {"error": "Admin frontend not built"}
+    
+    # Remove "admin-insights/" prefix from internal lookup if present in full_path (though FastAPI handles subpaths)
+    # Actually, full_path is what follows /admin-insights/
+    
+    file_path = os.path.join(ADMIN_DIST, full_path)
+    if os.path.exists(file_path) and os.path.isfile(file_path):
+        return FileResponse(file_path)
         
-        files_root = os.listdir('.')
-        files_frontend = os.listdir('frontend') if frontend_exists else []
-        files_dist = os.listdir('frontend/dist') if dist_exists else []
+    # Asset fallback
+    asset_file = os.path.join(ADMIN_DIST, "assets", full_path)
+    if os.path.exists(asset_file) and os.path.isfile(asset_file):
+        return FileResponse(asset_file)
+
+    # SPA Fallback for Admin
+    if "." in full_path.split("/")[-1]:
+        raise HTTPException(status_code=404, detail="Admin asset not found")
         
+    return FileResponse(os.path.join(ADMIN_DIST, "index.html"))
+
+@app.get("/{full_path:path}")
+async def serve_main(full_path: str):
+    # Skip if it's an API call (though routers handle this first)
+    if full_path.startswith("api/v1"):
+        raise HTTPException(status_code=404)
+
+    if not os.path.exists(FRONTEND_DIST):
+        # Fallback to debug message if main frontend isn't built
         return {
             "status": "YASHA API is running", 
-            "message": "Frontend not built - API only mode",
-            "debug": {
-                "cwd": cwd,
-                "files_root": files_root,
-                "files_frontend": files_frontend,
-                "files_dist": files_dist
-            }
+            "message": "Main frontend not built - API only mode",
+            "admin_insights": "/admin-insights"
         }
+
+    file_path = os.path.join(FRONTEND_DIST, full_path)
+    if os.path.exists(file_path) and os.path.isfile(file_path):
+        return FileResponse(file_path)
+        
+    asset_file = os.path.join(FRONTEND_DIST, "assets", full_path)
+    if os.path.exists(asset_file) and os.path.isfile(asset_file):
+        return FileResponse(asset_file)
+
+    if "." in full_path.split("/")[-1]:
+        raise HTTPException(status_code=404, detail="File not found")
+        
+    return FileResponse(os.path.join(FRONTEND_DIST, "index.html"))

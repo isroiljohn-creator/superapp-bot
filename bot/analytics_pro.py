@@ -25,7 +25,11 @@ def register_analytics_handlers(bot):
         
         # Add Mini App Button
         import os
-        webapp_url = os.getenv("ADMIN_WEBAPP_URL", "https://yasha-insights.up.railway.app")
+        base_url = os.getenv("MINI_APP_URL", "https://yasha-insights.up.railway.app")
+        # Ensure base_url doesn't have a trailing slash for concatenation
+        if base_url.endswith("/"): base_url = base_url[:-1]
+        webapp_url = f"{base_url}/admin-insights/"
+        
         markup.row(types.InlineKeyboardButton("📊 Admin Dashboard", web_app=types.WebAppInfo(url=webapp_url)))
         
         bot.send_message(

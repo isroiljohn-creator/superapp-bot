@@ -78,7 +78,7 @@ def main_menu_keyboard(is_admin=False, user_id=None, lang=None):
     coach_text = get_text("btn_ai_murabbiy", lang=lang)
     app_text = get_text("btn_mini_app", lang=lang)
     
-    mini_app_url = os.getenv("MINI_APP_URL", "https://obsid.uz")
+    mini_app_url = os.getenv("MINI_APP_URL", "https://yasha-insights.up.railway.app")
     
     markup.add(
         KeyboardButton(coach_text),
