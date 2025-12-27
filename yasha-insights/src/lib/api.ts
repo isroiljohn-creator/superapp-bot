@@ -57,4 +57,25 @@ export const api = {
     const res = await axiosInstance.get('/admin/adaptation');
     return res.data;
   },
+
+  // New Analytics PRO Endpoints
+  getGrowth: async () => {
+    const res = await axiosInstance.get('/admin/analytics/growth');
+    return res.data;
+  },
+
+  getFunnelGraph: async () => {
+    const res = await axiosInstance.get('/admin/analytics/funnel');
+    return res.data;
+  },
+
+  getRetentionGraph: async () => {
+    const res = await axiosInstance.get('/admin/analytics/retention');
+    return res.data;
+  },
+
+  getPremiumDist: async () => {
+    const res = await axiosInstance.get('/admin/analytics/premium_dist');
+    return res.data;
+  },
 };

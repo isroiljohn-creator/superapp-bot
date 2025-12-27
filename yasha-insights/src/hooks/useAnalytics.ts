@@ -53,6 +53,39 @@ export function useAdaptation(range: string = '14d') {
   });
 }
 
+// New Hooks for Advanced Analytics tab
+export function useGrowth() {
+  return useQuery<{ data: { date: string; value: number }[] }>({
+    queryKey: ['analytics', 'growth'],
+    queryFn: () => api.getGrowth(),
+    refetchInterval: 60000,
+  });
+}
+
+export function useFunnel() {
+  return useQuery<{ data: { name: string; value: number }[] }>({
+    queryKey: ['analytics', 'funnel'],
+    queryFn: () => api.getFunnelGraph(),
+    refetchInterval: 60000,
+  });
+}
+
+export function useRetentionGraph() {
+  return useQuery<{ data: { name: string; value: number }[] }>({
+    queryKey: ['analytics', 'retention_graph'],
+    queryFn: () => api.getRetentionGraph(),
+    refetchInterval: 60000,
+  });
+}
+
+export function usePremiumDist() {
+  return useQuery<{ data: { name: string; value: number }[] }>({
+    queryKey: ['analytics', 'premium'],
+    queryFn: () => api.getPremiumDist(),
+    refetchInterval: 60000,
+  });
+}
+
 // Mock data for development/demo
 export const mockOverview: OverviewData = {
   total_users: 2847,

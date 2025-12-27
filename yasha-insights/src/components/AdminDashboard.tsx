@@ -19,8 +19,9 @@ import {
   SheetContent,
   SheetTrigger,
 } from '@/components/ui/sheet';
+import { AdvancedAnalyticsTab } from './tabs/AdvancedAnalyticsTab';
 
-type TabId = 'overview' | 'retention' | 'ai-costs' | 'quality';
+type TabId = 'overview' | 'analytics' | 'retention' | 'ai-costs' | 'quality';
 
 interface Tab {
   id: TabId;
@@ -30,6 +31,7 @@ interface Tab {
 
 const tabs: Tab[] = [
   { id: 'overview', label: 'Overview', icon: LayoutDashboard },
+  { id: 'analytics', label: 'Pro Analytics', icon: BarChart3 },
   { id: 'retention', label: 'Retention', icon: Users },
   { id: 'ai-costs', label: 'AI Costs', icon: Cpu },
   { id: 'quality', label: 'Quality', icon: Star },
@@ -50,6 +52,8 @@ export function AdminDashboard() {
     switch (activeTab) {
       case 'overview':
         return <OverviewTab />;
+      case 'analytics':
+        return <AdvancedAnalyticsTab />;
       case 'retention':
         return <RetentionTab />;
       case 'ai-costs':
