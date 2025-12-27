@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import { motion } from 'framer-motion';
 import { Swords, Plus, ArrowLeft, Footprints, Droplets, Dumbbell, Scale, Users, Clock, Trophy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -37,7 +38,26 @@ export const ChallengesScreen: React.FC<ChallengesScreenProps> = ({ onBack }) =>
 
   // Bo'sh ro'yxat (Haqiqiy data uchun)
   const [challenges, setChallenges] = useState<Challenge[]>([]);
-  const [joinedIds, setJoinedIds] = useState<Set<string>>(new Set());
+  const [isLoading, setIsLoading] = useState(true);
+
+  const fetchChallenges = async () => {
+    try {
+      setIsLoading(true);
+      const token = localStorage.getItem('token');
+      const res = await axios.get(`${import.meta.env.VITE_API_URL || '/api/v1'}/social/challenges`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setChallenges(res.data);
+    } catch (e) {
+      console.error("Fetch challenges error:", e);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchChallenges();
+  }, []);
 
   const getTypeIcon = (type: string) => {
     switch (type) {
@@ -59,7 +79,7 @@ export const ChallengesScreen: React.FC<ChallengesScreenProps> = ({ onBack }) =>
     }
   };
 
-  const handleCreateChallenge = () => {
+  const handleCreateChallenge = async () => {
     if (!newChallenge.title || !newChallenge.targetValue) {
       toast({
         title: t('common.error'),
@@ -68,26 +88,58 @@ export const ChallengesScreen: React.FC<ChallengesScreenProps> = ({ onBack }) =>
       });
       return;
     }
-    toast({
-      title: t('challenges.created'),
-      description: `"${newChallenge.title}" ${t('challenges.createdDesc')}`,
-    });
-    setIsCreateOpen(false);
-    setNewChallenge({ title: '', type: 'steps', targetValue: '', days: '7' });
+
+    try {
+      const token = localStorage.getItem('token');
+      await axios.post(`${import.meta.env.VITE_API_URL || '/api/v1'}/social/challenges`, {
+        title: newChallenge.title,
+        type: newChallenge.type,
+        target_value: parseInt(newChallenge.targetValue),
+        days: parseInt(newChallenge.days)
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      toast({
+        title: t('challenges.created'),
+        description: `"${newChallenge.title}" ${t('challenges.createdDesc')}`,
+      });
+      setIsCreateOpen(false);
+      setNewChallenge({ title: '', type: 'steps', targetValue: '', days: '7' });
+      fetchChallenges();
+    } catch (e: any) {
+      toast({
+        title: t('common.error'),
+        description: e.response?.data?.detail || "Xatolik yuz berdi",
+        variant: "destructive",
+      });
+    }
   };
 
-  const handleJoinChallenge = (id: string, title: string) => {
-    setJoinedIds(prev => new Set(prev).add(id));
-    toast({
-      title: t('challenges.joined'),
-      description: `"${title}" ${t('challenges.joinedDesc')}`,
-    });
+  const handleJoinChallenge = async (id: string, title: string) => {
+    try {
+      const token = localStorage.getItem('token');
+      await axios.post(`${import.meta.env.VITE_API_URL || '/api/v1'}/social/challenges/${id}/join`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      toast({
+        title: t('challenges.joined'),
+        description: `"${title}" ${t('challenges.joinedDesc')}`,
+      });
+      fetchChallenges();
+    } catch (e: any) {
+      toast({
+        title: t('common.error'),
+        description: e.response?.data?.detail || "Xatolik yuz berdi",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleDeleteChallenge = (id: string) => {
-    setChallenges(prev => prev.filter(c => c.id !== id));
+    // Backend delete not implemented yet
     toast({
-      title: t('challenges.deleted') || "O'chirildi",
+      title: "Hozircha o'chirib bo'lmaydi",
     });
   };
 
@@ -226,12 +278,12 @@ export const ChallengesScreen: React.FC<ChallengesScreenProps> = ({ onBack }) =>
                     </Button>
                   ) : (
                     <Button
-                      variant={joinedIds.has(challenge.id) ? "secondary" : "outline"}
+                      variant={(challenge as any).isJoined ? "secondary" : "outline"}
                       size="sm"
                       onClick={() => handleJoinChallenge(challenge.id, challenge.title)}
-                      disabled={joinedIds.has(challenge.id)}
+                      disabled={(challenge as any).isJoined}
                     >
-                      {joinedIds.has(challenge.id) ? (t('challenges.joined') || "Qo'shildingiz") : t('challenges.join')}
+                      {(challenge as any).isJoined ? (t('challenges.joined') || "Qo'shildingiz") : t('challenges.join')}
                     </Button>
                   )}
                 </div>

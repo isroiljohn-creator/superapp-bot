@@ -46,6 +46,11 @@ class User(Base):
     calorie_logs = relationship("CalorieLog", back_populates="user")
     menu_link = relationship("UserMenuLink", uselist=False, back_populates="user")
     workout_link = relationship("UserWorkoutLink", uselist=False, back_populates="user")
+    
+    # Social Relationships
+    friendships = relationship("Friendship", foreign_keys="[Friendship.user_id]", back_populates="user")
+    created_challenges = relationship("Challenge", back_populates="creator")
+    joined_challenges = relationship("Challenge", secondary="challenge_participants", back_populates="participants")
     subscriptions = relationship("Subscription", back_populates="user")
     meal_logs = relationship("MealLog", back_populates="user")
     exercise_logs = relationship("ExerciseLog", back_populates="user")
@@ -503,3 +508,44 @@ class DishReviewQueue(Base):
     metrics = Column(JSON, nullable=True)
     status = Column(String, default="open") # open, closed
 
+
+class FriendRequest(Base):
+    __tablename__ = "friend_requests"
+    id = Column(Integer, primary_key=True, index=True)
+    from_user_id = Column(Integer, ForeignKey("users.id"))
+    to_user_id = Column(Integer, ForeignKey("users.id"))
+    status = Column(String, default="pending") # pending, accepted, rejected
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    from_user = relationship("User", foreign_keys=[from_user_id])
+    to_user = relationship("User", foreign_keys=[to_user_id])
+
+class Friendship(Base):
+    __tablename__ = "friendships"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    friend_id = Column(Integer, ForeignKey("users.id"))
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    user = relationship("User", foreign_keys=[user_id], back_populates="friendships")
+    friend = relationship("User", foreign_keys=[friend_id])
+
+class Challenge(Base):
+    __tablename__ = "challenges"
+    id = Column(Integer, primary_key=True, index=True)
+    creator_id = Column(Integer, ForeignKey("users.id"))
+    title = Column(String)
+    type = Column(String) # steps, water, workout, weight
+    target_value = Column(Integer)
+    days = Column(Integer)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    status = Column(String, default="active") # active, completed
+    
+    creator = relationship("User", back_populates="created_challenges")
+    participants = relationship("User", secondary="challenge_participants", back_populates="joined_challenges")
+
+class ChallengeParticipant(Base):
+    __tablename__ = "challenge_participants"
+    challenge_id = Column(Integer, ForeignKey("challenges.id"), primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"), primary_key=True)
+    joined_at = Column(DateTime, default=datetime.utcnow)

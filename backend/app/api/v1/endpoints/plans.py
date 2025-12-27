@@ -95,11 +95,17 @@ async def generate_meal(
         }
     
     # Calculate daily calorie goal (TDEE) based on profile
+    # Null checks and defaults for safety
+    weight = current_user.weight or 70.0
+    height = current_user.height or 170
+    age = current_user.age or 25
+    gender = current_user.gender or 'male'
+    
     bmr = 0
-    if current_user.gender == 'male':
-        bmr = 88.362 + (13.397 * current_user.weight) + (4.799 * current_user.height) - (5.677 * current_user.age)
+    if gender == 'male':
+        bmr = 88.362 + (13.397 * weight) + (4.799 * height) - (5.677 * age)
     else:
-        bmr = 447.593 + (9.247 * current_user.weight) + (3.098 * current_user.height) - (4.330 * current_user.age)
+        bmr = 447.593 + (9.247 * weight) + (3.098 * height) - (4.330 * age)
     
     activity_multipliers = {
         "sedentary": 1.2,
@@ -184,15 +190,18 @@ async def generate_workout(
     try:
         from core.ai import ai_generate_weekly_workout_json
         
-        full_data = ai_generate_weekly_workout_json({
-                "age": current_user.age,
-                "gender": current_user.gender,
-                "height": current_user.height,
-                "weight": current_user.weight,
-                "goal": current_user.goal,
-                "activity_level": current_user.activity_level,
-                "telegram_id": current_user.telegram_id
-        })
+        # Profile defaults
+        safe_profile = {
+            "age": current_user.age or 25,
+            "gender": current_user.gender or 'male',
+            "height": current_user.height or 170,
+            "weight": current_user.weight or 70.0,
+            "goal": current_user.goal or 'health',
+            "activity_level": current_user.activity_level or 'moderate',
+            "telegram_id": current_user.telegram_id
+        }
+        
+        full_data = ai_generate_weekly_workout_json(safe_profile)
         
         # Extract schedule from unified workout format
         plan_json = full_data.get('schedule', [])

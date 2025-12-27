@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Users, UserPlus, Trophy, Swords, ArrowLeft, Search, Crown, Medal, Award } from 'lucide-react';
+import { Users, UserPlus, Trophy, Swords, ArrowLeft, Search, Crown, Medal, Award, Loader2 } from 'lucide-react';
+import axios from 'axios';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -33,14 +34,75 @@ export const FriendsScreen: React.FC<FriendsScreenProps> = ({ onBack }) => {
   const { t } = useLanguage();
   const { toast } = useToast();
   const { profile, points } = useUser();
-  const [searchQuery, setSearchQuery] = useState('');
-  const [activeTab, setActiveTab] = useState('friends');
-
-  // Bo'sh ro'yxat (Haqiqiy backend ulanmaguncha)
   const [friends, setFriends] = useState<Friend[]>([]);
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const fetchFriends = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await axios.get(`${import.meta.env.VITE_API_URL || '/api/v1'}/social/friends`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setFriends(res.data);
+    } catch (e) {
+      console.error("Fetch friends error:", e);
+    }
+  };
+
+  useEffect(() => {
+    fetchFriends();
+  }, []);
+
+  // Search effect
+  useEffect(() => {
+    const searchTimer = setTimeout(async () => {
+      if (searchQuery.length >= 3) {
+        setIsSearching(true);
+        try {
+          const token = localStorage.getItem('token');
+          const res = await axios.get(`${import.meta.env.VITE_API_URL || '/api/v1'}/social/search?q=${searchQuery}`, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          setSearchResults(res.data);
+        } catch (e) {
+          console.error("Search error:", e);
+        } finally {
+          setIsSearching(false);
+        }
+      } else {
+        setSearchResults([]);
+      }
+    }, 500);
+
+    return () => clearTimeout(searchTimer);
+  }, [searchQuery]);
+
   const leaderboard: LeaderboardEntry[] = [
     { rank: 1, nameKey: 'friends.you', name: profile?.name || '', score: points },
   ];
+
+  const handleAddFriendFromSearch = async (userId: number, username: string) => {
+    try {
+      const token = localStorage.getItem('token');
+      await axios.post(`${import.meta.env.VITE_API_URL || '/api/v1'}/social/friends/request?to_user_id=${userId}`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      toast({
+        title: t('friends.requestSent'),
+        description: `@${username} ${t('friends.requestSentDesc')}`,
+      });
+      setSearchQuery('');
+      setSearchResults([]);
+    } catch (e: any) {
+      toast({
+        title: t('common.error'),
+        description: e.response?.data?.detail || "Xatolik yuz berdi",
+        variant: "destructive",
+      });
+    }
+  };
 
   const handleAddFriend = () => {
     if (!searchQuery.trim()) {
@@ -51,11 +113,21 @@ export const FriendsScreen: React.FC<FriendsScreenProps> = ({ onBack }) => {
       });
       return;
     }
-    toast({
-      title: t('friends.requestSent'),
-      description: `${searchQuery} ${t('friends.requestSentDesc')}`,
-    });
-    setSearchQuery('');
+    // If there is only one result, add it
+    if (searchResults.length === 1) {
+      handleAddFriendFromSearch(searchResults[0].id, searchResults[0].username);
+    } else if (searchResults.length > 1) {
+      toast({
+        title: "Ma'lumot",
+        description: "Ro'yxatdan foydalanuvchini tanlang",
+      });
+    } else {
+      toast({
+        title: t('common.error'),
+        description: "Foydalanuvchi topilmadi",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleChallenge = (friendName: string) => {
@@ -113,9 +185,40 @@ export const FriendsScreen: React.FC<FriendsScreenProps> = ({ onBack }) => {
             />
           </div>
           <Button onClick={handleAddFriend} size="icon">
-            <UserPlus className="w-4 h-4" />
+            {isSearching ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}
           </Button>
         </div>
+
+        {/* Search Results Dropdown */}
+        <AnimatePresence>
+          {searchResults.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="bg-card border border-border rounded-2xl p-2 mb-6 shadow-xl"
+            >
+              {searchResults.map((user) => (
+                <button
+                  key={user.id}
+                  onClick={() => handleAddFriendFromSearch(user.id, user.username)}
+                  className="w-full flex items-center justify-between p-3 hover:bg-muted rounded-xl transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center font-bold text-primary">
+                      {user.username[0].toUpperCase()}
+                    </div>
+                    <div className="text-left">
+                      <p className="font-semibold text-foreground">@{user.username}</p>
+                      <p className="text-xs text-muted-foreground">{user.full_name}</p>
+                    </div>
+                  </div>
+                  <UserPlus className="w-4 h-4 text-primary" />
+                </button>
+              ))}
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
