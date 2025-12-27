@@ -36,6 +36,11 @@ export const FriendsScreen: React.FC<FriendsScreenProps> = ({ onBack }) => {
   const { profile, points } = useUser();
   const [friends, setFriends] = useState<Friend[]>([]);
   const [friendRequests, setFriendRequests] = useState<any[]>([]);
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isSearching, setIsSearching] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [activeTab, setActiveTab] = useState('friends');
 
   const fetchFriends = async () => {
     try {

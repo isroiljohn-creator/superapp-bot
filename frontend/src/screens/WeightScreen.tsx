@@ -146,22 +146,18 @@ export const WeightScreen: React.FC<WeightScreenProps> = ({ onBack }) => {
             <motion.div
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
-              className="flex gap-3 mt-4"
-              onAnimationComplete={() => {
-                document.getElementById('weight-input-container')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-              }}
-              id="weight-input-container"
+              className="flex flex-col gap-3 mt-4"
             >
               <input
                 type="number"
                 value={weightInput}
                 onChange={(e) => setWeightInput(e.target.value)}
                 step="0.1"
-                className="flex-1 h-12 px-4 rounded-xl bg-background border border-border text-foreground text-center text-lg font-medium"
+                className="w-full h-12 px-4 rounded-xl bg-background border border-border text-foreground text-center text-lg font-medium"
                 placeholder={t('weight.placeholder')}
                 autoFocus
               />
-              <Button onClick={addWeight} className="h-12 px-6">
+              <Button onClick={addWeight} className="w-full h-12">
                 {t('common.save')}
               </Button>
             </motion.div>
