@@ -15,7 +15,14 @@ export const NotificationSettingsScreen: React.FC<NotificationSettingsScreenProp
   const { toast } = useToast();
   const { notificationSettings, updateNotificationSettings } = useUser();
 
-  const [localSettings, setLocalSettings] = useState(notificationSettings);
+  const [localSettings, setLocalSettings] = useState(notificationSettings || {
+    waterReminders: false,
+    waterInterval: '2',
+    workoutReminders: false,
+    workoutTime: '07:00',
+    sleepReminders: false,
+    sleepTime: '22:00'
+  });
 
   const handleSave = async () => {
     try {
