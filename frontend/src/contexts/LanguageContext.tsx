@@ -508,8 +508,11 @@ const translations: Record<Language, Record<string, string>> = {
     'paywall.premiumDesc': 'Sog\'lom turmush tarzini tizimlashtirishni boshlaganlar uchun ideal tanlov',
     'paywall.vipDesc': 'Maksimal natija va to\'liq erkinlikni xohlovchilar uchun',
     'paywall.subscribe': 'Obuna bo\'lish',
-    'paywall.telegramInfo': '💬 Obuna bo\'lish uchun Telegram botimizga o\'tasiz',
+    'paywall.telegramInfo': '💬 To\'lovni amalga oshirish uchun Telegram oynasi ochiladi',
     'paywall.trial': '7 kunlik bepul sinov • Istalgan vaqtda bekor qilish mumkin',
+    'paywall.success': 'To\'lov muvaffaqiyatli amalga oshirildi! 🎉',
+    'paywall.failed': 'To\'lov bekor qilindi yoki xatolik yuz berdi.',
+    'paywall.error': 'To\'lov tizimiga ulanishda xatolik yuz berdi.',
 
     // Onboarding
     'onboarding.slogan': 'Sog\'lom hayot murabbiyi',
@@ -1063,8 +1066,11 @@ const translations: Record<Language, Record<string, string>> = {
     'paywall.premiumDesc': 'Идеальный выбор для тех, кто начинает систематизировать здоровый образ жизни',
     'paywall.vipDesc': 'Для тех, кто хочет максимальных результатов и полной свободы',
     'paywall.subscribe': 'Подписаться',
-    'paywall.telegramInfo': '💬 Для подписки вы перейдёте в наш Telegram бот',
+    'paywall.telegramInfo': '💬 Для оплаты откроется окно Telegram',
     'paywall.trial': '7 дней бесплатно • Можно отменить в любое время',
+    'paywall.success': 'Оплата прошла успешно! 🎉',
+    'paywall.failed': 'Оплата отменена или произошла ошибка.',
+    'paywall.error': 'Ошибка при подключении к платежной системе.',
 
     // Onboarding
     'onboarding.slogan': 'Тренер здорового образа жизни',

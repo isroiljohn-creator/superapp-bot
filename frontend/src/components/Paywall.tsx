@@ -6,6 +6,9 @@ import { cn } from '@/lib/utils';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useUser } from '@/contexts/UserContext';
 import { useHaptic } from '@/hooks/useHaptic';
+import { toast } from 'sonner';
+import axios from 'axios';
+import plansTable from '@/assets/plans_table.png';
 
 interface PaywallProps {
   isOpen: boolean;
@@ -13,6 +16,7 @@ interface PaywallProps {
   feature?: string;
 }
 
+// Link to bot if needed as fallback
 const TELEGRAM_BOT_URL = 'https://t.me/yashabot';
 
 export const Paywall: React.FC<PaywallProps> = ({
@@ -79,9 +83,40 @@ export const Paywall: React.FC<PaywallProps> = ({
     return true;
   });
 
-  const handleSubscribe = (planId: string) => {
+  const handleSubscribe = async (planId: string) => {
     vibrate('success');
-    window.open(`${TELEGRAM_BOT_URL}?start=subscribe_${planId}`, '_blank');
+
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.post('/api/v1/pay/invoice', {
+        plan_id: planId
+      }, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.data.invoice_link) {
+        // @ts-ignore
+        if (window.Telegram?.WebApp?.openInvoice) {
+          // @ts-ignore
+          window.Telegram.WebApp.openInvoice(response.data.invoice_link, (status: string) => {
+            if (status === 'paid') {
+              toast.success(t('paywall.success'));
+              onClose();
+            } else if (status === 'failed') {
+              toast.error(t('paywall.failed'));
+            }
+          });
+        } else {
+          // Fallback to external link if not in Telegram environment
+          window.open(response.data.invoice_link, '_blank');
+        }
+      }
+    } catch (error: any) {
+      console.error('Payment error:', error);
+      toast.error(error.response?.data?.detail || t('paywall.error'));
+    }
   };
 
   const handleClose = () => {
@@ -121,11 +156,24 @@ export const Paywall: React.FC<PaywallProps> = ({
             {t('paywall.hero')}
           </h1>
           {feature && (
-            <p className="text-muted-foreground">
+            <p className="text-muted-foreground mb-4">
               <Lock className="w-4 h-4 inline mr-1" />
               "{feature}" {t('paywall.featureOnly')}
             </p>
           )}
+
+          {/* New Plans Table Image */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="w-full rounded-2xl overflow-hidden border border-border shadow-xl mb-6 bg-white"
+          >
+            <img
+              src={plansTable}
+              alt="YASHA Plans"
+              className="w-full h-auto object-cover"
+            />
+          </motion.div>
         </motion.div>
 
         {/* Plans */}

@@ -53,11 +53,21 @@ def create_invoice_link(
     req: InvoiceRequest,
     current_user: User = Depends(get_current_user)
 ):
-    days = 30 if req.plan_id == "30_days" else 90
-    amount = 4900000 if req.plan_id == "30_days" else 11900000
-    title = f"Premium {days} kun"
-    description = f"Fitness Bot Premium ({days} kun)"
-    payload = f"premium_{days}"
+    days = 30
+    if req.plan_id == "premium":
+        amount = 4900000
+        title = "Premium Plus (30 kun)"
+        payload = "premium_30"
+    elif req.plan_id == "vip":
+        amount = 9900000
+        title = "Premium Pro (30 kun)"
+        payload = "vip_30"
+    else:
+        # Fallback for old/other IDs if any
+        days = 30 if req.plan_id == "30_days" else 90
+        amount = 4900000 if req.plan_id == "30_days" else 11900000
+        title = f"Premium {days} kun"
+        payload = f"premium_{days}"
     provider_token = os.getenv("PAYMENT_PROVIDER_TOKEN")
     
     if not provider_token:
@@ -68,7 +78,7 @@ def create_invoice_link(
     try:
         link = bot.create_invoice_link(
             title=title,
-            description=description,
+            description="YASHA Premium obunasi",
             payload=payload,
             provider_token=provider_token,
             currency="UZS",
