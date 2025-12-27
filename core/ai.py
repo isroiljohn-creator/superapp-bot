@@ -1604,24 +1604,17 @@ def ai_generate_single_meal(user_profile, meal_type, day_name="Bugun", lang="uz"
     }
     
     try:
-         response = ask_gemini(
+         response_text = ask_gemini(
             "",  # No system prompt needed for this simple task
             prompt,
             response_mime_type="application/json",
-            response_schema=schema
+            response_schema=schema,
+            user_id=user_profile.get('telegram_id'),
+            feature="meal_swap_vip"
          )
-         
-         # Log usage
-         if response.usage_metadata:
-             try:
-                 from core.ai_usage_logger import log_ai_usage
-                 log_ai_usage(None, user_profile.get('telegram_id'), "meal_swap_vip", 
-                              input_tokens=response.usage_metadata.prompt_token_count,
-                              output_tokens=response.usage_metadata.candidates_token_count)
-             except: pass
 
          import json
-         return json.loads(response.text)
+         return json.loads(response_text)
          
     except Exception as e:
         print(f"Single Meal Gen Error: {e}")
