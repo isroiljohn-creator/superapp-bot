@@ -972,7 +972,9 @@ def handle_menu_callback(call, bot):
             try:
                 # 3. Get User Profile
                 user_data = db.get_user(user_id)
-                if not user_data: return
+                if not user_data:
+                    bot.answer_callback_query(call.id, "❌ Profil topilmadi")
+                    return
 
                 # 4. Generate New Meal
                 from core import ai
@@ -998,7 +1000,10 @@ def handle_menu_callback(call, bot):
                     
             except Exception as e:
                 print(f"Swap Error: {e}")
-                bot.edit_message_text("❌ Xatolik yuz berdi.", user_id, wait_msg.message_id)
+                try:
+                    bot.edit_message_text("❌ Xatolik yuz berdi.", user_id, wait_msg.message_id)
+                except:
+                    bot.answer_callback_query(call.id, "❌ Xatolik yuz berdi")
         return
          
     if data == "menu_regenerate":
