@@ -112,9 +112,9 @@ export const AiCoachScreen: React.FC = () => {
   };
 
   const quickQuestions = [
-    t('aiCoach.question1'),
-    t('aiCoach.question2'),
-    t('aiCoach.question3')
+    t('aiCoach.question1') || 'Bugun nima yeysam bo\'ladi?',
+    t('aiCoach.question2') || 'Qanday mashq qilsam yaxshi?',
+    t('aiCoach.question3') || 'Kun davomida qancha suv ichishim kerak?'
   ];
 
   return (
