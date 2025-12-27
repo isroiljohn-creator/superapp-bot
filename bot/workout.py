@@ -782,34 +782,27 @@ def show_daily_menu(bot, user_id, link_data, day_idx=None, meal_type='breakfast'
         eat_btn = get_text("btn_eaten", user_lang)
         markup.row(InlineKeyboardButton(eat_btn, callback_data=f"eat_{day_idx}_{meal_type}"))
         
-        # ... Other rows kept same structure ...
-        
-        # Row 3: Day Navigation
-        nav_btns = []
-        if day_idx > 1:
-            nav_btns.append(InlineKeyboardButton(get_text("menu_prev_day", user_lang), callback_data=f"menu_view_{day_idx-1}_{meal_type}"))
-        
-        if day_idx < total_days:
-            nav_btns.append(InlineKeyboardButton(get_text("menu_next_day", user_lang), callback_data=f"menu_view_{day_idx+1}_{meal_type}"))
-        
-        if nav_btns:
-            markup.row(*nav_btns)
-            
-        # Row 4: Shopping List
-        markup.row(InlineKeyboardButton(get_text("btn_shopping_list", user_lang), callback_data=f"shopping_list_{day_idx}"))
+        # Row 2: Meal Navigation (Breakfast, Lunch, Dinner)
+        main_meals_row = []
+        if meal_type != 'breakfast':
+            main_meals_row.append(InlineKeyboardButton(meal_labels['breakfast'], callback_data=f"menu_view_{day_idx}_breakfast"))
+        if meal_type != 'lunch':
+            main_meals_row.append(InlineKeyboardButton(meal_labels['lunch'], callback_data=f"menu_view_{day_idx}_lunch"))
+        if meal_type != 'dinner':
+            main_meals_row.append(InlineKeyboardButton(meal_labels['dinner'], callback_data=f"menu_view_{day_idx}_dinner"))
         
         markup.row(*main_meals_row)
         
-        # Row 3: Snack + Navigation
+        # Row 3: Snack + Day Navigation
         snack_nav_row = []
         if meal_type != 'snack':
              snack_nav_row.append(InlineKeyboardButton(meal_labels['snack'], callback_data=f"menu_view_{day_idx}_snack"))
         
-        # Day Navigation
+        # Boundary-safe Day Nav
+        if day_idx > 1:
+            snack_nav_row.append(InlineKeyboardButton(get_text("menu_prev_day", user_lang), callback_data=f"menu_view_{day_idx-1}_{meal_type}"))
         if day_idx < total_days:
-            snack_nav_row.append(InlineKeyboardButton(get_text("menu_next_day", user_lang), callback_data=f"menu_view_{day_idx+1}_breakfast"))
-        elif day_idx > 1:
-             snack_nav_row.append(InlineKeyboardButton(get_text("menu_prev_day", user_lang), callback_data=f"menu_view_{day_idx-1}_breakfast"))
+            snack_nav_row.append(InlineKeyboardButton(get_text("menu_next_day", user_lang), callback_data=f"menu_view_{day_idx+1}_{meal_type}"))
         
         markup.row(*snack_nav_row)
         
