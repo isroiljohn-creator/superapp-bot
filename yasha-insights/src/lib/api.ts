@@ -39,7 +39,7 @@ export const api = {
   },
 
   getRetention: async (days: number = 30) => {
-    const res = await axiosInstance.get(`/admin/stats?days=${days}`); // Fallback for now
+    const res = await axiosInstance.get(`/admin/retention?days=${days}`);
     return res.data;
   },
 
