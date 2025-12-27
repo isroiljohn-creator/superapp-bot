@@ -95,6 +95,10 @@ def main_menu_keyboard(is_admin=False, user_id=None, lang=None):
     help_text = get_text("btn_help", lang=lang)
     markup.add(KeyboardButton(profile_text), KeyboardButton(help_text))
     
+    # Row 4: Admin Button
+    if real_admin:
+        markup.add(KeyboardButton("👨‍💻 Dasturchi"))
+    
     return markup
 
 def plan_inline_keyboard(lang="uz"):
