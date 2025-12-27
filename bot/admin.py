@@ -459,22 +459,6 @@ def register_handlers(bot):
             traceback.print_exc()
             bot.answer_callback_query(call.id, "Xatolik")
              
-    @bot.callback_query_handler(func=lambda call: call.data == "admin_backup_btn")
-    def admin_backup_callback(call):
-        if call.from_user.id not in ADMIN_IDS: return
-        bot.answer_callback_query(call.id)
-        
-        # Provide manual backup instructions
-        text = (
-            "📦 <b>Database Backup</b>\n\n"
-            "Railway-da pg_dump mavjud emas.\n\n"
-            "<b>Qo'lda backup:</b>\n"
-            "1. Railway dashboard ochish\n"
-            "2. PostgreSQL plugin → Data → Export\n"
-            "3. Yoki local: railway run pg_dump\n\n"
-            "Backup fayl <code>backups/</code> papkaga saqlanadi."
-        )
-        bot.send_message(call.message.chat.id, text, parse_mode="HTML")
     
     # AI Database Cleanup Handler
     @bot.message_handler(func=lambda message: "AI Bazani Tozalash" in message.text)
@@ -1204,8 +1188,6 @@ def register_handlers(bot):
              show_flags_interface(msg.chat.id)
         elif action == "dev_broadcast_menu":
              messaging_menu(msg)
-        elif action == "dev_backup_menu":
-             admin_backup_callback(call)
         elif action == "dev_content_menu":
              # Route to content management categories
              admin_content_start(msg)
