@@ -69,6 +69,16 @@ class Database:
                     """))
                     session.commit()
 
+                # 5. Correctis_onboarded for existing users who have data
+                # Identify users who have core profile data but are stuck in False
+                onboarded_backfill = session.query(User).filter(
+                    (User.is_onboarded == False) | (User.is_onboarded == None),
+                    (User.age.isnot(None)) | (User.height.isnot(None)) | (User.goal.isnot(None))
+                ).update({"is_onboarded": True}, synchronize_session=False)
+                if onboarded_backfill > 0:
+                    logger.info(f"MIGRATION: Backfilled is_onboarded=True for {onboarded_backfill} users with existing data.")
+                
+                session.commit()
                 logger.info("✅ Database migrations checked/applied.")
             except Exception as e:
                 session.rollback()
