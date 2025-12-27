@@ -874,9 +874,20 @@ def handle_menu_callback(call, bot):
             # 1. Get Meal Data
             try:
                 import json
-                menu_data = json.loads(link['menu_json'])
-                # Find day
-                day_data = next((d for d in menu_data if d['day'] == day_idx), None)
+                raw_json = json.loads(link['menu_json'])
+                
+                # Handle both dict and list formats
+                if isinstance(raw_json, dict) and "menu" in raw_json:
+                    menu_list = raw_json["menu"]
+                elif isinstance(raw_json, list):
+                    menu_list = raw_json
+                else:
+                    menu_list = []
+                
+                # Get day data (day_idx is 1-indexed)
+                idx = day_idx - 1
+                day_data = menu_list[idx] if 0 <= idx < len(menu_list) else None
+                
                 if not day_data:
                     bot.answer_callback_query(call.id, "❌ Kun ma'lumoti yo'q")
                     return
