@@ -20,7 +20,7 @@ from datetime import datetime
 # Add parent to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from core.weekly_mirror import send_mirror_to_user
+from core.weekly_mirror import send_mirror_to_user, generate_message, calculate_activity_score, classify_state, detect_adaptation
 from core.db import db, get_sync_db
 from sqlalchemy import text
 
@@ -94,9 +94,24 @@ def run_weekly_mirror(dry_run=False, specific_user_id=None):
     for user_id in user_ids:
         try:
             if dry_run:
-                from core.weekly_mirror import generate_message
                 message = generate_message(user_id)
                 if message:
+                    # Log dry-run event
+                    try:
+                        activity = calculate_activity_score(user_id)
+                        state = classify_state(activity["active_days"])
+                        adaptation = detect_adaptation(user_id)
+                        
+                        db.log_event(user_id, "WEEKLY_MIRROR_DRY_RUN", {
+                            "active_days": activity["active_days"],
+                            "workouts_done": activity["workouts_done"],
+                            "menu_feedback_count": activity["menu_feedback_count"],
+                            "state": state,
+                            "adaptation_detected": adaptation
+                        })
+                    except Exception as log_err:
+                        logger.warning(f"Failed to log dry-run for user {user_id}: {log_err}")
+                    
                     logger.info(f"[DRY RUN] Would send to {user_id}:\n{message}\n")
                     sent_count += 1
                 else:

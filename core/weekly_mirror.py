@@ -238,7 +238,7 @@ def generate_message(user_id: int) -> Optional[str]:
     if state == "HIGH":
         message = template.format(active_days=active_days)
     elif state == "MEDIUM":
-        next_goal = active_days + 1
+        next_goal = min(active_days + 1, 7)  # Cap at 7 days
         message = template.format(active_days=active_days, next_goal=next_goal)
     else:  # LOW
         message = template  # No placeholders
