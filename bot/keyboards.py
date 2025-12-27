@@ -162,15 +162,10 @@ def profile_inline_keyboard(lang="uz"):
 def premium_inline_keyboard(lang="uz"):
     from bot.languages import get_text
     markup = InlineKeyboardMarkup()
-    # Big button for Buy Premium
-    markup.row(InlineKeyboardButton(get_text("btn_change_plan", lang), callback_data="premium_buy"))
-    # Two buttons in one row: Tariffs and Yasha Coin
-    markup.row(
-        InlineKeyboardButton(get_text("btn_tariffs", lang), callback_data="premium_info"),
-        InlineKeyboardButton(get_text("btn_coins", lang), callback_data="premium_coins")
-    )
-    # Challenges inside Yasha Plus
-    markup.row(InlineKeyboardButton(get_text("btn_challenges_menu", lang), callback_data="premium_challenges"))
+    # Main button: Unlock Features (previously Change Plan)
+    markup.row(InlineKeyboardButton(get_text("btn_unlock_features", lang), callback_data="premium_buy"))
+    # Challenges button (opens Mini App)
+    markup.row(InlineKeyboardButton(get_text("btn_challenges_menu", lang), web_app=WebAppInfo(url=os.getenv("MINI_APP_URL"))))
     return markup
 
 def gamification_keyboard():

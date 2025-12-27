@@ -130,6 +130,7 @@ TRANS = {
         "btn_get_premium": "💎 Premium olish",
 
         "btn_change_plan": "💳 Tarifni almashtirish",
+        "btn_unlock_features": "🔓 Imkoniyatlarni ochish",
         "btn_tariffs": "ℹ️ Tariflar",
         "btn_coins": "🟡 Yasha Coin",
         "btn_challenges_menu": "🔥 Chellenjlar",
