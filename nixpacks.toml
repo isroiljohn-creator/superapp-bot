@@ -1,8 +1,10 @@
 [phases.setup]
-nixPkgs = ["python311", "nodejs_20", "gcc"]
+nixPkgs = ["python311", "nodejs_20", "gcc", "git"]
 
 [phases.install]
 cmds = [
+    "echo '🔄 Initializing submodules...'",
+    "git submodule update --init --recursive || echo '⚠️ Submodule update failed, continuing...'",
     "python3 -m venv .venv",
     ".venv/bin/pip install --no-binary greenlet -r requirements.txt",
     "echo '📦 Installing dependencies...'",
