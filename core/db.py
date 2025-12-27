@@ -2353,6 +2353,33 @@ class Database:
             except Exception as e:
                 # Analytics should fail silently in production
                 print(f"Log Event Error: {e}")
-                session.rollback()
+    def get_total_users_count(self):
+        with get_sync_db() as session:
+            return session.query(func.count(User.id)).scalar() or 0
+
+    def mass_reset_to_trial(self, days=14):
+        """
+        Mass update: All users to trial, cancel all subscriptions.
+        """
+        with get_sync_db() as session:
+            trial_end = datetime.utcnow() + timedelta(days=days)
+            trial_start_str = datetime.utcnow().strftime("%Y-%m-%d")
+            
+            # 1. Update all users
+            user_count = session.query(User).update({
+                User.plan_type: "trial",
+                User.is_premium: True,
+                User.premium_until: trial_end,
+                User.trial_start: trial_start_str,
+                User.trial_used: 1
+            }, synchronize_session=False)
+            
+            # 2. Deactivate all active subscriptions
+            sub_count = session.query(Subscription).filter(Subscription.is_active == True).update({
+                Subscription.is_active: False
+            }, synchronize_session=False)
+            
+            session.commit()
+            return user_count, sub_count
 
 db = Database()

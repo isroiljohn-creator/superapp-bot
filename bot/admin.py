@@ -1343,8 +1343,50 @@ def _broadcast_worker(message, bot, segment):
 def register_subscription_handlers(bot):
     @bot.message_handler(func=lambda message: "Obunalar" in message.text and message.from_user.id in ADMIN_IDS)
     def admin_subs_start(message):
-        msg = bot.send_message(message.chat.id, "Foydalanuvchi ID raqamini yuboring:", reply_markup=types.ForceReply())
+        markup = types.InlineKeyboardMarkup()
+        markup.add(types.InlineKeyboardButton("🔍 Foydalanuvchi qidirish", callback_data="sub_search"))
+        markup.add(types.InlineKeyboardButton("🎁 Barchaga 14 kunlik Trial", callback_data="sub_mass_trial"))
+        bot.send_message(message.chat.id, "💳 **Obunalar boshqaruvi**\n\nQuyidagilardan birini tanlang:", reply_markup=markup, parse_mode="Markdown")
+
+    @bot.callback_query_handler(func=lambda call: call.data == "sub_search")
+    def sub_search_callback(call):
+        msg = bot.edit_message_text("Foydalanuvchi ID raqamini yuboring:", call.message.chat.id, call.message.message_id, reply_markup=types.ForceReply())
         bot.register_next_step_handler(msg, process_subs_user_id, bot)
+
+    @bot.callback_query_handler(func=lambda call: call.data == "sub_mass_trial")
+    def sub_mass_trial_callback(call):
+        markup = types.InlineKeyboardMarkup()
+        markup.add(
+            types.InlineKeyboardButton("✅ Tasdiqlash", callback_data="sub_mass_trial_confirm"),
+            types.InlineKeyboardButton("❌ Bekor qilish", callback_data="sub_mass_trial_cancel")
+        )
+        bot.edit_message_text(
+            "⚠️ **DIQQAT!**\n\nUshbu amal barcha foydalanuvchilarning obunasini bekor qiladi va har biriga **14 kunlik Trial** beradi.\n\nHaqiqatan ham davom ettirmoqchimisiz?",
+            call.message.chat.id,
+            call.message.message_id,
+            reply_markup=markup,
+            parse_mode="Markdown"
+        )
+
+    @bot.callback_query_handler(func=lambda call: call.data == "sub_mass_trial_confirm")
+    def sub_mass_trial_confirm_callback(call):
+        bot.edit_message_text("⏳ Amallar bajarilmoqda, iltimos kuting...", call.message.chat.id, call.message.message_id)
+        
+        try:
+            users, subs = db.mass_reset_to_trial(days=14)
+            bot.edit_message_text(
+                f"✅ **Muvaffaqiyatli bajarildi!**\n\n- {users} ta foydalanuvchiga 14 kunlik trial berildi.\n- {subs} ta faol obuna to'xtatildi.",
+                call.message.chat.id,
+                call.message.message_id,
+                parse_mode="Markdown"
+            )
+        except Exception as e:
+            bot.edit_message_text(f"❌ Xatolik yuz berdi: {e}", call.message.chat.id, call.message.message_id)
+
+    @bot.callback_query_handler(func=lambda call: call.data == "sub_mass_trial_cancel")
+    def sub_mass_trial_cancel_callback(call):
+        bot.delete_message(call.message.chat.id, call.message.message_id)
+        bot.send_message(call.message.chat.id, "❌ Amal bekor qilindi.")
 
     def process_subs_user_id(message, bot):
         try:
