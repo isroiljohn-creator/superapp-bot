@@ -61,6 +61,71 @@ async def send_friend_request(to_user_id: int, current_user: User = Depends(get_
     await db.commit()
     return {"status": "success"}
 
+@router.get("/friends/requests")
+async def get_friend_requests(current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    """Get pending friend requests received by the current user"""
+    res = await db.execute(
+        select(FriendRequest)
+        .where(and_(FriendRequest.to_user_id == current_user.id, FriendRequest.status == "pending"))
+        .order_by(desc(FriendRequest.created_at))
+    )
+    requests = res.scalars().all()
+    
+    output = []
+    for req in requests:
+        # Get sender info
+        sender = await db.get(User, req.from_user_id)
+        if sender:
+            output.append({
+                "id": str(req.id),
+                "fromUser": {
+                    "id": str(sender.id),
+                    "name": sender.full_name or sender.username or "Foydalanuvchi",
+                    "level": (sender.points // 100) + 1
+                },
+                "createdAt": req.created_at.isoformat()
+            })
+    return output
+
+@router.post("/friends/requests/{request_id}/accept")
+async def accept_friend_request(request_id: int, current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    # Get request
+    req = await db.get(FriendRequest, request_id)
+    if not req:
+        raise HTTPException(status_code=404, detail="So'rov topilmadi")
+    
+    if req.to_user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Ruxsat yo'q")
+        
+    if req.status != "pending":
+        raise HTTPException(status_code=400, detail="So'rov allaqachon yakunlangan")
+        
+    # Update status
+    req.status = "accepted"
+    
+    # Create Friendship (Mutual)
+    f1 = Friendship(user_id=req.from_user_id, friend_id=req.to_user_id)
+    f2 = Friendship(user_id=req.to_user_id, friend_id=req.from_user_id)
+    
+    db.add(f1)
+    db.add(f2)
+    
+    await db.commit()
+    return {"status": "success"}
+
+@router.post("/friends/requests/{request_id}/decline")
+async def decline_friend_request(request_id: int, current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    req = await db.get(FriendRequest, request_id)
+    if not req:
+        raise HTTPException(status_code=404, detail="So'rov topilmadi")
+    
+    if req.to_user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Ruxsat yo'q")
+        
+    req.status = "rejected"
+    await db.commit()
+    return {"status": "success"}
+
 @router.get("/friends")
 async def get_friends(current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
     # Query friendships where the current user is either user_id or friend_id

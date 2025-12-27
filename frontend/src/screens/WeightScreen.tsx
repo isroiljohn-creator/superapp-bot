@@ -52,7 +52,7 @@ export const WeightScreen: React.FC<WeightScreenProps> = ({ onBack }) => {
     const today = new Date().toISOString().split('T')[0];
     const existingIndex = weightLogs.findIndex(l => l.date === today);
     let newLogs: WeightLog[];
-    
+
     if (existingIndex >= 0) {
       newLogs = weightLogs.map((l, i) => i === existingIndex ? { ...l, weight } : l);
     } else {
@@ -147,6 +147,10 @@ export const WeightScreen: React.FC<WeightScreenProps> = ({ onBack }) => {
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
               className="flex gap-3 mt-4"
+              onAnimationComplete={() => {
+                document.getElementById('weight-input-container')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              }}
+              id="weight-input-container"
             >
               <input
                 type="number"
@@ -155,6 +159,7 @@ export const WeightScreen: React.FC<WeightScreenProps> = ({ onBack }) => {
                 step="0.1"
                 className="flex-1 h-12 px-4 rounded-xl bg-background border border-border text-foreground text-center text-lg font-medium"
                 placeholder={t('weight.placeholder')}
+                autoFocus
               />
               <Button onClick={addWeight} className="h-12 px-6">
                 {t('common.save')}
@@ -204,13 +209,13 @@ export const WeightScreen: React.FC<WeightScreenProps> = ({ onBack }) => {
             <div className="h-48">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={chartData}>
-                  <XAxis 
-                    dataKey="date" 
+                  <XAxis
+                    dataKey="date"
                     tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }}
                     axisLine={false}
                     tickLine={false}
                   />
-                  <YAxis 
+                  <YAxis
                     domain={['dataMin - 1', 'dataMax + 1']}
                     tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }}
                     axisLine={false}
@@ -225,10 +230,10 @@ export const WeightScreen: React.FC<WeightScreenProps> = ({ onBack }) => {
                       fontSize: '13px'
                     }}
                   />
-                  <Line 
-                    type="monotone" 
-                    dataKey="weight" 
-                    stroke="hsl(200, 80%, 50%)" 
+                  <Line
+                    type="monotone"
+                    dataKey="weight"
+                    stroke="hsl(200, 80%, 50%)"
                     strokeWidth={3}
                     dot={{ fill: 'hsl(200, 80%, 50%)', strokeWidth: 0, r: 4 }}
                     activeDot={{ r: 6 }}
