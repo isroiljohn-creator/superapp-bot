@@ -1794,7 +1794,7 @@ class Database:
                  if not link or not link.template: return False
                  
                  # Access menu data through template
-                 menu_data = json.loads(link.template.content)
+                 menu_data = json.loads(link.template.menu_json)
                  
                  # Handle both dict and list formats
                  if isinstance(menu_data, dict) and "menu" in menu_data:
@@ -1814,9 +1814,9 @@ class Database:
                      # Update template content
                      if isinstance(menu_data, dict):
                          menu_data["menu"] = menu_list
-                         link.template.content = json.dumps(menu_data)
+                         link.template.menu_json = json.dumps(menu_data)
                      else:
-                         link.template.content = json.dumps(menu_list)
+                         link.template.menu_json = json.dumps(menu_list)
                      
                      session.commit()
                      return True
