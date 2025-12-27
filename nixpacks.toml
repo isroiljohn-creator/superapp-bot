@@ -3,9 +3,6 @@ nixPkgs = ["python311", "nodejs_20", "gcc", "git"]
 
 [phases.install]
 cmds = [
-    "echo '🔄 Initializing submodules...'",
-    "if [ ! -f 'yasha-insights/package.json' ]; then echo '⚠️ Submodule missing, cloning directly...'; git clone https://github.com/isroiljohn-creator/yasha-insights yasha-insights; fi",
-    "git submodule update --init --recursive || echo '⚠️ git submodule command failed, but directory may be present'",
     "python3 -m venv .venv",
     ".venv/bin/pip install --no-binary greenlet -r requirements.txt",
     "echo '📦 Installing dependencies...'",
