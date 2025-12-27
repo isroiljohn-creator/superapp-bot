@@ -258,7 +258,6 @@ def admin_developer_keyboard():
         InlineKeyboardButton("🗑 Foydalanuvchini o'chirish", callback_data="dev_delete_user_start")
     )
     markup.add(
-        InlineKeyboardButton("📊 Admin Dashboard", web_app=WebAppInfo(url=webapp_url)),
         InlineKeyboardButton("🚩 Feature Flags", callback_data="dev_flags_menu")
     )
     markup.add(
