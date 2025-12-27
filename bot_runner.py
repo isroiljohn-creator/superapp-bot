@@ -25,6 +25,23 @@ bot = telebot.TeleBot(BOT_TOKEN, num_threads=5)
 def main():
     print("🚀 Fitness AI Bot ishga tushmoqda...")
     
+    # Fix missing columns (emergency patch)
+    print("🔧 Database schema tekshirilmoqda...")
+    try:
+        from sqlalchemy import create_engine, text
+        import os
+        engine = create_engine(os.getenv("DATABASE_URL"))
+        with engine.connect() as conn:
+            # Add streak_workout if missing
+            conn.execute(text("""
+                ALTER TABLE users 
+                ADD COLUMN IF NOT EXISTS streak_workout INTEGER DEFAULT 0;
+            """))
+            conn.commit()
+        print("✅ Schema patches applied.")
+    except Exception as e:
+        print(f"⚠️  Schema patch warning: {e}")
+    
     # Run Migrations (Alembic)
     try:
         print("🔄 Migratsiyalar tekshirilmoqda...")
