@@ -61,29 +61,18 @@ export function useTelegram() {
 
     // Function to extract valid initData from a string
     const extract = (str: string): string | null => {
-      // Option A: data is in tgWebAppData param
-      try {
-        const params = new URLSearchParams(str);
-        const data = params.get('tgWebAppData');
-        if (data) {
-          // If it looks encoded, decode it
-          if (data.includes('%') || !data.includes('hash=')) {
-            try { return decodeURIComponent(data); } catch (e) { return data; }
-          }
-          return data;
+      // Regex is most reliable for mixed encoded content
+      // Look for tgWebAppData=... up to next & or end of string
+      const match = str.match(/tgWebAppData=([^&]+)/);
+      if (match && match[1]) {
+        let val = match[1];
+        // Decode repeatedly until we see "user=" or "hash="
+        // Iterate max 3 times to prevent loops
+        for (let i = 0; i < 3; i++) {
+          if (val.includes('user=') || val.includes('hash=')) return val;
+          try { val = decodeURIComponent(val); } catch (e) { }
         }
-      } catch (e) { }
-
-      // Option B: manual split if URLSearchParams fails
-      if (str.includes('tgWebAppData=')) {
-        const parts = str.split('&');
-        for (const part of parts) {
-          if (part.startsWith('tgWebAppData=')) {
-            let val = part.substring('tgWebAppData='.length);
-            try { val = decodeURIComponent(val); } catch (e) { }
-            return val;
-          }
-        }
+        return val;
       }
 
       // Option C: the string ITSELF is the data (contains user=... & hash=...)
