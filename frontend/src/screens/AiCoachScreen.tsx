@@ -56,6 +56,7 @@ export const AiCoachScreen: React.FC = () => {
 
       const response = await axios.post(`${API_URL}/coach/chat`, {
         messages: messages.concat(userMessage).map(m => ({
+          id: m.id,
           role: m.role,
           content: m.content
         })),
