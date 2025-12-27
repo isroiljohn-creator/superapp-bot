@@ -43,17 +43,27 @@ export function useAuth() {
       }
     }
 
-    // No initData in development mode - use mock auth
+    // No initData
     if (!initData) {
-      console.warn('No Telegram initData. Using development mode.');
-      // In dev mode, simulate authentication
-      setAuthState({
-        isAuthenticated: true,
-        isLoading: false,
-        error: null,
-        user: telegramUser,
-      });
-      return;
+      if (import.meta.env.DEV) {
+        console.warn('No Telegram initData. Using development mode.');
+        setAuthState({
+          isAuthenticated: true,
+          isLoading: false,
+          error: null,
+          user: telegramUser,
+        });
+        return;
+      } else {
+        // Production: Require Telegram environment
+        setAuthState({
+          isAuthenticated: false,
+          isLoading: false,
+          error: 'Please open this app inside Telegram to authenticate.',
+          user: null,
+        });
+        return;
+      }
     }
 
     try {
