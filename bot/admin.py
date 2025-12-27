@@ -32,7 +32,8 @@ def register_handlers(bot):
         
         # 1. Top - Mini App Dashboard (Prominent)
         markup.add(
-            types.KeyboardButton("🚀 Admin Dashboard", web_app=types.WebAppInfo(url=webapp_url))
+            types.KeyboardButton("🚦 Dashboard", web_app=types.WebAppInfo(url=webapp_url)),
+            types.KeyboardButton("👨‍💻 Dasturchi")
         )
         
         # 2. Main Controls
@@ -43,9 +44,6 @@ def register_handlers(bot):
         markup.add(
             types.KeyboardButton("📤 Xabar yuborish"),
             types.KeyboardButton("💳 Obunalar")
-        )
-        markup.add(
-            types.KeyboardButton("👨‍💻 Dasturchi")
         )
         bot.send_message(message.chat.id, "👨‍💼 **Admin Panel**", reply_markup=markup, parse_mode="Markdown")
         
