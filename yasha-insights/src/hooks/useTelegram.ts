@@ -51,9 +51,13 @@ export function useTelegram() {
     // 1. Try generic WebApp.initData
     if (webApp?.initData) return webApp.initData;
 
-    // 2. Fallback: Parse from hash
-    let hash = window.location.hash.slice(1);
-    if (!hash) return '';
+    // 2. Fallback: Parse from hash OR search (query params)
+    const hash = window.location.hash.slice(1);
+    const search = window.location.search.slice(1);
+    // Combine them to look everywhere
+    const combined = hash + '&' + search;
+
+    if (!combined) return '';
 
     // Function to extract valid initData from a string
     const extract = (str: string): string | null => {
@@ -95,9 +99,19 @@ export function useTelegram() {
     let result = extract(hash);
     if (result) return result;
 
+    result = extract(search);
+    if (result) return result;
+
     // Try decoding hash once and parsing
     try {
       const decoded = decodeURIComponent(hash);
+      result = extract(decoded);
+      if (result) return result;
+    } catch (e) { }
+
+    // Try decoding search
+    try {
+      const decoded = decodeURIComponent(search);
       result = extract(decoded);
       if (result) return result;
     } catch (e) { }
