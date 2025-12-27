@@ -83,6 +83,9 @@ export const AiCoachScreen: React.FC = () => {
       }]);
     } catch (error: any) {
       console.error('Chat error:', error);
+      console.error('Error response:', error.response);
+      console.error('Error data:', error.response?.data);
+
       let errorMsg = 'Uzr, xatolik yuz berdi. Qayta urinib ko\'ring.';
 
       if (error.response?.status === 401) {
@@ -91,6 +94,8 @@ export const AiCoachScreen: React.FC = () => {
         errorMsg = 'Juda ko\'p so\'rov yuborildi. Bir oz kuting.';
       } else if (error.code === 'ECONNABORTED') {
         errorMsg = 'So\'rov juda uzoq davom etdi. Qayta urinib ko\'ring.';
+      } else if (error.response?.data?.detail) {
+        errorMsg = `Xatolik: ${error.response.data.detail}`;
       }
 
       setMessages(prev => [...prev, {
@@ -164,8 +169,8 @@ export const AiCoachScreen: React.FC = () => {
                 )}
               </div>
               <div className={`max-w-[85%] p-3 rounded-2xl ${message.role === 'user'
-                  ? 'bg-primary text-primary-foreground rounded-br-md'
-                  : 'bg-card border border-border/50 text-foreground rounded-bl-md'
+                ? 'bg-primary text-primary-foreground rounded-br-md'
+                : 'bg-card border border-border/50 text-foreground rounded-bl-md'
                 }`}>
                 <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.content}</p>
               </div>
