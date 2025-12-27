@@ -248,19 +248,25 @@ def admin_developer_keyboard():
     Main menu for Developers/Admins. Consolidates all /commands into buttons.
     """
     markup = InlineKeyboardMarkup(row_width=2)
+    import os
+    base_url = os.getenv("MINI_APP_URL", "https://yasha-insights.up.railway.app")
+    if base_url.endswith("/"): base_url = base_url[:-1]
+    webapp_url = f"{base_url}/admin-insights/"
+
     markup.add(
         InlineKeyboardButton("📊 Analitika (Pro)", callback_data="dev_stats_menu"),
         InlineKeyboardButton("🗑 Foydalanuvchini o'chirish", callback_data="dev_delete_user_start")
     )
     markup.add(
-        InlineKeyboardButton("🧪 AI ni tekshirish", callback_data="dev_test_ai_start"),
+        InlineKeyboardButton("📊 Admin Dashboard", web_app=WebAppInfo(url=webapp_url)),
         InlineKeyboardButton("🚩 Feature Flags", callback_data="dev_flags_menu")
     )
     markup.add(
-        InlineKeyboardButton("📢 Xabar yuborish (Broadcast)", callback_data="dev_broadcast_menu"),
-        InlineKeyboardButton("📦 Backup", callback_data="dev_backup_menu")
+        InlineKeyboardButton("🧪 AI ni tekshirish", callback_data="dev_test_ai_start"),
+        InlineKeyboardButton("📢 Xabar yuborish (Broadcast)", callback_data="dev_broadcast_menu")
     )
     markup.add(
+        InlineKeyboardButton("📦 Backup", callback_data="dev_backup_menu"),
         InlineKeyboardButton("✍️ Matnlar (Content)", callback_data="dev_content_menu")
     )
 
