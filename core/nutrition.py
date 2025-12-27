@@ -149,24 +149,28 @@ def lookup_usda_macros(name_uz, name_en, user_id=None):
                     "is_dish": True
                 }
 
-        # 2. Alias Lookup (Priority 2 or 1 if V1)
-        alias_sql = text("""
-            SELECT f.kcal_100g, f.protein_100g, f.fat_100g, f.carbs_100g
-            FROM usda.uz_food_alias a
-            JOIN usda.food_macros f ON a.fdc_id = f.fdc_id
-            WHERE a.uz_name = :uz_name
-        """)
-        alias_res = session.execute(alias_sql, {"uz_name": name_uz}).fetchone()
-        
-        if alias_res:
-            return {
-                "source": "USDA",
-                "match_source": "ALIAS",
-                "kcal_100g": float(alias_res[0]),
-                "protein_100g": float(alias_res[1]),
-                "fat_100g": float(alias_res[2]),
-                "carbs_100g": float(alias_res[3])
-            }
+        # 2. Alias Lookup (Priority 2 or 1 if V1) - Skip if USDA schema not initialized
+        try:
+            alias_sql = text("""
+                SELECT f.kcal_100g, f.protein_100g, f.fat_100g, f.carbs_100g
+                FROM usda.uz_food_alias a
+                JOIN usda.food_macros f ON a.fdc_id = f.fdc_id
+                WHERE a.uz_name = :uz_name
+            """)
+            alias_res = session.execute(alias_sql, {"uz_name": name_uz}).fetchone()
+            
+            if alias_res:
+                return {
+                    "source": "USDA",
+                    "match_source": "ALIAS",
+                    "kcal_100g": float(alias_res[0]),
+                    "protein_100g": float(alias_res[1]),
+                    "fat_100g": float(alias_res[2]),
+                    "carbs_100g": float(alias_res[3])
+                }
+        except Exception:
+            # USDA schema not initialized, skip
+            pass
 
         # 3. Fuzzy Lookup
         fuzzy_sql = text("""

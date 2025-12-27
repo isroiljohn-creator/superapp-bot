@@ -662,6 +662,7 @@ def show_daily_menu(bot, user_id, link_data, day_idx=None, meal_type='breakfast'
     import json
     from datetime import datetime, timedelta
     from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
+    from bot.languages import get_text
     
     start_date = link_data['start_date']
     if isinstance(start_date, str):
@@ -770,8 +771,6 @@ def show_daily_menu(bot, user_id, link_data, day_idx=None, meal_type='breakfast'
 
         # 3. Dynamic Buttons
         markup = InlineKeyboardMarkup()
-        
-        from bot.languages import get_text
         
         # Row 1: "Iste'mol qildim"
         eat_btn = get_text("btn_eaten", user_lang)
