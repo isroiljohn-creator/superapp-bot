@@ -11,6 +11,9 @@ from telebot import TeleBot, types
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 bot = TeleBot(BOT_TOKEN)
 
+from core.config import ADMIN_IDS
+ENV = os.getenv("ENV", "production")
+
 class InvoiceRequest(BaseModel):
     plan_id: str # "30_days" or "90_days"
 
@@ -25,6 +28,14 @@ async def mock_payment(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
+    # Security Gate: Only allow mock payments for admins or in dev mode
+    is_admin = current_user.telegram_id in ADMIN_IDS
+    if ENV != 'development' and not is_admin:
+        raise HTTPException(
+            status_code=403, 
+            detail="Mock payments are only allowed for admins or in development mode."
+        )
+
     days = 30 if req.package == "premium_30" else 90
     
     current_user.is_premium = True

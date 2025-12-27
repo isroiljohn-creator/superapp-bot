@@ -99,10 +99,8 @@ Emotsional va do'stona gapiring.
         # 4. Call AI
         response_text = ask_gemini(full_system_prompt, user_message)
         
-        # 5. Track Usage (Optional - usage limits)
-        # db.increment_ai_usage(current_user.telegram_id, 'chat') 
-        # (Assuming shared DB logic, but increment_ai_usage is in core/db.py sync logic. 
-        # Ideally we should use async method or simple sync call via wrapper)
+        # 5. Track Usage (Enforces Tiered Limits)
+        db.increment_tiered_usage(current_user.telegram_id, 'chat')
         
         return {"reply": response_text}
 

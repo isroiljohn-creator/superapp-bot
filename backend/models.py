@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime, ForeignKey, Text, BigInteger
+from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime, ForeignKey, Text, BigInteger, JSON, UniqueConstraint
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from backend.database import Base
@@ -8,6 +8,9 @@ class User(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     telegram_id = Column(BigInteger, unique=True, index=True)
+# ... (skip to LocalDish)
+
+
     username = Column(String, nullable=True)
     full_name = Column(String, nullable=True)
     phone = Column(String, nullable=True)  # Nullable for WebApp users, required for bot onboarding
@@ -56,6 +59,7 @@ class User(Base):
     # Gamification & Streaks
     yasha_points = Column(Integer, default=0)
     streak_water = Column(Integer, default=0)
+    streak_workout = Column(Integer, default=0) # Added via migration
     streak_sleep = Column(Integer, default=0)
     streak_mood = Column(Integer, default=0)
     
@@ -307,7 +311,7 @@ class AIUsageLog(Base):
     __tablename__ = "ai_usage_logs"
     
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, index=True) # Decoupled from User table to avoid FK locking issues on high volume
+    user_id = Column(BigInteger, index=True) # Decoupled from User table to avoid FK locking issues on high volume
     feature = Column(String) # 'menu', 'chat', 'workout'
     model_name = Column(String, default="gemini-1.5-flash")
     input_tokens = Column(Integer, default=0)
@@ -325,6 +329,55 @@ class Exercise(Base):
     category = Column(String) # Upper Body, Lower Body, Cardio, Full Body
     difficulty = Column(String) # Beginner, Intermediate, Advanced
     description = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    # New columns
+    muscle_group = Column(String, nullable=True)
+    level = Column(String, nullable=True)
+    place = Column(String, nullable=True)
+    duration_sec = Column(Integer, nullable=True)
+
+class LocalDish(Base):
+    __tablename__ = "local_dishes"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    name_uz = Column(String, nullable=False)
+    meal_type = Column(String, nullable=False) # breakfast, lunch, dinner, snack
+    portion_type = Column(String, nullable=False)
+    total_kcal = Column(Integer, nullable=False)
+    protein_g = Column(Float, nullable=False)
+    fat_g = Column(Float, nullable=False)
+    carbs_g = Column(Float, nullable=False)
+    goal_tag = Column(String, nullable=False) # weight_loss, muscle_gain, maintenance
+    variant = Column(String, nullable=False) # normal, diet, athlete
+    is_active = Column(Boolean, default=True)
+    featured = Column(Boolean, default=False, index=True)
+
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    ingredients = relationship("LocalDishIngredient", back_populates="dish", cascade="all, delete-orphan")
+
+class LocalDishIngredient(Base):
+    __tablename__ = "local_dish_ingredients"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    dish_id = Column(Integer, ForeignKey("local_dishes.id", ondelete="CASCADE"), nullable=False)
+    ingredient_name_uz = Column(String, nullable=False)
+    grams = Column(Integer, nullable=False)
+    fdc_id = Column(BigInteger, nullable=True)
+
+    dish = relationship("LocalDish", back_populates="ingredients")
+
+class WorkoutPlan(Base):
+    __tablename__ = "workout_plans"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, nullable=False)
+    goal_tag = Column(String, nullable=False)
+    level = Column(String, nullable=False) # beginner, intermediate, advanced
+    place = Column(String, nullable=False) # home, gym, both
+    days_json = Column(JSON, nullable=False)
+    is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
 class CoachMessage(Base):
@@ -377,3 +430,68 @@ class ExerciseLog(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     
     user = relationship("User", back_populates="exercise_logs")
+
+# --- FEEDBACK SYSTEM (Phase 6) ---
+
+class MenuFeedback(Base):
+    __tablename__ = "menu_feedback"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(BigInteger, ForeignKey("users.telegram_id"), nullable=False, index=True)
+    menu_template_id = Column(Integer, nullable=True, index=True)
+    day_index = Column(Integer, nullable=True) # SMALLINT mapped to Integer in SQLAlchemy usually fine
+    rating = Column(String, nullable=False) # good, ok, bad
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+
+class WorkoutFeedback(Base):
+    __tablename__ = "workout_feedback"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(BigInteger, ForeignKey("users.telegram_id"), nullable=False, index=True)
+    workout_plan_id = Column(Integer, nullable=True, index=True)
+    day_index = Column(Integer, nullable=True)
+    rating = Column(String, nullable=False) # strong, normal, tired
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+
+class CoachFeedback(Base):
+    __tablename__ = "coach_feedback"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(BigInteger, ForeignKey("users.telegram_id"), nullable=False, index=True)
+    coach_msg_key = Column(String, nullable=False, index=True)
+    category = Column(String, nullable=False)
+    reaction = Column(String, nullable=False) # like, love, meh
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+
+class UserAdaptationState(Base):
+    __tablename__ = "user_adaptation_state"
+    user_id = Column(BigInteger, ForeignKey("users.telegram_id"), primary_key=True)
+    menu_variant_preference = Column(String, nullable=True) # normal, diet, athlete
+    menu_kcal_adjust_pct = Column(Float, default=0.0)
+    menu_complexity_level = Column(Integer, default=0)
+    workout_soft_mode = Column(Boolean, default=False)
+    coach_priority_mode = Column(String, default='love_first')
+    updated_at = Column(DateTime, default=datetime.utcnow)
+
+class OptimizationLog(Base):
+    __tablename__ = "optimization_logs"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+    entity_type = Column(String, nullable=False)
+    entity_id = Column(Integer, nullable=False)
+    action = Column(String, nullable=False)
+    reason = Column(String, nullable=False)
+    meta = Column(JSON, nullable=True)
+    admin_override = Column(Boolean, default=False)
+
+class DishReviewQueue(Base):
+    __tablename__ = "dish_review_queue"
+    __table_args__ = (
+        UniqueConstraint('dish_id', 'reason', name='uq_dish_reason_open'), 
+    )
+    
+    id = Column(Integer, primary_key=True, index=True)
+    dish_id = Column(Integer, ForeignKey("local_dishes.id", ondelete="CASCADE"), nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+    reason = Column(String, nullable=False)
+    metrics = Column(JSON, nullable=True)
+    status = Column(String, default="open") # open, closed
+

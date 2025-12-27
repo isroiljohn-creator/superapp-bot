@@ -62,10 +62,13 @@ async def startup_event():
 
 # === API Router ===
 from backend.app.api.v1.api import api_router
+from backend.admin_api import router as admin_router
+
 app.include_router(api_router, prefix="/api/v1")
+app.include_router(admin_router, prefix="/api/v1")
 
 # === Static Files (Optional - only if frontend is built) ===
-dist_path = os.path.join(os.getcwd(), "frontend/dist")
+dist_path = os.path.join(os.getcwd(), "yasha-insights/dist")
 
 if os.path.exists(dist_path):
     @app.get("/{full_path:path}")

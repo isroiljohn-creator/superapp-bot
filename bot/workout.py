@@ -2,14 +2,17 @@ import os
 from telebot import types
 from core.db import db
 from core.ai import ai_generate_weekly_workout_json, ai_generate_weekly_meal_plan_json
+from core.nutrition import process_menu_nutrition
 from bot.keyboards import plan_inline_keyboard
 from bot.premium import require_premium
 from bot.languages import get_text
 from core.flags import is_flag_enabled
 import traceback
 
-# Simple in-memory lock
+import threading
+# Thread-safe in-memory lock
 GENERATION_LOCKS = set()
+LOCKS_MUTEX = threading.Lock()
 
 
 def handle_plan_menu(message, bot):
@@ -117,11 +120,12 @@ def generate_ai_workout(message, bot, user_id=None):
         return
 
     # 0.5 Check Lock
-    if user_id in GENERATION_LOCKS:
-        bot.send_message(user_id, "⏳ Sabr qiling, reja tuzilmoqda...")
-        return
+    with LOCKS_MUTEX:
+        if user_id in GENERATION_LOCKS:
+            bot.send_message(user_id, "⏳ Sabr qiling, reja tuzilmoqda...")
+            return
+        GENERATION_LOCKS.add(user_id)
         
-    GENERATION_LOCKS.add(user_id)
     try:
         # 1. Check if user already has an active workout link
         active_link = db.get_user_workout_link(user_id)
@@ -223,15 +227,16 @@ def generate_ai_workout(message, bot, user_id=None):
             bot.edit_message_text(get_text("saving_db", lang), user_id, msg.message_id)
             
             try:
+                # [PHASE 7.1] Store FULL data to preserve explanation
                 template_id = db.create_workout_template(
                     profile_key,
-                    json.dumps(data['schedule'])
+                    json.dumps(data)
                 )
             except Exception as e:
                 # Fallback update
                 template_id = db.update_workout_template_content(
                     profile_key,
-                    json.dumps(data['schedule'])
+                    json.dumps(data)
                 )
                 if not template_id:
                     exist = db.get_workout_template(profile_key)
@@ -256,8 +261,9 @@ def generate_ai_workout(message, bot, user_id=None):
     except Exception as e:
          print(f"Outer Gen Error: {e}")
     finally:
-        if user_id in GENERATION_LOCKS:
-            GENERATION_LOCKS.remove(user_id)
+        with LOCKS_MUTEX:
+            if user_id in GENERATION_LOCKS:
+                GENERATION_LOCKS.remove(user_id)
 
 def show_daily_workout(bot, user_id, link_data, override_day_idx=None):
     """Render the workout for specific day index."""
@@ -285,7 +291,18 @@ def show_daily_workout(bot, user_id, link_data, override_day_idx=None):
         
     try:
         # Load Workout
-        schedule = json.loads(link_data['workout_json'])
+        # [PHASE 7.1] Support Dict vs List
+        data_obj = json.loads(link_data['workout_json'])
+        explanation = None
+        
+        if isinstance(data_obj, dict) and "schedule" in data_obj:
+            schedule = data_obj["schedule"]
+            explanation = data_obj.get("explanation")
+        elif isinstance(data_obj, list):
+            schedule = data_obj
+        else:
+            schedule = []
+            
         total_days = len(schedule)
         
         # Boundary checks
@@ -372,6 +389,19 @@ def show_daily_workout(bot, user_id, link_data, override_day_idx=None):
         else:
              markup.row(InlineKeyboardButton(get_text("btn_reset", lang), callback_data="workout_regenerate"))
         
+        # [FEEDBACK V1]
+        if is_flag_enabled("feedback_v1", user_id):
+            w_id = link_data.get('workout_template_id') or link_data.get('id', 0)
+            markup.row(
+                InlineKeyboardButton("💪 Juda zo‘r", callback_data=f"fb:workout:strong:{w_id}:{day_idx}"),
+                InlineKeyboardButton("😐 Normal", callback_data=f"fb:workout:normal:{w_id}:{day_idx}"),
+                InlineKeyboardButton("😴 Og‘ir", callback_data=f"fb:workout:tired:{w_id}:{day_idx}")
+            )
+            
+        # [PHASE 7.1] Explain Engine
+        if explanation and is_flag_enabled("phase7_explain_v1", user_id):
+            txt += f"\n<i>🔹 {explanation}</i>"
+        
         bot.send_message(user_id, txt, parse_mode="HTML", reply_markup=markup, disable_web_page_preview=True)
 
     except Exception as e:
@@ -442,11 +472,12 @@ def generate_ai_meal(message, bot, user_id=None):
         return
 
     # 0.5 Check Lock
-    if user_id in GENERATION_LOCKS:
-        bot.send_message(user_id, "⏳ Sabr qiling, reja tuzilmoqda...")
-        return
+    with LOCKS_MUTEX:
+        if user_id in GENERATION_LOCKS:
+            bot.send_message(user_id, "⏳ Sabr qiling, reja tuzilmoqda...")
+            return
+        GENERATION_LOCKS.add(user_id)
 
-    GENERATION_LOCKS.add(user_id)
     try:
     
         # 1. Check if user already has an active menu link
@@ -554,16 +585,17 @@ def generate_ai_meal(message, bot, user_id=None):
             except: pass
             
             try:
+                # [PHASE 7.1] Store FULL data to preserve explanation
                 template_id = db.create_menu_template(
                     profile_key,
-                    json.dumps(data['menu']),
+                    json.dumps(data), 
                     json.dumps(data['shopping_list'])
                 )
             except Exception as e:
                 # Fallback update
                 template_id = db.update_menu_template_content(
                     profile_key,
-                    json.dumps(data['menu']),
+                    json.dumps(data),
                     json.dumps(data['shopping_list'])
                 )
                 if not template_id:
@@ -573,6 +605,24 @@ def generate_ai_meal(message, bot, user_id=None):
             
             db.create_user_menu_link(user_id, template_id)
             
+            # [NEW] USDA Post-processing
+            try:
+                # process_menu_nutrition accepts List or Dict? 
+                # Assuming it needs List structure string. 
+                # Let's inspect process_menu_nutrition usage. It says json.dumps(data['menu']) originally.
+                # So we pass data['menu'] here.
+                processed_menu_list_str = process_menu_nutrition(json.dumps(data['menu']))
+                processed_menu_list = json.loads(processed_menu_list_str)
+                
+                # Update data object
+                data['menu'] = processed_menu_list
+                
+                # Update DB with full object
+                db.update_menu_template_content(profile_key, json.dumps(data), json.dumps(data['shopping_list']))
+                print(f"DEBUG: Menu nutrition post-processed for user {user_id}")
+            except Exception as nutrition_err:
+                print(f"Nutrition Post-process Error: {nutrition_err}")
+
             try:
                 bot.delete_message(user_id, msg.message_id)
             except: pass
@@ -589,8 +639,9 @@ def generate_ai_meal(message, bot, user_id=None):
             except:
                  pass
     finally:
-        if user_id in GENERATION_LOCKS:
-            GENERATION_LOCKS.remove(user_id)
+        with LOCKS_MUTEX:
+            if user_id in GENERATION_LOCKS:
+                GENERATION_LOCKS.remove(user_id)
 
 def get_weekday_name(date_obj):
     # 0=Mon, ... 3=Thu ...
@@ -629,7 +680,18 @@ def show_daily_menu(bot, user_id, link_data, day_idx=None, meal_type='breakfast'
         day_idx = delta.days + 1
     
     try:
-        menu_list = json.loads(link_data['menu_json'])
+        # [PHASE 7.1] Support Dict vs List
+        raw_json = json.loads(link_data['menu_json'])
+        explanation = None
+        
+        if isinstance(raw_json, dict) and "menu" in raw_json:
+             menu_list = raw_json["menu"]
+             explanation = raw_json.get("explanation")
+        elif isinstance(raw_json, list):
+             menu_list = raw_json
+        else:
+             menu_list = []
+             
         total_days = len(menu_list)
         
         if day_idx < 1: day_idx = 1
@@ -753,6 +815,19 @@ def show_daily_menu(bot, user_id, link_data, day_idx=None, meal_type='breakfast'
             InlineKeyboardButton(get_text("btn_swap", user_lang), callback_data=f"menu_swap_vip_{day_idx}_{meal_type}")
         )
         
+        # [FEEDBACK V1]
+        if is_flag_enabled("feedback_v1", user_id):
+            t_id = link_data.get('menu_template_id') or link_data.get('id', 0)
+            markup.row(
+                InlineKeyboardButton("👍 Yoqdi", callback_data=f"fb:menu:good:{t_id}:{day_idx}"),
+                InlineKeyboardButton("👌 Bo‘ldi", callback_data=f"fb:menu:ok:{t_id}:{day_idx}"),
+                InlineKeyboardButton("👎 Qiyin", callback_data=f"fb:menu:bad:{t_id}:{day_idx}")
+            )
+        
+        # [PHASE 7.1] Explain Engine
+        if explanation and is_flag_enabled("phase7_explain_v1", user_id):
+            txt += f"\n<i>🔹 {explanation}</i>"
+
         bot.send_message(user_id, txt, parse_mode="HTML", reply_markup=markup)
 
     except Exception as e:

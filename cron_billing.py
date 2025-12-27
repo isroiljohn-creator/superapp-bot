@@ -7,11 +7,13 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+from core.config import PRICE_1_MONTH, PRICE_VIP_1_MONTH
+
 # Mock function to simulate charging a card
 def charge_user(user_id, amount):
     # In a real app, this would use a saved provider_token or card token
     # For now, we simulate success
-    print(f"Charging user {user_id} amount {amount}...")
+    print(f"Charging user {user_id} amount {amount} tiyin...")
     return True
 
 def check_subscriptions():
@@ -20,19 +22,22 @@ def check_subscriptions():
     conn = db.get_connection()
     cursor = conn.cursor()
     
-    # Find users whose premium has expired AND have auto_renew=1
+    # Find users whose premium has expired AND have auto_renew flag set (assuming 1 for True)
     now = datetime.now().isoformat()
-    cursor.execute("SELECT telegram_id, premium_until FROM users WHERE auto_renew = 1 AND premium_until < ?", (now,))
+    # Check both premium and vip if applicable, or generically apply the same price for now
+    cursor.execute("SELECT telegram_id, premium_until, plan_type FROM users WHERE auto_renew = 1 AND premium_until < ?", (now,))
     users = cursor.fetchall()
     
-    for user_id, premium_until in users:
-        print(f"Processing renewal for {user_id} (Expired: {premium_until})")
+    for user_id, premium_until, plan_type in users:
+        print(f"Processing renewal for {user_id} (Plan: {plan_type}, Expired: {premium_until})")
+        
+        # Determine amount based on plan
+        amount = PRICE_VIP_1_MONTH if plan_type == 'vip' else PRICE_1_MONTH
         
         # Attempt charge (Mock)
-        # 49,000 UZS for 30 days
-        if charge_user(user_id, 49000):
+        if charge_user(user_id, amount):
             # Extend for 30 days
-            db.set_premium(user_id, 30)
+            db.set_premium(user_id, 30) 
             print(f"Successfully renewed for {user_id}")
             # Ideally send a notification via bot (requires bot instance)
         else:

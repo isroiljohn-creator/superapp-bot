@@ -54,6 +54,8 @@ def register_all_handlers(bot):
 
     # --- Admin Handlers (Priority) ---
     admin.register_handlers(bot)
+    from bot.analytics_pro import register_analytics_handlers
+    register_analytics_handlers(bot)
     
     # --- Developer Menu Handler ---
     @bot.message_handler(commands=['debug_ids'])
@@ -78,7 +80,7 @@ def register_all_handlers(bot):
             calorie_scanner.show_calorie_menu(message, bot)
         except Exception as e:
             print(f"Error in calorie menu: {e}")
-            bot.send_message(message.chat.id, "❌ Xatolik yuz berdi / Ошибка")
+            bot.send_message(message.chat.id, get_text("error_msg", lang=db.get_user_language(message.from_user.id)))
 
     @bot.message_handler(content_types=['photo'])
     def photo_handler(message):
@@ -110,7 +112,7 @@ def register_all_handlers(bot):
     def back_to_main(message):
         user_id = message.from_user.id
         lang = db.get_user_language(user_id)
-        msg_text = "🏠 Asosiy menyu" if lang == 'uz' else "🏠 Главное меню"
+        msg_text = get_text("main_menu_title", lang=lang)
         bot.send_message(message.chat.id, msg_text, reply_markup=main_menu_keyboard(user_id=user_id, lang=lang))
 
     @bot.message_handler(func=lambda message: message.text in ["⬅️ Premium menyu", "⬅️ Премиум меню"])
@@ -135,7 +137,7 @@ def register_all_handlers(bot):
         # No, let's use get_text with a new key "ai_coach_intro" that I'll add later or reused logic.
         # Actually I missed adding "ai_coach_intro". I will just use if/else here to be safe and fast.
         
-        txt = "🤖 <b>AI Murabbiy</b>\n\nBugun nima qilamiz? Quyidagilardan birini tanlang 👇" if lang == 'uz' else "🤖 <b>AI Тренер</b>\n\nЧто будем делать сегодня? Выберите один из вариантов ниже 👇"
+        txt = get_text("ai_coach_intro", lang=lang)
         bot.send_message(message.chat.id, txt, reply_markup=ai_coach_inline_keyboard(lang=lang), parse_mode="HTML")
 
 
@@ -157,11 +159,7 @@ def register_all_handlers(bot):
         msg_text = get_text("upsell_workout_plus", lang) # Reusing upsell text or a generic one? 
         # Actually better to have a specific text. Let's use simple hardcoded localized split for now to be safe.
         
-        if lang == 'ru':
-            txt = "🚀 Результат с YASHA Plus в 2x быстрее\nСоставьте план с Plus сегодня!"
-        else:
-            txt = "🚀 YASHA Plus bilan natija 2x tezroq\nBugun Plus bilan menyu tuzing!"
-            
+        txt = get_text("yasha_plus_short_upsell", lang=lang)
         bot.send_message(message.chat.id, txt, reply_markup=premium.premium_inline_keyboard(lang=lang))
 
     @bot.message_handler(func=lambda message: message.text in ["💳 Obuna", "💎 Premium", "💳 Подписка", "💎 Премиум", "💎 Премиум Подписка"])
@@ -172,7 +170,7 @@ def register_all_handlers(bot):
     def menu_help(message):
         user_id = message.from_user.id
         lang = db.get_user_language(user_id)
-        msg_text = "Nima tushunarsiz bo'ldi?" if lang == 'uz' else "Что вам непонятно?"
+        msg_text = get_text("help_intro_prompt", lang=lang)
         
         bot.send_message(message.chat.id, msg_text, reply_markup=help_submenu_keyboard(lang=lang))
 
@@ -211,14 +209,14 @@ def register_all_handlers(bot):
     def help_workout(message):
         user_id = message.from_user.id
         lang = db.get_user_language(user_id)
-        txt = "Mashqlar bo'yicha savolingizni yozing:" if lang == 'uz' else "Напишите ваш вопрос по тренировкам:"
+        txt = get_text("help_workout_prompt", lang=lang)
         bot.send_message(message.chat.id, txt)
 
     @bot.message_handler(func=lambda message: message.text in ["🥗 Menyu bo'yicha", "🥗 По питанию"])
     def help_menu(message):
         user_id = message.from_user.id
         lang = db.get_user_language(user_id)
-        txt = "Menyu bo'yicha savolingizni yozing:" if lang == 'uz' else "Напишите ваш вопрос по питанию:"
+        txt = get_text("help_menu_prompt", lang=lang)
         bot.send_message(message.chat.id, txt)
 
     @bot.message_handler(func=lambda message: message.text in ["💳 Obuna bo'yicha", "💳 По подписке"])
@@ -233,7 +231,7 @@ def register_all_handlers(bot):
     def help_bug(message):
         user_id = message.from_user.id
         lang = db.get_user_language(user_id)
-        txt = "Xatolik haqida yozing, adminlarga yetkazamiz:" if lang == 'uz' else "Опишите ошибку, мы передадим админам:"
+        txt = get_text("help_bug_prompt", lang=lang)
         bot.send_message(message.chat.id, txt)
 
     # --- Submenu Button Handlers ---
@@ -401,11 +399,13 @@ def register_all_handlers(bot):
     # Help Submenu
     @bot.message_handler(func=lambda message: message.text == "🏋️ Mashqlar bo'yicha")
     def help_workout_info(message):
-        bot.send_message(message.chat.id, "Mashq rejasi bo'yicha savollarni yozing yoki videolarni kuting. Hozircha AI murabbiy yordam bera oladi.")
+        lang = db.get_user_language(message.from_user.id)
+        bot.send_message(message.chat.id, get_text("help_workout_info_msg", lang=lang))
 
     @bot.message_handler(func=lambda message: message.text == "🥗 Menyu bo'yicha")
     def help_meal_info(message):
-         bot.send_message(message.chat.id, "Menyu bo'yicha savollaringizni AI murabbiyga bering. U retseptlar va o'zgartirishlar kiritib bera oladi.")
+         lang = db.get_user_language(message.from_user.id)
+         bot.send_message(message.chat.id, get_text("help_meal_info_msg", lang=lang))
          
     @bot.message_handler(func=lambda message: message.text == "💳 Obuna bo'yicha")
     def help_premium_info(message):
@@ -678,16 +678,16 @@ def register_all_handlers(bot):
     def handle_menu_command(message):
         user_id = message.from_user.id
         lang = db.get_user_language(user_id)
-        txt = "Asosiy menyu:" if lang == "uz" else "Главное меню:"
+        txt = get_text("main_menu_title", lang=lang)
         bot.send_message(message.chat.id, txt, reply_markup=main_menu_keyboard(user_id=user_id, lang=lang))
 
     @bot.message_handler(commands=['ping'])
     def handle_ping(message):
-        bot.reply_to(message, "Pong! 🏓 Bot ishlamoqda.")
+        bot.reply_to(message, get_text("ping_pong", lang=db.get_user_language(message.from_user.id)))
 
     @bot.message_handler(commands=['myid'])
     def handle_myid(message):
-        bot.reply_to(message, f"🆔 Sizning ID raqamingiz: `{message.from_user.id}`", parse_mode="Markdown")
+        bot.reply_to(message, get_text("id_label", lang=db.get_user_language(message.from_user.id), user_id=message.from_user.id), parse_mode="Markdown")
 
     @bot.message_handler(commands=['reset'])
     def handle_reset(message):
@@ -698,7 +698,7 @@ def register_all_handlers(bot):
             bot.clear_step_handler_by_chat_id(chat_id)
         except Exception as e:
             print(f"Error clearing step handler: {e}")
-        bot.reply_to(message, "🔄 Holat to'liq tozalandi. /start ni bosing.")
+        bot.reply_to(message, get_text("status_reset_success", lang=db.get_user_language(user_id)))
 
     @bot.message_handler(commands=['version'])
     def handle_version(message):
@@ -1021,28 +1021,36 @@ def register_all_handlers(bot):
         except Exception as e:
              print(f"Fridge Start Error: {e}")
 
+    # [FEEDBACK V1]
+    @bot.callback_query_handler(func=lambda call: call.data.startswith("fb:"))
+    def feedback_wrapper(call):
+        from bot.feedback import handle_feedback_callback
+        handle_feedback_callback(call, bot)
+
     def handle_fridge_input(message, bot):
+        user_id = message.from_user.id
+        user = db.get_user(user_id)
+        if not user: return
+        lang = user.get('language', 'uz')
+        
         try:
             txt = message.text
             
             # 1. Navigation Escape Hatch
             # If user presses a menu button instead of typing ingredients
             if txt.startswith("⬅️") or txt.startswith("🏠") or txt.startswith("/") or txt in ["🤖 AI murabbiy", "🔥 Chellenjlar", "👤 Profil"]:
-                bot.send_message(message.chat.id, "❌ Retsept bekor qilindi.", reply_markup=main_menu_keyboard(user_id=message.from_user.id))
+                bot.send_message(message.chat.id, get_text("recipe_cancelled", lang=lang), reply_markup=main_menu_keyboard(user_id=user_id, lang=lang))
                 return
 
             ingredients = txt
             if not ingredients or len(ingredients) < 3:
-                bot.send_message(message.chat.id, "Iltimos, mahsulotlarni to'g'ri yozing.")
+                bot.send_message(message.chat.id, get_text("error_ingredients_invalid", lang=lang))
                 # Keep handler active? No, let them click again or type again if we knew how to re-register.
                 # For now just return, they have to click button again to restart flow.
                 return
 
-            user = db.get_user(message.from_user.id)
-            if not user: return
-            
             # FIXED: Added parse_mode='Markdown'
-            gen_msg = bot.send_message(message.chat.id, "👨‍🍳 **Shef-oshpaz o'ylamoqda...**\n\nRetsept tuzilmoqda...", parse_mode="Markdown")
+            gen_msg = bot.send_message(message.chat.id, get_text("recipe_loading", lang=lang), parse_mode="Markdown")
             
             # Call AI
             from core.ai import ai_generate_fridge_recipe
@@ -1054,13 +1062,14 @@ def register_all_handlers(bot):
                 bot.send_message(message.chat.id, recipe_text, parse_mode="HTML")
                 
                 # Show Main Menu again after recipe
-                bot.send_message(message.chat.id, "Yana nimadir kerakmi?", reply_markup=main_menu_keyboard(user_id=message.from_user.id))
+                bot.send_message(message.chat.id, get_text("anything_else", lang=lang), reply_markup=main_menu_keyboard(user_id=user_id, lang=lang))
             else:
-                bot.send_message(message.chat.id, "⚠️ Uzr, bu mahsulotlardan retsept topa olmadim.")
+                bot.send_message(message.chat.id, get_text("error_recipe_not_found", lang=lang))
 
         except Exception as e:
             print(f"Fridge Input Error: {e}")
-            bot.send_message(message.chat.id, "❌ Xatolik yuz berdi.")
+            # Ensure lang is defined for error case (it is now at top)
+            bot.send_message(message.chat.id, get_text("error_generic", lang=lang))
 
     # --- FALLBACK HANDLER (MUST BE LAST) ---
     @bot.message_handler(content_types=['text', 'audio', 'document', 'photo', 'sticker', 'video', 'video_note', 'voice', 'location', 'contact'], func=lambda m: True)
@@ -1079,10 +1088,7 @@ def register_all_handlers(bot):
         try:
             # Coach Tone Response
             lang = db.get_user_language(user_id)
-            if lang == 'ru':
-                txt = "Я вас понял 😄 Выберите один из разделов ниже, я помогу вам там 👇"
-            else:
-                txt = "Men seni tushundim 😄 Pastdagi bo‘limlardan birini tanla, men o‘sha yerda yordam beraman 👇"
+            txt = get_text("fallback_msg", lang=lang)
 
             bot.send_message(
                 message.chat.id,

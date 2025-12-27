@@ -2,12 +2,13 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from backend.database import get_db
-from backend.models import User
+from backend.models import User, DailyLog
 from backend.auth import verify_token
 from fastapi.security import OAuth2PasswordBearer
 from pydantic import BaseModel
 from typing import Optional
 import os
+from datetime import datetime
 
 router = APIRouter()
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
@@ -33,10 +34,7 @@ from backend.app.schemas.user import UserProfileUpdate
 @router.get("/profile")
 async def get_profile(current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
     # Fetch today's log for stats
-    from datetime import datetime
     today = datetime.utcnow().strftime("%Y-%m-%d")
-    from backend.models import DailyLog
-    from sqlalchemy import select
     
     log_result = await db.execute(
         select(DailyLog).where(DailyLog.user_id == current_user.id, DailyLog.date == today)
@@ -165,22 +163,19 @@ async def reset_profile(
     db: AsyncSession = Depends(get_db)
 ):
     """Reset user profile data"""
-    current_user.age = None
-    # gender usually kept or reset? User asked to "delete data". 
-    # If we reset gender, onboarding flows again.
-    current_user.gender = None 
-    current_user.height = None
-    current_user.weight = None
-    current_user.target_weight = None
-    current_user.goal = None
-    current_user.activity_level = None
-    current_user.allergies = None
-    current_user.is_onboarded = False # Ensure onboarding shows again if your logic determines onboarding by these fields
-    
-    # Also clear logs? The user said "Delete Data". 
-    # Usually "Delete Data" implies clearing history too.
-    # But for now, let's stick to Profile Reset as that's what shows in the "Profile" card in Mini App.
-    # The user screenshot showed Profile Card with data.
-    
-    await db.commit()
-    return {"status": "reset"}
+    try:
+        current_user.age = None
+        current_user.gender = None 
+        current_user.height = None
+        current_user.weight = None
+        current_user.target_weight = None
+        current_user.goal = None
+        current_user.activity_level = None
+        current_user.allergies = None
+        current_user.is_onboarded = False
+        
+        await db.commit()
+        return {"status": "reset"}
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))

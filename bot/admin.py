@@ -78,8 +78,13 @@ def register_handlers(bot):
                 report, chart = get_premium_stats()
                 bot.send_photo(call.message.chat.id, chart, caption=report, parse_mode="Markdown")
             elif action == 'report':
-                from bot.admin import generate_analytics_report
                 report = generate_analytics_report()
+                bot.send_message(call.message.chat.id, report, parse_mode="HTML")
+            elif action == 'menu_rollout':
+                report = generate_menu_rollout_report()
+                bot.send_message(call.message.chat.id, report, parse_mode="HTML")
+            elif action == 'workout_rollout':
+                report = generate_workout_rollout_report()
                 bot.send_message(call.message.chat.id, report, parse_mode="HTML")
             elif action == 'refresh':
                 bot.delete_message(call.message.chat.id, call.message.message_id)
@@ -305,6 +310,34 @@ def register_handlers(bot):
             print(f"ERROR in admin_stats: {e}")
             print(f"Traceback: {traceback.format_exc()}")
             bot.send_message(message.chat.id, f"❌ Xatolik: {str(e)}")
+            bot.send_message(message.chat.id, f"❌ Xatolik: {str(e)}")
+
+    @bot.message_handler(commands=['analytics_feedback'])
+    @safe_handler(bot)
+    def admin_feedback_analytics_cmd(message):
+        if message.from_user.id not in ADMIN_IDS: return
+        
+        from bot.feedback import get_feedback_analytics
+        try:
+             report = get_feedback_analytics()
+             bot.send_message(message.chat.id, report, parse_mode="HTML")
+        except Exception as e:
+             bot.send_message(message.chat.id, f"❌ Xatolik: {e}")
+
+    @bot.message_handler(commands=['analytics_adaptation'])
+    @safe_handler(bot)
+    def admin_adaptation_analytics_cmd(message):
+        if message.from_user.id not in ADMIN_IDS: return
+        
+        try:
+            from core.adaptation import get_adaptation_analytics
+            report = get_adaptation_analytics()
+            bot.send_message(message.chat.id, report, parse_mode="HTML")
+        except Exception as e:
+             bot.send_message(message.chat.id, f"❌ Xatolik: {e}")
+            
+        except Exception as e:
+             bot.send_message(message.chat.id, f"❌ Xatolik: {e}")
 
     @bot.message_handler(func=lambda message: "Oylik Xarajatlar" in message.text and message.from_user.id in ADMIN_IDS)
     def admin_ai_costs(message):
@@ -2018,5 +2051,164 @@ def generate_analytics_report():
 """
         return msg
 
+def generate_menu_rollout_report():
+    from backend.database import get_sync_db
+    from sqlalchemy import text
+    from datetime import datetime
+    
+    with get_sync_db() as session:
+        # Last 24h stats
+        sql = """
+        SELECT 
+            COUNT(*) as total,
+            COUNT(*) FILTER (WHERE (meta::jsonb->>'source') IN ('LOCAL', 'CACHE')) as local_count,
+            COUNT(*) FILTER (WHERE (meta::jsonb->>'source') = 'AI') as ai_count,
+            COUNT(*) FILTER (WHERE (meta::jsonb->>'is_fallback')::boolean = true) as fallback_count
+        FROM admin_events
+        WHERE event_type = 'MENU_GENERATION'
+          AND created_at >= now() - interval '24 hours'
+        """
+        try:
+            res = session.execute(text(sql)).fetchone()
+            total = res.total or 0
+            local = res.local_count or 0
+            ai = res.ai_count or 0
+            fallback = res.fallback_count or 0
+        except:
+            total = local = ai = fallback = 0
+        
+        # Fallback reasons
+        reason_sql = """
+        SELECT (meta::jsonb->>'fallback_reason') as reason, COUNT(*) as count
+        FROM admin_events
+        WHERE event_type = 'MENU_GENERATION'
+          AND (meta::jsonb->>'is_fallback')::boolean = true
+          AND created_at >= now() - interval '24 hours'
+        GROUP BY 1
+        ORDER BY 2 DESC
+        LIMIT 5
+        """
+        try:
+            reasons = session.execute(text(reason_sql)).fetchall()
+        except:
+            reasons = []
+        
+        # Token usage (Menu feature only)
+        token_sql = """
+        SELECT SUM(input_tokens + output_tokens) as total_tokens, SUM(cost_usd) as total_cost
+        FROM ai_usage_logs
+        WHERE feature IN ('menu', 'menu_advice')
+          AND timestamp >= now() - interval '24 hours'
+        """
+        try:
+            tokens = session.execute(text(token_sql)).fetchone()
+            total_tokens = tokens.total_tokens or 0
+            total_cost = tokens.total_cost or 0
+        except:
+            total_tokens = 0
+            total_cost = 0
+        
+    local_pct = (local / total * 100) if total > 0 else 0
+    ai_pct = (ai / total * 100) if total > 0 else 0
+    
+    txt = "🥗 <b>Menu Rollout Analytics (Last 24h)</b>\n\n"
+    txt += f"📊 Total Generations: {total}\n"
+    txt += f"✅ LOCAL (DB+Cache): {local} ({local_pct:.1f}%)\n"
+    txt += f"🤖 AI Generator: {ai} ({ai_pct:.1f}%)\n"
+    txt += f"⚠️ Fallbacks: {fallback}\n\n"
+    
+    if reasons:
+        txt += "<b>Top Fallback Reasons:</b>\n"
+        for r in reasons:
+            txt += f"• {r.reason or 'Unknown'}: {r.count}\n"
+        txt += "\n"
+        
+    txt += "<b>AI Costs (Menu Only):</b>\n"
+    txt += f"• Tokens: {total_tokens:,}\n"
+    txt += f"• Estimated Cost: ${total_cost:.4f}\n"
+    
+    return txt
 
+
+
+def generate_workout_rollout_report():
+    """Fetches stats for WORKOUT_GENERATION events in the last 24h."""
+    from backend.database import get_sync_db
+    from sqlalchemy import text
+    import json
+    
+    with get_sync_db() as session:
+        # Total generations
+        total_sql = "SELECT COUNT(*) FROM admin_events WHERE event_type = 'WORKOUT_GENERATION' AND created_at >= now() - interval '24 hours'"
+        total = session.execute(text(total_sql)).scalar() or 0
+        
+        if total == 0:
+            return "🏋️ <b>Workout Rollout Analytics (Last 24h)</b>\n\nNo workout generations recorded yet."
+        
+        # Source distribution
+        source_sql = """
+        SELECT meta::json->>'source' as src, COUNT(*) as cnt 
+        FROM admin_events 
+        WHERE event_type = 'WORKOUT_GENERATION' AND created_at >= now() - interval '24 hours'
+        GROUP BY src
+        """
+        sources = session.execute(text(source_sql)).fetchall()
+        
+        counts = {"DB": 0, "AI": 0, "CACHE": 0}
+        for src, cnt in sources:
+            if src in counts: counts[src] += cnt
+        
+        db_count = counts["DB"] + counts["CACHE"]
+        ai_count = counts["AI"]
+        
+        # Fallbacks
+        fallback_sql = """
+        SELECT COUNT(*) FROM admin_events 
+        WHERE event_type = 'WORKOUT_GENERATION' 
+          AND meta::json->>'is_fallback' = 'true'
+          AND created_at >= now() - interval '24 hours'
+        """
+        fallbacks = session.execute(text(fallback_sql)).scalar() or 0
+        
+        # Top fallback reasons
+        reason_sql = """
+        SELECT meta::json->>'fallback_reason' as reason, COUNT(*) as cnt
+        FROM admin_events
+        WHERE event_type = 'WORKOUT_GENERATION'
+          AND meta::json->>'is_fallback' = 'true'
+          AND created_at >= now() - interval '24 hours'
+        GROUP BY reason
+        ORDER BY cnt DESC LIMIT 5
+        """
+        reasons = session.execute(text(reason_sql)).fetchall()
+        
+        reasons_text = ""
+        if reasons:
+            reasons_text = "\n\n<b>Top Fallback Reasons:</b>\n" + "\n".join([f"• {r[0]}: {r[1]}" for r in reasons])
+
+        # AI Costs (Workout Only)
+        token_sql = """
+        SELECT SUM(input_tokens + output_tokens) as total_tokens, SUM(cost_usd) as total_cost
+        FROM ai_usage_logs
+        WHERE feature IN ('workout', 'workout_motivation')
+          AND timestamp >= now() - interval '24 hours'
+        """
+        try:
+            tokens_res = session.execute(text(token_sql)).fetchone()
+            total_tokens = tokens_res[0] or 0
+            total_cost = tokens_res[1] or 0
+        except:
+            total_tokens, total_cost = 0, 0
+
+        msg = f"🏋️ <b>Workout Rollout Analytics (Last 24h)</b>\n\n"
+        msg += f"📊 Total Generations: {total}\n"
+        msg += f"✅ DB (Local+Cache): {db_count} ({round(db_count/total*100, 1)}%)\n"
+        msg += f"🤖 AI Generator: {ai_count} ({round(ai_count/total*100, 1)}%)\n"
+        msg += f"⚠️ Fallbacks: {fallbacks}"
+        msg += reasons_text
+        msg += f"\n\n<b>AI Costs (Workout Only):</b>\n"
+        msg += f"• Tokens: {total_tokens:,}\n"
+        msg += f"• Estimated Cost: ${total_cost:.4f}"
+        
+        return msg
 

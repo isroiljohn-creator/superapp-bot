@@ -8,18 +8,6 @@ def send_daily_reminders(bot):
     today = datetime.now().strftime("%Y-%m-%d")
     weekday = datetime.now().weekday() # 0 = Monday, 6 = Sunday
     
-    # Varied messages for each day of the week
-    templates = [
-        "☀️ Salom {name}! Yangi hafta muborak! Bugun suv ichdingizmi va mashqlarni qildingizmi? 💧💪\n\n/start tugmasini bosib vazifalarni tekshiring!",
-        "☀️ Salom {name}! Sog'lig'ingizga e'tiborli bo'lishni unutmang. Suv ichdingizmi va mashqlarni bajardingizmi? 💧💪\n\n/start orqali tekshiring!",
-        "☀️ Salom {name}! Haftaning o'rtasi keldi. Suv va mashqlar rejada bormi? 💧💪\n\n/start tugmasini bosing!",
-        "☀️ Salom {name}! Maqsadingiz sari intilishda davom eting! Bugun suv va mashqlar qanday bo'ldi? 💧💪\n\n/start tugmasi sizni kutmoqda!",
-        "☀️ Salom {name}! Bugungi suv ichish va mashg'ulotlar haqida unutmang, sog'lig'ingiz o'z qo'lingizda! 💧💪\n\n/start ni bosib belgilang!",
-        "☀️ Salom {name}! Dam olish kuningiz unumli o'tsin. Bugun ham suv va mashqlar esingizdami? 💧💪\n\n/start orqali tekshiring!",
-        "☀️ Salom {name}! Yakshanba - o'z ustingizda ishlash uchun yaxshi kun. Suv ichdingizmi va mashqlarni qildingizmi? 💧💪\n\n/start ni bosing!"
-    ]
-    
-    template = templates[weekday]
     users = db.get_active_users()
     count = 0
     
@@ -36,8 +24,13 @@ def send_daily_reminders(bot):
             # Mark sent BEFORE sending to prevent race conditions (Double/Triple sends)
             db.mark_reminder_sent(user_id, today)
             
+            # Get user language
+            lang = db.get_user_language(user_id)
+            
             name = full_name if full_name else (username if username else "Aziz foydalanuvchi")
-            msg = template.format(name=name)
+            key = f"reminder_day_{weekday}"
+            from bot.languages import get_text
+            msg = get_text(key, lang=lang, name=name)
             
             bot.send_message(user_id, msg)
             count += 1

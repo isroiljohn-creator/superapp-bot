@@ -111,7 +111,7 @@ def process_language(call, bot):
     
     if is_registered:
         # Already registered? Just update lang and show main menu
-        msg_text = "🇷🇺 Язык успешно изменен!\n🏠 Добро пожаловать в главное меню." if lang_code == 'ru' else "🇺🇿 Til muvaffaqiyatli o'zgartirildi!\n🏠 Asosiy menyuga xush kelibsiz."
+        msg_text = get_text("language_change_success", lang=lang_code)
         
         bot.send_message(
             user_id,
@@ -439,10 +439,8 @@ def finish_onboarding(user_id, message, bot):
                 ref_user = db.get_user(referrer_id)
                 if ref_user:
                     ref_lang = ref_user.get('language', 'uz')
-                    if ref_lang == 'ru':
-                        ref_msg = f"🎉 Новый друг зарегистрировался! Вы получаете +1 балл.\nВсего баллов: {ref_user.get('yasha_points', 0) + 1}"
-                    else:
-                        ref_msg = f"🎉 Yangi do'st ro'yxatdan o'tdi! +1 ball olasiz.\nJami ballar: {ref_user.get('yasha_points', 0) + 1}"
+                    points_total = ref_user.get('yasha_points', 0) + 1
+                    ref_msg = get_text("referral_friend_joined", lang=ref_lang, points=points_total)
                     bot.send_message(referrer_id, ref_msg)
             except Exception as e:
                 print(f"Referral notify error: {e}")
@@ -496,12 +494,13 @@ def register_handlers(bot):
     @bot.message_handler(func=lambda m: manager.get_state(m.from_user.id) == STATE_PHONE)
     def handle_phone_fallback(message):
         """Catch non-contact messages during phone step"""
+        user_id = message.from_user.id
+        lang = db.get_user_language(user_id)
         try:
             bot.send_message(
                 message.chat.id,
-                "❌ Iltimos, telefon raqamingizni kontakt sifatida yuboring 👇\n\n"
-                "Pastdagi tugmani bosing:",
-                reply_markup=phone_request_keyboard()
+                get_text("request_phone", lang=lang, default="Iltimos, telefon raqamingizni kontakt sifatida yuboring 👇"),
+                reply_markup=phone_request_keyboard(lang=lang)
             )
         except ApiTelegramException as e:
             if e.error_code == 403:

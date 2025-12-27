@@ -26,7 +26,7 @@ def handle_ai_qa(message, bot, user_id=None):
     lang = db.get_user_language(user_id)
     from bot.languages import get_text
     try:
-        msg_text = "❓ <b>AI Murabbiy</b>\n\nMashg'ulotlar, ovqatlanish yoki sog'lom turmush tarzi bo'yicha istalgan savolingizni yozing:" if lang == 'uz' else "❓ <b>AI Тренер</b>\n\nЗадайте любой вопрос по тренировкам, питанию или здоровому образу жизни:"
+        msg_text = get_text("ai_qa_prompt", lang=lang)
         msg = bot.send_message(
             message.chat.id, 
             msg_text, 
@@ -123,7 +123,7 @@ def process_ai_qa(message, bot):
             
         # Send main menu to restore navigation
         from bot.keyboards import main_menu_keyboard
-        back_msg = "Yana nima yordam bera olaman?" if lang == 'uz' else "Чем еще я могу вам помочь?"
+        back_msg = get_text("ai_qa_back", lang=lang)
         bot.send_message(user_id, back_msg, reply_markup=main_menu_keyboard(user_id=user_id, lang=lang))
             
     except Exception as e:
@@ -177,7 +177,7 @@ def handle_shopping_list(message, bot, user_id=None):
 def handle_recipe_gen(message, bot, user_id=None):
     if user_id is None: user_id = message.from_user.id
     lang = db.get_user_language(user_id)
-    msg_text = "🍳 <b>AI Retsept</b>\n\nMuzlatgichda bor mahsulotlarni yozing (masalan: tovuq, guruch, pomidor). Men sizga mos sog'lom retsept tuzib beraman:" if lang == 'uz' else "🍳 <b>AI Рецепт</b>\n\nНапишите продукты, которые есть в холодильнике (например: курица, рис, помидоры). Я составлю для вас здоровый рецепт:"
+    msg_text = get_text("ai_recipe_prompt", lang=lang)
     try:
         msg = bot.send_message(
             message.chat.id, 
@@ -194,7 +194,7 @@ def process_recipe_input(message, bot):
     user_id = message.from_user.id
     lang = db.get_user_language(user_id)
     if not message.text:
-        bot.send_message(message.chat.id, "Iltimos, mahsulotlarni matn ko'rinishida yozing." if lang == 'uz' else "Пожалуйста, введите список продуктов текстом.")
+        bot.send_message(message.chat.id, get_text("error_text_only", lang=lang))
         return
         
     ingredients = message.text

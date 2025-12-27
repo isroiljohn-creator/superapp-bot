@@ -4,155 +4,78 @@ from sqlalchemy import func, desc, and_, or_, case
 from datetime import datetime, timedelta
 import json
 
+import logging
+import traceback
+from sqlalchemy import text
+
+logger = logging.getLogger("Database")
+
 class Database:
     def __init__(self):
         init_db_sync()
         self.run_migrations()
 
-
-    def init_db(self):
-        init_db_sync()
-        # self.check_schema() # Deprecated: Use Alembic
-
-    def log_water(self, user_id, amount_ml):
-        """Log water intake (Increment)"""
-        with get_sync_db() as session:
-            try:
-                today = datetime.utcnow().date()
-                log = session.query(DailyLog).filter(DailyLog.user_id == user_id, DailyLog.date == today).first()
-                if not log:
-                    log = DailyLog(user_id=user_id, date=today, water_ml=0, steps=0)
-                    session.add(log)
-                
-                log.water_ml = (log.water_ml or 0) + amount_ml
-                session.commit()
-                return log.water_ml
-            except Exception as e:
-                session.rollback()
-                print(f"Log Water Error: {e}")
-                return None
-
-    def log_steps(self, user_id, steps):
-        """Log steps (Increment)"""
-        with get_sync_db() as session:
-            try:
-                today = datetime.utcnow().date()
-                log = session.query(DailyLog).filter(DailyLog.user_id == user_id, DailyLog.date == today).first()
-                if not log:
-                    log = DailyLog(user_id=user_id, date=today, water_ml=0, steps=0)
-                    session.add(log)
-                
-                log.steps = (log.steps or 0) + steps
-                session.commit()
-                return log.steps
-            except Exception as e:
-                session.rollback()
-                print(f"Log Steps Error: {e}")
-                return None
-
-    # check_schema removed in favor of Alembic
-
     def run_migrations(self):
         """
         Auto-fix schema issues without full Alembic setup.
+        Safe for production as it checks existence before modification.
         """
         with get_sync_db() as session:
-            try:
-                # 1. Check transactions.transaction_id
-                from sqlalchemy import text
-                
-                # Check if column exists
-                check_sql = text("SELECT column_name FROM information_schema.columns WHERE table_name='transactions' AND column_name='transaction_id'")
-                result = session.execute(check_sql).fetchone()
-                
-                if not result:
-                    print("MIGRATION: Adding transaction_id to transactions table...")
-                    session.execute(text("ALTER TABLE transactions ADD COLUMN IF NOT EXISTS transaction_id VARCHAR"))
-                    session.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS ix_transactions_transaction_id ON transactions (transaction_id)"))
+            # Group migrations to manage flow
+            def col_exists(table, column):
+                sql = text(f"SELECT column_name FROM information_schema.columns WHERE table_name='{table}' AND column_name='{column}'")
+                return session.execute(sql).fetchone() is not None
+
+            def add_col(table, column, col_type, default=None):
+                if not col_exists(table, column):
+                    logger.info(f"MIGRATION: Adding {column} to {table} table...")
+                    default_sql = f" DEFAULT {default}" if default is not None else ""
+                    session.execute(text(f"ALTER TABLE {table} ADD COLUMN IF NOT EXISTS {column} {col_type}{default_sql}"))
                     session.commit()
-                    print("MIGRATION: Success!")
-                    
-            except Exception as e:
-                session.rollback()
-                print(f"MIGRATION ERROR 1: {e}")
+                    return True
+                return False
 
             try:
-                # 2. Check other missing columns (perform_time, cancel_time, reason)
-                missing_cols = [
-                    ("perform_time", "TIMESTAMP"),
-                    ("cancel_time", "TIMESTAMP"),
-                    ("reason", "INTEGER")
-                ]
+                # 1. Transactions table fixes
+                add_col('transactions', 'transaction_id', 'VARCHAR')
+                add_col('transactions', 'perform_time', 'TIMESTAMP')
+                add_col('transactions', 'cancel_time', 'TIMESTAMP')
+                add_col('transactions', 'reason', 'INTEGER')
                 
-                from sqlalchemy import text
-                
-                for col_name, col_type in missing_cols:
-                    check_sql = text(f"SELECT column_name FROM information_schema.columns WHERE table_name='transactions' AND column_name='{col_name}'")
-                    result = session.execute(check_sql).fetchone()
-                    
-                    if not result:
-                        print(f"MIGRATION: Adding {col_name} to transactions table...")
-                        session.execute(text(f"ALTER TABLE transactions ADD COLUMN IF NOT EXISTS {col_name} {col_type}"))
-                        session.commit()
-                        print(f"MIGRATION: {col_name} added!")
-                        
-                
-            except Exception as e:
-                session.rollback()
-                print(f"MIGRATION ERROR 2: {e}")
+                # Indexes for transactions
+                session.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS ix_transactions_transaction_id ON transactions (transaction_id)"))
+                session.commit()
 
-            try:
-                # 2.1 Check daily_logs.reminder_sent
-                check_sql = text("SELECT column_name FROM information_schema.columns WHERE table_name='daily_logs' AND column_name='reminder_sent'")
-                result = session.execute(check_sql).fetchone()
-                if not result:
-                    print("MIGRATION: Adding reminder_sent to daily_logs table...")
-                    session.execute(text("ALTER TABLE daily_logs ADD COLUMN IF NOT EXISTS reminder_sent BOOLEAN DEFAULT FALSE"))
-                    session.commit()
-                    print("MIGRATION: daily_logs.reminder_sent added!")
-            except Exception as e:
-                session.rollback()
-                print(f"MIGRATION ERROR 2.1: {e}")
+                # 2. Daily Logs fixes
+                add_col('daily_logs', 'reminder_sent', 'BOOLEAN', 'FALSE')
 
-            try:
-                # 2.2 Check users.language
-                check_sql = text("SELECT column_name FROM information_schema.columns WHERE table_name='users' AND column_name='language'")
-                result = session.execute(check_sql).fetchone()
-                if not result:
-                    print("MIGRATION: Adding language to users table...")
-                    session.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS language VARCHAR DEFAULT 'uz'"))
-                    session.commit()
-                    print("MIGRATION: users.language added!")
-            except Exception as e:
-                session.rollback()
-                print(f"MIGRATION ERROR 2.2: {e}")
+                # 3. Users table fixes
+                add_col('users', 'language', 'VARCHAR', "'uz'")
 
-            try:
-                # 3. Create exercises table if not exists (Manual fallback for sync issues)
-                from sqlalchemy import text
-                check_sql = text("SELECT to_regclass('public.exercises')")
-                result = session.execute(check_sql).scalar()
-                
-                if not result:
-                    print("MIGRATION: Creating exercises table...")
-                    # Basic creation, let SQLAlchemy handle full sync if possible, but this ensures existence
-                    sql = """
-                    CREATE TABLE IF NOT EXISTS exercises (
-                        id SERIAL PRIMARY KEY,
-                        name VARCHAR,
-                        video_url VARCHAR,
-                        category VARCHAR,
-                        difficulty VARCHAR,
-                        description TEXT,
-                        created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT (now() at time zone 'utc')
-                    );
-                    """
-                    session.execute(text(sql))
+                # 4. Exercises Table Fallback
+                check_table = text("SELECT to_regclass('public.exercises')")
+                if not session.execute(check_table).scalar():
+                    logger.info("MIGRATION: Creating exercises table...")
+                    session.execute(text("""
+                        CREATE TABLE IF NOT EXISTS exercises (
+                            id SERIAL PRIMARY KEY,
+                            name VARCHAR,
+                            video_url VARCHAR,
+                            category VARCHAR,
+                            difficulty VARCHAR,
+                            description TEXT,
+                            created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT (now() at time zone 'utc')
+                        );
+                    """))
                     session.commit()
-                    print("MIGRATION: Exercises table created!")
+
+                logger.info("✅ Database migrations checked/applied.")
             except Exception as e:
                 session.rollback()
-                print(f"MIGRATION ERROR 3: {e}")
+                logger.error(f"CRITICAL MIGRATION ERROR: {e}\n{traceback.format_exc()}")
+
+    def init_db(self):
+        init_db_sync()
 
     def save_meal_log(self, user_id, name, calories, protein, carbs, fat, meal_type, date):
         with get_sync_db() as session:
@@ -1554,9 +1477,10 @@ class Database:
                 for f in flags
             ]
 
-    def set_feature_flag(self, key, enabled, rollout_percent=None):
+    def set_feature_flag(self, key, enabled, rollout_percent=None, allowlist=None, denylist=None):
         """Create or Update flag"""
         from backend.models import FeatureFlag
+        import json
         with get_sync_db() as session:
             flag = session.query(FeatureFlag).filter(FeatureFlag.key == key).first()
             if not flag:
@@ -1566,38 +1490,12 @@ class Database:
             flag.enabled = enabled
             if rollout_percent is not None:
                 flag.rollout_percent = rollout_percent
+            if allowlist is not None:
+                flag.allowlist = json.dumps(allowlist)
+            if denylist is not None:
+                flag.denylist = json.dumps(denylist)
             
             session.commit()
-
-            
-            # 2. Get Last 7 Days Logs
-            start_date = (datetime.now() - timedelta(days=7)).strftime("%Y-%m-%d")
-            logs = session.query(DailyLog).filter(DailyLog.user_id == pk, DailyLog.date >= start_date).all()
-            
-            if not logs:
-                return {"has_data": False}
-                
-            # 3. Aggregate Data
-            stats = {
-                "has_data": True,
-                "days_tracked": len(logs),
-                "water_days": sum(1 for log in logs if log.water_drank),
-                "workouts": sum(1 for log in logs if log.workout_done),
-                "avg_sleep": 0,
-                "moods": {},
-                "streaks": streaks
-            }
-            
-            total_sleep = sum(log.sleep_hours for log in logs if log.sleep_hours)
-            sleep_count = sum(1 for log in logs if log.sleep_hours > 0)
-            if sleep_count > 0:
-                stats["avg_sleep"] = round(total_sleep / sleep_count, 1)
-                
-            for log in logs:
-                if log.mood:
-                    stats["moods"][log.mood] = stats["moods"].get(log.mood, 0) + 1
-                    
-            return stats
 
     def get_todays_points_breakdown(self, user_id):
         default_breakdown = {

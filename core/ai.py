@@ -1,8 +1,17 @@
 import os
+import json
+import logging
 import time
+from datetime import datetime
 from google import genai
 from google.genai import types
 from dotenv import load_dotenv
+from core.db import db
+from core.flags import is_flag_enabled
+from core.menu_assembly import assemble_menu_7day
+from core.workout_selector import select_workout_plan
+
+logger = logging.getLogger("CoreAI")
 
 load_dotenv()
 
@@ -18,6 +27,75 @@ if GEMINI_API_KEY:
         print(f"Error initializing Gemini: {e}")
 else:
     print("DEBUG: GEMINI_API_KEY not found in environment variables.")
+
+def get_micro_advice(menu_data, user_profile, lang="uz", user_id=None, return_usage=False):
+    """AI generates only 1-2 motivating sentences for the menu."""
+    goal = user_profile.get('goal', 'Sog‘liq')
+    target = user_profile.get('kcal_target', 'hisoblanmoqda')
+    
+    # ... prompt logic ...
+    prompt = f"""
+    Siz professional diyetologsiz. Quyidagi menyu foydalanuvchi uchun tayyorlandi:
+    Maqsad: {goal}
+    Tayyorlangan kkal: {target}
+    
+    Faqat 1-2 ta juda qisqa va motivatsion gap yozing (lotin alifbosida, o'zbek tilida).
+    Foydalanuvchiga 'SIZ' deb murojaat qiling.
+    """
+    if lang == 'ru':
+        prompt = f"""
+        Вы профессиональный диетолог. План питания готов.
+        Цель: {goal}
+        Ккал: {target}
+        Напишите 1-2 коротких мотивирующих предложения на русском языке.
+        Обращайтесь к пользователю на 'ВЫ'.
+        """
+        
+    fallback_msg = "Sizga muvaffaqiyat tilayman! Rejaga amal qiling." if lang == 'uz' else "Желаю успеха! Придерживайтесь плана."
+    try:
+        if return_usage:
+            advice, usage = ask_gemini("Diyetolog kabi qisqa motivatsiya beruvchi.", prompt, user_id=user_id, feature="menu_advice", return_usage=True)
+            return (advice.strip() if advice else fallback_msg), usage
+        else:
+            advice = ask_gemini("Diyetolog kabi qisqa motivatsiya beruvchi.", prompt, user_id=user_id, feature="menu_advice")
+            return advice.strip() if advice else fallback_msg
+    except Exception as e:
+        print(f"Error in get_micro_advice: {e}")
+        if return_usage:
+            return fallback_msg, {"input": 0, "output": 0, "cost": 0}
+        return fallback_msg
+
+def generate_workout_motivation_uz(user_profile, plan_summary):
+    """
+    AI is allowed ONLY for short motivation text (1–2 sentences, Uzbek, “SIZ” address).
+    Returns (motivation_text, usage_dict).
+    """
+    goal = user_profile.get('goal', 'sog‘liq')
+    user_id = user_profile.get('telegram_id') or user_profile.get('id')
+    
+    prompt = f"""
+    Siz professional fitness murabbiysiz.
+    Foydalanuvchi maqsadi: {goal}.
+    Mashq rejasi haqida qisqacha ma'lumot: {plan_summary}
+    
+    Foydalanuvchiga 1-2 gaplik juda qisqa motivatsiya yozing.
+    FAQAT O‘ZBEK TILIDA.
+    Foydalanuvchiga 'SIZ' deb murojaat qiling.
+    Maksimal 1 ta emoji ishlating.
+    Tibbiy maslahat bermang.
+    """
+    
+    try:
+        # Using ask_gemini with restricted feature
+        response, usage = ask_gemini("Motivatsion murabbiy", prompt, user_id=user_id, feature="workout_motivation", return_usage=True)
+        if response:
+            # Clean up potential markdown or quotes
+            motivation = response.strip().strip('"').strip("'")
+            return motivation, usage
+    except Exception as e:
+        logger.error(f"Motivation generation failed: {e}")
+        
+    return "Mashg'ulotlarni boshlashga tayyormisiz? Sizning intilishingiz natija garovidir!", {"input": 0, "output": 0, "cost": 0}
 
 def get_offline_workout(user_profile, lang="uz"):
     goal = user_profile.get('goal', 'Sog‘liq')
@@ -169,9 +247,9 @@ SAFETY_SETTINGS = [
 # Primary: from Env (default 1.5-flash)
 # Fallback: versions with different suffixes to handle 404s in different regions/API versions
 MODELS_TO_TRY = []
-primary = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
+primary = os.getenv("GEMINI_MODEL", "gemini-2.0-flash-exp")
 MODELS_TO_TRY.append(primary)
-fallbacks = ["gemini-1.5-flash-latest", "gemini-1.5-flash", "gemini-1.5-flash-001", "gemini-1.5-flash-002", "gemini-2.0-flash-exp"]
+fallbacks = ["gemini-1.5-flash-latest", "gemini-1.5-flash", "gemini-1.5-flash-002", "gemini-1.5-flash-001"]
 for fb in fallbacks:
     if fb not in MODELS_TO_TRY:
         MODELS_TO_TRY.append(fb)
@@ -183,7 +261,8 @@ def get_profile_key(profile):
     
     return f"{profile.get('gender')}|{profile.get('goal')}|{profile.get('activity_level')}|{profile.get('allergies')}|{age_band}|v6"
 
-# Usage Stats
+import threading
+# Usage Stats (Thread-safe)
 AI_USAGE_STATS = {
     "workout": 0,
     "meal": 0,
@@ -194,11 +273,21 @@ AI_USAGE_STATS = {
     "errors": 0,
     "total_requests": 0
 }
+AI_STATS_LOCK = threading.Lock()
 
-def ask_gemini(system_prompt, user_prompt, response_mime_type=None, response_schema=None):
+def _increment_ai_stat(key):
+    """Helper for thread-safe stat increment"""
+    with AI_STATS_LOCK:
+        if key in AI_USAGE_STATS:
+            AI_USAGE_STATS[key] += 1
+            if key != "errors":
+                AI_USAGE_STATS["total_requests"] += 1
+
+def ask_gemini(system_prompt, user_prompt, response_mime_type=None, response_schema=None, user_id=None, feature=None, return_usage=False):
     """
     Centralized helper to call Gemini with robust model fallback.
     Returns plain text response or raises Exception.
+    Now includes structured logging for tokens and latency.
     """
     global client
     
@@ -211,6 +300,7 @@ def ask_gemini(system_prompt, user_prompt, response_mime_type=None, response_sch
     full_prompt = f"{system_prompt}\n\nUser Input: {user_prompt}"
     
     last_error = None
+    start_time = time.time()
     
     for model_name in MODELS_TO_TRY:
         try:
@@ -231,7 +321,48 @@ def ask_gemini(system_prompt, user_prompt, response_mime_type=None, response_sch
                 config=types.GenerateContentConfig(**config_kwargs)
             )
             
+            # latency
+            latency_ms = (time.time() - start_time) * 1000
+
             if response.text:
+                # Log usage if user_id is provided
+                if user_id:
+                    try:
+                        usage = response.usage_metadata
+                        input_tok = usage.prompt_token_count or 0
+                        output_tok = usage.candidates_token_count or 0
+                        total_tok = input_tok + output_tok
+                        
+                        # Pricing (Gemini 1.5 Flash estimate)
+                        cost = (input_tok * 0.15 / 1000000) + (output_tok * 0.60 / 1000000)
+                        
+                        # 1. AI Usage Table
+                        db.log_ai_usage_db(user_id, feature or "unknown", model_name, input_tok, output_tok, cost)
+                        
+                        # 2. Admin Events (as requested)
+                        db.log_admin_event(
+                            event_type="AI_TOKEN_USAGE",
+                            user_id=user_id,
+                            success=True,
+                            latency_ms=latency_ms,
+                            meta={
+                                "feature": feature,
+                                "model": model_name,
+                                "input_tokens": input_tok,
+                                "output_tokens": output_tok,
+                                "total_tokens": total_tok,
+                                "cost_usd": round(cost, 6)
+                            }
+                        )
+                    except Exception as le:
+                        print(f"Logging usage error: {le}")
+
+                if return_usage:
+                    usage = getattr(response, 'usage_metadata', None)
+                    input_tok = usage.prompt_token_count or 0 if usage else 0
+                    output_tok = usage.candidates_token_count or 0 if usage else 0
+                    cost = (input_tok * 0.15 / 1000000) + (output_tok * 0.60 / 1000000)
+                    return response.text.strip(), {"input": input_tok, "output": output_tok, "cost": cost}
                 return response.text.strip()
             
         except Exception as e:
@@ -252,7 +383,19 @@ def ask_gemini(system_prompt, user_prompt, response_mime_type=None, response_sch
             
     # If all models fail
     print("ERROR: All AI models failed.")
-    AI_USAGE_STATS["errors"] += 1
+    _increment_ai_stat("errors")
+    
+    # Log failure event
+    if user_id:
+        db.log_admin_event(
+            event_type="AI_TOKEN_USAGE",
+            user_id=user_id,
+            success=False,
+            meta={"feature": feature, "error": str(last_error)}
+        )
+
+    if return_usage:
+        return None, {"input": 0, "output": 0, "cost": 0}
     # User friendly error
     raise Exception(f"AI tizimi bilan bog'lanishda xatolik yuz berdi. Iltimos, bir ozdan so'ng qayta urining. (Error: {last_error})")
 
@@ -289,10 +432,66 @@ MOCK_MENU_DATA = {
   ]
 }
 
+
+
+
+
 def ai_generate_weekly_meal_plan_json(user_profile, daily_target=2000, lang="uz"):
     """Generates a 7-day structured meal plan + shopping list in JSON. (Unified logic)"""
-    AI_USAGE_STATS["meal"] += 1
-    AI_USAGE_STATS["total_requests"] += 1
+    user_id = user_profile.get('telegram_id')
+    
+    # 1. Try DB Assembly first (Priority)
+    start_time = time.time()
+    source = "AI"
+    is_fallback = False
+    fallback_reason = None
+    
+    goal_tag = user_profile.get('goal', 'unknown')
+    
+    if is_flag_enabled("db_menu_assembly", user_id):
+        try:
+            db_plan_json = assemble_menu_7day(user_profile, daily_target)
+            if db_plan_json:
+                data = json.loads(db_plan_json)
+                # Add micro-advice via AI
+                advice, usage_adv = get_micro_advice(data, user_profile, lang=lang, user_id=user_id, return_usage=True) 
+                data['micro_advice'] = advice
+                source = "LOCAL"
+                
+                # Log Menu Generation Event
+                latency_ms = (time.time() - start_time) * 1000
+                db.log_admin_event(
+                    event_type="MENU_GENERATION",
+                    user_id=user_id,
+                    success=True,
+                    latency_ms=latency_ms,
+                    meta={
+                        "source": source,
+                        "is_fallback": is_fallback,
+                        "fallback_reason": fallback_reason,
+                        "daily_target": daily_target,
+                        "goal_tag": goal_tag,
+                        "ai_input_tokens": usage_adv.get("input", 0),
+                        "ai_output_tokens": usage_adv.get("output", 0),
+                        "ai_total_tokens": usage_adv.get("input", 0) + usage_adv.get("output", 0),
+                        "ai_cost_usd": usage_adv.get("cost", 0)
+                    }
+                )
+                return data
+            else:
+                is_fallback = True
+                fallback_reason = "db_assembly_returned_none"
+        except Exception as e:
+            logger.error(f"DB_MENU_ASSEMBLY_FAILED: {e}")
+            is_fallback = True
+            fallback_reason = f"db_assembly_exception: {str(e)}"
+            # Fallback will continue to AI generation below
+    
+    _increment_ai_stat("meal")
+    # ... legacy path usage collection ...
+    # (Update AI path below)
+    
+    _increment_ai_stat("meal")
 
     # language context
     lang_instruction = "FAQAT O‘ZBEK TILI (LOTIN ALIFBOSIDA)."
@@ -460,7 +659,16 @@ VAZIFA: Menga 7 kunlik (Dushanba-Yakshanba) ovqatlanish rejasi kerak.
 
         try:
             # Use ask_gemini instead of direct client call for fallback
-            response_text = ask_gemini(system_prompt, prompt_text, response_mime_type="application/json", response_schema=schema)
+            # Pass user_id and feature for granular logging
+            response_text, usage = ask_gemini(
+                system_prompt, 
+                prompt_text, 
+                response_mime_type="application/json", 
+                response_schema=schema,
+                user_id=user_id,
+                feature="menu",
+                return_usage=True
+            )
             
             if not response_text:
                 raise Exception("Empty AI response")
@@ -472,7 +680,7 @@ VAZIFA: Menga 7 kunlik (Dushanba-Yakshanba) ovqatlanish rejasi kerak.
             clean_json = clean_json.split('```')[0].strip()
             
             try:
-                 return json.loads(clean_json)
+                 return json.loads(clean_json), usage
             except json.JSONDecodeError:
                  # Auto-repair common truncation
                  repaired = clean_json
@@ -480,7 +688,7 @@ VAZIFA: Menga 7 kunlik (Dushanba-Yakshanba) ovqatlanish rejasi kerak.
                  repaired += '}' * (repaired.count('{') - repaired.count('}'))
                  repaired += ']' * (repaired.count('[') - repaired.count(']'))
                  try:
-                    return json.loads(repaired)
+                    return json.loads(repaired), usage
                  except:
                     # Trim last comma and try again
                     last_comma = clean_json.rfind(',')
@@ -488,19 +696,17 @@ VAZIFA: Menga 7 kunlik (Dushanba-Yakshanba) ovqatlanish rejasi kerak.
                         repaired = clean_json[:last_comma]
                         repaired += '}' * (repaired.count('{') - repaired.count('}')) 
                         repaired += ']' * (repaired.count('[') - repaired.count(']'))
-                        return json.loads(repaired)
+                        return json.loads(repaired), usage
                     raise
         except Exception as api_err:
             print(f"DEBUG: Chunk Generation error ({chunk_desc}): {api_err}")
-            return {"menu": [], "shopping_list": {}}
+            return {"menu": [], "shopping_list": {}}, {"input": 0, "output": 0, "cost": 0}
 
     # -------------------------------------------------------------------------
     # MAIN SPLIT LOGIC
     # -------------------------------------------------------------------------
     try:
         # 0. CACHE CHECK
-        from core.db import db
-        import json
         
         profile_key = get_profile_key(user_profile)
         cached = db.get_menu_template(profile_key)
@@ -530,8 +736,8 @@ VAZIFA: Menga 7 kunlik (Dushanba-Yakshanba) ovqatlanish rejasi kerak.
                     total_week_cals += d_sum
 
                 return {
-                    "shopping_list_json": json.dumps(shopping_list, ensure_ascii=False),
-                    "weekly_menu_json": json.dumps(plan, ensure_ascii=False)
+                    "menu": plan,
+                    "shopping_list": shopping_list
                 }
             except Exception as e:
                  print(f"Cache Corrupt: {e}")
@@ -540,19 +746,50 @@ VAZIFA: Menga 7 kunlik (Dushanba-Yakshanba) ovqatlanish rejasi kerak.
         
         # PART 1: Days 1-3
         prompt_1 = base_prompt + "\n\n🚨 IMPORTANT TASK: Generate ONLY Days 1, 2, and 3. Return an EMPTY shopping_list for now."
-        data_1 = _generate_chunk(prompt_1, "Days 1-3")
+        data_1, usage_1 = _generate_chunk(prompt_1, "Days 1-3")
         
         # PART 2: Days 4-7 + Shopping List
         prompt_2 = base_prompt + f"\n\n✅ Days 1-3 Generated. Now generate remaining.\n\n🚨 TASK: Generate ONLY Days 4, 5, 6, and 7. \nAND generate valid 'shopping_list' for THE WHOLE WEEK (Days 1-7)."
-        data_2 = _generate_chunk(prompt_2, "Days 4-7")
+        data_2, usage_2 = _generate_chunk(prompt_2, "Days 4-7")
         
-        # MERGE LOGIC
-        final_menu = data_1.get('menu', []) + data_2.get('menu', [])
-        final_shopping = data_2.get('shopping_list', {})
+        # COMBINE
+        plan = data_1.get('menu', []) if data_1 else [] 
+        plan += data_2.get('menu', []) if data_2 else []
+        shopping_list = data_2.get('shopping_list', {}) if data_2 else {}
+
+        # Log Menu Generation Event (AI path)
+        latency_ms = (time.time() - start_time) * 1000
+        
+        # Sum usage
+        total_in = usage_1.get("input", 0) + usage_2.get("input", 0)
+        total_out = usage_1.get("output", 0) + usage_2.get("output", 0)
+        total_cost = usage_1.get("cost", 0) + usage_2.get("cost", 0)
+
+        db.log_admin_event(
+            event_type="MENU_GENERATION",
+            user_id=user_id,
+            success=True,
+            latency_ms=latency_ms,
+            meta={
+                "source": source,
+                "is_fallback": is_fallback,
+                "fallback_reason": fallback_reason,
+                "daily_target": daily_target,
+                "goal_tag": goal_tag,
+                "days_count": len(plan),
+                "ai_input_tokens": total_in,
+                "ai_output_tokens": total_out,
+                "ai_total_tokens": total_in + total_out,
+                "ai_cost_usd": total_cost
+            }
+        )
+
+        if not plan:
+            return None
         
         merged_data = {
-            "menu": final_menu,
-            "shopping_list": final_shopping
+            "menu": plan,
+            "shopping_list": shopping_list
         }
         
         # ROBUST CLEANING
@@ -590,8 +827,7 @@ VAZIFA: Menga 7 kunlik (Dushanba-Yakshanba) ovqatlanish rejasi kerak.
 
 def ai_answer_question(question, lang="uz"):
     """Answers a general fitness question using Gemini."""
-    AI_USAGE_STATS["chat"] += 1
-    AI_USAGE_STATS["total_requests"] += 1
+    _increment_ai_stat("chat")
     
     prompt = f"Siz fitnes murabbiyisiz. Savolga qisqa va aniq javob bering (o'zbek tilida): {question}"
     if lang == 'ru':
@@ -606,8 +842,7 @@ def ai_answer_question(question, lang="uz"):
 
 def ai_generate_shopping_list(user_profile, lang="uz"):
     """Generates a shopping list based on user profile and health context."""
-    AI_USAGE_STATS["shopping"] += 1
-    AI_USAGE_STATS["total_requests"] += 1
+    _increment_ai_stat("shopping")
     
     # Build allergy/health warning
     allergy_text = user_profile.get('allergies')
@@ -683,8 +918,7 @@ def analyze_food_image(image_data, lang="uz"):
     Analyzes food image using Gemini Vision.
     Returns structured text in Uzbek.
     """
-    AI_USAGE_STATS["vision"] += 1
-    AI_USAGE_STATS["total_requests"] += 1
+    _increment_ai_stat("vision")
     if not GEMINI_API_KEY:
         return None
 
@@ -798,13 +1032,37 @@ def analyze_food_image(image_data, lang="uz"):
             
     return None
 
-def analyze_food_text(text, lang="uz"):
+def analyze_food_text(text, lang="uz", user_id=None):
     """
     Analyzes food text description using Gemini.
     Returns structured text in Uzbek.
     """
-    AI_USAGE_STATS["vision"] += 1
-    AI_USAGE_STATS["total_requests"] += 1
+    _increment_ai_stat("vision")
+
+    # 1. IMMEDIATE DB LOOKUP (Priority 1)
+    # Check if the entire text matches a local dish
+    from core.nutrition import lookup_usda_macros, format_nutrition_result
+    # Simple normalization: lowercase and strip
+    norm_text = text.lower().strip()
+    db_match = lookup_usda_macros(norm_text, norm_text, user_id=user_id)
+    if db_match and db_match.get("source") == "LOCAL":
+        # Wrap it in the same structure as analyze_ingredients_list
+        res = {
+            "total_kcal": db_match["kcal_100g"],
+            "total_protein": db_match["protein_100g"],
+            "total_fat": db_match["fat_100g"],
+            "total_carbs": db_match["carbs_100g"],
+            "items": [{
+                "name": norm_text,
+                "kcal": db_match["kcal_100g"],
+                "source": "LOCAL",
+                "match_source": "DISH"
+            }],
+            "match_count": 1,
+            "source_dist": {"LOCAL": 1, "USDA": 0, "AI": 0},
+            "match_sources": {"DISH": 1, "ALIAS": 0, "FUZZY": 0, "FALLBACK": 0}
+        }
+        return format_nutrition_result(res, lang)
 
     global client
     if not GEMINI_API_KEY:
@@ -822,67 +1080,79 @@ def analyze_food_text(text, lang="uz"):
         Пользователь съел: "{text}"
         
         Задача:
-        - Проанализируй состав и порцию.
-        - Рассчитай калории и БЖУ.
+        1. Разбей еду на ингредиенты с указанием примерного веса/количества.
+        2. Верни массив JSON с этими ингредиентами.
         
-        Формат ответа (НА РУССКОМ):
-        🍽 <b>Анализ Калорий</b>
-
-        🥘 <b>Еда:</b> ...
-        📏 <b>Порция:</b> ...
-
-        🔥 <b>Всего:</b> ... ккал
-
-        📊 <b>БЖУ:</b>
-        🥩 Белки: ... г
-        🥑 Жиры: ... г
-        🍞 Углеводы: ... г
-
-        <i>Это приблизительный расчет.</i> ✅
+        Формат ответа:
+        {{
+          "items": ["продукты (вес/кол-во)", ...],
+          "ai_estimate": {{
+             "kcal": 250,
+             "protein": 10,
+             "fat": 5,
+             "carbs": 30
+          }}
+        }}
         """
     else:
         prompt = f"""
         Foydalanuvchi yedi: "{text}"
         
         Vazifa:
-        - Ovqat tarkibi va porsiyasini tahlil qiling.
-        - Umumiy kaloriya va BJU (Oqsil, Yog', Uglevod) ni hisoblang.
+        1. Ovqatni tarkibiy qismlarga ajrating (nomi va taxminiy vazni/soni).
+        2. JSON formatida ingredientlar ro'yxatini qaytaring.
         
-        Javob formati (FAQAT O'zbek tilida, lotin alifbosida):
-        🍽 <b>Kaloriya Tahlili</b>
-
-        🥘 <b>Ovqat:</b> ...
-        📏 <b>Porsiya:</b> ...
-
-        🔥 <b>Jami:</b> ... kkal
-
-        📊 <b>BJU:</b>
-        🥩 Oqsil: ... g
-        🥑 Yog‘: ... g
-        🍞 Uglevod: ... g
-
-        <i>Bu taxminiy hisob, lekin kunlik nazorat uchun yetarli.</i> ✅
+        Javob formati:
+        {{
+          "items": ["mahsulot nomi (vazni/soni)", ...],
+          "ai_estimate": {{
+             "kcal": 250,
+             "protein": 10,
+             "fat": 5,
+             "carbs": 30
+          }}
+        }}
         """
         
     for model_name in MODELS_TO_TRY:
         try:
-            # We use 'contents' as a list for consistency or string for text
             response = client.models.generate_content(
                 model=model_name,
                 contents=prompt,
                 config=types.GenerateContentConfig(
                     safety_settings=SAFETY_SETTINGS,
-                    temperature=0.3
+                    temperature=0.1,
+                    response_mime_type="application/json"
                 )
             )
             
             if response.text:
-                import re
-                text = response.text
-                text = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', text)
-                return text.strip()
+                import json
+                from core.nutrition import analyze_ingredients_list, format_nutrition_result
+                
+                try:
+                    data = json.loads(response.text)
+                    items = data.get("items", [])
+                    
+                    # Try USDA Enrichment
+                    usda_res = analyze_ingredients_list(items, user_id=user_id)
+                    
+                    if usda_res["match_count"] > 0:
+                        # Success, use USDA data
+                        return format_nutrition_result(usda_res, lang)
+                    else:
+                        # Fallback to AI estimate if no USDA matches
+                        est = data.get("ai_estimate", {})
+                        if lang == 'ru':
+                            return f"🍽 <b>Анализ Калорий (AI)</b>\n\n🥘 <b>Еда:</b> {text}\n🔥 <b>Всего:</b> {est.get('kcal')} ккал\n📊 <b>БЖУ:</b> {est.get('protein')}г / {est.get('fat')}г / {est.get('carbs')}г\n\n<i>Приблизительный расчет AI.</i> ✅"
+                        else:
+                            return f"🍽 <b>Kaloriya Tahlili (AI)</b>\n\n🥘 <b>Ovqat:</b> {text}\n🔥 <b>Jami:</b> {est.get('kcal')} kkal\n📊 <b>BJU:</b> {est.get('protein')}g / {est.get('fat')}g / {est.get('carbs')}g\n\n<i>AI tomonidan taxminiy hisoblandi.</i> ✅"
+                            
+                except Exception as parse_err:
+                    print(f"JSON Parse Error in analyze_food_text: {parse_err}")
+                    continue
+
         except Exception as e:
-            # Catch deadline exceeded or other network errors
             if "deadline" in str(e).lower() or "timeout" in str(e).lower():
                 continue
             print(f"Gemini Text Error ({model_name}): {e}")
@@ -894,8 +1164,7 @@ def ai_generate_fridge_recipe(user_profile, available_ingredients):
     Generates 1-2 simple recipes based on available ingredients.
     Output is plain text (not JSON) for speed and flexibility.
     """
-    AI_USAGE_STATS["meal"] += 1
-    AI_USAGE_STATS["total_requests"] += 1
+    _increment_ai_stat("meal")
     
     prompt = f"""
 Siz professional oshpazsiz.
@@ -944,8 +1213,7 @@ def format_gemini_text(raw_text, title):
 
 def ai_provide_psychological_support(reason, lang="uz"):
     """Provides psychological support based on user's mood reason."""
-    AI_USAGE_STATS["support"] += 1
-    AI_USAGE_STATS["total_requests"] += 1
+    _increment_ai_stat("support")
     prompt = f"""
     Foydalanuvchi kayfiyati yomonligini aytdi. Sababi: "{reason}"
     
@@ -976,12 +1244,63 @@ def ai_generate_weekly_workout_json(user_profile, lang="uz"):
     Generates a 7-DAY Weekly Workout Plan in strict JSON format.
     Mirrors the logic of the menu system.
     """
-    AI_USAGE_STATS["workout"] += 1
-    AI_USAGE_STATS["total_requests"] += 1
+    user_id = user_profile.get('telegram_id')
+    
+    # Try DB Selection first (Priority)
+    start_time = time.time()
+    source = "AI"
+    is_fallback = False
+    fallback_reason = None
+    
+    if is_flag_enabled("db_workout_assembly", user_id):
+        try:
+            from core.workout_selector import select_workout_plan
+            db_plan = select_workout_plan(user_profile)
+            if db_plan:
+                source = "DB"
+                # Add motivation via AI (RESTRICTED)
+                plan_summary = f"{user_profile.get('goal')} - {len(db_plan['schedule'])} kunlik reja"
+                motivation, usage = generate_workout_motivation_uz(user_profile, plan_summary)
+                
+                # Log Workout Generation Event (LOCAL path)
+                latency_ms = (time.time() - start_time) * 1000
+                db.log_admin_event(
+                    event_type="WORKOUT_GENERATION",
+                    user_id=user_id,
+                    success=True,
+                    latency_ms=latency_ms,
+                    meta={
+                        "source": source,
+                        "is_fallback": is_fallback,
+                        "fallback_reason": fallback_reason,
+                        "goal_tag": user_profile.get('goal'),
+                        "level": user_profile.get('activity_level'),
+                        "place": user_profile.get('place', 'uy'),
+                        "ai_input_tokens": usage.get("input", 0),
+                        "ai_output_tokens": usage.get("output", 0),
+                        "ai_total_tokens": usage.get("input", 0) + usage.get("output", 0),
+                        "ai_cost_usd": usage.get("cost", 0)
+                    }
+                )
+                result = {"schedule": db_plan['schedule'], "motivation": motivation}
+                
+                # [PHASE 7.1] Explain Engine Propagation
+                if db_plan.get("explanation"):
+                    result["explanation"] = db_plan["explanation"]
+                    
+                return result
+            else:
+                is_fallback = True
+                fallback_reason = "db_selector_returned_none"
+        except Exception as e:
+            logger.error(f"DB_WORKOUT_ASSEMBLY_FAILED: {e}")
+            is_fallback = True
+            fallback_reason = str(e)
+            # Continues to AI fallback
+
+    _increment_ai_stat("workout")
     
     # 0. CACHE CHECK
-    from core.db import db
-    import json
     
     # Workout depends on same factors
     profile_key = get_profile_key(user_profile)
@@ -990,8 +1309,26 @@ def ai_generate_weekly_workout_json(user_profile, lang="uz"):
     if cached:
         print(f"DEBUG: Cache Hit for Workout: {profile_key}")
         try:
-             # Just return what we need. The caller likely expects the Raw JSON string or Dict?
-             # ai_generate_weekly_workout_json usually returns Dict.
+             # Log Event even for Cache Hit
+             latency_ms = (time.time() - start_time) * 1000
+             db.log_admin_event(
+                 event_type="WORKOUT_GENERATION",
+                 user_id=user_id,
+                 success=True,
+                 latency_ms=latency_ms,
+                 meta={
+                     "source": "CACHE",
+                     "is_fallback": is_fallback,
+                     "fallback_reason": fallback_reason,
+                     "goal_tag": user_profile.get('goal'),
+                     "level": user_profile.get('activity_level'),
+                     "place": user_profile.get('place', 'uy'),
+                     "ai_input_tokens": 0,
+                     "ai_output_tokens": 0,
+                     "ai_total_tokens": 0,
+                     "ai_cost_usd": 0
+                 }
+             )
              return json.loads(cached['workout_json'])
         except Exception as e:
              print(f"Cache Corrupt: {e}")
@@ -1137,9 +1474,8 @@ Talablar:
     # ... (Prompt setup)
 
     # 3. Call AI
-    import json
     try:
-        response_text = ask_gemini(system_prompt, user_prompt)
+        response_text, usage_ai = ask_gemini(system_prompt, user_prompt, return_usage=True, user_id=user_id, feature="workout")
         # Clean markdown
         response_text = response_text.replace("```json", "").replace("```", "").strip()
         
@@ -1193,7 +1529,27 @@ Talablar:
         except Exception as e:
              # handle unique constraint or race conditions
              print(f"Workout Cache Save Warning: {e}")
-
+             
+        # Log Workout Generation Event (AI path or Fallback)
+        latency_ms = (time.time() - start_time) * 1000
+        db.log_admin_event(
+            event_type="WORKOUT_GENERATION",
+            user_id=user_id,
+            success=True,
+            latency_ms=latency_ms,
+            meta={
+                "source": "AI",
+                "is_fallback": is_fallback,
+                "fallback_reason": fallback_reason,
+                "goal_tag": goal,
+                "level": user_profile.get('activity_level'),
+                "place": user_profile.get('place', 'uy'),
+                "ai_input_tokens": usage_ai.get("input", 0),
+                "ai_output_tokens": usage_ai.get("output", 0),
+                "ai_total_tokens": usage_ai.get("input", 0) + usage_ai.get("output", 0),
+                "ai_cost_usd": usage_ai.get("cost", 0)
+            }
+        )
         return data
 
     except Exception as e:
@@ -1452,8 +1808,8 @@ def get_free_menu_template(lang="uz"):
         "breakfast": {
             "title": t_egg,
             "kcal": 350,
-            "ingredients": i_egg,
-            "preparation_steps": s_egg,
+            "items": i_egg,
+            "steps": s_egg,
             "time_minutes": 10,
             "cost_level": cost,
             "place": place
@@ -1461,14 +1817,14 @@ def get_free_menu_template(lang="uz"):
         "snack": {
             "title": t_snack_title,
             "kcal": 150,
-            "ingredients": i_apple, 
-            "preparation_steps": s_snack
+            "items": i_apple, 
+            "steps": s_snack
         },
         "lunch": {
             "title": t_soup,
             "kcal": 500,
-            "ingredients": i_soup,
-            "preparation_steps": s_soup,
+            "items": i_soup,
+            "steps": s_soup,
             "time_minutes": 45,
             "cost_level": cost,
             "place": place
@@ -1476,8 +1832,8 @@ def get_free_menu_template(lang="uz"):
         "dinner": {
             "title": t_dinner,
             "kcal": 400,
-            "ingredients": i_dinner,
-            "preparation_steps": s_dinner,
+            "items": i_dinner,
+            "steps": s_dinner,
             "time_minutes": 25,
             "cost_level": cost,
             "place": place

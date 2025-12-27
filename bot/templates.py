@@ -33,20 +33,26 @@ def get_meal_templates():
 def show_workout_template_menu(message, bot):
     """Show workout template selection menu"""
     user_id = message.from_user.id
+    lang = db.get_user_language(user_id)
     is_premium = db.is_premium(user_id)
     
-    text = (
-        "📋 **Mashq rejalari**\n\n"
-        "Quyidagi shablon rejalardan birini tanlang:\n\n"
-    )
+    from bot.languages import get_text
+    
+    title = get_text("workout_templates_title", lang)
+    desc = get_text("workout_templates_desc", lang)
+    
+    text = f"{title}\n\n{desc}"
     
     if not is_premium:
-        text += "💡 *Individual AI reja uchun Premium obuna kerak*"
+        text += f"💡 *{get_text('premium_required_upsell', lang)}*"
     
     markup = types.InlineKeyboardMarkup()
     
     # Add template options
     for template in get_workout_templates():
+        # Note: template names are hardcoded in get_workout_templates, 
+        # but we could localize those too if needed. 
+        # For now, focusing on the menu structure.
         markup.add(types.InlineKeyboardButton(
             template["name"],
             callback_data=f"workout_template_{template['id']}"
@@ -55,13 +61,13 @@ def show_workout_template_menu(message, bot):
     # Add AI option for premium users
     if is_premium:
         markup.add(types.InlineKeyboardButton(
-            "🤖 Individual AI reja",
+            get_text("btn_get_plus_ai", lang),
             callback_data="workout_ai"
         ))
     else:
         # Upsell premium
         markup.add(types.InlineKeyboardButton(
-            "💎 Individual AI reja (Premium)",
+            get_text("btn_get_plus_ai_locked", lang),
             callback_data="upgrade_premium"
         ))
     
@@ -70,15 +76,18 @@ def show_workout_template_menu(message, bot):
 def show_meal_template_menu(message, bot):
     """Show meal template selection menu"""
     user_id = message.from_user.id
+    lang = db.get_user_language(user_id)
     is_premium = db.is_premium(user_id)
     
-    text = (
-        "🍽 **Ovqatlanish rejalari**\n\n"
-        "Quyidagi shablon rejalardan birini tanlang:\n\n"
-    )
+    from bot.languages import get_text
+    
+    title = get_text("meal_templates_title", lang)
+    desc = get_text("meal_templates_desc", lang)
+    
+    text = f"{title}\n\n{desc}"
     
     if not is_premium:
-        text += "💡 *Individual AI reja uchun Premium obuna kerak*"
+        text += f"💡 *{get_text('premium_required_upsell', lang)}*"
     
     markup = types.InlineKeyboardMarkup()
     
@@ -92,13 +101,13 @@ def show_meal_template_menu(message, bot):
     # Add AI option for premium users
     if is_premium:
         markup.add(types.InlineKeyboardButton(
-            "🤖 Individual AI reja",
+            get_text("btn_get_plus_ai", lang),
             callback_data="meal_ai"
         ))
     else:
         # Upsell premium
         markup.add(types.InlineKeyboardButton(
-            "💎 Individual AI reja (Premium)",
+            get_text("btn_get_plus_ai_locked", lang),
             callback_data="upgrade_premium"
         ))
     
@@ -106,10 +115,13 @@ def show_meal_template_menu(message, bot):
 
 def send_template_plan(user_id, category, template_id, bot):
     """Load and send a template plan"""
+    lang = db.get_user_language(user_id)
     template = load_template(category, template_id)
     
+    from bot.languages import get_text
+    
     if not template:
-        bot.send_message(user_id, "❌ Shablon topilmadi. Iltimos, qaytadan urinib ko'ring.")
+        bot.send_message(user_id, get_text("template_not_found", lang))
         return
     
     plan_text = template["plan"]
@@ -133,9 +145,7 @@ def send_template_plan(user_id, category, template_id, bot):
         # Add feedback message
         bot.send_message(
             user_id,
-            "\n\n✅ Shablon reja yuborildi!\n\n"
-            "💡 Sizga maxsus moslashtirilgan individual reja kerakmi?\n"
-            "💎 Premium obuna oling va AI sizga shaxsiy reja tuzadi!",
+            get_text("template_sent_success", lang) + get_text("template_ai_suggestion", lang),
             parse_mode="Markdown"
         )
     except Exception as e:

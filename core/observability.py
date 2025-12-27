@@ -1,11 +1,11 @@
 import time
+import traceback
 from core.db import db
 from functools import wraps
 
 def log_event(event_type, user_id=None, meta=None, success=True, latency=None):
     """
-    Log an event to the DB asynchronously (fire and forget wrapper ideally, 
-    but here we call DB sync for simplicity as per requirement).
+    Log an event to the DB asynchronously.
     """
     try:
         db.log_admin_event(
@@ -41,7 +41,10 @@ def track_latency(event_type):
                 return result
             except Exception as e:
                 success = False
-                error_meta = {"error": str(e)}
+                error_meta = {
+                    "error": str(e),
+                    "stack_trace": traceback.format_exc()
+                }
                 raise e
             finally:
                 duration = (time.time() - start) * 1000

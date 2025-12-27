@@ -170,7 +170,7 @@ def handle_calorie_text(message, bot):
         db.log_event(user_id, "calorie_scan_text")
 
 
-        result = analyze_food_text(message.text)
+        result = analyze_food_text(message.text, lang=lang, user_id=user_id)
         
         if result:
             db.increment_calorie_usage(user_id)

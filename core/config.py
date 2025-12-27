@@ -63,13 +63,7 @@ try:
                 ADMIN_IDS.append(int(x.strip()))
     
     # Deduplicate
-    ADMIN_IDS = list(set(ADMIN_IDS))
-
-    # Explicitly add requested admin
-    if 6770204468 not in ADMIN_IDS:
-        ADMIN_IDS.append(6770204468)
-    if 1392501306 not in ADMIN_IDS:
-        ADMIN_IDS.append(1392501306)
+    ADMIN_IDS = list(sorted(set(ADMIN_IDS)))
     
     if not ADMIN_IDS:
         logger.warning("No ADMIN_IDS configured! Admin features will be inaccessible.")
@@ -82,7 +76,8 @@ except Exception as e:
 # Payment
 PAYMENT_PROVIDER_TOKEN = os.getenv("PAYMENT_PROVIDER_TOKEN")
 
-# Premium Prices (in tiyin)
+# Premium Prices (in tiyin/cents - 1 UZS = 100 tiyin)
 PRICE_1_MONTH = 4900000 # 49,000 UZS
+PRICE_VIP_1_MONTH = 9700000 # 97,000 UZS
 PRICE_3_MONTHS = 11900000 # 119,000 UZS
 
