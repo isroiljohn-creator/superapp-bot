@@ -1,10 +1,8 @@
 import axios from 'axios';
 
-// Environment variable for API URL (set during build or in .env)
-// Fallback to /api/v1 for production (relative path)
 const API_URL = import.meta.env.VITE_API_URL || '/api/v1';
 
-export const api = axios.create({
+const axiosInstance = axios.create({
   baseURL: API_URL,
   headers: {
     'Content-Type': 'application/json',
@@ -12,7 +10,7 @@ export const api = axios.create({
 });
 
 // Auth Interceptor
-api.interceptors.request.use((config) => {
+axiosInstance.interceptors.request.use((config) => {
   const token = localStorage.getItem('token');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
@@ -20,41 +18,43 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// Response Interceptor (Optional: Handle 401/403)
-api.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error.response?.status === 401 || error.response?.status === 403) {
-      console.error('Access Denied');
-      // Maybe redirect to access denied page
+export const api = {
+  getToken: () => localStorage.getItem('token'),
+
+  setToken: (token: string) => localStorage.setItem('token', token),
+
+  clearToken: () => localStorage.removeItem('token'),
+
+  authenticate: async (initData: string) => {
+    const res = await axiosInstance.post('/admin/auth/telegram', { initData });
+    if (res.data.token) {
+      localStorage.setItem('token', res.data.token);
     }
-    return Promise.reject(error);
-  }
-);
+    return res.data;
+  },
 
-// --- API Methods ---
+  getOverview: async () => {
+    const res = await axiosInstance.get('/admin/stats');
+    return res.data;
+  },
 
-export const authTelegram = async (initData: string) => {
-  const res = await api.post('/auth/telegram', { initData });
-  return res.data; // { token, user }
-};
+  getRetention: async (days: number = 30) => {
+    const res = await axiosInstance.get(`/admin/stats?days=${days}`); // Fallback for now
+    return res.data;
+  },
 
-export const getStats = async () => {
-  const res = await api.get('/admin/stats');
-  return res.data;
-};
+  getAICosts: async (range: string = '7d') => {
+    const res = await axiosInstance.get('/admin/cost');
+    return res.data;
+  },
 
-export const getFeedbackStats = async () => {
-  const res = await api.get('/admin/feedback');
-  return res.data;
-};
+  getFeedback: async (range: string = '7d') => {
+    const res = await axiosInstance.get('/admin/feedback');
+    return res.data;
+  },
 
-export const getAdaptationStats = async () => {
-  const res = await api.get('/admin/adaptation');
-  return res.data;
-};
-
-export const getCostStats = async () => {
-  const res = await api.get('/admin/cost');
-  return res.data;
+  getAdaptation: async (range: string = '14d') => {
+    const res = await axiosInstance.get('/admin/adaptation');
+    return res.data;
+  },
 };
