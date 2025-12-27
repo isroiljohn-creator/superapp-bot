@@ -21,13 +21,27 @@ export const AiCoachScreen: React.FC = () => {
   const { profile, todayLog } = useUser();
   const { t } = useLanguage();
   const { vibrate } = useHaptic();
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: '1',
-      role: 'assistant',
-      content: `${t('aiCoach.greeting')}${profile?.name ? `, ${profile.name}` : ''}! 👋 ${t('aiCoach.intro')}`
+
+  // Safe initialization with error handling
+  const [messages, setMessages] = useState<Message[]>(() => {
+    try {
+      console.log('AiCoachScreen: Initializing messages');
+      const greeting = t('aiCoach.greeting') || 'Salom';
+      const intro = t('aiCoach.intro') || 'Sizga qanday yordam bera olaman?';
+      return [{
+        id: '1',
+        role: 'assistant',
+        content: `${greeting}${profile?.name ? `, ${profile.name}` : ''}! 👋 ${intro}`
+      }];
+    } catch (error) {
+      console.error('AiCoachScreen: Error initializing messages', error);
+      return [{
+        id: '1',
+        role: 'assistant',
+        content: 'Salom! 👋 Sizga qanday yordam bera olaman?'
+      }];
     }
-  ]);
+  });
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
