@@ -64,10 +64,15 @@ def verify_telegram_data(init_data: str) -> dict:
         raise HTTPException(status_code=400, detail="User ID missing in data")
 
     # Admin Allowlist Check
-    if user_id not in ADMIN_IDS:
-        print(f"❌ ADMIN ACCESS DENIED: User ID {user_id} not in allowlist {ADMIN_IDS}")
+    # Convert everything to string for comparison to avoid int/string mismatches
+    str_admin_ids = [str(aid) for aid in ADMIN_IDS]
+    str_user_id = str(user_id)
+    
+    if str_user_id not in str_admin_ids:
+        print(f"❌ ADMIN ACCESS DENIED: User ID {user_id} ({type(user_id)}) not in allowlist {ADMIN_IDS} (types: {[type(x) for x in ADMIN_IDS]})")
         raise HTTPException(status_code=403, detail="Admin access restricted")
 
+    print(f"✅ ADMIN ACCESS GRANTED: User ID {user_id}")
     return user_data
 
 # --- Dependency ---
