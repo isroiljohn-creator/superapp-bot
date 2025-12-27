@@ -157,8 +157,8 @@ def register_all_handlers(bot):
         user_id = message.from_user.id
         lang = db.get_user_language(user_id)
         
-        caption = get_text("yasha_plus_promo_text", lang=lang)
-        photo_path = "assets/yasha_plus.png"
+        caption = get_text("premium_sales_short", lang=lang) # Use the short sales text which matches the table
+        photo_path = "bot/assets/plans_table.png"
         
         from bot.keyboards import payment_links_keyboard
         
