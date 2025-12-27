@@ -38,6 +38,11 @@ def main():
                 ALTER TABLE users 
                 ADD COLUMN IF NOT EXISTS streak_workout INTEGER DEFAULT 0;
             """))
+            # Fix ai_usage_logs user_id to BIGINT if needed
+            conn.execute(text("""
+                ALTER TABLE ai_usage_logs 
+                ALTER COLUMN user_id TYPE BIGINT;
+            """))
             conn.commit()
         print("✅ Schema patches applied.")
     except Exception as e:
