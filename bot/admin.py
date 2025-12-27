@@ -22,14 +22,33 @@ def register_handlers(bot):
         if message.from_user.id not in ADMIN_IDS:
             return
 
+        # WebApp URL Construction
+        import os
+        base_url = os.getenv("MINI_APP_URL", "https://yasha-insights.up.railway.app")
+        if base_url.endswith("/"): base_url = base_url[:-1]
+        webapp_url = f"{base_url}/admin-insights/"
+
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
+        
+        # 1. Top - Mini App Dashboard (Prominent)
+        markup.add(
+            types.KeyboardButton("🚀 Admin Dashboard", web_app=types.WebAppInfo(url=webapp_url))
+        )
+        
+        # 2. Main Controls
         markup.add(
             types.KeyboardButton("📊 Statistika"),
-            types.KeyboardButton("👥 Foydalanuvchilar"),
+            types.KeyboardButton("👥 Foydalanuvchilar")
+        )
+        markup.add(
             types.KeyboardButton("📤 Xabar yuborish"),
-            types.KeyboardButton("💳 Obunalar"),
+            types.KeyboardButton("💳 Obunalar")
+        )
+        markup.add(
             types.KeyboardButton("🗑 AI Bazani Tozalash"),
-            types.KeyboardButton("💰 Oylik Xarajatlar"),
+            types.KeyboardButton("💰 Oylik Xarajatlar")
+        )
+        markup.add(
             types.KeyboardButton("🛑 Userni o'chirish"),
             types.KeyboardButton("👨‍💻 Dasturchi")
         )
