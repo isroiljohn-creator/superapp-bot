@@ -5,6 +5,7 @@ import {
   Cpu,
   Star,
   Menu,
+  BarChart3,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
