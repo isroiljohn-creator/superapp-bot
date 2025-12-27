@@ -18,15 +18,16 @@ def show_calorie_menu(message, bot):
         types.InlineKeyboardButton(get_text("btn_calorie_text", lang), callback_data="calorie_mode_text")
     )
     
-    lang = db.get_user_language(message.from_user.id)
-    with open("assets/kaloriya_tahlili.png", "rb") as photo:
-        bot.send_photo(
-            message.chat.id,
-            photo,
-            caption=get_text("calorie_title", lang),
-            reply_markup=markup,
-            parse_mode="HTML"
-        )
+    msg_text = get_text("calorie_title", lang)
+    if not msg_text:
+        msg_text = "🥦 <b>Kaloriya Tahlili</b>\n\nOvqatni rasmga oling yoki nomini yozing, sun'iy intellekt uning tarkibini aniqlab beradi."
+
+    bot.send_message(
+        message.chat.id,
+        msg_text,
+        reply_markup=markup,
+        parse_mode="HTML"
+    )
 
 def calorie_mode_callback(call, bot):
     user_id = call.from_user.id

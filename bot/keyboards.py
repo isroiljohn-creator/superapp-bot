@@ -155,8 +155,7 @@ def profile_inline_keyboard(lang="uz"):
     
     markup.add(
         InlineKeyboardButton(get_text("btn_edit_profile", lang), callback_data="profile_edit"),
-        InlineKeyboardButton(get_text("btn_stats", lang), callback_data="profile_stats"),
-        InlineKeyboardButton(get_text("btn_change_goal", lang), callback_data="profile_change_goal")
+        InlineKeyboardButton(get_text("btn_mini_app", lang), web_app=WebAppInfo(url=os.getenv("MINI_APP_URL")))
     )
     return markup
 

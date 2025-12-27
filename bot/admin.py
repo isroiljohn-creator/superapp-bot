@@ -1432,6 +1432,11 @@ def register_subscription_handlers(bot):
 
     @bot.callback_query_handler(func=lambda call: call.data.startswith("sub_add_") or call.data.startswith("sub_remove_") or call.data.startswith("sub_reset_"))
     def handle_sub_action(call):
+        print(f"DEBUG: handle_sub_action triggered for {call.data}")
+        try:
+            bot.answer_callback_query(call.id)
+        except: pass
+
         if call.from_user.id not in ADMIN_IDS:
             return
             
@@ -1439,7 +1444,7 @@ def register_subscription_handlers(bot):
         
         if action == "reset":
             db.reset_user_ai_limits(target_id)
-            bot.answer_callback_query(call.id, "✅ Limitlar 0 ga tushirildi!")
+            bot.send_message(call.message.chat.id, "✅ Limitlar 0 ga tushirildi!")
             return
         
         if action == "remove":

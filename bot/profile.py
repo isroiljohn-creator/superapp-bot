@@ -51,7 +51,11 @@ def handle_profile(message, bot, user_id=None):
         l_allergy = get_text("profile_allergies", lang)
         footer = get_text("profile_next_step", lang)
         
-        allergies = user.get('allergies') or "—"
+        allergies_val = user.get('allergies')
+        if not allergies_val or allergies_val == "—":
+            allergies_display = "YO'Q"
+        else:
+            allergies_display = f"BOR ({allergies_val})"
         
         text = (
             f"{title}\n\n"
@@ -62,7 +66,7 @@ def handle_profile(message, bot, user_id=None):
             f"⚖️ <b>{l_weight}:</b> {esc(user.get('weight', '-'))} kg\n"
             f"🏃‍♂️ <b>{l_activity}:</b> {esc(display_activity)}\n"
             f"🎯 <b>{l_goal}:</b> {esc(display_goal)}\n"
-            f"🤧 <b>{l_allergy}:</b> {esc(allergies)}\n\n"
+            f"🤧 <b>{l_allergy}:</b> {esc(allergies_display)}\n\n"
             f"{footer}"
         )
         

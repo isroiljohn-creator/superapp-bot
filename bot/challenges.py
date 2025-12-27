@@ -4,10 +4,15 @@ from core.db import db
 from bot.keyboards import challenges_inline_keyboard
 
 def handle_challenges_menu(message, bot):
+    markup = types.InlineKeyboardMarkup()
+    from telebot.types import WebAppInfo
+    import os
+    markup.add(types.InlineKeyboardButton("📱 Ilovani Ochish", web_app=WebAppInfo(url=os.getenv("MINI_APP_URL"))))
+
     bot.send_message(
         message.chat.id,
-        "🔥 <b>Chellenjlar bo'limi</b>\n\nChellendjlarda qatnashing <b>YASHA coinlar</b> to'plang va ularni obunaga almashtiring\n\n<b>Leaderboard</b> menyusida boshqa foydalanuvchilar bilan bellashing👇🏻",
-        reply_markup=challenges_inline_keyboard(),
+        "🔥 <b>Barcha chellenjlar bizning ilovamizda!</b>\n\nQatnashish va sovrinlarni yutish uchun pastdagi tugmani bosing 👇",
+        reply_markup=markup,
         parse_mode="HTML"
     )
 

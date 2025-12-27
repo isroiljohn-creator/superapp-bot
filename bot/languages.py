@@ -196,7 +196,7 @@ TRANS = {
         "error_number": "❌ Iltimos, raqam kiriting.",
         
         # Calorie Scanner
-        "calorie_title": "<b>🍽 Kaloriya tahlili</b>\n\nRasm yuboring, taxminiy hisoblaymiz 👇🏻",
+        "calorie_title": "<b>🍽 Kaloriya tahlili</b>\n\nRasm yuboring, tahlil qilamiz 👇🏻",
         "btn_calorie_photo": "📷 Rasm orqali",
         "btn_calorie_text": "📝 Matn orqali",
         "calorie_limit_title": "🚫 <b>Limit tugadi</b>",
@@ -456,7 +456,7 @@ TRANS = {
         "recipe_found_upsell": "\n🥕 **Хотите больше рецептов?**\nВ YASHA Plus — доступ к шеф-повару 24/7.",
         
         # Calorie Scanner (Ru)
-        "calorie_title": "<b>🍽 Анализ калорий</b>\n\nОтправьте фото, мы посчитаем примерные калории 👇🏻",
+        "calorie_title": "<b>🍽 Анализ калорий</b>\n\nОтправьте фото, мы проанализируем 👇🏻",
         "btn_calorie_photo": "📷 По фото",
         "btn_calorie_text": "📝 Текстом",
         "calorie_limit_title": "🚫 <b>Лимит исчерпан</b>",
