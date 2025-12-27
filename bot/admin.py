@@ -886,31 +886,40 @@ def register_handlers(bot):
                 formatted_gender = gender_map.get(gender, gender)
                 formatted_activity = activity_map.get(activity, activity)
 
-                # Premium check
-                is_prem = ""
+                # Plan check
+                plan_badge = ""
                 if user.get('premium_until'):
                     from datetime import datetime
                     prem_until = user['premium_until']
-                    # Handle string format from DB if necessary or just be safe
                     if isinstance(prem_until, str):
-                        try:
-                            # Try parsing if it's a string
-                            prem_until = datetime.fromisoformat(prem_until.replace('Z', '+00:00'))
-                        except:
-                            prem_until = None
+                        try: prem_until = datetime.fromisoformat(prem_until.replace('Z', '+00:00'))
+                        except: prem_until = None
                     
                     if prem_until and isinstance(prem_until, datetime) and prem_until > datetime.now():
-                        is_prem = " 💎 Premium"
+                        if user.get('plan_type') == 'trial':
+                            plan_badge = " 🎁 Trial"
+                        elif user.get('plan_type') == 'vip':
+                            plan_badge = " 👑 VIP"
+                        else:
+                            plan_badge = " 💎 Premium"
                 
                 display_name = f"@{username}" if username else name
                 
+                # Registration and Last Activity
+                reg_date = user.get('created_at')
+                last_act = user.get('updated_at')
+                
+                reg_str = reg_date.strftime("%Y-%m-%d") if hasattr(reg_date, 'strftime') else "-"
+                act_str = last_act.strftime("%Y-%m-%d %H:%M") if hasattr(last_act, 'strftime') else "-"
+                
                 # Compact but comprehensive display
-                text += f"<b>{i}. {display_name}</b>{is_prem}\n"
+                text += f"<b>{i}. {display_name}</b>{plan_badge}\n"
                 text += f"   🆔 ID: <code>{uid}</code>\n"
                 text += f"   📱 Tel: {phone}\n"
                 text += f"   🎯 Maqsad: {formatted_goal}\n"
                 text += f"   {formatted_gender} | {age} yosh | {height}cm / {weight}kg\n"
-                text += f"   🏃 Faollik: {formatted_activity}\n\n"
+                text += f"   🏃 Faollik: {formatted_activity}\n"
+                text += f"   📅 Reg: {reg_str} | 🕒 Aktiv: {act_str}\n\n"
             
             # Pagination + Search Buttons
             markup = types.InlineKeyboardMarkup()

@@ -912,20 +912,8 @@ class Database:
             # Convert to dicts for safety
             users_list = []
             for user in users:
-                users_list.append({
-                    "id": user.id,
-                    "telegram_id": user.telegram_id,
-                    "full_name": user.full_name,
-                    "username": user.username,
-                    "phone": user.phone,
-                    "goal": user.goal,
-                    "gender": user.gender,
-                    "age": user.age,
-                    "height": user.height,
-                    "weight": user.weight,
-                    "activity_level": user.activity_level,
-                    "premium_until": user.premium_until
-                })
+                item_data = {"id": user.telegram_id, "telegram_id": user.telegram_id, "full_name": user.full_name, "username": user.username, "phone": user.phone, "goal": user.goal, "gender": user.gender, "age": user.age, "height": user.height, "weight": user.weight, "activity_level": user.activity_level, "plan_type": user.plan_type, "premium_until": user.premium_until, "created_at": user.created_at, "updated_at": user.updated_at}
+                users_list.append(item_data)
                 
             return users_list, total_count
     
@@ -944,20 +932,8 @@ class Database:
             
             users_list = []
             for user in users:
-                users_list.append({
-                    "id": user.id,
-                    "telegram_id": user.telegram_id,
-                    "full_name": user.full_name,
-                    "username": user.username,
-                    "phone": user.phone,
-                    "goal": user.goal,
-                    "gender": user.gender,
-                    "age": user.age,
-                    "height": user.height,
-                    "weight": user.weight,
-                    "activity_level": user.activity_level,
-                    "premium_until": user.premium_until
-                })
+                item_data = {"id": user.telegram_id, "telegram_id": user.telegram_id, "full_name": user.full_name, "username": user.username, "phone": user.phone, "goal": user.goal, "gender": user.gender, "age": user.age, "height": user.height, "weight": user.weight, "activity_level": user.activity_level, "plan_type": user.plan_type, "premium_until": user.premium_until, "created_at": user.created_at, "updated_at": user.updated_at}
+                users_list.append(item_data)
                 
             return users_list, total_count
     
@@ -975,20 +951,8 @@ class Database:
             
             users_list = []
             for user in users:
-                users_list.append({
-                    "id": user.id,
-                    "telegram_id": user.telegram_id,
-                    "full_name": user.full_name,
-                    "username": user.username,
-                    "phone": user.phone,
-                    "goal": user.goal,
-                    "gender": user.gender,
-                    "age": user.age,
-                    "height": user.height,
-                    "weight": user.weight,
-                    "activity_level": user.activity_level,
-                    "premium_until": user.premium_until
-                })
+                item_data = {"id": user.telegram_id, "telegram_id": user.telegram_id, "full_name": user.full_name, "username": user.username, "phone": user.phone, "goal": user.goal, "gender": user.gender, "age": user.age, "height": user.height, "weight": user.weight, "activity_level": user.activity_level, "plan_type": user.plan_type, "premium_until": user.premium_until, "created_at": user.created_at, "updated_at": user.updated_at}
+                users_list.append(item_data)
                 
             return users_list, total_count
     
@@ -1009,20 +973,8 @@ class Database:
             
             users_list = []
             for user in users:
-                users_list.append({
-                    "id": user.id,
-                    "telegram_id": user.telegram_id,
-                    "full_name": user.full_name,
-                    "username": user.username,
-                    "phone": user.phone,
-                    "goal": user.goal,
-                    "gender": user.gender,
-                    "age": user.age,
-                    "height": user.height,
-                    "weight": user.weight,
-                    "activity_level": user.activity_level,
-                    "premium_until": user.premium_until
-                })
+                item_data = {"id": user.telegram_id, "telegram_id": user.telegram_id, "full_name": user.full_name, "username": user.username, "phone": user.phone, "goal": user.goal, "gender": user.gender, "age": user.age, "height": user.height, "weight": user.weight, "activity_level": user.activity_level, "plan_type": user.plan_type, "premium_until": user.premium_until, "created_at": user.created_at, "updated_at": user.updated_at}
+                users_list.append(item_data)
                 
             return users_list, total_count
     
@@ -1081,20 +1033,8 @@ class Database:
             
             users_list = []
             for user in users:
-                users_list.append({
-                    "id": user.id,
-                    "telegram_id": user.telegram_id,
-                    "full_name": user.full_name,
-                    "username": user.username,
-                    "phone": user.phone,
-                    "goal": user.goal,
-                    "gender": user.gender,
-                    "age": user.age,
-                    "height": user.height,
-                    "weight": user.weight,
-                    "activity_level": user.activity_level,
-                    "premium_until": user.premium_until
-                })
+                item_data = {"id": user.telegram_id, "telegram_id": user.telegram_id, "full_name": user.full_name, "username": user.username, "phone": user.phone, "goal": user.goal, "gender": user.gender, "age": user.age, "height": user.height, "weight": user.weight, "activity_level": user.activity_level, "plan_type": user.plan_type, "premium_until": user.premium_until, "created_at": user.created_at, "updated_at": user.updated_at}
+                users_list.append(item_data)
                 
             return users_list, total_count
 
@@ -2438,10 +2378,21 @@ class Database:
                 for u in users:
                     result.append({
                         'id': u.telegram_id,
+                        'telegram_id': u.telegram_id,
                         'full_name': u.full_name or "Noma'lum",
+                        'username': u.username,
+                        'phone': u.phone,
                         'plan_type': u.plan_type,
                         'is_premium': u.is_premium,
-                        'premium_until': u.premium_until
+                        'premium_until': u.premium_until,
+                        'age': u.age,
+                        'height': u.height,
+                        'weight': u.weight,
+                        'goal': u.goal,
+                        'gender': u.gender,
+                        'activity_level': u.activity_level,
+                        'created_at': u.created_at,
+                        'updated_at': u.updated_at
                     })
                 return result, total
             except Exception as e:
@@ -2449,3 +2400,4 @@ class Database:
                 return [], 0
 
 db = Database()
+
