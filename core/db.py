@@ -1791,27 +1791,33 @@ class Database:
                  if not pk: return False
                  
                  link = session.query(UserMenuLink).filter(UserMenuLink.user_id == pk, UserMenuLink.is_active == True).first()
-                 if not link: return False
+                 if not link or not link.template: return False
                  
-                 menu_data = json.loads(link.menu_json)
+                 # Access menu data through template
+                 menu_data = json.loads(link.template.content)
                  
-                 # Find day
-                 found = False
-                 for day in menu_data:
-                     if day['day'] == day_idx:
-                         day[meal_type] = new_meal_data
-                         # Recalculate total kcal if needed
-                         day['total_kcal'] = (
-                            (day.get('breakfast', {}).get('kcal',0) if isinstance(day.get('breakfast'), dict) else 0) +
-                            (day.get('lunch', {}).get('kcal',0) if isinstance(day.get('lunch'), dict) else 0) +
-                            (day.get('dinner', {}).get('kcal',0) if isinstance(day.get('dinner'), dict) else 0) +
-                            (day.get('snack', {}).get('kcal',0) if isinstance(day.get('snack'), dict) else 0)
-                         )
-                         found = True
-                         break
+                 # Handle both dict and list formats
+                 if isinstance(menu_data, dict) and "menu" in menu_data:
+                     menu_list = menu_data["menu"]
+                 elif isinstance(menu_data, list):
+                     menu_list = menu_data
+                 else:
+                     return False
                  
-                 if found:
-                     link.menu_json = json.dumps(menu_data)
+                 # Find day (day_idx is 1-indexed)
+                 idx = day_idx - 1
+                 if 0 <= idx < len(menu_list):
+                     day_data = menu_list[idx]
+                     meals_root = day_data.get('meals', day_data)
+                     meals_root[meal_type] = new_meal_data
+                     
+                     # Update template content
+                     if isinstance(menu_data, dict):
+                         menu_data["menu"] = menu_list
+                         link.template.content = json.dumps(menu_data)
+                     else:
+                         link.template.content = json.dumps(menu_list)
+                     
                      session.commit()
                      return True
                  return False
