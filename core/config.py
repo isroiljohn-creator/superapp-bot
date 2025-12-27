@@ -20,10 +20,11 @@ def get_env_required(key):
     return value
 
 # Bot Config
-BOT_TOKEN = get_env_required("BOT_TOKEN")
+BOT_TOKEN = os.getenv("BOT_TOKEN")
 if not BOT_TOKEN:
-    logger.critical("BOT_TOKEN is missing! Bot cannot start.")
-    sys.exit(1)
+    logger.warning("BOT_TOKEN is missing! Bot feature will be disabled, but backend will try to continue.")
+    # In production, we should probably still have it, but for web-only mode we can be lenient
+    # to avoid killing the whole process if only the dashboard is needed.
 
 WEBAPP_URL = os.getenv("WEBAPP_URL")
 
