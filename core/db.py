@@ -2382,4 +2382,51 @@ class Database:
             session.commit()
             return user_count, sub_count
 
+    def get_user_stats_counts(self):
+        """
+        Calculates counts for different user categories.
+        """
+        with get_sync_db() as session:
+            # All
+            total = session.query(func.count(User.id)).scalar() or 0
+            
+            # Categories based on plan_type
+            premium = session.query(func.count(User.id)).filter(User.plan_type == 'premium').scalar() or 0
+            vip = session.query(func.count(User.id)).filter(User.plan_type == 'vip').scalar() or 0
+            trial = session.query(func.count(User.id)).filter(User.plan_type == 'trial').scalar() or 0
+            free = session.query(func.count(User.id)).filter(User.plan_type == 'free').scalar() or 0
+            
+            # Incomplete (not onboarded)
+            incomplete = session.query(func.count(User.id)).filter(User.is_onboarded == False).scalar() or 0
+            
+            return {
+                "total": total,
+                "premium": premium,
+                "vip": vip,
+                "trial": trial,
+                "free": free,
+                "incomplete": incomplete
+            }
+
+    def get_trial_users_paginated(self, page=1, page_size=10):
+        with get_sync_db() as session:
+            try:
+                base_query = session.query(User).filter(User.plan_type == 'trial')
+                total = base_query.count()
+                users = base_query.order_by(User.created_at.desc()).offset((page - 1) * page_size).limit(page_size).all()
+                
+                result = []
+                for u in users:
+                    result.append({
+                        'id': u.telegram_id,
+                        'full_name': u.full_name or "Noma'lum",
+                        'plan_type': u.plan_type,
+                        'is_premium': u.is_premium,
+                        'premium_until': u.premium_until.strftime("%Y-%m-%d %H:%M") if u.premium_until else "Yo'q"
+                    })
+                return result, total
+            except Exception as e:
+                print(f"DB Error in get_trial_users_paginated: {e}")
+                return [], 0
+
 db = Database()

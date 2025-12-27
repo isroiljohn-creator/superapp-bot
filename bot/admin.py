@@ -651,56 +651,65 @@ def register_handlers(bot):
             traceback.print_exc()
             bot.answer_callback_query(call.id, "Xatolik yuz berdi")
 
-    @bot.message_handler(func=lambda message: "Foydalanuvchilar" in message.text)
+    @bot.message_handler(func=lambda message: "Foydalanuvchi" in message.text)
     def admin_user_list(message):
         if message.from_user.id not in ADMIN_IDS:
             return
         
+        stats = db.get_user_stats_counts()
+        
         # Show category submenu with ReplyKeyboard
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
         markup.add(
-            types.KeyboardButton("💎 Premiumlar"),
-            types.KeyboardButton("👑 VIP")
+            types.KeyboardButton(f"💎 Premiumlar ({stats['premium']})"),
+            types.KeyboardButton(f"👑 VIP ({stats['vip']})")
         )
         markup.add(
-            types.KeyboardButton("🆓 Bepul"),
-            types.KeyboardButton("🔗 TOP 10 Referallar")
+            types.KeyboardButton(f"🆓 Bepul ({stats['free']})"),
+            types.KeyboardButton(f"🎁 Triallar ({stats['trial']})")
         )
         markup.add(
-            types.KeyboardButton("⏸ Ro'yxatdan o'tmagan"),
-            types.KeyboardButton("👥 Barcha")
+            types.KeyboardButton(f"⏸ Ro'yxatdan o'tmagan ({stats['incomplete']})"),
+            types.KeyboardButton(f"👥 Barcha ({stats['total']})")
         )
-        markup.add(types.KeyboardButton("🔙 Admin Panelga"))
+        markup.add(
+            types.KeyboardButton("🔗 TOP 10 Referallar"),
+            types.KeyboardButton("🔙 Admin Panelga")
+        )
         
         bot.send_message(
             message.chat.id, 
-            "👥 <b>Foydalanuvchilar</b>\n\nKategoriyani tanlang:",
+            "👥 <b>Foydalanuvchilar Statistikasi</b>\n\nKategoriyani tanlang:",
             reply_markup=markup,
             parse_mode="HTML"
         )
     
     # Category message handlers
-    @bot.message_handler(func=lambda m: m.text == "💎 Premiumlar" and m.from_user.id in ADMIN_IDS)
+    @bot.message_handler(func=lambda m: "Premiumlar" in m.text and m.from_user.id in ADMIN_IDS)
     def show_premium_users(message):
         show_user_list_page(message.chat.id, 1, bot, category="premium")
     
-    @bot.message_handler(func=lambda m: m.text == "👑 VIP" and m.from_user.id in ADMIN_IDS)
+    @bot.message_handler(func=lambda m: "VIP" in m.text and m.from_user.id in ADMIN_IDS)
     def show_vip_users(message):
         show_user_list_page(message.chat.id, 1, bot, category="vip")
     
-    @bot.message_handler(func=lambda m: m.text == "🆓 Bepul" and m.from_user.id in ADMIN_IDS)
+    @bot.message_handler(func=lambda m: "Bepul" in m.text and m.from_user.id in ADMIN_IDS)
     def show_free_users(message):
         show_user_list_page(message.chat.id, 1, bot, category="free")
+
+    @bot.message_handler(func=lambda m: "Triallar" in m.text and m.from_user.id in ADMIN_IDS)
+    def show_trial_users(message):
+        show_user_list_page(message.chat.id, 1, bot, category="trial")
     
-    @bot.message_handler(func=lambda m: m.text == "🔗 TOP 10 Referallar" and m.from_user.id in ADMIN_IDS)
+    @bot.message_handler(func=lambda m: "TOP 10 Referallar" in m.text and m.from_user.id in ADMIN_IDS)
     def show_top_referrers(message):
         show_user_list_page(message.chat.id, 1, bot, category="top_ref")
     
-    @bot.message_handler(func=lambda m: m.text == "⏸ Ro'yxatdan o'tmagan" and m.from_user.id in ADMIN_IDS)
+    @bot.message_handler(func=lambda m: "Ro'yxatdan o'tmagan" in m.text and m.from_user.id in ADMIN_IDS)
     def show_incomplete_users(message):
         show_user_list_page(message.chat.id, 1, bot, category="incomplete")
     
-    @bot.message_handler(func=lambda m: m.text == "👥 Barcha" and m.from_user.id in ADMIN_IDS)
+    @bot.message_handler(func=lambda m: "Barcha" in m.text and m.from_user.id in ADMIN_IDS)
     def show_all_users(message):
         show_user_list_page(message.chat.id, 1, bot, category="all")
     
@@ -820,6 +829,9 @@ def register_handlers(bot):
             elif category == "free":
                 users, total_count = db.get_free_users_paginated(page, PAGE_SIZE)
                 cat_title = "🆓 Bepul"
+            elif category == "trial":
+                users, total_count = db.get_trial_users_paginated(page, PAGE_SIZE)
+                cat_title = "🎁 Trial"
             elif category == "top_ref":
                 users, total_count = db.get_top_referrers(10), 10
                 cat_title = "🔗 TOP 10 Referallar"
