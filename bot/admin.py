@@ -45,10 +45,6 @@ def register_handlers(bot):
             types.KeyboardButton("💳 Obunalar")
         )
         markup.add(
-            types.KeyboardButton("🗑 AI Bazani Tozalash")
-        )
-        markup.add(
-            types.KeyboardButton("🛑 Userni o'chirish"),
             types.KeyboardButton("👨‍💻 Dasturchi")
         )
         bot.send_message(message.chat.id, "👨‍💼 **Admin Panel**", reply_markup=markup, parse_mode="Markdown")
@@ -1138,8 +1134,8 @@ def register_handlers(bot):
         msg = call.message
         msg.from_user = call.from_user
         
-        if action == "dev_stats_menu":
-             analytics_pro_command(msg)
+        if action == "dev_clear_ai_db":
+             admin_clear_ai_data(msg)
         elif action == "dev_delete_user_start":
              ask_user_delete_start(msg)
         elif action == "dev_test_ai_start":

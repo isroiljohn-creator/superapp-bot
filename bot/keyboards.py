@@ -254,8 +254,8 @@ def admin_developer_keyboard():
     webapp_url = f"{base_url}/admin-insights/"
 
     markup.add(
-        InlineKeyboardButton("📊 Analitika (Pro)", callback_data="dev_stats_menu"),
-        InlineKeyboardButton("🗑 Foydalanuvchini o'chirish", callback_data="dev_delete_user_start")
+        InlineKeyboardButton("🗑 AI Bazani Tozalash", callback_data="dev_clear_ai_db"),
+        InlineKeyboardButton("Foydalanuvchini o'chirish", callback_data="dev_delete_user_start")
     )
     markup.add(
         InlineKeyboardButton("🚩 Feature Flags", callback_data="dev_flags_menu")
