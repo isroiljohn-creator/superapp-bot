@@ -7,15 +7,36 @@ import {
   TrendingUp,
 } from 'lucide-react';
 import { StatCard } from '@/components/StatCard';
-import { mockOverview as data } from '@/hooks/useAnalytics';
+import { useOverview } from '@/hooks/useAnalytics';
 
 interface OverviewTabProps {
   isLoading?: boolean;
 }
 
-export function OverviewTab({ isLoading = false }: OverviewTabProps) {
-  const conversionRate = ((data.premium_users / data.total_users) * 100).toFixed(1);
-  const trialConversion = ((data.premium_users / (data.trial_users + data.premium_users)) * 100).toFixed(1);
+export function OverviewTab({ isLoading: externalLoading = false }: OverviewTabProps) {
+  const { data, isLoading: internalLoading } = useOverview();
+  const isLoading = externalLoading || internalLoading;
+
+  if (!data && !isLoading) return null;
+
+  const displayData = data || {
+    total_users: 0,
+    active_24h: 0,
+    active_7d: 0,
+    active_30d: 0,
+    free_users: 0,
+    trial_users: 0,
+    premium_users: 0
+  };
+
+  const conversionRate = displayData.total_users > 0
+    ? ((displayData.premium_users / displayData.total_users) * 100).toFixed(1)
+    : '0.0';
+
+  const trialTotal = displayData.trial_users + displayData.premium_users;
+  const trialConversion = trialTotal > 0
+    ? ((displayData.premium_users / trialTotal) * 100).toFixed(1)
+    : '0.0';
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -37,7 +58,7 @@ export function OverviewTab({ isLoading = false }: OverviewTabProps) {
       <div className="grid grid-cols-2 gap-3">
         <StatCard
           title="Total Users"
-          value={data.total_users}
+          value={displayData.total_users}
           icon={Users}
           variant="primary"
           change={12.5}
@@ -46,7 +67,7 @@ export function OverviewTab({ isLoading = false }: OverviewTabProps) {
         />
         <StatCard
           title="Active 24h"
-          value={data.active_24h}
+          value={displayData.active_24h}
           icon={Activity}
           change={8.3}
           changeLabel="vs yesterday"
@@ -58,21 +79,21 @@ export function OverviewTab({ isLoading = false }: OverviewTabProps) {
       <div className="grid grid-cols-3 gap-3">
         <StatCard
           title="24h Active"
-          value={data.active_24h}
+          value={displayData.active_24h}
           icon={Clock}
           isLoading={isLoading}
           className="text-center"
         />
         <StatCard
           title="7d Active"
-          value={data.active_7d}
+          value={displayData.active_7d}
           icon={TrendingUp}
           isLoading={isLoading}
           className="text-center"
         />
         <StatCard
           title="30d Active"
-          value={data.active_30d}
+          value={displayData.active_30d}
           icon={Activity}
           isLoading={isLoading}
           className="text-center"
@@ -87,20 +108,20 @@ export function OverviewTab({ isLoading = false }: OverviewTabProps) {
         <div className="grid grid-cols-3 gap-3">
           <StatCard
             title="Free"
-            value={data.free_users}
+            value={displayData.free_users}
             icon={Users}
             isLoading={isLoading}
           />
           <StatCard
             title="Trial"
-            value={data.trial_users}
+            value={displayData.trial_users}
             icon={Sparkles}
             variant="warning"
             isLoading={isLoading}
           />
           <StatCard
             title="Premium"
-            value={data.premium_users}
+            value={displayData.premium_users}
             icon={Crown}
             variant="success"
             isLoading={isLoading}
@@ -132,15 +153,15 @@ export function OverviewTab({ isLoading = false }: OverviewTabProps) {
         <div className="h-3 rounded-full bg-secondary overflow-hidden flex">
           <div
             className="bg-muted-foreground/50 h-full transition-all"
-            style={{ width: `${(data.free_users / data.total_users) * 100}%` }}
+            style={{ width: `${(displayData.free_users / displayData.total_users) * 100}%` }}
           />
           <div
             className="bg-warning h-full transition-all"
-            style={{ width: `${(data.trial_users / data.total_users) * 100}%` }}
+            style={{ width: `${(displayData.trial_users / displayData.total_users) * 100}%` }}
           />
           <div
             className="bg-success h-full transition-all"
-            style={{ width: `${(data.premium_users / data.total_users) * 100}%` }}
+            style={{ width: `${(displayData.premium_users / displayData.total_users) * 100}%` }}
           />
         </div>
         <div className="flex justify-between mt-3 text-xs">

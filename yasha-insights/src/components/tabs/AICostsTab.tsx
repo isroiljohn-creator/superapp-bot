@@ -36,14 +36,14 @@ export function AICostsTab({ isLoading = false }: AICostsTabProps) {
       <div className="grid grid-cols-2 gap-3">
         <StatCard
           title="Total Tokens"
-          value={(data.total_tokens / 1000000).toFixed(2) + 'M'}
+          value={(displayData.total_tokens / 1000000).toFixed(2) + 'M'}
           icon={Cpu}
           variant="primary"
           isLoading={isLoading}
         />
         <StatCard
           title="Total Cost"
-          value={`$${data.total_cost_usd.toFixed(2)}`}
+          value={`$${displayData.total_cost_usd.toFixed(2)}`}
           icon={DollarSign}
           variant="warning"
           isLoading={isLoading}
@@ -57,7 +57,7 @@ export function AICostsTab({ isLoading = false }: AICostsTabProps) {
           <Zap className="h-4 w-4 text-warning" />
         </div>
         <div className="stat-value text-warning mt-2">
-          ${((data.total_cost_usd / data.total_tokens) * 1000).toFixed(4)}
+          ${displayData.total_tokens > 0 ? ((displayData.total_cost_usd / displayData.total_tokens) * 1000).toFixed(4) : '0.0000'}
         </div>
       </div>
 
@@ -67,7 +67,7 @@ export function AICostsTab({ isLoading = false }: AICostsTabProps) {
           Cost by Feature
         </h3>
         <div className="space-y-3">
-          {data.by_feature.map((feature) => (
+          {displayData.by_feature.map((feature) => (
             <div
               key={feature.feature}
               className="stat-card flex items-center gap-4"
@@ -89,14 +89,14 @@ export function AICostsTab({ isLoading = false }: AICostsTabProps) {
                       featureColors[feature.feature]
                     )}
                     style={{
-                      width: `${(feature.cost_usd / data.total_cost_usd) * 100}%`,
+                      width: `${displayData.total_cost_usd > 0 ? (feature.cost_usd / displayData.total_cost_usd) * 100 : 0}%`,
                     }}
                   />
                 </div>
                 <div className="flex justify-between mt-1.5 text-xs text-muted-foreground">
                   <span>{(feature.tokens / 1000).toFixed(0)}K tokens</span>
                   <span>
-                    {((feature.cost_usd / data.total_cost_usd) * 100).toFixed(0)}%
+                    {displayData.total_cost_usd > 0 ? ((feature.cost_usd / displayData.total_cost_usd) * 100).toFixed(0) : 0}%
                   </span>
                 </div>
               </div>
@@ -112,7 +112,7 @@ export function AICostsTab({ isLoading = false }: AICostsTabProps) {
           <TrendingUp className="h-4 w-4 text-muted-foreground" />
         </div>
         <div className="flex items-end justify-between h-32 gap-1">
-          {data.daily.map((day) => (
+          {displayData.daily.map((day) => (
             <div
               key={day.date}
               className="flex-1 flex flex-col items-center gap-1"
@@ -120,7 +120,7 @@ export function AICostsTab({ isLoading = false }: AICostsTabProps) {
               <div
                 className="w-full bg-gradient-to-t from-primary to-primary/50 rounded-t transition-all hover:from-primary/90"
                 style={{
-                  height: `${(day.cost_usd / maxDailyCost) * 100}%`,
+                  height: `${maxDailyCost > 0 ? (day.cost_usd / maxDailyCost) * 100 : 0}%`,
                   minHeight: '8px',
                 }}
               />
@@ -134,13 +134,13 @@ export function AICostsTab({ isLoading = false }: AICostsTabProps) {
         </div>
         <div className="flex justify-between mt-3 pt-3 border-t border-border text-xs">
           <span className="text-muted-foreground">
-            {new Date(data.daily[0].date).toLocaleDateString('en-US', {
+            {displayData.daily.length > 0 && new Date(displayData.daily[0].date).toLocaleDateString('en-US', {
               month: 'short',
               day: 'numeric',
             })}
           </span>
           <span className="text-muted-foreground">
-            {new Date(data.daily[data.daily.length - 1].date).toLocaleDateString(
+            {displayData.daily.length > 0 && new Date(displayData.daily[displayData.daily.length - 1].date).toLocaleDateString(
               'en-US',
               { month: 'short', day: 'numeric' }
             )}
@@ -163,7 +163,7 @@ export function AICostsTab({ isLoading = false }: AICostsTabProps) {
               </tr>
             </thead>
             <tbody>
-              {data.daily.slice().reverse().map((day) => (
+              {displayData.daily.slice().reverse().map((day) => (
                 <tr key={day.date}>
                   <td>
                     {new Date(day.date).toLocaleDateString('en-US', {

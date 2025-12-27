@@ -163,6 +163,19 @@ async def get_stats(db: AsyncSession = Depends(get_db), admin_id: int = Depends(
     """), {"d": seven_days_ago})
     wau = wau_q.scalar() or 0
     
+    # MAU (30d)
+    thirty_days_ago = datetime.utcnow() - timedelta(days=30)
+    mau_q = await db.execute(text("""
+        SELECT count(distinct user_id) FROM (
+            SELECT user_id FROM menu_feedback WHERE created_at >= :d
+            UNION
+            SELECT user_id FROM workout_feedback WHERE created_at >= :d
+            UNION
+            SELECT user_id FROM ai_usage_logs WHERE timestamp >= :d
+        ) t
+    """), {"d": thirty_days_ago})
+    mau = mau_q.scalar() or 0
+    
     # Menu Generations (24h)
     # Using AI Usage Logs feature='menu'
     menu_gen_q = await db.execute(select(func.count()).where(AIUsageLog.feature == 'menu', AIUsageLog.timestamp >= one_day_ago))
@@ -177,9 +190,12 @@ async def get_stats(db: AsyncSession = Depends(get_db), admin_id: int = Depends(
 
     return {
         "total_users": total_users,
+        "active_24h": dau,
+        "active_7d": wau,
+        "active_30d": mau,
         "premium_users": premium,
-        "dau": dau,
-        "wau": wau,
+        "free_users": total_users - premium,
+        "trial_users": 0, # Placeholder until trial logic is fully integrated
         "new_users_24h": new_users,
         "menu_generations_24h": menu_gen,
         "workout_generations_24h": workout_gen
@@ -218,11 +234,25 @@ async def get_feedback_stats(db: AsyncSession = Depends(get_db), admin_id: int =
         GROUP BY 1, 2 ORDER BY 3 DESC LIMIT 5
     """), {"d": seven_days_ago})).fetchall()
 
+    def list_to_dict(rows):
+        return {r[0]: r[1] for r in rows}
+
     return {
-        "unique_users_7d": unique_users,
-        "menu_distribution": [{"rating": r[0], "count": r[1]} for r in menu_dist],
-        "workout_distribution": [{"rating": r[0], "count": r[1]} for r in workout_dist],
-        "top_coach_messages": [{"key": r[0], "category": r[1], "loves": r[2]} for r in top_coach]
+        "menu": {
+            **list_to_dict(menu_dist),
+            "users": (await db.execute(text("SELECT count(distinct user_id) FROM menu_feedback WHERE created_at >= :d"), {"d": seven_days_ago})).scalar() or 0
+        },
+        "workout": {
+            **list_to_dict(workout_dist),
+            "users": (await db.execute(text("SELECT count(distinct user_id) FROM workout_feedback WHERE created_at >= :d"), {"d": seven_days_ago})).scalar() or 0
+        },
+        "coach": {
+            "love": (await db.execute(text("SELECT count(*) FROM coach_feedback WHERE reaction='love' AND created_at >= :d"), {"d": seven_days_ago})).scalar() or 0,
+            "like": (await db.execute(text("SELECT count(*) FROM coach_feedback WHERE reaction='like' AND created_at >= :d"), {"d": seven_days_ago})).scalar() or 0,
+            "meh": (await db.execute(text("SELECT count(*) FROM coach_feedback WHERE reaction='meh' AND created_at >= :d"), {"d": seven_days_ago})).scalar() or 0,
+            "users": (await db.execute(text("SELECT count(distinct user_id) FROM coach_feedback WHERE created_at >= :d"), {"d": seven_days_ago})).scalar() or 0
+        },
+        "top_loved_coach": [{"coach_msg_key": r[0], "category": r[1], "love": r[2]} for r in top_coach]
     }
 
 @router.get("/adaptation")
@@ -295,23 +325,42 @@ async def get_cost_stats(db: AsyncSession = Depends(get_db), admin_id: int = Dep
     res_7d = (await db.execute(get_sums(7), {"d": datetime.utcnow() - timedelta(days=7)})).fetchone()
     res_30d = (await db.execute(get_sums(30), {"d": datetime.utcnow() - timedelta(days=30)})).fetchone()
     
-    # Avg Cost Per Active User (24h)
-    dau_q = await db.execute(text("SELECT count(distinct user_id) FROM ai_usage_logs WHERE timestamp >= now() - interval '24 hours'"))
-    dau_ai = dau_q.scalar() or 1
-    avg_24h = (res_24h[1] or 0) / dau_ai
-    
-    def fmt(r): 
+    def fmt_feature(feature_name, result):
+        if not result: return {"feature": feature_name, "tokens": 0, "cost_usd": 0}
         return {
-            "tokens": r[0] or 0, 
-            "cost": r[1] or 0, 
-            "menu": r[2] or 0, 
-            "workout": r[3] or 0, 
-            "chat": r[4] or 0
+            "feature": feature_name,
+            "tokens": result[0] or 0,
+            "cost_usd": result[1] or 0
         }
 
+    # By Feature breakdown
+    def get_feature_totals(feature, days):
+        d = datetime.utcnow() - timedelta(days=days)
+        return text(f"SELECT SUM(total_tokens), SUM(cost_usd) FROM ai_usage_logs WHERE feature=:f AND timestamp >= :d")
+
+    menu_total = (await db.execute(get_feature_totals('menu', 7), {"f": 'menu', "d": datetime.utcnow() - timedelta(days=7)})).fetchone()
+    workout_total = (await db.execute(get_feature_totals('workout', 7), {"f": 'workout', "d": datetime.utcnow() - timedelta(days=7)})).fetchone()
+    chat_total = (await db.execute(get_feature_totals('chat', 7), {"f": 'chat', "d": datetime.utcnow() - timedelta(days=7)})).fetchone()
+
+    # Daily breakdown (last 7 days)
+    daily_stats = []
+    for i in range(6, -1, -1):
+        day_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(days=i)
+        day_end = day_start + timedelta(days=1)
+        res = (await db.execute(text("SELECT SUM(total_tokens), SUM(cost_usd) FROM ai_usage_logs WHERE timestamp >= :s AND timestamp < :e"), {"s": day_start, "e": day_end})).fetchone()
+        daily_stats.append({
+            "date": day_start.strftime("%Y-%m-%d"),
+            "tokens": res[0] or 0,
+            "cost_usd": res[1] or 0
+        })
+
     return {
-        "period_24h": fmt(res_24h),
-        "period_7d": fmt(res_7d),
-        "period_30d": fmt(res_30d),
-        "avg_cost_per_user_24h": avg_24h
+        "total_tokens": res_7d[0] or 0,
+        "total_cost_usd": res_7d[1] or 0,
+        "by_feature": [
+            fmt_feature('menu', menu_total),
+            fmt_feature('workout', workout_total),
+            fmt_feature('coach', chat_total)
+        ],
+        "daily": daily_stats
     }

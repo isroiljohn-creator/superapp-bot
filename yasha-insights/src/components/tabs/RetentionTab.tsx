@@ -1,13 +1,25 @@
 import { Calendar, TrendingUp, Users, BarChart3 } from 'lucide-react';
 import { StatCard } from '@/components/StatCard';
-import { mockRetention as data } from '@/hooks/useAnalytics';
+import { useRetention } from '@/hooks/useAnalytics';
 import { cn } from '@/lib/utils';
 
 interface RetentionTabProps {
   isLoading?: boolean;
 }
 
-export function RetentionTab({ isLoading = false }: RetentionTabProps) {
+export function RetentionTab({ isLoading: externalLoading = false }: RetentionTabProps) {
+  const { data, isLoading: internalLoading } = useRetention();
+  const isLoading = externalLoading || internalLoading;
+
+  if (!data && !isLoading) return null;
+
+  const displayData = data || {
+    d1_retention: 0,
+    d7_retention: 0,
+    d30_retention: 0,
+    cohorts: []
+  };
+
   const getRetentionColor = (rate: number) => {
     if (rate >= 0.6) return 'retention-high';
     if (rate >= 0.3) return 'retention-medium';
@@ -34,21 +46,21 @@ export function RetentionTab({ isLoading = false }: RetentionTabProps) {
       <div className="grid grid-cols-3 gap-3">
         <StatCard
           title="D1 Retention"
-          value={`${(data.d1_retention * 100).toFixed(0)}%`}
+          value={`${(displayData.d1_retention * 100).toFixed(0)}%`}
           icon={TrendingUp}
           variant="success"
           isLoading={isLoading}
         />
         <StatCard
           title="D7 Retention"
-          value={`${(data.d7_retention * 100).toFixed(0)}%`}
+          value={`${(displayData.d7_retention * 100).toFixed(0)}%`}
           icon={BarChart3}
           variant="warning"
           isLoading={isLoading}
         />
         <StatCard
           title="D30 Retention"
-          value={`${(data.d30_retention * 100).toFixed(0)}%`}
+          value={`${(displayData.d30_retention * 100).toFixed(0)}%`}
           icon={Calendar}
           isLoading={isLoading}
         />
@@ -70,10 +82,10 @@ export function RetentionTab({ isLoading = false }: RetentionTabProps) {
             <span className="text-xs text-muted-foreground w-8">D1</span>
             <div
               className="h-8 rounded bg-success relative overflow-hidden"
-              style={{ width: `${data.d1_retention * 100}%` }}
+              style={{ width: `${displayData.d1_retention * 100}%` }}
             >
               <span className="absolute inset-0 flex items-center justify-center text-xs font-medium text-success-foreground">
-                {(data.d1_retention * 100).toFixed(0)}%
+                {(displayData.d1_retention * 100).toFixed(0)}%
               </span>
             </div>
           </div>
@@ -81,10 +93,10 @@ export function RetentionTab({ isLoading = false }: RetentionTabProps) {
             <span className="text-xs text-muted-foreground w-8">D7</span>
             <div
               className="h-8 rounded bg-warning relative overflow-hidden"
-              style={{ width: `${data.d7_retention * 100}%` }}
+              style={{ width: `${displayData.d7_retention * 100}%` }}
             >
               <span className="absolute inset-0 flex items-center justify-center text-xs font-medium text-warning-foreground">
-                {(data.d7_retention * 100).toFixed(0)}%
+                {(displayData.d7_retention * 100).toFixed(0)}%
               </span>
             </div>
           </div>
@@ -92,10 +104,10 @@ export function RetentionTab({ isLoading = false }: RetentionTabProps) {
             <span className="text-xs text-muted-foreground w-8">D30</span>
             <div
               className="h-8 rounded bg-destructive relative overflow-hidden"
-              style={{ width: `${data.d30_retention * 100}%` }}
+              style={{ width: `${displayData.d30_retention * 100}%` }}
             >
               <span className="absolute inset-0 flex items-center justify-center text-xs font-medium text-destructive-foreground">
-                {(data.d30_retention * 100).toFixed(0)}%
+                {(displayData.d30_retention * 100).toFixed(0)}%
               </span>
             </div>
           </div>
@@ -122,7 +134,7 @@ export function RetentionTab({ isLoading = false }: RetentionTabProps) {
               </tr>
             </thead>
             <tbody>
-              {data.cohorts.map((cohort) => (
+              {displayData.cohorts.map((cohort) => (
                 <tr key={cohort.cohort_date}>
                   <td className="font-medium">
                     {new Date(cohort.cohort_date).toLocaleDateString('en-US', {
