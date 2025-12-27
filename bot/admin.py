@@ -1357,7 +1357,7 @@ def register_subscription_handlers(bot):
     @bot.callback_query_handler(func=lambda call: call.data == "sub_search")
     def sub_search_callback(call):
         bot.answer_callback_query(call.id)
-        msg = bot.edit_message_text("Foydalanuvchi ID raqamini yuboring:", call.message.chat.id, call.message.message_id, reply_markup=types.ForceReply())
+        msg = bot.send_message(call.message.chat.id, "🔍 **Foydalanuvchi qidirish**\n\nIltimos, foydalanuvchi ID raqamini yuboring:", reply_markup=types.ForceReply())
         bot.register_next_step_handler(msg, process_subs_user_id, bot)
 
     @bot.callback_query_handler(func=lambda call: call.data == "sub_mass_trial")
