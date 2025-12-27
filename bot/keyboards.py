@@ -263,8 +263,5 @@ def admin_developer_keyboard():
     markup.add(
         InlineKeyboardButton("🧪 AI ni tekshirish", callback_data="dev_test_ai_start")
     )
-    markup.add(
-        InlineKeyboardButton("✍️ Matnlar (Content)", callback_data="dev_content_menu")
-    )
 
     return markup
