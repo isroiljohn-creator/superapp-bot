@@ -45,6 +45,19 @@
           </div>
         `;
     });
+
+    // Capture Phase listener for resource loading errors (which don't bubble)
+    window.addEventListener('error', function (event) {
+      if (event.target && (event.target.tagName === 'SCRIPT' || event.target.tagName === 'LINK')) {
+        document.body.innerHTML = `
+          <div style="padding: 20px; color: #ff5555; background: #1a1a1a; font-family: monospace; height: 100vh; overflow: auto;">
+            <h2 style="margin-top: 0;">RESOURCE LOAD ERROR</h2>
+            <p><strong>Failed to load:</strong> ${event.target.src || event.target.href}</p>
+            <p><strong>Tag:</strong> ${event.target.tagName}</p>
+          </div>
+        `;
+      }
+    }, true);
   </script>
   <script type="module" crossorigin src="/admin-insights/assets/index-yHVZlYud.js"></script>
   <link rel="stylesheet" crossorigin href="/admin-insights/assets/index-DHwuT-BI.css">

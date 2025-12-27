@@ -76,17 +76,24 @@ async def serve_admin(full_path: str):
     if not os.path.exists(ADMIN_DIST):
         return {"error": "Admin frontend not built"}
     
-    # Remove "admin-insights/" prefix from internal lookup if present in full_path (though FastAPI handles subpaths)
-    # Actually, full_path is what follows /admin-insights/
-    
     file_path = os.path.join(ADMIN_DIST, full_path)
     if os.path.exists(file_path) and os.path.isfile(file_path):
-        return FileResponse(file_path)
+        media_type = None
+        if file_path.endswith(".js"):
+            media_type = "application/javascript"
+        elif file_path.endswith(".css"):
+            media_type = "text/css"
+        return FileResponse(file_path, media_type=media_type)
         
     # Asset fallback
     asset_file = os.path.join(ADMIN_DIST, "assets", full_path)
     if os.path.exists(asset_file) and os.path.isfile(asset_file):
-        return FileResponse(asset_file)
+        media_type = None
+        if asset_file.endswith(".js"):
+            media_type = "application/javascript"
+        elif asset_file.endswith(".css"):
+            media_type = "text/css"
+        return FileResponse(asset_file, media_type=media_type)
 
     # SPA Fallback for Admin
     if "." in full_path.split("/")[-1]:
