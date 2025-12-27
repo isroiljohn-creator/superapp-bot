@@ -29,6 +29,33 @@ def gender_keyboard(lang="uz"):
     )
     return markup
 
+def daily_meal_keyboard(lang="uz"):
+    markup = InlineKeyboardMarkup(row_width=2) # Default row width
+    
+    # 1. Iste'mol qildim (Full width, Main Action) - Using a dedicated row
+    markup.row(InlineKeyboardButton(get_text("btn_eaten", lang=lang), callback_data="meal_eaten_choose"))
+    
+    # 2. Meal Types (Lunch, Dinner) - Side by Side
+    markup.add(
+        InlineKeyboardButton(get_text("meal_lunch", lang=lang), callback_data="meal_Lunch"),
+        InlineKeyboardButton(get_text("meal_dinner", lang=lang), callback_data="meal_Dinner")
+    )
+    
+    # 3. Snack, Prev, Next - 3 in a row
+    # To put 3 in a row, we can use row width or markup.row
+    markup.row(
+        InlineKeyboardButton(get_text("meal_snack", lang=lang), callback_data="meal_Snack"),
+        InlineKeyboardButton(get_text("menu_prev_day", lang=lang), callback_data="menu_prev"),
+        InlineKeyboardButton(get_text("menu_next_day", lang=lang), callback_data="menu_next")
+    )
+    
+    # 4. Shopping and Swap (Full width or split)
+    markup.add(
+        InlineKeyboardButton(get_text("btn_shopping_list", lang=lang), callback_data="shopping_list"),
+        InlineKeyboardButton(get_text("btn_swap", lang=lang), callback_data="swap_meal_start")
+    )
+    
+    return markup   
 def goal_keyboard(lang="uz"):
     markup = InlineKeyboardMarkup()
     markup.add(InlineKeyboardButton(get_text("goal_weight_loss", lang=lang), callback_data="goal_weight_loss"))

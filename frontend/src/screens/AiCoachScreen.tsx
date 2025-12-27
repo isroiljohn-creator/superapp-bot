@@ -75,12 +75,21 @@ export const AiCoachScreen: React.FC = () => {
         }
       });
 
-      if (response && response.data && response.data.reply) {
+      if (response && response.data) {
+        let replyText = "Tushunarsiz javob.";
+        if (response.data.reply && typeof response.data.reply === 'string') {
+          replyText = response.data.reply;
+        } else if (response.data.reply && typeof response.data.reply === 'object') {
+          replyText = JSON.stringify(response.data.reply);
+        } else if (typeof response.data === 'string') {
+          replyText = response.data;
+        }
+
         const assistantId = (Date.now() + 1).toString();
         setMessages(prev => [...prev, {
           id: assistantId,
           role: 'assistant',
-          content: response.data.reply
+          content: replyText
         }]);
         vibrate('success');
       }

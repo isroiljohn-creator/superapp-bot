@@ -441,6 +441,24 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onNavigate }) => {
           )}
 
 
+          {/* Healthy Recipes CTA */}
+          <motion.button
+            variants={itemVariants}
+            onClick={() => onNavigate?.('recipes')}
+            className="w-full p-4 rounded-xl bg-card border border-border/50 flex items-center justify-between group active:scale-[0.98] transition-all mb-4"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-green-500/10 flex items-center justify-center text-green-500 group-hover:bg-green-500/20 transition-colors">
+                <ChefHat className="w-5 h-5" />
+              </div>
+              <div className="text-left">
+                <p className="text-sm font-bold text-foreground">{t('explore.recipes')}</p>
+                <p className="text-xs text-muted-foreground">{t('explore.recipesDesc')}</p>
+              </div>
+            </div>
+            <ChevronRight className="w-5 h-5 text-muted-foreground" />
+          </motion.button>
+
           {/* Tips */}
           <motion.div
             variants={itemVariants}
@@ -457,27 +475,6 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onNavigate }) => {
             </div>
           </motion.div>
         </motion.div>
-
-        {/* Healthy Recipes CTA (Moved to bottom) */}
-        <div className="px-4 mt-4">
-          <motion.button
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            onClick={() => onNavigate?.('recipes')}
-            className="w-full p-4 rounded-xl bg-card border border-border/50 flex items-center justify-between group active:scale-[0.98] transition-all"
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-green-500/10 flex items-center justify-center text-green-500 group-hover:bg-green-500/20 transition-colors">
-                <ChefHat className="w-5 h-5" />
-              </div>
-              <div className="text-left">
-                <p className="text-sm font-bold text-foreground">{t('explore.recipes')}</p>
-                <p className="text-xs text-muted-foreground">{t('explore.recipesDesc')}</p>
-              </div>
-            </div>
-            <ChevronRight className="w-5 h-5 text-muted-foreground" />
-          </motion.button>
-        </div>
 
         <Paywall
           isOpen={showPaywall}

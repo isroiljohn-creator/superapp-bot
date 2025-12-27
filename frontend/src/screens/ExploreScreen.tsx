@@ -30,7 +30,6 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({ onNavigate, onBack
   // Kategoriyalarga bo'lingan funksiyalar
   const trackingFeatures = [
     { id: 'weight', icon: Scale, labelKey: 'explore.weight', descKey: 'explore.weightDesc', color: 'blue' },
-    { id: 'calories', icon: Flame, labelKey: 'explore.calories', descKey: 'explore.caloriesDesc', color: 'orange' },
     { id: 'daily-tasks', icon: CheckSquare, labelKey: 'explore.tasks', descKey: 'explore.tasksDesc', color: 'amber' },
   ];
 
