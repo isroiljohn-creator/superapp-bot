@@ -13,7 +13,7 @@ def register_analytics_handlers(bot):
         # Better: let's import ADMIN_IDS from config or main.
         # For valid implementation, we assume caller handles auth or we do it here.
         # We'll use a local check.
-        from bot.config import ADMIN_IDS
+        from core.config import ADMIN_IDS
         if message.from_user.id not in ADMIN_IDS:
             return
 
@@ -41,7 +41,7 @@ def register_analytics_handlers(bot):
 
     @bot.callback_query_handler(func=lambda call: call.data.startswith("opro:"))
     def handle_analytics_callback(call):
-        from bot.config import ADMIN_IDS
+        from core.config import ADMIN_IDS
         if call.from_user.id not in ADMIN_IDS:
              bot.answer_callback_query(call.id, "Access denied")
              return
