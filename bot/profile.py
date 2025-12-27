@@ -57,17 +57,34 @@ def handle_profile(message, bot, user_id=None):
         else:
             allergies_display = f"BOR ({allergies_val})"
         
+        # Get Subscription Status
+        status_key = db.get_premium_status(user_id) # 'free', 'basic', 'pro'
+        status_map = {
+            'free': "Bepul",
+            'basic': "YASHA PLUS",
+            'pro': "VIP MENTOR"
+        }
+        status_display = status_map.get(status_key, "Bepul")
+        
+        # Determine expiry date
+        # Assuming you have a way to get expiry, e.g. user.get('premium_expiry') or similar.
+        # For now, if we don't have exact expiry in user object readily, we might skip date or default.
+        # Let's check user object keys in db.py if needed. But for now, just Status is key request.
+        # If premium, show status with star.
+        
+        sub_info = f"⭐️ <b>Obuna:</b> {status_display}"
+        
         text = (
-            f"{title}\n\n"
-            f"👤 <b>{l_name}:</b> {esc(display_name)}\n"
-            f"🎂 <b>{l_age}:</b> {esc(user.get('age', '-'))}\n"
-            f"🚻 <b>{l_gender}:</b> {esc(display_gender)}\n"
-            f"📏 <b>{l_height}:</b> {esc(user.get('height', '-'))} sm\n"
-            f"⚖️ <b>{l_weight}:</b> {esc(user.get('weight', '-'))} kg\n"
-            f"🏃‍♂️ <b>{l_activity}:</b> {esc(display_activity)}\n"
-            f"🎯 <b>{l_goal}:</b> {esc(display_goal)}\n"
-            f"🤧 <b>{l_allergy}:</b> {esc(allergies_display)}\n\n"
-            f"{footer}"
+            f"👤 <b>{esc(display_name)}</b> [{status_display}]\n\n"
+            f"📋 <b>Ma'lumotlar:</b>\n"
+            f"• Yoshi: {esc(user.get('age', '-'))}\n"
+            f"• Bo'yi: {esc(user.get('height', '-'))} sm\n"
+            f"• Vazni: {esc(user.get('weight', '-'))} kg\n"
+            f"• Jinsi: {esc(display_gender)}\n"
+            f"• Faollik: {esc(display_activity)}\n"
+            f"• Maqsad: {esc(display_goal)}\n"
+            f"• Allergiya: {esc(allergies_display)}\n\n"
+            f"{sub_info}\n"
         )
         
         bot.send_message(user_id, text, reply_markup=profile_inline_keyboard(lang=lang), parse_mode="HTML")

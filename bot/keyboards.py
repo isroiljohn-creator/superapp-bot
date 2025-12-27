@@ -216,9 +216,9 @@ def ai_coach_inline_keyboard(lang="uz"):
         InlineKeyboardButton(get_text("btn_ai_recipe", lang=lang), callback_data="ai_sub_recipe"),
         InlineKeyboardButton(get_text("btn_shopping_list_kb", lang=lang), callback_data="ai_sub_shopping")
     )
+    # Changed QA to open Mini App, Removed Back/Close (user can just swipe or use main menu)
     markup.add(
-        InlineKeyboardButton(get_text("btn_ai_qa", lang=lang), callback_data="ai_sub_qa"),
-        InlineKeyboardButton(get_text("btn_back", lang=lang), callback_data="ai_sub_close")
+        InlineKeyboardButton(get_text("btn_ai_qa", lang=lang), web_app=WebAppInfo(url=os.getenv("MINI_APP_URL") + "/ai-coach"))
     )
     return markup
 
