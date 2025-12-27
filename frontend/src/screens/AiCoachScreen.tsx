@@ -50,6 +50,10 @@ export const AiCoachScreen: React.FC = () => {
 
     try {
       const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('Token topilmadi. Qayta kiring.');
+      }
+
       const response = await axios.post(`${API_URL}/coach/chat`, {
         messages: messages.concat(userMessage).map(m => ({
           role: m.role,
@@ -63,7 +67,8 @@ export const AiCoachScreen: React.FC = () => {
           todaySteps: todayLog?.steps,
         }
       }, {
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: { 'Authorization': `Bearer ${token}` },
+        timeout: 30000
       });
 
       let replyText = 'Tushunarsiz javob.';
@@ -76,12 +81,22 @@ export const AiCoachScreen: React.FC = () => {
         role: 'assistant',
         content: replyText
       }]);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Chat error:', error);
+      let errorMsg = 'Uzr, xatolik yuz berdi. Qayta urinib ko\'ring.';
+
+      if (error.response?.status === 401) {
+        errorMsg = 'Tizimga qayta kiring.';
+      } else if (error.response?.status === 429) {
+        errorMsg = 'Juda ko\'p so\'rov yuborildi. Bir oz kuting.';
+      } else if (error.code === 'ECONNABORTED') {
+        errorMsg = 'So\'rov juda uzoq davom etdi. Qayta urinib ko\'ring.';
+      }
+
       setMessages(prev => [...prev, {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: 'Uzr, xatolik yuz berdi. Qayta urinib ko\'ring.'
+        content: errorMsg
       }]);
     } finally {
       setIsLoading(false);
@@ -93,6 +108,31 @@ export const AiCoachScreen: React.FC = () => {
       e.preventDefault();
       sendMessage();
     }
+  };
+
+  // Quick questions with template answers
+  const quickQuestions = [
+    { q: 'Qanday ovqatlanishim kerak?', a: 'Sog\'lom ovqatlanish uchun:\n• Har kuni 5 xil rang sabzavot va meva\n• Oq go\'sht va baliq\n• To\'liq don mahsulotlari\n• Yetarlicha suv (2-2.5 litr)\n• Kam shakar va tuz' },
+    { q: 'Qanday mashq qilishim kerak?', a: 'Kunlik mashqlar:\n• 30 daqiqa yurish yoki yugurish\n• 10 daqiqa cho\'zilish\n• Haftada 3 kun kuch mashqlari\n• Har kuni faol bo\'ling' },
+    { q: 'Vaznni qanday yo\'qotish mumkin?', a: 'Vazn yo\'qotish uchun:\n• Kaloriya kamligini saqlang\n• Ko\'proq harakat qiling\n• Suv ko\'p iching\n• Uyqu rejimini saqlang\n• Sabr qiling - oyiga 2-3 kg yetarli' },
+    { q: 'Qancha suv ichish kerak?', a: 'Suv rejasi:\n• Kuniga 2-2.5 litr\n• Mashqdan oldin va keyin\n• Har xil ovqat oldidan 30 daqiqa\n• Suvni bir oz-ozdan iching' },
+    { q: 'Qachon mashq qilish yaxshi?', a: 'Eng yaxshi vaqt:\n• Ertalab - energiya uchun\n• Kechqurun - stress uchun\n• Sizga qulay vaqt - eng muhimi\n• Har doim bir xil vaqtda' }
+  ];
+
+  const handleQuickQuestion = (question: string, answer: string) => {
+    const userMsg: Message = {
+      id: Date.now().toString(),
+      role: 'user',
+      content: question
+    };
+
+    const assistantMsg: Message = {
+      id: (Date.now() + 1).toString(),
+      role: 'assistant',
+      content: answer
+    };
+
+    setMessages(prev => [...prev, userMsg, assistantMsg]);
   };
 
   return (
@@ -112,25 +152,39 @@ export const AiCoachScreen: React.FC = () => {
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {messages.map((message) => (
-          <div
-            key={message.id}
-            className={`flex gap-3 ${message.role === 'user' ? 'flex-row-reverse' : ''}`}
-          >
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${message.role === 'user' ? 'bg-primary' : 'bg-primary/20'
-              }`}>
-              {message.role === 'user' ? (
-                <User className="w-4 h-4 text-primary-foreground" />
-              ) : (
-                <Bot className="w-4 h-4 text-primary" />
-              )}
+        {messages.map((message, index) => (
+          <div key={message.id}>
+            <div className={`flex gap-3 ${message.role === 'user' ? 'flex-row-reverse' : ''}`}>
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${message.role === 'user' ? 'bg-primary' : 'bg-primary/20'
+                }`}>
+                {message.role === 'user' ? (
+                  <User className="w-4 h-4 text-primary-foreground" />
+                ) : (
+                  <Bot className="w-4 h-4 text-primary" />
+                )}
+              </div>
+              <div className={`max-w-[85%] p-3 rounded-2xl ${message.role === 'user'
+                  ? 'bg-primary text-primary-foreground rounded-br-md'
+                  : 'bg-card border border-border/50 text-foreground rounded-bl-md'
+                }`}>
+                <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.content}</p>
+              </div>
             </div>
-            <div className={`max-w-[85%] p-3 rounded-2xl ${message.role === 'user'
-              ? 'bg-primary text-primary-foreground rounded-br-md'
-              : 'bg-card border border-border/50 text-foreground rounded-bl-md'
-              }`}>
-              <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.content}</p>
-            </div>
+
+            {/* Quick questions after first assistant message */}
+            {index === 0 && message.role === 'assistant' && (
+              <div className="mt-3 flex flex-wrap gap-2">
+                {quickQuestions.map((item, i) => (
+                  <button
+                    key={i}
+                    onClick={() => handleQuickQuestion(item.q, item.a)}
+                    className="px-3 py-2 bg-card border border-border/50 rounded-full text-xs text-foreground hover:bg-muted transition-colors"
+                  >
+                    {item.q}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         ))}
 
@@ -152,8 +206,8 @@ export const AiCoachScreen: React.FC = () => {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Input - ALWAYS VISIBLE - WITH SPACE FOR BOTTOM NAV */}
-      <div className="px-4 pb-28 pt-3 border-t border-border/50 bg-background">
+      {/* Input - Fixed spacing */}
+      <div className="px-4 pb-20 pt-3 border-t border-border/50 bg-background">
         <div className="flex gap-2">
           <input
             type="text"
