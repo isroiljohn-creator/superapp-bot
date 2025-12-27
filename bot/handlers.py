@@ -153,14 +153,27 @@ def register_all_handlers(bot):
         
     @bot.message_handler(func=lambda message: message.text == "💚 YASHA Plus")
     def menu_yasha_plus(message):
-        # Soft paywall message
+        # Premium promo with photo and direct payment links
         user_id = message.from_user.id
         lang = db.get_user_language(user_id)
-        msg_text = get_text("upsell_workout_plus", lang) # Reusing upsell text or a generic one? 
-        # Actually better to have a specific text. Let's use simple hardcoded localized split for now to be safe.
         
-        txt = get_text("yasha_plus_short_upsell", lang=lang)
-        bot.send_message(message.chat.id, txt, reply_markup=premium.premium_inline_keyboard(lang=lang))
+        caption = get_text("yasha_plus_promo_text", lang=lang)
+        photo_path = "assets/yasha_plus.png"
+        
+        from bot.keyboards import payment_links_keyboard
+        
+        try:
+            with open(photo_path, "rb") as photo:
+                bot.send_photo(
+                    message.chat.id,
+                    photo,
+                    caption=caption,
+                    reply_markup=payment_links_keyboard(lang=lang),
+                    parse_mode="HTML"
+                )
+        except Exception as e:
+            print(f"Error sending Yasha Plus photo: {e}")
+            bot.send_message(message.chat.id, caption, reply_markup=payment_links_keyboard(lang=lang), parse_mode="HTML")
 
     @bot.message_handler(func=lambda message: message.text in ["💳 Obuna", "💎 Premium", "💳 Подписка", "💎 Премиум", "💎 Премиум Подписка"])
     def menu_premium(message):

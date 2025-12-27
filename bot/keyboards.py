@@ -168,6 +168,28 @@ def premium_inline_keyboard(lang="uz"):
     markup.row(InlineKeyboardButton(get_text("btn_challenges_menu", lang), web_app=WebAppInfo(url=os.getenv("MINI_APP_URL"))))
     return markup
 
+def payment_links_keyboard(lang="uz"):
+    """
+    Creates inline keyboard with direct payment links for subscription plans.
+    URLs are placeholders and should be replaced with real Click/Payme links.
+    """
+    markup = InlineKeyboardMarkup(row_width=1)
+    
+    # Plans and their placeholder URLs
+    # 49k, 99k, 129k, 249k
+    plans = [
+        {"key": "btn_oylik_plus_price", "url": "https://click.uz/pay?plan=plus_1m"},
+        {"key": "btn_oylik_pro_price", "url": "https://click.uz/pay?plan=pro_1m"},
+        {"key": "btn_3oylik_plus_price", "url": "https://click.uz/pay?plan=plus_3m"},
+        {"key": "btn_3oylik_pro_price", "url": "https://click.uz/pay?plan=pro_3m"}
+    ]
+    
+    for plan in plans:
+        btn_text = get_text(plan["key"], lang=lang)
+        markup.add(InlineKeyboardButton(btn_text, url=plan["url"]))
+    
+    return markup
+
 def gamification_keyboard():
     markup = InlineKeyboardMarkup()
     markup.add(InlineKeyboardButton("Mashq qildim ✅", callback_data="daily_workout_done"))
@@ -255,4 +277,9 @@ def admin_developer_keyboard():
         InlineKeyboardButton("🚩 Feature Flags", callback_data="dev_flags_menu"),
         InlineKeyboardButton("🧪 AI ni tekshirish", callback_data="dev_test_ai_start")
     )
+    return markup
+def onboarding_welcome_keyboard(lang="uz"):
+    """Keyboard sent after onboarding completion"""
+    markup = InlineKeyboardMarkup()
+    markup.add(InlineKeyboardButton(get_text("btn_public_offer", lang=lang), callback_data="show_public_offer"))
     return markup

@@ -1075,7 +1075,7 @@ class Database:
                 
             return users_list, total_count
 
-    def get_users_by_segment(self, gender=None, goal=None, activity_level=None, age_min=None, age_max=None, is_premium=None):
+    def get_users_by_segment(self, gender=None, goal=None, activity_level=None, age_min=None, age_max=None, is_premium=None, language=None, plan_type=None, is_onboarded=None, inactive_days=None):
         with get_sync_db() as session:
             query = session.query(User.telegram_id, User.full_name, User.username).filter(User.active == True)
             
@@ -1084,6 +1084,13 @@ class Database:
             if activity_level: query = query.filter(User.activity_level == activity_level)
             if age_min is not None: query = query.filter(User.age >= age_min)
             if age_max is not None: query = query.filter(User.age <= age_max)
+            if language: query = query.filter(User.language == language)
+            if plan_type: query = query.filter(User.plan_type == plan_type)
+            if is_onboarded is not None: query = query.filter(User.is_onboarded == is_onboarded)
+            
+            if inactive_days is not None:
+                cutoff = datetime.now() - timedelta(days=inactive_days)
+                query = query.filter(User.updated_at <= cutoff)
             
             if is_premium is not None:
                 now = datetime.now()
@@ -1094,13 +1101,20 @@ class Database:
             
             return query.all()
 
-    def get_users_by_segment_batch(self, gender=None, goal=None, activity_level=None, is_premium=None, offset=0, limit=100):
+    def get_users_by_segment_batch(self, gender=None, goal=None, activity_level=None, is_premium=None, language=None, plan_type=None, is_onboarded=None, inactive_days=None, offset=0, limit=100):
         with get_sync_db() as session:
             query = session.query(User.telegram_id).filter(User.active == True)
             
             if gender: query = query.filter(User.gender == gender)
             if goal: query = query.filter(User.goal.like(f"%{goal}%"))
             if activity_level: query = query.filter(User.activity_level == activity_level)
+            if language: query = query.filter(User.language == language)
+            if plan_type: query = query.filter(User.plan_type == plan_type)
+            if is_onboarded is not None: query = query.filter(User.is_onboarded == is_onboarded)
+            
+            if inactive_days is not None:
+                cutoff = datetime.now() - timedelta(days=inactive_days)
+                query = query.filter(User.updated_at <= cutoff)
             
             if is_premium is not None:
                 now = datetime.now()
@@ -1110,6 +1124,35 @@ class Database:
                     query = query.filter(or_(User.premium_until == None, User.premium_until <= now))
             
             return [u.telegram_id for u in query.offset(offset).limit(limit).all()]
+
+    def get_active_users_count(self):
+        with get_sync_db() as session:
+            return session.query(User).filter(User.active == True).count()
+
+    def get_segment_users_count(self, gender=None, goal=None, activity_level=None, is_premium=None, language=None, plan_type=None, is_onboarded=None, inactive_days=None):
+        with get_sync_db() as session:
+            query = session.query(User).filter(User.active == True)
+            if gender: query = query.filter(User.gender == gender)
+            if goal: query = query.filter(User.goal.like(f"%{goal}%"))
+            if activity_level: query = query.filter(User.activity_level == activity_level)
+            if language: query = query.filter(User.language == language)
+            if plan_type: query = query.filter(User.plan_type == plan_type)
+            if is_onboarded is not None: query = query.filter(User.is_onboarded == is_onboarded)
+            
+            if inactive_days is not None:
+                from datetime import datetime, timedelta
+                cutoff = datetime.now() - timedelta(days=inactive_days)
+                query = query.filter(User.updated_at <= cutoff)
+            
+            if is_premium is not None:
+                now = datetime.now()
+                from sqlalchemy import or_
+                if is_premium:
+                    query = query.filter(User.premium_until > now)
+                else:
+                    query = query.filter(or_(User.premium_until == None, User.premium_until <= now))
+            
+            return query.count()
 
     def get_top_users(self, limit=20):
         with get_sync_db() as session:

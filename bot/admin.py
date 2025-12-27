@@ -700,19 +700,28 @@ def register_handlers(bot):
         if message.from_user.id not in ADMIN_IDS:
             return
         
-        markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=1)
+        markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
         markup.add(
             types.KeyboardButton("📨 Umumiy xabar"),
             types.KeyboardButton("🎯 Segment xabar")
         )
-        markup.add(types.KeyboardButton("🔙 Admin Panelga"))
+        markup.add(
+            types.KeyboardButton("🛑 To'xtatish"),
+            types.KeyboardButton("🔙 Admin Panelga")
+        )
         
         bot.send_message(
             message.chat.id,
-            "📤 <b>Xabar yuborish</b>\n\nXabar turini tanlang:",
+            "📤 <b>Xabar yuborish</b>\n\nXabar turini tanlang. Agar yuborish ketayotgan bo'lsa, 🛑 To'xtatish tugmasini bosishingiz mumkin.",
             reply_markup=markup,
             parse_mode="HTML"
         )
+
+    @bot.message_handler(func=lambda message: message.text == "🛑 To'xtatish" and message.from_user.id in ADMIN_IDS)
+    def stop_broadcast_handler(message):
+        global BROADCAST_STOP
+        BROADCAST_STOP = True
+        bot.send_message(message.chat.id, "⏳ <b>To'xtatish so'rovi yuborildi...</b>\nJarayon keyingi batchda to'xtaydi.", parse_mode="HTML")
 
     # User Deletion Handlers
     @bot.message_handler(func=lambda message: "Userni o'chirish" in message.text)
@@ -1166,30 +1175,59 @@ def register_handlers(bot):
         if message.from_user.id not in ADMIN_IDS:
             return
             
-        markup = types.InlineKeyboardMarkup()
-        # Gender
-        markup.row(
+        markup = types.InlineKeyboardMarkup(row_width=2)
+        
+        # 1. Obuna turi
+        markup.row(types.InlineKeyboardButton("💳 --- OBUNA TURI ---", callback_data="none"))
+        markup.add(
+            types.InlineKeyboardButton("🆓 Bepul", callback_data="seg_plan_type_free"),
+            types.InlineKeyboardButton("🎁 Trial", callback_data="seg_plan_type_trial"),
+            types.InlineKeyboardButton("💎 Premium", callback_data="seg_plan_type_premium"),
+            types.InlineKeyboardButton("👑 VIP", callback_data="seg_plan_type_vip")
+        )
+        
+        # 2. Til bo'yicha
+        markup.row(types.InlineKeyboardButton("🌐 --- TIL BO'YICHA ---", callback_data="none"))
+        markup.add(
+            types.InlineKeyboardButton("🇺🇿 O'zbekcha", callback_data="seg_language_uz"),
+            types.InlineKeyboardButton("🇷🇺 Ruscha", callback_data="seg_language_ru")
+        )
+        
+        # 3. Demografiya
+        markup.row(types.InlineKeyboardButton("👤 --- DEMOGRAFIYA ---", callback_data="none"))
+        markup.add(
             types.InlineKeyboardButton("👨 Erkaklar", callback_data="seg_gender_male"),
             types.InlineKeyboardButton("👩 Ayollar", callback_data="seg_gender_female")
         )
-        # Plan Status
-        markup.row(
-            types.InlineKeyboardButton("💎 Premium", callback_data="seg_premium_True"),
-            types.InlineKeyboardButton("👤 Bepul", callback_data="seg_premium_False")
-        )
-        # Goals
-        markup.add(types.InlineKeyboardButton("🔻 Vazn tashlash", callback_data="seg_goal_weight_loss"))
-        markup.add(types.InlineKeyboardButton("🔺 Vazn olish", callback_data="seg_goal_muscle_gain"))
-        markup.add(types.InlineKeyboardButton("❤️ Vaznni ushlab turish", callback_data="seg_goal_health"))
         
-        # Activity
-        markup.row(
-            types.InlineKeyboardButton("🪑 Kam harakat", callback_data="seg_activity_sedentary"),
-            types.InlineKeyboardButton("🏃 O'rtacha", callback_data="seg_activity_moderate")
+        # 4. Maqsad
+        markup.row(types.InlineKeyboardButton("🎯 --- MAQSAD ---", callback_data="none"))
+        markup.add(
+            types.InlineKeyboardButton("🔻 Ozish", callback_data="seg_goal_weight_loss"),
+            types.InlineKeyboardButton("🔺 Massa", callback_data="seg_goal_muscle_gain"),
+            types.InlineKeyboardButton("❤️ Salomatlik", callback_data="seg_goal_health")
         )
-        markup.add(types.InlineKeyboardButton("🔥 Faol / Atlet", callback_data="seg_activity_athlete"))
         
-        bot.send_message(message.chat.id, "Segmentni tanlang:", reply_markup=markup)
+        # 5. Faollik
+        markup.row(types.InlineKeyboardButton("⏳ --- FAOLLIK ---", callback_data="none"))
+        markup.add(
+            types.InlineKeyboardButton("😴 7 kundan beri kirmagan", callback_data="seg_inactive_days_7"),
+            types.InlineKeyboardButton("👻 30 kundan beri kirmagan", callback_data="seg_inactive_days_30")
+        )
+        
+        # 6. Onboarding
+        markup.row(types.InlineKeyboardButton("📝 --- RO'YXATDAN O'TISH ---", callback_data="none"))
+        markup.add(
+            types.InlineKeyboardButton("✅ Tugatganlar", callback_data="seg_is_onboarded_True"),
+            types.InlineKeyboardButton("⚠️ Tugatmaganlar", callback_data="seg_is_onboarded_False")
+        )
+        
+        bot.send_message(
+            message.chat.id, 
+            "🎯 <b>Segmentni tanlang:</b>\n\nXabar faqat tanlangan guruhga yuboriladi.", 
+            reply_markup=markup,
+            parse_mode="HTML"
+        )
 
     @bot.message_handler(func=lambda message: message.reply_to_message and message.from_user.id in ADMIN_IDS)
     def admin_reply_to_user(message):
@@ -1242,30 +1280,36 @@ def _broadcast_worker(message, bot, segment):
     """
     Worker function running in a separate thread.
     """
+    global BROADCAST_STOP
+    BROADCAST_STOP = False # Reset stop flag
+    
     try:
         # Check if user cancelled
         if message.text and message.text.startswith("/"):
             bot.send_message(message.chat.id, "❌ Bekor qilindi.")
             return
 
-        users = []
-        if segment == "all":
-            users = db.get_active_users()
-        else:
+        # Setup filter args
+        filter_args = {}
+        if segment != "all":
             key, value = segment[0], segment[1]
-            if key == "gender":
-                users = db.get_users_by_segment(gender=value)
-            elif key == "goal":
-                users = db.get_users_by_segment(goal=value)
-            elif key == "premium":
-                is_prem = (value == "True")
-                users = db.get_users_by_segment(is_premium=is_prem)
-            elif key == "activity":
-                users = db.get_users_by_segment(activity_level=value)
-        
-        if not users:
-            bot.send_message(message.chat.id, "❌ Foydalanuvchilar topilmadi.")
-            return
+            if value == "True": value = True
+            elif value == "False": value = False
+            elif key == "inactive_days": value = int(value)
+            filter_args[key] = value
+
+        # 1. Total Count (for progress bar)
+        if segment == "all":
+            total_users = db.get_active_users_count()
+        else:
+            # We need a new method for count or just estimate/fetch all for small counts
+            # Since get_active_users_batch is used, let's just use it to find the end.
+            # But for progress bar we need TOTAL.
+            # Let's add a quick count logic or just fetch all IDs first (might be heavy for 100k+, but okay for a few thousands)
+            # Better: query.count() in a new method.
+            # For now, let's just show "Processing..." without % if total unknown.
+            # Or assume we can get total from db.
+            total_users = db.get_segment_users_count(**filter_args) if segment != "all" else db.get_active_users_count()
 
         msg = bot.send_message(message.chat.id, "⏳ Yuborish boshlanmoqda...")
         status_msg_id = msg.message_id
@@ -1280,31 +1324,19 @@ def _broadcast_worker(message, bot, segment):
             photo = message.photo[-1].file_id
 
         # Use batch processing
-        target_segment = segment # 'all' or list
-
         while True:
             if BROADCAST_STOP:
-                bot.send_message(message.chat.id, "🛑 Yuborish to'xtatildi!")
-                return
+                bot.send_message(message.chat.id, "🛑 <b>Broadcast to'xtatildi!</b>", parse_mode="HTML")
+                break
 
             # Fetch batch
-            users_batch_data = []
-            if target_segment == "all":
+            if segment == "all":
                 users_batch_data = db.get_active_users_batch(offset=offset, limit=BATCH_SIZE)
             else:
-                key, value = target_segment[0], target_segment[1]
-                if key == "gender":
-                    users_batch_data = db.get_users_by_segment_batch(gender=value, offset=offset, limit=BATCH_SIZE)
-                elif key == "goal":
-                    users_batch_data = db.get_users_by_segment_batch(goal=value, offset=offset, limit=BATCH_SIZE)
-                elif key == "premium":
-                    is_prem = (value == "True")
-                    users_batch_data = db.get_users_by_segment_batch(is_premium=is_prem, offset=offset, limit=BATCH_SIZE)
-                elif key == "activity":
-                    users_batch_data = db.get_users_by_segment_batch(activity_level=value, offset=offset, limit=BATCH_SIZE)
+                users_batch_data = db.get_users_by_segment_batch(**filter_args, offset=offset, limit=BATCH_SIZE)
 
             if not users_batch_data:
-                break # No more users in this segment or overall
+                break # No more users
             
             # Process batch
             for user_id in users_batch_data:
@@ -1322,25 +1354,49 @@ def _broadcast_worker(message, bot, segment):
                     if "forbidden" in str(e).lower() or "blocked" in str(e).lower():
                         db.set_user_active(user_id, False)
                     failed += 1
-                    # print(f"Failed to send to {user_id}: {e}")
                 
             # Update status every batch
             elapsed = int(time.time() - start_time)
+            
+            # Progress Bar logic
+            progress_text = ""
+            if total_users > 0:
+                percent = int((success + failed) / total_users * 100)
+                filled = int(percent / 10)
+                bar = "🟩" * filled + "⬜️" * (10 - filled)
+                progress_text = f"\n{bar} {percent}%"
+            
+            status_text = (
+                f"📡 <b>Xabar yuborilmoqda...</b>\n"
+                f"{progress_text}\n\n"
+                f"✅ Muvaffaqiyatli: {success}\n"
+                f"❌ Yetib bormadi: {failed}\n"
+                f"👥 Jami target: {total_users}\n"
+                f"⏱ Sarflangan vaqt: {elapsed}s"
+            )
+            
+            # Add stop button in status? Only if we want to constantly update markup.
+            # For now, just text update.
             try:
-                bot.edit_message_text(f"⏳ Yuborilmoqda...\n✅: {success}\n❌: {failed}\n⏱: {elapsed}s", message.chat.id, status_msg_id)
+                bot.edit_message_text(status_text, message.chat.id, status_msg_id, parse_mode="HTML")
             except: pass
             
             offset += BATCH_SIZE
-            time.sleep(1) # Sleep between batches to be nice to API limits
+            time.sleep(1) # Rate limit
             
-        bot.send_message(message.chat.id, f"🏁 Tugadi!\n✅ Muvaffaqiyatli: {success}\n❌ Yetib bormadi: {failed}")
+        bot.send_message(
+            message.chat.id, 
+            f"🏁 <b>Broadcast tugadi!</b>\n\n✅: {success}\n❌: {failed}\n⏱: {int(time.time() - start_time)}s",
+            parse_mode="HTML"
+        )
         
     except Exception as e:
         print(f"Error in process_broadcast: {e}")
+        import traceback
+        traceback.print_exc()
         try:
-            bot.send_message(message.chat.id, f"❌ Xabar yuborishda xatolik: {e}")
-        except:
-            pass
+            bot.send_message(message.chat.id, f"❌ Xatolik: {e}")
+        except: pass
 
 
 

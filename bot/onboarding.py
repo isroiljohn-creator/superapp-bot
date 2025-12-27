@@ -5,7 +5,7 @@ from core.utils import generate_referral_code, get_referrer_id_from_code
 from bot.keyboards import (
     phone_request_keyboard, gender_keyboard, goal_keyboard, 
     allergy_keyboard, main_menu_keyboard, activity_level_keyboard,
-    language_selection_keyboard
+    language_selection_keyboard, onboarding_welcome_keyboard
 )
 from bot.languages import get_text
 
@@ -457,8 +457,15 @@ def finish_onboarding(user_id, message, bot):
         bot.send_message(
             user_id,
             welcome_text,
-            reply_markup=main_menu_keyboard(user_id=user_id, lang=lang),
+            reply_markup=onboarding_welcome_keyboard(lang=lang),
             parse_mode="Markdown"
+        )
+        
+        # Also ensure they have the main menu reply keyboard separately or send a small message
+        bot.send_message(
+            user_id,
+            get_text("onboarding_back_home", lang=lang),
+            reply_markup=main_menu_keyboard(user_id=user_id, lang=lang)
         )
         
         # Delete Onboarding Messages
@@ -572,6 +579,24 @@ def register_handlers(bot):
                 bot.answer_callback_query(call.id, "Xatolik yuz berdi.")
             except:
                 pass
+    @bot.callback_query_handler(func=lambda call: call.data == 'show_public_offer')
+    def handle_public_offer(call):
+        try:
+            user_id = call.from_user.id
+            lang = db.get_user_language(user_id)
+            offer_text = get_text("public_offer_text", lang=lang)
+            
+            # Show offer text as a new message or edit current? 
+            # Better as a new message to keep the welcome message visible
+            bot.send_message(user_id, offer_text)
+            bot.answer_callback_query(call.id)
+        except Exception as e:
+            print(f"Error showing public offer: {e}")
+            try:
+                bot.answer_callback_query(call.id, "Xatolik yuz berdi.")
+            except: pass
+
+
 
 
 

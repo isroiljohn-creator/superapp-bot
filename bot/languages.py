@@ -41,6 +41,59 @@ TRANS = {
         "onboarding_allergy_details": "📝 Qanday hastalik yoki nima mahsulotlarga allergiyangiz bor?\n\nMasalan: yong'oq, sut, tuxum, gluten, dengiz mahsulotlari",
         "onboarding_saving": "⏳ Ma'lumotlar saqlanmoqda...",
         "onboarding_welcome_trial": "✅ Ro‘yxatdan o‘tdingiz! YASHA ga xush kelibsiz.\n\n🎁 **Sizga 7 kunlik Premium (Trial) ochildi!**\nHech qanday cheklovsiz barcha AI xizmatlardan foydalanishingiz mumkin.\n\nHozir esa maksimal foydalanib qoling! 👇",
+        "btn_public_offer": "📄 Ommaviy offerta",
+        "public_offer_text": """📄 YASHA AI BOT — OMMAVIY OFFERTA
+
+Ushbu hujjat YASHA AI Bot (keyingi o‘rinlarda — Xizmat) orqali ko‘rsatiladigan pullik xizmatlardan foydalanish shartlarini belgilaydi.
+
+Botdan foydalanishni davom ettirish yoki obuna sotib olish orqali Siz ushbu offerta shartlarini to‘liq qabul qilgan hisoblanasiz.
+
+1. XIZMAT HAQIDA
+YASHA — bu sog‘lom turmush tarzini qo‘llab-quvvatlash uchun mo‘ljallangan raqamli yordamchi bo‘lib, quyidagi imkoniyatlarni taqdim etadi:
+	•	Shaxsiy menyular (ovqat rejasi)
+	•	Mashqlar rejasi
+	•	Kaloriya va faoliyat tahlili
+	•	Motivatsion va tushuntiruvchi maslahatlar
+	•	Statistikalar va moslashuvchan tavsiyalar
+
+⚠️ YASHA tibbiy muolaja yoki shifokor maslahatini almashtirmaydi.
+
+2. TARIFLAR VA TO‘LOVLAR
+Xizmat pullik obunalar asosida taqdim etiladi.
+Mavjud tariflar: Plus, Pro.
+Tariflar tarkibi, muddati va narxi bot ichida ko‘rsatiladi.
+Obuna muddati: 1 oylik, 3 oylik.
+To‘lov amalga oshirilgach, obuna darhol faollashadi.
+
+3. OBUNA SHARTLARI
+	•	Obuna avtomatik tarzda qayta yangilanmaydi
+	•	Obuna muddati tugagach, foydalanuvchi bepul rejaga o‘tkaziladi
+
+4. QAYTARIM VA BEKOR QILISH
+❗ To‘lov amalga oshirilgandan so‘ng:
+	•	Obuna uchun to‘langan mablag‘ qaytarilmaydi
+	•	Obuna muddati qisqartirilmaydi
+
+5. AI VA AVTOMATLASHTIRILGAN TIZIMLAR
+YASHA AI va avtomatlashtirilgan tizimlardan foydalanadi. Tavsiyalar maslahat xarakterida bo‘lib, yakuniy qaror har doim foydalanuvchining o‘ziga tegishli.
+
+6. MA’LUMOTLAR VA MAXFIYLIK
+Foydalanuvchi ma’lumotlari uchinchi shaxslarga sotilmaydi.
+
+7. XIZMATNI O‘ZGARTIRISH HUQUQI
+YASHA jamoasi tarif tarkibini va funksiyalarni o‘zgartirish huquqiga ega.
+
+8. JAVOBGARLIKNI CHEKLASH
+YASHA noto‘g‘ri kiritilgan ma’lumotlar yoki tavsiyalarga rioya qilinmasligi uchun javobgar emas.
+
+9. OFFERTANI QABUL QILISH
+Obuna sotib olish yoki botdan foydalanishni davom ettirish shartlarni qabul qilish hisoblanadi.
+
+10. ALOQA
+Murojaat uchun bot ichidagi yordam bo‘limidan foydalaning.
+
+YASHA 
+Siz bilan birga sog‘lom hayot sari 💚""",
         
         # General / Status
         "wait_generating": "⏳ Siz uchun individual reja tuzilmoqda, iltimos bir daqiqa kuting...",
@@ -96,7 +149,7 @@ TRANS = {
         "reminder_day_2": "☀️ Salom {name}! Haftaning o'rtasi keldi. Suv va mashqlar rejada bormi? 💧💪\n\n/start tugmasini bosing!",
         "reminder_day_3": "☀️ Salom {name}! Maqsadingiz sari intilishda davom eting! Bugun suv va mashqlar qanday bo'ldi? 💧💪\n\n/start tugmasi sizni kutmoqda!",
         "reminder_day_4": "☀️ Salom {name}! Bugungi suv ichish va mashg'ulotlar haqida unutmang, sog'lig'ingiz o'z qo'lingizda! 💧💪\n\n/start ni bosib belgilang!",
-        "reminder_day_5": "☀️ Salom {name}! Dam olish kuningiz unumli o'tsin. Bugun ham suv va mashqlar esingizdami? 💧💪\n\n/start orqali tekshiring!",
+        "reminder_day_5": "☀️ Salom {name}! Dam olish kuningiz unumli o'tsin. Bugun ham suv va mashqlar esingizdamu? 💧💪\n\n/start orqali tekshiring!",
         "reminder_day_6": "☀️ Salom {name}! Yakshanba - o'z ustingizda ishlash uchun yaxshi kun. Suv ichdingizmi va mashqlarni qildingizmi? 💧💪\n\n/start ni bosing!",
 
         # Templates
@@ -286,6 +339,11 @@ TRANS = {
         "btn_health_stats": "📊 Sog'liq statistikasi",
         "btn_calorie_tahlili": "🍽 Kaloriya tahlili",
         "btn_yasha_plus": "💚 YASHA Plus",
+        "yasha_plus_promo_text": "💚 Kichik odatlar - katta natijalar.\nQulay tarifni tanlang va YASHA bilan sog‘lom hayotni boshlang👇",
+        "btn_oylik_plus_price": "OYLIK PLUS ( 49.000 SO'M)",
+        "btn_oylik_pro_price": "OYLIK PRO (99.000 SO'M)",
+        "btn_3oylik_plus_price": "3 OYLIK PLUS ( 129.000 SO'M)",
+        "btn_3oylik_pro_price": "3 OYLIK PRO (249.000 SO'M)",
         "btn_profile": "👤 Profil",
         "btn_help": "📩 Yordam",
         "btn_workout_plan": "🏋️ Mashq rejasi",
@@ -357,7 +415,60 @@ TRANS = {
         "onboarding_allergy_question": "У вас есть заболевания или аллергия?",
         "onboarding_allergy_details": "📝 Какое заболевание или на какие продукты у вас аллергия?\n\nНапример: орехи, молоко, яйца, глютен, морепродукты",
         "onboarding_saving": "⏳ Данные сохраняются...",
-        "onboarding_welcome_trial": "✅ Вы зарегистрированы! Добро пожаловать в YASHA.\n\n🎁 **Вам открыт 7-дневный Premium (Trial)!**\nВы можете пользоваться всеми AI услугами без ограничений.\n\nИспользуйте возможности по максимуму! 👇",
+        "onboarding_welcome_trial": "✅ Вы зарегистрированы! Добро пожаловать в YASHA.\n\n🎁 **Вам открыт 7-дневный Premium (Trial)!**\nВы можете использовать все AI сервисы без ограничений.\n\nИспользуйте возможности по максимуму! 👇",
+        "btn_public_offer": "📄 Публичная оферта",
+        "public_offer_text": """📄 YASHA AI BOT — OMMAVIY OFFERTA
+
+Ushbu hujjat YASHA AI Bot (keyingi o‘rinlarda — Xizmat) orqali ko‘rsatiladigan pullik xizmatlardan foydalanish shartlarini belgilaydi.
+
+Botdan foydalanishni davom ettirish yoki obuna sotib olish orqali Siz ushbu offerta shartlarini to‘liq qabul qilgan hisoblanasiz.
+
+1. XIZMAT HAQIDA
+YASHA — bu sog‘lom turmush tarzini qo‘llab-quvvatlash uchun mo‘ljallangan raqamli yordamchi bo‘lib, quyidagi imkoniyatlarni taqdim etadi:
+	•	Shaxsiy menyular (ovqat rejasi)
+	•	Mashqlar rejasi
+	•	Kaloriya va faoliyat tahlili
+	•	Motivatsion va tushuntiruvchi maslahatlar
+	•	Statistikalar va moslashuvchan tavsiyalar
+
+⚠️ YASHA tibbiy muolaja yoki shifokor maslahatini almashtirmaydi.
+
+2. TARIFLAR VA TO‘LOVLAR
+Xizmat pullik obunalar asosida taqdim etiladi.
+Mavjud tariflar: Plus, Pro.
+Tariflar tarkibi, muddati va narxi bot ichida ko‘rsatiladi.
+Obuna muddati: 1 oylik, 3 oylik.
+To‘lov amalga oshirilgach, obuna darhol faollashadi.
+
+3. OBUNA SHARTLARI
+	•	Obuna avtomatik tarzda qayta yangilanmaydi
+	•	Obuna muddati tugagach, foydalanuvchi bepul rejaga o‘tkaziladi
+
+4. QAYTARIM VA BEKOR QILISH
+❗ To‘lov amalga oshirilgandan so‘ng:
+	•	Obuna uchun to‘langan mablag‘ qaytarilmaydi
+	•	Obuna muddati qisqartirilmaydi
+
+5. AI VA AVTOMATLASHTIRILGAN TIZIMLAR
+YASHA AI va avtomatlashtirilgan tizimlardan foydalanadi. Tavsiyalar maslahat xarakterida bo‘lib, yakuniy qaror har doim foydalanuvchining o‘ziga tegishli.
+
+6. MA’LUMOTLAR VA MAXFIYLIK
+Foydalanuvchi ma’lumotlari uchinchi shaxslarga sotilmaydi.
+
+7. XIZMATNI O‘ZGARTIRISH HUQUQI
+YASHA jamoasi tarif tarkibini va funksiyalarni o‘zgartirish huquqiga ega.
+
+8. JAVOBGARLIKNI CHEKLASH
+YASHA noto‘g‘ri kiritilgan ma’lumotlar yoki tavsiyalarga rioya qilinmasligi uchun javobgar emas.
+
+9. OFFERTANI QABUL QILISH
+Obuna sotib olish yoki botdan foydalanishni davom ettirish shartlarni qabul qilish hisoblanadi.
+
+10. ALOQA
+Murojaat uchun bot ichidagi yordam bo‘limidan foydalaning.
+
+YASHA 
+Siz bilan birga sog‘lom hayot sari 💚""",
         
         # General / Status
         "wait_generating": "⏳ Создаю индивидуальный план для вас, подождите минуту...",
@@ -632,6 +743,11 @@ TRANS = {
         "btn_health_stats": "📊 Статистика здоровья",
         "btn_calorie_tahlili": "🍽 Анализ калорий",
         "btn_yasha_plus": "💚 YASHA Plus",
+        "yasha_plus_promo_text": "💚 Маленькие привычки — большие результаты.\nВыберите подходящий тариф и начните здоровую жизнь с YASHA👇",
+        "btn_oylik_plus_price": "МЕСЯЦ PLUS (49.000 СУМ)",
+        "btn_oylik_pro_price": "МЕСЯЦ PRO (99.000 СУМ)",
+        "btn_3oylik_plus_price": "3 МЕСЯЦА PLUS (129.000 СУМ)",
+        "btn_3oylik_pro_price": "3 МЕСЯЦА PRO (249.000 СУМ)",
         "btn_profile": "👤 Профиль",
         "btn_help": "📩 Помощь",
         "btn_workout_plan": "🏋️ План тренировок",
