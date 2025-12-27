@@ -58,10 +58,12 @@ def handle_profile(message, bot, user_id=None):
             allergies_display = f"BOR ({allergies_val})"
         
         # Get Subscription Status
-        status_key = db.get_premium_status(user_id) # 'free', 'basic', 'pro'
+        status_key = user.get('plan_type', 'free') 
         status_map = {
             'free': "Bepul",
             'basic': "YASHA PLUS",
+            'premium': "YASHA PLUS",
+            'vip': "VIP MENTOR",
             'pro': "VIP MENTOR"
         }
         status_display = status_map.get(status_key, "Bepul")

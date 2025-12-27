@@ -175,18 +175,17 @@ def payment_links_keyboard(lang="uz"):
     """
     markup = InlineKeyboardMarkup(row_width=1)
     
-    # Plans and their placeholder URLs
-    # 49k, 99k, 129k, 249k
+    # Plans using callbacks to trigger Telegram Invoice
     plans = [
-        {"key": "btn_oylik_plus_price", "url": "https://click.uz/pay?plan=plus_1m"},
-        {"key": "btn_oylik_pro_price", "url": "https://click.uz/pay?plan=pro_1m"},
-        {"key": "btn_3oylik_plus_price", "url": "https://click.uz/pay?plan=plus_3m"},
-        {"key": "btn_3oylik_pro_price", "url": "https://click.uz/pay?plan=pro_3m"}
+        {"key": "btn_oylik_plus_price", "callback": "pay_plus_1"},
+        {"key": "btn_oylik_pro_price", "callback": "pay_vip_1"},
+        {"key": "btn_3oylik_plus_price", "callback": "pay_plus_3"},
+        {"key": "btn_3oylik_pro_price", "callback": "pay_vip_3"}
     ]
     
     for plan in plans:
         btn_text = get_text(plan["key"], lang=lang)
-        markup.add(InlineKeyboardButton(btn_text, url=plan["url"]))
+        markup.add(InlineKeyboardButton(btn_text, callback_data=plan["callback"]))
     
     return markup
 

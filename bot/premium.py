@@ -109,42 +109,41 @@ def register_handlers(bot):
     # def handle_redemption(call):
     #     ... (removed)
 
-    @bot.callback_query_handler(func=lambda call: call.data in ["select_premium", "select_vip"])
+    @bot.callback_query_handler(func=lambda call: call.data in ["pay_plus_1", "pay_vip_1", "pay_plus_3", "pay_vip_3"])
     def handle_plan_selection(call):
         provider_token = os.getenv("PAYMENT_PROVIDER_TOKEN")
         
         if not provider_token:
-            bot.answer_callback_query(call.id)
-            lang = db.get_user_language(call.from_user.id)
-            bot.send_message(
-                call.message.chat.id,
-                get_text("payment_system_error", lang),
-                parse_mode="HTML"
-            )
+            bot.answer_callback_query(call.id, "⚠️ To'lov tizimi vaqtincha ishlamayapti.")
             return
-        
+            
+        data = call.data
         days = 30
+        amount = 4900000 
+        title_key = "invoice_title_premium"
+        plan_code = "premium"
         
-        if call.data == "select_premium":
-            amount = 4900000 # 49 000 UZS
-            plan_name = "premium"
-            # Title localized later
-        else:
-            amount = 9900000 # 99 000 UZS
-            plan_name = "vip"
-            # Title localized later
+        if "vip" in data:
+            plan_code = "vip"
+            title_key = "invoice_title_vip"
             
-        # Format for display (e.g. 49 000)
+        if "3" in data:
+            days = 90
+            # 3 month prices
+            if plan_code == "premium": amount = 12900000
+            else: amount = 24900000
+        else:
+            # 1 month prices
+            if plan_code == "premium": amount = 4900000
+            else: amount = 9900000
+            
         price_display = f"{amount // 100:,}".replace(",", " ")
-        
         lang = db.get_user_language(call.from_user.id)
-        if plan_name == "premium":
-            title = get_text("invoice_title_premium", lang)
-        else:
-            title = get_text("invoice_title_vip", lang)
-            
+        title = get_text(title_key, lang)
+        if days == 90: title += " (3 oy)"
+        
         description = get_text("invoice_desc", lang, title=title, price=price_display)
-        payload = f"{plan_name}_{days}" # e.g. premium_30
+        payload = f"{plan_code}_{days}" 
         currency = "UZS"
         prices = [types.LabeledPrice(label=title, amount=amount)]
 
