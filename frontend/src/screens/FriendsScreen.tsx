@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Users, UserPlus, Trophy, Swords, ArrowLeft, Search, Crown, Medal, Award, Loader2 } from 'lucide-react';
 import axios from 'axios';
@@ -36,8 +36,10 @@ export const FriendsScreen: React.FC<FriendsScreenProps> = ({ onBack }) => {
   const { profile, points } = useUser();
   const [friends, setFriends] = useState<Friend[]>([]);
   const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [activeTab, setActiveTab] = useState('friends');
 
   const fetchFriends = async () => {
     try {

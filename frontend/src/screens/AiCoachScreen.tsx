@@ -75,7 +75,7 @@ export const AiCoachScreen: React.FC = () => {
         }
       });
 
-      if (response.data.reply) {
+      if (response && response.data && response.data.reply) {
         const assistantId = (Date.now() + 1).toString();
         setMessages(prev => [...prev, {
           id: assistantId,

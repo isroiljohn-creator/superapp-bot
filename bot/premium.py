@@ -71,7 +71,11 @@ def handle_premium_info(message, bot):
     markup.add(types.InlineKeyboardButton(get_text("btn_buy_vip", lang), callback_data="select_vip"))
     markup.add(types.InlineKeyboardButton(get_text("btn_offer", lang), callback_data="premium_offer"))
     
-    bot.send_message(message.chat.id, text, reply_markup=markup, parse_mode="HTML")
+    try:
+        with open("bot/assets/plans_table.png", "rb") as photo:
+            bot.send_photo(message.chat.id, photo, caption=text, reply_markup=markup, parse_mode="HTML")
+    except Exception:
+        bot.send_message(message.chat.id, text, reply_markup=markup, parse_mode="HTML")
 
 def handle_premium_info_detailed(message, bot):
     # Redirect to standard info for now to ensure localization is clean
@@ -126,7 +130,7 @@ def register_handlers(bot):
             plan_name = "premium"
             # Title localized later
         else:
-            amount = 9700000 # 97 000 UZS
+            amount = 9900000 # 99 000 UZS
             plan_name = "vip"
             # Title localized later
             

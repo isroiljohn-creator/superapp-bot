@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Lock, Calendar, Coffee, Apple, Moon, Cookie, Loader2, RefreshCw, ChevronRight, Check, ChefHat } from 'lucide-react';
+import { Lock, Calendar, Coffee, Apple, Moon, Cookie, Loader2, RefreshCw, ChevronRight, Check, ChefHat, Flame } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Paywall } from '@/components/Paywall';
 import { DaySelector } from '@/components/DaySelector';
@@ -302,6 +302,40 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onNavigate }) => {
           />
         </div>
 
+        {/* Calories Chart (Compact) */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          onClick={() => onNavigate?.('calories')}
+          className="mx-0 mb-5 p-4 rounded-xl bg-gradient-to-r from-primary/10 to-primary/5 border border-primary/20 cursor-pointer active:scale-[0.98] transition-all"
+        >
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 bg-primary/20 rounded-lg text-primary">
+                <Flame className="w-4 h-4" />
+              </div>
+              <div>
+                <p className="text-sm font-bold text-foreground">{t('menu.dailyTotal')}</p>
+                <p className="text-[10px] text-muted-foreground">{selectedDay === 0 ? t('common.today') : t('menu.excess')}</p>
+              </div>
+            </div>
+            <div className="text-right">
+              <p className="text-lg font-bold text-primary">
+                {displayTotalCalories.toLocaleString()} <span className="text-xs font-normal text-muted-foreground">/ {dailyGoal.toLocaleString()}</span>
+              </p>
+            </div>
+          </div>
+          {/* Thin Progress bar */}
+          <div className="h-1.5 bg-background/50 rounded-full overflow-hidden w-full">
+            <motion.div
+              className={`h-full rounded-full ${displayTotalCalories > dailyGoal ? 'bg-red-400' : 'bg-primary'}`}
+              initial={{ width: 0 }}
+              animate={{ width: `${Math.min((displayTotalCalories / dailyGoal) * 100, 100)}%` }}
+              transition={{ duration: 0.5 }}
+            />
+          </div>
+        </motion.div>
+
         {/* Premium info */}
         {!isPremium() && (
           <motion.div
@@ -317,185 +351,145 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onNavigate }) => {
         )}
 
         {/* Healthy Recipes CTA */}
-        <motion.button
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          onClick={() => onNavigate?.('recipes')}
-          className="w-full p-4 rounded-xl bg-card border border-border/50 flex items-center justify-between group active:scale-[0.98] transition-all"
-        >
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-green-500/10 flex items-center justify-center text-green-500 group-hover:bg-green-500/20 transition-colors">
-              <ChefHat className="w-5 h-5" />
-            </div>
-            <div className="text-left">
-              <p className="text-sm font-bold text-foreground">{t('explore.recipes')}</p>
-              <p className="text-xs text-muted-foreground">{t('explore.recipesDesc')}</p>
-            </div>
-          </div>
-          <ChevronRight className="w-5 h-5 text-muted-foreground" />
-        </motion.button>
-      </div>
 
-      {/* Meals */}
-      <motion.div
-        variants={containerVariants}
-        initial="hidden"
-        animate="show"
-        className="px-4 space-y-3"
-      >
-        <motion.div variants={itemVariants} className="flex items-center justify-between">
-          <p className="text-sm text-muted-foreground">
-            {t('common.day')} {selectedDay + 1} - {selectedDay === 0 ? t('common.today') : days[selectedDay].day}
-          </p>
-          {selectedDay === 0 && todayMeals.length > 0 && (
-            <span className="text-xs bg-success/20 text-success px-2 py-0.5 rounded-full">
-              {t('menu.actualData')}
-            </span>
-          )}
-        </motion.div>
-
-        {isLoadingPlan && !displayMeals.length ? (
-          <div className="flex justify-center py-10">
-            <Loader2 className="w-8 h-8 animate-spin text-primary" />
-          </div>
-        ) : textPlan ? (
-          <motion.div
-            variants={itemVariants}
-            className="p-5 rounded-xl bg-card border border-border/50 text-foreground"
-          >
-            <div
-              className="prose prose-sm dark:prose-invert max-w-none break-words whitespace-pre-wrap"
-              dangerouslySetInnerHTML={{ __html: textPlan.replace(/\n/g, '<br/>') }}
-            />
-          </motion.div>
-        ) : (
-          displayMeals.map((meal, index) => {
-            const isEaten = selectedDay === 0 && todayMeals.some(m => m.mealType === meal.type);
-
-            return (
-              <motion.div
-                key={index}
-                variants={itemVariants}
-                onClick={() => {
-                  if (isEaten) return;
-                  if (selectedDay > 0 && !isPremium()) {
-                    setShowPaywall(true);
-                  } else {
-                    vibrate('light');
-                    setSelectedMeal({
-                      ...meal,
-                      mealType: meal.type
-                    });
-                    setIsSheetOpen(true);
-                  }
-                }}
-                className={`p-4 rounded-xl bg-card border border-border/50 transition-all active:scale-[0.98] ${isEaten ? 'opacity-50 cursor-default' : 'cursor-pointer hover:border-primary/40'
-                  } ${selectedDay > 0 && !isPremium() ? 'opacity-60' : ''}`}
-              >
-                <div className="flex items-start gap-3">
-                  <div className="p-2.5 rounded-xl bg-muted shrink-0 text-primary">
-                    {isEaten ? <Check className="w-5 h-5" /> : getMealIcon(meal.type)}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between mb-1">
-                      <p className="text-xs text-muted-foreground">{getMealTimeLabel(meal.type, t)}</p>
-                      <p className={`font-semibold ${isEaten ? 'text-muted-foreground' : 'text-foreground'}`}>{meal.calories} kcal</p>
-                    </div>
-                    <p className={`font-semibold mb-1 ${isEaten ? 'text-muted-foreground' : 'text-foreground'}`}>{meal.title}</p>
-                    <p className="text-sm text-muted-foreground truncate">
-                      {meal.items && meal.items.slice(0, 3).join(' • ')}
-                      {meal.items && meal.items.length > 3 && ` +${meal.items.length - 3}`}
-                    </p>
-                  </div>
-                  {isEaten ? (
-                    <div className="mt-1">
-                      <span className="text-[10px] font-bold text-primary uppercase tracking-wider bg-primary/10 px-2 py-0.5 rounded-full">
-                        {t('common.done')}
-                      </span>
-                    </div>
-                  ) : (selectedDay > 0 && !isPremium() ? (
-                    <Lock className="w-4 h-4 text-muted-foreground shrink-0" />
-                  ) : (
-                    <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0 mt-1" />
-                  ))}
-                </div>
-              </motion.div>
-            );
-          })
-        )}
-
-        {/* Daily summary - improved */}
+        {/* Meals */}
         <motion.div
-          variants={itemVariants}
-          className="p-4 rounded-xl bg-gradient-to-r from-primary/15 to-primary/5 border border-primary/30"
+          variants={containerVariants}
+          initial="hidden"
+          animate="show"
+          className="px-4 space-y-3"
         >
-          <div className="flex items-center justify-between mb-3">
-            <p className="text-sm font-medium text-foreground">{t('menu.dailyTotal')}</p>
+          <motion.div variants={itemVariants} className="flex items-center justify-between">
+            <p className="text-sm text-muted-foreground">
+              {t('common.day')} {selectedDay + 1} - {selectedDay === 0 ? t('common.today') : days[selectedDay].day}
+            </p>
             {selectedDay === 0 && todayMeals.length > 0 && (
               <span className="text-xs bg-success/20 text-success px-2 py-0.5 rounded-full">
-                {t('menu.actual')}
+                {t('menu.actualData')}
               </span>
             )}
-          </div>
-          <div className="flex items-end justify-between">
-            <div>
-              <p className="text-3xl font-bold text-foreground">
-                {displayTotalCalories.toLocaleString()}
-              </p>
-              <p className="text-xs text-muted-foreground">{t('menu.consumed')}</p>
+          </motion.div>
+
+          {isLoadingPlan && !displayMeals.length ? (
+            <div className="flex justify-center py-10">
+              <Loader2 className="w-8 h-8 animate-spin text-primary" />
             </div>
-            <div className="text-right">
-              <p className="text-3xl font-bold text-primary">
-                {dailyGoal.toLocaleString()}
-              </p>
-              <p className="text-xs text-muted-foreground">{t('menu.recommended')}</p>
-            </div>
-          </div>
-          {/* Progress bar */}
-          <div className="mt-3 h-2 bg-muted rounded-full overflow-hidden">
+          ) : textPlan ? (
             <motion.div
-              className={`h-full rounded-full ${displayTotalCalories > dailyGoal ? 'bg-red-400' : 'bg-primary'}`}
-              initial={{ width: 0 }}
-              animate={{ width: `${Math.min((displayTotalCalories / dailyGoal) * 100, 100)}%` }}
-              transition={{ duration: 0.5 }}
-            />
-          </div>
-          <p className="text-xs text-muted-foreground mt-2 text-center">
-            {displayTotalCalories > dailyGoal
-              ? `${(displayTotalCalories - dailyGoal).toLocaleString()} kcal ${t('menu.excess')}`
-              : `${(dailyGoal - displayTotalCalories).toLocaleString()} kcal ${t('menu.remaining')}`
-            }
-          </p>
-        </motion.div>
+              variants={itemVariants}
+              className="p-5 rounded-xl bg-card border border-border/50 text-foreground"
+            >
+              <div
+                className="prose prose-sm dark:prose-invert max-w-none break-words whitespace-pre-wrap"
+                dangerouslySetInnerHTML={{ __html: textPlan.replace(/\n/g, '<br/>') }}
+              />
+            </motion.div>
+          ) : (
+            displayMeals.map((meal, index) => {
+              const isEaten = selectedDay === 0 && todayMeals.some(m => m.mealType === meal.type);
 
-        {/* Tips */}
-        <motion.div
-          variants={itemVariants}
-          className="p-4 rounded-xl bg-card border border-border/50"
-        >
-          <div className="flex items-start gap-3">
-            <div className="text-xl">💡</div>
-            <div>
-              <h3 className="font-semibold text-foreground text-sm mb-1">{t('menu.tip')}</h3>
-              <p className="text-sm text-muted-foreground">
-                {t('menu.tipText')}
-              </p>
+              return (
+                <motion.div
+                  key={index}
+                  variants={itemVariants}
+                  onClick={() => {
+                    if (isEaten) return;
+                    if (selectedDay > 0 && !isPremium()) {
+                      setShowPaywall(true);
+                    } else {
+                      vibrate('light');
+                      setSelectedMeal({
+                        ...meal,
+                        mealType: meal.type
+                      });
+                      setIsSheetOpen(true);
+                    }
+                  }}
+                  className={`p-4 rounded-xl bg-card border border-border/50 transition-all active:scale-[0.98] ${isEaten ? 'opacity-50 cursor-default' : 'cursor-pointer hover:border-primary/40'
+                    } ${selectedDay > 0 && !isPremium() ? 'opacity-60' : ''}`}
+                >
+                  <div className="flex items-start gap-3">
+                    <div className="p-2.5 rounded-xl bg-muted shrink-0 text-primary">
+                      {isEaten ? <Check className="w-5 h-5" /> : getMealIcon(meal.type)}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between mb-1">
+                        <p className="text-xs text-muted-foreground">{getMealTimeLabel(meal.type, t)}</p>
+                        <p className={`font-semibold ${isEaten ? 'text-muted-foreground' : 'text-foreground'}`}>{meal.calories} kcal</p>
+                      </div>
+                      <p className={`font-semibold mb-1 ${isEaten ? 'text-muted-foreground' : 'text-foreground'}`}>{meal.title}</p>
+                      <p className="text-sm text-muted-foreground truncate">
+                        {meal.items && meal.items.slice(0, 3).join(' • ')}
+                        {meal.items && meal.items.length > 3 && ` +${meal.items.length - 3}`}
+                      </p>
+                    </div>
+                    {isEaten ? (
+                      <div className="mt-1">
+                        <span className="text-[10px] font-bold text-primary uppercase tracking-wider bg-primary/10 px-2 py-0.5 rounded-full">
+                          {t('common.done')}
+                        </span>
+                      </div>
+                    ) : (selectedDay > 0 && !isPremium() ? (
+                      <Lock className="w-4 h-4 text-muted-foreground shrink-0" />
+                    ) : (
+                      <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0 mt-1" />
+                    ))}
+                  </div>
+                </motion.div>
+              );
+            })
+          )}
+
+
+          {/* Tips */}
+          <motion.div
+            variants={itemVariants}
+            className="p-4 rounded-xl bg-card border border-border/50"
+          >
+            <div className="flex items-start gap-3">
+              <div className="text-xl">💡</div>
+              <div>
+                <h3 className="font-semibold text-foreground text-sm mb-1">{t('menu.tip')}</h3>
+                <p className="text-sm text-muted-foreground">
+                  {t('menu.tipText')}
+                </p>
+              </div>
             </div>
-          </div>
+          </motion.div>
         </motion.div>
-      </motion.div>
 
-      <Paywall
-        isOpen={showPaywall}
-        onClose={() => setShowPaywall(false)}
-        feature={t('paywall.aiMenu')}
-      />
+        {/* Healthy Recipes CTA (Moved to bottom) */}
+        <div className="px-4 mt-4">
+          <motion.button
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            onClick={() => onNavigate?.('recipes')}
+            className="w-full p-4 rounded-xl bg-card border border-border/50 flex items-center justify-between group active:scale-[0.98] transition-all"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-green-500/10 flex items-center justify-center text-green-500 group-hover:bg-green-500/20 transition-colors">
+                <ChefHat className="w-5 h-5" />
+              </div>
+              <div className="text-left">
+                <p className="text-sm font-bold text-foreground">{t('explore.recipes')}</p>
+                <p className="text-xs text-muted-foreground">{t('explore.recipesDesc')}</p>
+              </div>
+            </div>
+            <ChevronRight className="w-5 h-5 text-muted-foreground" />
+          </motion.button>
+        </div>
 
-      <MealDetailsSheet
-        meal={selectedMeal}
-        isOpen={isSheetOpen}
-        onClose={() => setIsSheetOpen(false)}
-      />
-    </div>
-  );
+        <Paywall
+          isOpen={showPaywall}
+          onClose={() => setShowPaywall(false)}
+          feature={t('paywall.aiMenu')}
+        />
+
+        <MealDetailsSheet
+          meal={selectedMeal}
+          isOpen={isSheetOpen}
+          onClose={() => setIsSheetOpen(false)}
+        />
+      </div>
+      );
 };
