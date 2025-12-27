@@ -245,11 +245,36 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onNavigate }) => {
     displayMeals = getSuggestedMeals(selectedDay);
   }
 
-  const suggestedTotalCalories = displayMeals.reduce((sum, m) => sum + m.calories, 0);
+  const suggestedTotalCalories = displayMeals.reduce((sum, m) => sum + (m.calories || 0), 0);
 
-  const displayTotalCalories = selectedDay === 0
-    ? todayCalories
-    : suggestedTotalCalories;
+  // For day 0 (today), show actual logged calories
+  // For other days, show 0 (since they haven't happened yet)
+  const displayTotalCalories = selectedDay === 0 ? todayCalories : 0;
+
+  // Calculate macros from meals
+  const calculateMacros = () => {
+    if (selectedDay === 0 && todayMeals.length > 0) {
+      const protein = todayMeals.reduce((sum, m) => sum + (m.protein || 0), 0);
+      const carbs = todayMeals.reduce((sum, m) => sum + (m.carbs || 0), 0);
+      const fat = todayMeals.reduce((sum, m) => sum + (m.fat || 0), 0);
+      return { protein, carbs, fat };
+    } else if (weeklyPlan && weeklyPlan.length > 0) {
+      const dailyData = weeklyPlan.find(d => d.day === selectedDay + 1);
+      if (dailyData && dailyData.meals) {
+        const meals = Object.values(dailyData.meals) as any[];
+        const protein = meals.reduce((sum: number, m: any) => sum + (m.protein || 0), 0);
+        const carbs = meals.reduce((sum: number, m: any) => sum + (m.carbs || 0), 0);
+        const fat = meals.reduce((sum: number, m: any) => sum + (m.fat || 0), 0);
+        return { protein, carbs, fat };
+      }
+    }
+    const estimatedProtein = Math.round(suggestedTotalCalories * 0.30 / 4);
+    const estimatedCarbs = Math.round(suggestedTotalCalories * 0.40 / 4);
+    const estimatedFat = Math.round(suggestedTotalCalories * 0.30 / 9);
+    return { protein: estimatedProtein, carbs: estimatedCarbs, fat: estimatedFat };
+  };
+
+  const macros = calculateMacros();
 
   const containerVariants = {
     hidden: { opacity: 0 },
