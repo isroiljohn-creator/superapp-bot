@@ -35,21 +35,53 @@ export const FriendsScreen: React.FC<FriendsScreenProps> = ({ onBack }) => {
   const { toast } = useToast();
   const { profile, points } = useUser();
   const [friends, setFriends] = useState<Friend[]>([]);
-  const [searchResults, setSearchResults] = useState<any[]>([]);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [isSearching, setIsSearching] = useState(false);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [activeTab, setActiveTab] = useState('friends');
+  const [friendRequests, setFriendRequests] = useState<any[]>([]);
 
   const fetchFriends = async () => {
     try {
       const token = localStorage.getItem('token');
+      // Fetch Friends
       const res = await axios.get(`${import.meta.env.VITE_API_URL || '/api/v1'}/social/friends`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setFriends(res.data);
+
+      // Fetch Requests
+      const reqRes = await axios.get(`${import.meta.env.VITE_API_URL || '/api/v1'}/social/friends/requests`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setFriendRequests(reqRes.data);
+
     } catch (e) {
       console.error("Fetch friends error:", e);
+    }
+  };
+
+  const handleAcceptRequest = async (id: string, name: string) => {
+    try {
+      const token = localStorage.getItem('token');
+      await axios.post(`${import.meta.env.VITE_API_URL || '/api/v1'}/social/friends/requests/${id}/accept`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      toast({
+        title: "Qabul qilindi",
+        description: `${name} bilan do'stlashdingiz!`,
+      });
+      fetchFriends();
+    } catch (e) {
+      console.error("Accept error:", e);
+    }
+  };
+
+  const handleDeclineRequest = async (id: string) => {
+    try {
+      const token = localStorage.getItem('token');
+      await axios.post(`${import.meta.env.VITE_API_URL || '/api/v1'}/social/friends/requests/${id}/decline`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      fetchFriends();
+    } catch (e) {
+      console.error("Decline error:", e);
     }
   };
 
@@ -242,6 +274,41 @@ export const FriendsScreen: React.FC<FriendsScreenProps> = ({ onBack }) => {
               animate="show"
               className="space-y-3"
             >
+              {/* Requests */}
+              {friendRequests.length > 0 && (
+                <div className="mb-4">
+                  <h3 className="text-sm font-bold text-muted-foreground mb-2 flex items-center gap-2">
+                    <UserPlus className="w-4 h-4" /> So'rovlar
+                  </h3>
+                  {friendRequests.map((req) => (
+                    <motion.div
+                      key={req.id}
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      className="p-3 rounded-2xl bg-primary/5 border border-primary/20 mb-2 flex items-center justify-between"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center font-bold text-primary">
+                          {req.fromUser.name[0]}
+                        </div>
+                        <div>
+                          <p className="font-semibold text-foreground text-sm">{req.fromUser.name}</p>
+                          <p className="text-xs text-muted-foreground">Level {req.fromUser.level}</p>
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button size="sm" variant="outline" className="h-8 px-2 text-red-500 hover:text-red-600" onClick={() => handleDeclineRequest(req.id)}>
+                          Rad etish
+                        </Button>
+                        <Button size="sm" className="h-8 px-3" onClick={() => handleAcceptRequest(req.id, req.fromUser.name)}>
+                          Qabul
+                        </Button>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              )}
+
               {friends.length === 0 ? (
                 <div className="text-center py-20 bg-card/30 rounded-3xl border border-dashed border-border">
                   <Users className="w-12 h-12 mx-auto mb-4 opacity-20" />
