@@ -92,10 +92,21 @@ export const AiCoachScreen: React.FC = () => {
         errorMsg = 'Tizimga qayta kiring.';
       } else if (error.response?.status === 429) {
         errorMsg = 'Juda ko\'p so\'rov yuborildi. Bir oz kuting.';
+      } else if (error.response?.status === 422) {
+        // Validation error
+        errorMsg = 'Ma\'lumotlar noto\'g\'ri. Qayta urinib ko\'ring.';
       } else if (error.code === 'ECONNABORTED') {
         errorMsg = 'So\'rov juda uzoq davom etdi. Qayta urinib ko\'ring.';
       } else if (error.response?.data?.detail) {
-        errorMsg = `Xatolik: ${error.response.data.detail}`;
+        // Handle both string and array detail
+        const detail = error.response.data.detail;
+        if (typeof detail === 'string') {
+          errorMsg = `Xatolik: ${detail}`;
+        } else if (Array.isArray(detail)) {
+          errorMsg = `Xatolik: ${detail.map((d: any) => d.msg || d).join(', ')}`;
+        } else {
+          errorMsg = `Xatolik: ${JSON.stringify(detail)}`;
+        }
       }
 
       setMessages(prev => [...prev, {
