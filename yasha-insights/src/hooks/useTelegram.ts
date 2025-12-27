@@ -48,46 +48,63 @@ export function useTelegram() {
   }, []);
 
   const getInitData = useCallback((): string => {
+    // 1. Try generic WebApp.initData
     if (webApp?.initData) return webApp.initData;
 
-    // Fallback: Manually parse from hash
+    // 2. Fallback: Parse from hash
     let hash = window.location.hash.slice(1);
     if (!hash) return '';
 
-    // Attempt to extract tgWebAppData if usage of standard param
-    const params = new URLSearchParams(hash);
-    if (params.has('tgWebAppData')) {
-      return params.get('tgWebAppData') || '';
-    }
-
-    // Heuristic: If it contains "user=" or "user%3D", it's likely the data
-    // Try decoding up to 2 times to handle double encoding
-    let decoded = hash;
-    let found = false;
-    for (let i = 0; i < 2; i++) {
-      if (decoded.includes('user=') || decoded.includes('auth_date=')) {
-        found = true;
-        break;
-      }
+    // Function to extract valid initData from a string
+    const extract = (str: string): string | null => {
+      // Option A: data is in tgWebAppData param
       try {
-        decoded = decodeURIComponent(decoded);
-      } catch (e) { break; }
-    }
+        const params = new URLSearchParams(str);
+        const data = params.get('tgWebAppData');
+        if (data) {
+          // If it looks encoded, decode it
+          if (data.includes('%') || !data.includes('hash=')) {
+            try { return decodeURIComponent(data); } catch (e) { return data; }
+          }
+          return data;
+        }
+      } catch (e) { }
 
-    if (found || decoded.includes('user=') || decoded.includes('"id":')) {
-      // Return the decoded version if it looks like initData
-      // But keep original hash if decoding messed up the format expected by backend?
-      // Backend expects standard URL encoded string: key=value&key=value
-      // If we decoded it too much (e.g. turned %3D into =), parse_qsl might be fine or not.
-      // SAFE BET: Return the one that matched, but ensure it's in key=value format.
+      // Option B: manual split if URLSearchParams fails
+      if (str.includes('tgWebAppData=')) {
+        const parts = str.split('&');
+        for (const part of parts) {
+          if (part.startsWith('tgWebAppData=')) {
+            let val = part.substring('tgWebAppData='.length);
+            try { val = decodeURIComponent(val); } catch (e) { }
+            return val;
+          }
+        }
+      }
 
-      // If the original hash started with query_id or user, return it.
-      // If it was encoded, returning decoded is better.
-      return decoded;
-    }
+      // Option C: the string ITSELF is the data (contains user=... & hash=...)
+      // Check for key indicators of init data
+      if (str.includes('hash=') && (str.includes('user=') || str.includes('auth_date='))) {
+        return str;
+      }
 
-    // Last ditch: just return the hash if it's long enough
-    if (hash.length > 100) return hash;
+      return null;
+    };
+
+    // Try parsing raw hash
+    let result = extract(hash);
+    if (result) return result;
+
+    // Try decoding hash once and parsing
+    try {
+      const decoded = decodeURIComponent(hash);
+      result = extract(decoded);
+      if (result) return result;
+    } catch (e) { }
+
+    // Last resort: Return raw hash if it's long, but this usually fails backend validation if keys are wrong.
+    // But better than nothing for debug.
+    if (hash.length > 50) return hash;
 
     return '';
   }, [webApp]);
