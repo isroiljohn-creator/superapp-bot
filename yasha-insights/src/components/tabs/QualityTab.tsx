@@ -99,7 +99,7 @@ export function QualityTab({ isLoading: externalLoading = false }: QualityTabPro
             <div className="flex-1 h-6 bg-secondary rounded overflow-hidden">
               <div
                 className="h-full bg-success transition-all"
-                style={{ width: `${(feedback.menu.good! / menuTotal) * 100}%` }}
+                style={{ width: `${menuTotal > 0 ? ((feedback.menu.good || 0) / menuTotal) * 100 : 0}%` }}
               />
             </div>
             <span className="font-mono text-xs w-10 text-right">
@@ -189,7 +189,7 @@ export function QualityTab({ isLoading: externalLoading = false }: QualityTabPro
               </div>
               <div className="flex items-center gap-1 text-destructive">
                 <Heart className="h-3 w-3 fill-current" />
-                <span className="font-mono text-sm">{msg.love}</span>
+                <span className="font-mono text-sm">{msg.love || 0}</span>
               </div>
             </div>
           ))}

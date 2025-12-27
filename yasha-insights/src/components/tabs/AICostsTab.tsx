@@ -1,14 +1,28 @@
 import { Cpu, DollarSign, Zap, TrendingUp } from 'lucide-react';
 import { StatCard } from '@/components/StatCard';
-import { mockAICosts as data } from '@/hooks/useAnalytics';
+import { useAICosts } from '@/hooks/useAnalytics';
 import { cn } from '@/lib/utils';
 
 interface AICostsTabProps {
   isLoading?: boolean;
 }
 
-export function AICostsTab({ isLoading = false }: AICostsTabProps) {
-  const maxDailyCost = Math.max(...data.daily.map((d) => d.cost_usd));
+export function AICostsTab({ isLoading: externalLoading = false }: AICostsTabProps) {
+  const { data, isLoading: internalLoading } = useAICosts();
+  const isLoading = externalLoading || internalLoading;
+
+  if (!data && !isLoading) return null;
+
+  const displayData = data || {
+    total_tokens: 0,
+    total_cost_usd: 0,
+    by_feature: [],
+    daily: []
+  };
+
+  const maxDailyCost = displayData.daily.length > 0
+    ? Math.max(...displayData.daily.map((d) => d.cost_usd))
+    : 0;
 
   const featureColors: Record<string, string> = {
     menu: 'bg-chart-1',
