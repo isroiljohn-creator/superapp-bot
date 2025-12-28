@@ -137,10 +137,10 @@ def upgrade() -> None:
             sa.Column('portion_type', sa.String, server_default='medium'),
             sa.Column('goal_tag', sa.String, server_default='maintenance'),
             sa.Column('variant', sa.String, server_default='normal'),
-            sa.Column('ingredients', sa.Text), 
+            # sa.Column('ingredients', sa.Text), # REMOVED: Column does not exist
             sa.Column('is_active', sa.Boolean),
             sa.Column('created_at', sa.DateTime, server_default=sa.func.now()),
-            sa.Column('updated_at', sa.DateTime, server_default=sa.func.now()) # Some schemas use updated_at, some don't. Safe to omit if not in DB.
+            sa.Column('updated_at', sa.DateTime, server_default=sa.func.now())
         )
         
         # Fix keys for bulk_insert
@@ -148,12 +148,12 @@ def upgrade() -> None:
         for v in values_list:
             final_values.append({
                 'name_uz': v['name_uz'],
-                'total_kcal': int(v['calories'] or 0),
-                'protein_g': float(v['protein'] or 0.0),
-                'carbs_g': float(v['carbs'] or 0.0),
-                'fat_g': float(v['fat'] or 0.0),
+                'total_kcal': int(v['total_kcal'] or v['calories'] or 0), # Fallback safety
+                'protein_g': float(v['protein_g'] or v['protein'] or 0.0),
+                'carbs_g': float(v['carbs_g'] or v['carbs'] or 0.0),
+                'fat_g': float(v['fat_g'] or v['fat'] or 0.0),
                 'meal_type': v['meal_type'],
-                'ingredients': json.dumps(v['ingredients']) if isinstance(v['ingredients'], list) else v['ingredients'],
+                # 'ingredients': ... # Skipped
                 'is_active': True,
                 'portion_type': 'medium',
                 'goal_tag': 'maintenance',
