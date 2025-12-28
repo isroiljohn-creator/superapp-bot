@@ -145,10 +145,10 @@ def upgrade() -> None:
         for v in values_list:
             final_values.append({
                 'name_uz': v['name_uz'],
-                'calories': int(v['calories']),
-                'protein': float(v['protein']),
-                'carbs': float(v['carbs']),
-                'fat': float(v['fat']),
+                'calories': int(v['calories'] or 0),
+                'protein': float(v['protein'] or 0.0),
+                'carbs': float(v['carbs'] or 0.0),
+                'fat': float(v['fat'] or 0.0),
                 'meal_type': v['meal_type'],
                 'ingredients': json.dumps(v['ingredients']) if isinstance(v['ingredients'], list) else v['ingredients'],
                 'is_active': True
