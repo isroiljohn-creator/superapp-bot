@@ -295,11 +295,7 @@ async def get_retention_stats(db: AsyncSession = Depends(get_db), admin_id: int 
     """
     Cohort Analysis and Retention Metrics
     """
-    # Simply dummy metrics for now to make UI work
-    # In a real app, this would involve complex date-diff joins
-    # Real Cohort Analysis logic
-    # We define a "Check-in" or "Activity" as any EventLog entry.
-    # Cohorts are weekly.
+    # Real Cohort Analysis logic based on EventLog tracking
     
     # 1. Fetch Weekly Cohorts (Last 4 weeks + current)
     # weeks = 5
@@ -427,7 +423,8 @@ async def get_adaptation_stats(db: AsyncSession = Depends(get_db), admin_id: int
         "soft_mode_users": soft,
         "variant_switches": total, # Approximation
         "daily": [
-            {"date": (datetime.utcnow() - timedelta(days=i)).strftime("%Y-%m-%d"), "count": 5 + (i % 3) * 10}
+            {"date": (datetime.utcnow() - timedelta(days=i)).strftime("%Y-%m-%d"), 
+             "count": (await db.execute(select(func.count()).where(UserAdaptationState.updated_at >= (datetime.utcnow() - timedelta(days=i+1)), UserAdaptationState.updated_at < (datetime.utcnow() - timedelta(days=i))))).scalar() or 0}
             for i in range(13, -1, -1)
         ],
         "validation": {
@@ -583,7 +580,7 @@ async def get_funnel_stats(db: AsyncSession = Depends(get_db), admin_id: int = D
 async def get_retention_graph(db: AsyncSession = Depends(get_db), admin_id: int = Depends(get_current_admin)):
     """
     Retention Graph Data (D1, D7, D14, D30)
-    Calculated from real cohort analysis (averaged over last 8 weeks)
+    Calculated from real cohort analysis
     """
     query = text("""
         WITH cohort_users AS (
@@ -595,8 +592,6 @@ async def get_retention_graph(db: AsyncSession = Depends(get_db), admin_id: int 
         ),
         activity AS (
             SELECT distinct user_id, date(created_at) as act_date FROM event_logs WHERE created_at >= now() - interval '8 weeks'
---             UNION
---             SELECT distinct user_id, date(date) as act_date FROM daily_logs WHERE date >= (now() - interval '8 weeks')::date
         )
         SELECT 
             count(distinct c.user_id) as total_users,
@@ -617,18 +612,13 @@ async def get_retention_graph(db: AsyncSession = Depends(get_db), admin_id: int 
     d14 = row[3] or 0
     d30 = row[4] or 0
 
-    # Calculate percentages
-    p_d1 = round((d1 / total * 100), 1) if total > 0 else 0
-    p_d7 = round((d7 / total * 100), 1) if total > 0 else 0
-    p_d14 = round((d14 / total * 100), 1) if total > 0 else 0
-    p_d30 = round((d30 / total * 100), 1) if total > 0 else 0
-
     return {"data": [
-        {"name": "D1", "value": p_d1},
-        {"name": "D7", "value": p_d7},
-        {"name": "D14", "value": p_d14},
-        {"name": "D30", "value": p_d30}
-    ]}
+        {"name": "D1", "value": round((d1 / total * 100), 1) if total > 0 else 0},
+        {"name": "D7", "value": round((d7 / total * 100), 1) if total > 0 else 0},
+        {"name": "D14", "value": round((d14 / total * 100), 1) if total > 0 else 0},
+        {"name": "D30", "value": round((d30 / total * 100), 1) if total > 0 else 0}
+    ]} 
+
 
 @router.get("/analytics/premium_dist")
 async def get_premium_dist(db: AsyncSession = Depends(get_db), admin_id: int = Depends(get_current_admin)):
@@ -651,218 +641,5 @@ async def get_premium_dist(db: AsyncSession = Depends(get_db), admin_id: int = D
         {"name": "Plus", "value": plus_count},
         {"name": "Pro", "value": pro_count}
     ]}
-    def get_feature_totals(feature, days):
-        d = datetime.utcnow() - timedelta(days=days)
-        return text(f"SELECT SUM(total_tokens), SUM(cost_usd) FROM ai_usage_logs WHERE feature=:f AND timestamp >= :d")
 
-    menu_total = (await db.execute(get_feature_totals('menu', 7), {"f": 'menu', "d": datetime.utcnow() - timedelta(days=7)})).fetchone()
-    workout_total = (await db.execute(get_feature_totals('workout', 7), {"f": 'workout', "d": datetime.utcnow() - timedelta(days=7)})).fetchone()
-    chat_total = (await db.execute(get_feature_totals('chat', 7), {"f": 'chat', "d": datetime.utcnow() - timedelta(days=7)})).fetchone()
-
-    # Daily breakdown (last 7 days)
-    daily_stats = []
-    for i in range(6, -1, -1):
-        day_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(days=i)
-        day_end = day_start + timedelta(days=1)
-        res = (await db.execute(text("SELECT SUM(total_tokens), SUM(cost_usd) FROM ai_usage_logs WHERE timestamp >= :s AND timestamp < :e"), {"s": day_start, "e": day_end})).fetchone()
-        daily_stats.append({
-            "date": day_start.strftime("%Y-%m-%d"),
-            "tokens": res[0] or 0,
-            "cost_usd": res[1] or 0
-        })
-
-    # Top Spenders
-    top_q = text("""
-        SELECT l.user_id, u.full_name, u.username, SUM(l.cost_usd) as total_spent
-        FROM ai_usage_logs l
-        JOIN users u ON u.id = l.user_id
-        WHERE l.timestamp >= :d
-        GROUP BY 1, 2, 3
-        ORDER BY 4 DESC
-        LIMIT 5
-    """)
-    top_res = (await db.execute(top_q, {"d": datetime.utcnow() - timedelta(days=30)})).fetchall()
-    
-    top_users = []
-    for r in top_res:
-        top_users.append({
-            "user_id": r[0],
-            "full_name": r[1] or "Unknown",
-            "username": r[2] or "",
-            "total_spent": r[3] or 0.0
-        })
-
-    return {
-        "total_tokens": res_7d[0] or 0,
-        "total_cost_usd": res_7d[1] or 0,
-        "by_feature": [
-            fmt_feature('menu', menu_total),
-            fmt_feature('workout', workout_total),
-            fmt_feature('coach', chat_total)
-        ],
-        "daily": daily_stats,
-        "top_users": top_users
-    }
-
-
-@router.get("/analytics/growth")
-async def get_growth_data(db: AsyncSession = Depends(get_db), admin_id: int = Depends(get_current_admin)):
-    """DAU Last 7-30 days"""
-    seven_days_ago = datetime.utcnow() - timedelta(days=7)
-    
-    # Using text() for raw SQL date_trunc
-    sql = text("""
-        SELECT date_trunc('day', created_at) as day, count(distinct user_id) as users
-        FROM event_logs
-        WHERE created_at >= :d
-        GROUP BY 1 ORDER BY 1
-    """)
-    result = await db.execute(sql, {"d": seven_days_ago})
-    rows = result.fetchall()
-    
-    data = [{"date": r[0].strftime('%d/%m'), "value": r[1]} for r in rows]
-    return {"data": data}
-
-@router.get("/analytics/funnel")
-async def get_funnel_data(db: AsyncSession = Depends(get_db), admin_id: int = Depends(get_current_admin)):
-    """User Funnel (30 days)"""
-    thirty_days_ago = datetime.utcnow() - timedelta(days=30)
-    
-    sql = text("""
-        SELECT event_type, count(distinct user_id)
-        FROM event_logs
-        WHERE event_type IN ('bot_start', 'onboarding_completed', 'trial_started')
-        AND created_at >= :d
-        GROUP BY 1
-    """)
-    result = await db.execute(sql, {"d": thirty_days_ago})
-    data_map = {r[0]: r[1] for r in result.fetchall()}
-    
-    data = [
-        {"name": "Start", "value": data_map.get("bot_start", 0)},
-        {"name": "Onboarded", "value": data_map.get("onboarding_completed", 0)},
-        {"name": "Trial", "value": data_map.get("trial_started", 0)}
-    ]
-    return {"data": data}
-
-@router.get("/analytics/retention")
-async def get_retention_data(db: AsyncSession = Depends(get_db), admin_id: int = Depends(get_current_admin)):
-    """Retention D1, D3, D7"""
-    # Complex query needs text()
-    sql = text("""
-        WITH cohort AS (
-            SELECT user_id, MIN(date_trunc('day', created_at)) AS day0
-            FROM event_logs
-            WHERE event_type = 'onboarding_completed' AND created_at >= now() - interval '30 days'
-            GROUP BY 1
-        ),
-        activity AS (
-            SELECT DISTINCT user_id, date_trunc('day', created_at) AS day
-            FROM event_logs
-            WHERE created_at >= now() - interval '30 days'
-        )
-        SELECT
-            ROUND(100.0 * SUM(CASE WHEN EXISTS (SELECT 1 FROM activity a WHERE a.user_id=c.user_id AND a.day=c.day0 + interval '1 day') THEN 1 ELSE 0 END) / NULLIF(COUNT(*),0), 1) AS d1,
-            ROUND(100.0 * SUM(CASE WHEN EXISTS (SELECT 1 FROM activity a WHERE a.user_id=c.user_id AND a.day=c.day0 + interval '3 day') THEN 1 ELSE 0 END) / NULLIF(COUNT(*),0), 1) AS d3,
-            ROUND(100.0 * SUM(CASE WHEN EXISTS (SELECT 1 FROM activity a WHERE a.user_id=c.user_id AND a.day=c.day0 + interval '7 day') THEN 1 ELSE 0 END) / NULLIF(COUNT(*),0), 1) AS d7
-        FROM cohort c
-    """)
-    res = (await db.execute(sql)).fetchone()
-    d1, d3, d7 = (res[0] or 0, res[1] or 0, res[2] or 0) if res else (0,0,0)
-    
-    data = [
-        {"name": "Day 1", "value": d1},
-        {"name": "Day 3", "value": d3},
-        {"name": "Day 7", "value": d7}
-    ]
-    return {"data": data}
-
-
-
-
-@router.get("/analytics/growth")
-async def get_growth_data(db: AsyncSession = Depends(get_db), admin_id: int = Depends(get_current_admin)):
-    """DAU Last 7-30 days"""
-    seven_days_ago = datetime.utcnow() - timedelta(days=7)
-    
-    # Using text() for raw SQL date_trunc
-    sql = text("""
-        SELECT date_trunc('day', created_at) as day, count(distinct user_id) as users
-        FROM event_logs
-        WHERE created_at >= :d
-        GROUP BY 1 ORDER BY 1
-    """)
-    result = await db.execute(sql, {"d": seven_days_ago})
-    rows = result.fetchall()
-    
-    data = [{"date": r[0].strftime('%d/%m'), "value": r[1]} for r in rows]
-    return {"data": data}
-
-@router.get("/analytics/funnel")
-async def get_funnel_data(db: AsyncSession = Depends(get_db), admin_id: int = Depends(get_current_admin)):
-    """User Funnel (30 days)"""
-    thirty_days_ago = datetime.utcnow() - timedelta(days=30)
-    
-    sql = text("""
-        SELECT event_type, count(distinct user_id)
-        FROM event_logs
-        WHERE event_type IN ('bot_start', 'onboarding_completed', 'trial_started')
-        AND created_at >= :d
-        GROUP BY 1
-    """)
-    result = await db.execute(sql, {"d": thirty_days_ago})
-    data_map = {r[0]: r[1] for r in result.fetchall()}
-    
-    data = [
-        {"name": "Start", "value": data_map.get("bot_start", 0)},
-        {"name": "Onboarded", "value": data_map.get("onboarding_completed", 0)},
-        {"name": "Trial", "value": data_map.get("trial_started", 0)}
-    ]
-    return {"data": data}
-
-@router.get("/analytics/retention")
-async def get_retention_data(db: AsyncSession = Depends(get_db), admin_id: int = Depends(get_current_admin)):
-    """Retention D1, D3, D7"""
-    # Complex query needs text()
-    sql = text("""
-        WITH cohort AS (
-            SELECT user_id, MIN(date_trunc('day', created_at)) AS day0
-            FROM event_logs
-            WHERE event_type = 'onboarding_completed' AND created_at >= now() - interval '30 days'
-            GROUP BY 1
-        ),
-        activity AS (
-            SELECT DISTINCT user_id, date_trunc('day', created_at) AS day
-            FROM event_logs
-            WHERE created_at >= now() - interval '30 days'
-        )
-        SELECT
-            ROUND(100.0 * SUM(CASE WHEN EXISTS (SELECT 1 FROM activity a WHERE a.user_id=c.user_id AND a.day=c.day0 + interval '1 day') THEN 1 ELSE 0 END) / NULLIF(COUNT(*),0), 1) AS d1,
-            ROUND(100.0 * SUM(CASE WHEN EXISTS (SELECT 1 FROM activity a WHERE a.user_id=c.user_id AND a.day=c.day0 + interval '3 day') THEN 1 ELSE 0 END) / NULLIF(COUNT(*),0), 1) AS d3,
-            ROUND(100.0 * SUM(CASE WHEN EXISTS (SELECT 1 FROM activity a WHERE a.user_id=c.user_id AND a.day=c.day0 + interval '7 day') THEN 1 ELSE 0 END) / NULLIF(COUNT(*),0), 1) AS d7
-        FROM cohort c
-    """)
-    res = (await db.execute(sql)).fetchone()
-    d1, d3, d7 = (res[0] or 0, res[1] or 0, res[2] or 0) if res else (0,0,0)
-    
-    data = [
-        {"name": "Day 1", "value": d1},
-        {"name": "Day 3", "value": d3},
-        {"name": "Day 7", "value": d7}
-    ]
-    return {"data": data}
-
-@router.get("/analytics/premium_dist")
-async def get_premium_dist(db: AsyncSession = Depends(get_db), admin_id: int = Depends(get_current_admin)):
-    """Premium vs Free distribution"""
-    now = datetime.utcnow()
-    premium = (await db.execute(select(func.count()).where(User.plan_type == 'premium', User.premium_until > now))).scalar() or 0
-    total = (await db.execute(select(func.count(User.id)))).scalar() or 0
-    free = total - premium
-    
-    data = [
-        {"name": "Premium", "value": premium},
-        {"name": "Free", "value": free}
-    ]
-    return {"data": data}
 
