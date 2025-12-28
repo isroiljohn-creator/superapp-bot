@@ -443,34 +443,66 @@ async def get_cost_stats(db: AsyncSession = Depends(get_db), admin_id: int = Dep
     """
     AI Cost metrics (from ai_usage_logs)
     """
-    def get_sums(days):
-        d = datetime.utcnow() - timedelta(days=days)
-        return text("""
-            SELECT 
-                SUM(total_tokens),
-                SUM(cost_usd),
-                SUM(CASE WHEN feature='menu' THEN cost_usd ELSE 0 END),
-                SUM(CASE WHEN feature='workout' THEN cost_usd ELSE 0 END),
-                SUM(CASE WHEN feature='chat' THEN cost_usd ELSE 0 END)
-            FROM ai_usage_logs
-            WHERE timestamp >= :d
-        """)
+    # 1. Total Metrics (All time)
+    totals_q = await db.execute(text("SELECT SUM(total_tokens), SUM(cost_usd) FROM ai_usage_logs"))
+    totals = totals_q.fetchone()
+    total_tokens = totals[0] or 0
+    total_cost = totals[1] or 0.0
+
+    # 2. Daily Breakdown (Last 7 days)
+    daily_stats = []
+    days = 7
+    for i in range(days - 1, -1, -1):
+        d_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(days=i)
+        d_end = d_start + timedelta(days=1)
         
-    res_24h = (await db.execute(get_sums(1), {"d": datetime.utcnow() - timedelta(days=1)})).fetchone()
-    res_7d = (await db.execute(get_sums(7), {"d": datetime.utcnow() - timedelta(days=7)})).fetchone()
-    res_30d = (await db.execute(get_sums(30), {"d": datetime.utcnow() - timedelta(days=30)})).fetchone()
+        q = await db.execute(text("SELECT SUM(total_tokens), SUM(cost_usd) FROM ai_usage_logs WHERE timestamp >= :s AND timestamp < :e"), {"s": d_start, "e": d_end})
+        res = q.fetchone()
+        
+        daily_stats.append({
+            "date": d_start.strftime("%Y-%m-%d"),
+            "tokens": res[0] or 0,
+            "cost_usd": res[1] or 0.0
+        })
+
+    # 3. By Feature (Last 30 days)
+    d30 = datetime.utcnow() - timedelta(days=30)
+    feat_q = await db.execute(text("SELECT feature, SUM(total_tokens), SUM(cost_usd) FROM ai_usage_logs WHERE timestamp >= :d GROUP BY feature"), {"d": d30})
+    features = []
+    for row in feat_q.fetchall():
+        features.append({
+            "feature": row[0],
+            "tokens": row[1] or 0,
+            "cost_usd": row[2] or 0.0
+        })
+
+    # 4. Top Spenders (Last 30 days)
+    top_q = await db.execute(text("""
+        SELECT l.user_id, u.full_name, u.username, SUM(l.cost_usd) as total_spent
+        FROM ai_usage_logs l
+        JOIN users u ON u.id = l.user_id
+        WHERE l.timestamp >= :d
+        GROUP BY 1, 2, 3
+        ORDER BY 4 DESC
+        LIMIT 10
+    """), {"d": d30})
     
-    def fmt_feature(feature_name, result):
-        if not result: return {"feature": feature_name, "tokens": 0, "cost_usd": 0}
-        return {
-            "feature": feature_name,
-            "tokens": result[0] or 0,
-            "cost_usd": result[1] or 0
-        }
+    top_users = []
+    for row in top_q.fetchall():
+        top_users.append({
+            "user_id": row[0],
+            "full_name": row[1] or "Unknown",
+            "username": row[2],
+            "total_spent": row[3] or 0.0
+        })
 
-
-    # By Feature breakdown
-    # (Implementation existing...)
+    return {
+        "total_tokens": total_tokens,
+        "total_cost_usd": total_cost,
+        "daily": daily_stats,
+        "by_feature": features,
+        "top_users": top_users
+    }
     
 @router.get("/analytics/growth")
 async def get_growth_stats(db: AsyncSession = Depends(get_db), admin_id: int = Depends(get_current_admin)):
