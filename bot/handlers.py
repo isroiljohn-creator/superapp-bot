@@ -285,6 +285,11 @@ def register_all_handlers(bot):
         # For now, let's CLEAR to avoid sticky state confusion, user can click button again.
         onboarding.manager.clear_user(user_id) 
 
+    # --- Ask Question Button Handler ---
+    @bot.message_handler(func=lambda m: m.text in [get_text("btn_ask_question", "uz"), get_text("btn_ask_question", "ru")])
+    def handle_ask_ques_btn(message):
+        ai_features.handle_ai_qa(message, bot)
+
     @bot.callback_query_handler(func=lambda call: call.data == 'premium_challenges')
     def premium_challenges_callback(call):
         try:
