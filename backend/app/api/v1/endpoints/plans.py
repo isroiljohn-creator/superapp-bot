@@ -24,7 +24,37 @@ async def get_meal_plan(
     current_user: User = Depends(get_current_user),
     db_session: AsyncSession = Depends(get_db)
 ):
-    """Get latest meal plan"""
+    """Get latest meal plan (Checks Template System first, then Legacy)"""
+    from backend.models import UserMenuLink, MenuTemplate
+    
+    # 1. Check New Template System (Bot Logic)
+    link_result = await db_session.execute(
+        select(UserMenuLink)
+        .where(UserMenuLink.user_id == current_user.id, UserMenuLink.is_active == True)
+        .order_by(desc(UserMenuLink.id))
+        .limit(1)
+    )
+    user_link = link_result.scalar_one_or_none()
+    
+    if user_link:
+        tmpl_result = await db_session.execute(
+            select(MenuTemplate).where(MenuTemplate.id == user_link.menu_template_id)
+        )
+        template = tmpl_result.scalar_one_or_none()
+        
+        if template:
+            try:
+                content = json.loads(template.menu_json)
+                return {
+                    "plan": content, 
+                    "is_premium": current_user.is_premium, 
+                    "created_at": user_link.start_date,
+                    "source": "template" 
+                }
+            except Exception as e:
+                print(f"Template JSON Error: {e}")
+
+    # 2. Fallback to Legacy Plan Table
     result = await db_session.execute(
         select(Plan)
         .where(Plan.user_id == current_user.id, Plan.type == "meal")
