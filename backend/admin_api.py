@@ -550,8 +550,52 @@ async def get_funnel_stats(db: AsyncSession = Depends(get_db), admin_id: int = D
 @router.get("/analytics/retention")
 async def get_retention_graph(db: AsyncSession = Depends(get_db), admin_id: int = Depends(get_current_admin)):
     """
-        {"name": "D14", "value": 25},
-        {"name": "D30", "value": 15}
+    Retention Graph Data (D1, D7, D14, D30)
+    Calculated from real cohort analysis (averaged over last 8 weeks)
+    """
+    query = text("""
+        WITH cohort_users AS (
+            SELECT 
+                id as user_id,
+                created_at
+            FROM users 
+            WHERE created_at >= now() - interval '8 weeks'
+        ),
+        activity AS (
+            SELECT distinct user_id, date(created_at) as act_date FROM event_logs WHERE created_at >= now() - interval '8 weeks'
+            UNION
+            SELECT distinct user_id, date(date) as act_date FROM daily_logs WHERE date >= (now() - interval '8 weeks')::date
+        )
+        SELECT 
+            count(distinct c.user_id) as total_users,
+            count(distinct case when a.act_date = date(c.created_at) + interval '1 day' then c.user_id end) as d1,
+            count(distinct case when a.act_date >= date(c.created_at) + interval '7 days' AND a.act_date < date(c.created_at) + interval '8 days' then c.user_id end) as d7,
+            count(distinct case when a.act_date >= date(c.created_at) + interval '14 days' AND a.act_date < date(c.created_at) + interval '15 days' then c.user_id end) as d14,
+            count(distinct case when a.act_date >= date(c.created_at) + interval '30 days' AND a.act_date < date(c.created_at) + interval '31 days' then c.user_id end) as d30
+        FROM cohort_users c
+        LEFT JOIN activity a ON c.user_id = a.user_id
+    """)
+
+    result = await db.execute(query)
+    row = result.fetchone()
+    
+    total = row[0] or 0
+    d1 = row[1] or 0
+    d7 = row[2] or 0
+    d14 = row[3] or 0
+    d30 = row[4] or 0
+
+    # Calculate percentages
+    p_d1 = round((d1 / total * 100), 1) if total > 0 else 0
+    p_d7 = round((d7 / total * 100), 1) if total > 0 else 0
+    p_d14 = round((d14 / total * 100), 1) if total > 0 else 0
+    p_d30 = round((d30 / total * 100), 1) if total > 0 else 0
+
+    return {"data": [
+        {"name": "D1", "value": p_d1},
+        {"name": "D7", "value": p_d7},
+        {"name": "D14", "value": p_d14},
+        {"name": "D30", "value": p_d30}
     ]}
 
 @router.get("/analytics/premium_dist")
