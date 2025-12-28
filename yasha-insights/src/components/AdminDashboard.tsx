@@ -158,7 +158,7 @@ export function AdminDashboard() {
 
       {/* Main Content */}
       <main className="p-4 pb-24 md:pb-8">
-        <div className="max-w-4xl mx-auto">{renderTabContent()}</div>
+        <div className="max-w-6xl mx-auto">{renderTabContent()}</div>
       </main>
 
       {/* Bottom Tab Bar - Mobile */}

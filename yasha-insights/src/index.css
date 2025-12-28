@@ -43,7 +43,7 @@
     --input: 224 71% 15%;
     --ring: 204 94% 56%;
 
-    --radius: 1rem;
+    --radius: 1.5rem;
 
     --chart-1: 204 94% 56%;
     --chart-2: 262 83% 58%;
@@ -125,11 +125,11 @@
   }
 
   .glass-card {
-    @apply bg-card/40 backdrop-blur-sm border border-white/5 rounded-2xl p-6 transition-all duration-300 hover:bg-card/60 hover:border-primary/30 hover:shadow-2xl hover:shadow-primary/5 active:scale-[0.98];
+    @apply bg-card/40 backdrop-blur-xl border border-white/10 rounded-3xl p-5 md:p-6 transition-all duration-300 hover:bg-card/60 hover:border-primary/40 hover:shadow-[0_20px_50px_-12px_rgba(var(--primary), 0.15)] active:scale-[0.99];
   }
 
   .stat-value {
-    @apply text-3xl md:text-4xl font-bold tracking-tight font-mono text-gradient;
+    @apply text-2xl md:text-4xl font-black tracking-tight font-mono text-gradient break-words overflow-hidden;
   }
 
   .stat-label {

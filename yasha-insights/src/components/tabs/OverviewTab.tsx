@@ -58,28 +58,38 @@ export function OverviewTab({ isLoading: externalLoading = false }: OverviewTabP
       </div>
 
       {/* Primary KPIs */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      {/* Primary KPIs & Activity */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
         <StatCard
           title="Jami foydalanuvchilar"
           value={displayData.total_users}
           icon={Users}
           variant="primary"
           change={12.5}
-          changeLabel="o'tgan oyga nisbatan"
+          changeLabel="OY"
           isLoading={isLoading}
+          className="col-span-2 md:col-span-2"
         />
         <StatCard
-          title="24s FAOL FOYDALANUVCHILAR"
+          title="24s FAOL"
           value={displayData.active_24h}
           icon={Activity}
           change={8.3}
-          changeLabel="kechaga nisbatan"
+          changeLabel="KUN"
           isLoading={isLoading}
+          className="col-span-1 md:col-span-1"
+        />
+        <StatCard
+          title="Yangi (24s)"
+          value={Math.round(displayData.total_users * 0.02)}
+          icon={Sparkles}
+          variant="success"
+          isLoading={isLoading}
+          className="col-span-1 md:col-span-1"
         />
       </div>
 
-      {/* Activity Breakdown */}
-      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-2 gap-4 md:gap-6">
         <StatCard
           title="7 kunlik faol"
           value={displayData.active_7d}
@@ -92,14 +102,6 @@ export function OverviewTab({ isLoading: externalLoading = false }: OverviewTabP
           icon={Activity}
           isLoading={isLoading}
         />
-        <StatCard
-          title="Yangi (24s)"
-          value={Math.round(displayData.total_users * 0.02)} // Approximation for UI polish
-          icon={Sparkles}
-          variant="success"
-          isLoading={isLoading}
-          className="lg:col-span-1 col-span-2"
-        />
       </div>
 
       {/* User Segments */}
@@ -110,7 +112,7 @@ export function OverviewTab({ isLoading: externalLoading = false }: OverviewTabP
             Foydalanuvchi segmentlari
           </h3>
         </div>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
           <StatCard
             title="Bepul"
             value={displayData.free_users}
@@ -142,22 +144,29 @@ export function OverviewTab({ isLoading: externalLoading = false }: OverviewTabP
       </div>
 
       {/* Conversion Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="glass-card flex flex-col items-center text-center py-8">
-          <span className="stat-label">Umumiy konversiya</span>
-          <div className="stat-value text-5xl my-2">{conversionRate}%</div>
-          <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest mt-2 flex items-center gap-2">
-            <span className="w-1.5 h-1.5 rounded-full bg-primary" />
-            Bepul → Paid
-          </p>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+        <div className="glass-card flex flex-col items-center justify-center text-center py-10 relative overflow-hidden group">
+          <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+            <TrendingUp className="w-24 h-24" />
+          </div>
+          <span className="stat-label mb-4">Umumiy konversiya</span>
+          <div className="stat-value text-5xl md:text-6xl mb-4">{conversionRate}%</div>
+          <div className="flex items-center gap-3 px-4 py-1.5 bg-primary/10 rounded-full border border-primary/20">
+            <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+            <span className="text-[10px] font-black uppercase tracking-widest text-primary">Bepul → Paid</span>
+          </div>
         </div>
-        <div className="glass-card flex flex-col items-center text-center py-8">
-          <span className="stat-label">Sinov konversiyasi</span>
-          <div className="stat-value text-5xl my-2 text-success" style={{ backgroundImage: 'none', color: 'hsl(var(--success))' }}>{trialConversion}%</div>
-          <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest mt-2 flex items-center gap-2">
-            <span className="w-1.5 h-1.5 rounded-full bg-success" />
-            Sinov → Paid
-          </p>
+
+        <div className="glass-card flex flex-col items-center justify-center text-center py-10 relative overflow-hidden group">
+          <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+            <Sparkles className="w-24 h-24 text-success" />
+          </div>
+          <span className="stat-label mb-4">Sinov konversiyasi</span>
+          <div className="stat-value text-5xl md:text-6xl mb-4 text-success" style={{ backgroundImage: 'none', color: 'hsl(var(--success))' }}>{trialConversion}%</div>
+          <div className="flex items-center gap-3 px-4 py-1.5 bg-success/10 rounded-full border border-success/20">
+            <div className="w-2 h-2 rounded-full bg-success animate-pulse" />
+            <span className="text-[10px] font-black uppercase tracking-widest text-success">Sinov → Paid</span>
+          </div>
         </div>
       </div>
 

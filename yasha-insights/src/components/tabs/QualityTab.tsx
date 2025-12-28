@@ -68,7 +68,7 @@ export function QualityTab({ isLoading: externalLoading = false }: QualityTabPro
       </div>
 
       {/* Feedback Overview */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-2 gap-4 md:gap-6">
         <StatCard
           title="Menyu Qoniqishi"
           value={`${menuSatisfaction}%`}
@@ -202,7 +202,7 @@ export function QualityTab({ isLoading: externalLoading = false }: QualityTabPro
           </div>
         </div>
 
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
           <StatCard
             title="Moslashganlar"
             value={adaptation.adapted_users}
@@ -230,51 +230,57 @@ export function QualityTab({ isLoading: externalLoading = false }: QualityTabPro
         </div>
 
         {/* Validation Metrics */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
           {/* Menu Fixes */}
-          <div className="glass-card p-6">
+          <div className="glass-card p-8 border-success/10 bg-success/5 relative overflow-hidden group">
+            <div className="absolute -right-4 -top-4 opacity-5 group-hover:opacity-10 transition-opacity">
+              <CheckCircle2 className="w-24 h-24 text-success" />
+            </div>
             <div className="flex items-center justify-between mb-6">
               <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Nutrition Adaptation Rate</span>
-              <span className="text-xl font-mono font-black text-success">{fixRate}%</span>
+              <span className="text-2xl font-mono font-black text-success">{fixRate}%</span>
             </div>
-            <div className="h-3 bg-white/5 rounded-full overflow-hidden shadow-inner ring-1 ring-white/5 mb-6">
+            <div className="h-4 bg-white/5 rounded-full overflow-hidden shadow-inner ring-1 ring-white/5 mb-8">
               <div
-                className="h-full bg-success transition-all duration-1000 ease-out shadow-[0_0_15px_rgba(34,197,94,0.3)]"
+                className="h-full bg-success transition-all duration-1000 ease-out shadow-[0_0_20px_rgba(34,197,94,0.4)]"
                 style={{ width: `${fixRate}%` }}
               />
             </div>
-            <div className="flex justify-between">
-              <div className="flex flex-col">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="flex flex-col p-3 rounded-2xl bg-white/5 border border-white/5">
                 <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest opacity-60">Shikoyat</span>
-                <span className="text-lg font-bold">{adaptation.validation.menu_complaints}</span>
+                <span className="text-xl font-black">{adaptation.validation.menu_complaints}</span>
               </div>
-              <div className="flex flex-col items-end">
-                <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest opacity-60">Tuzatildi</span>
-                <span className="text-lg font-bold text-success">{adaptation.validation.menu_fixed}</span>
+              <div className="flex flex-col p-3 rounded-2xl bg-success/10 border border-success/20">
+                <span className="text-[10px] font-black text-success/60 uppercase tracking-widest opacity-60">Tuzatildi</span>
+                <span className="text-xl font-black text-success">{adaptation.validation.menu_fixed}</span>
               </div>
             </div>
           </div>
 
           {/* Soft Mode */}
-          <div className="glass-card p-6">
+          <div className="glass-card p-8 border-primary/10 bg-primary/5 relative overflow-hidden group">
+            <div className="absolute -right-4 -top-4 opacity-5 group-hover:opacity-10 transition-opacity">
+              <Zap className="w-24 h-24 text-primary" />
+            </div>
             <div className="flex items-center justify-between mb-6">
               <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Workout Fatigue Care</span>
-              <span className="text-xl font-mono font-black text-primary">{softModeRate}%</span>
+              <span className="text-2xl font-mono font-black text-primary">{softModeRate}%</span>
             </div>
-            <div className="h-3 bg-white/5 rounded-full overflow-hidden shadow-inner ring-1 ring-white/5 mb-6">
+            <div className="h-4 bg-white/5 rounded-full overflow-hidden shadow-inner ring-1 ring-white/5 mb-8">
               <div
-                className="h-full bg-primary transition-all duration-1000 ease-out shadow-[0_0_15px_rgba(var(--primary),0.3)]"
+                className="h-full bg-primary transition-all duration-1000 ease-out shadow-[0_0_20px_rgba(var(--primary),0.4)]"
                 style={{ width: `${softModeRate}%` }}
               />
             </div>
-            <div className="flex justify-between">
-              <div className="flex flex-col">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="flex flex-col p-3 rounded-2xl bg-white/5 border border-white/5">
                 <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest opacity-60">Charchoq</span>
-                <span className="text-lg font-bold">{adaptation.validation.workout_tired}</span>
+                <span className="text-xl font-black">{adaptation.validation.workout_tired}</span>
               </div>
-              <div className="flex flex-col items-end">
-                <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest opacity-60">Yumshatildi</span>
-                <span className="text-lg font-bold text-primary">{adaptation.validation.soft_mode_applied}</span>
+              <div className="flex flex-col p-3 rounded-2xl bg-primary/10 border border-primary/20">
+                <span className="text-[10px] font-black text-primary/60 uppercase tracking-widest opacity-60">Yumshatildi</span>
+                <span className="text-xl font-black text-primary">{adaptation.validation.soft_mode_applied}</span>
               </div>
             </div>
           </div>

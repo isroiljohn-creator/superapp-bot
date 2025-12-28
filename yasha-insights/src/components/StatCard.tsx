@@ -60,38 +60,38 @@ export function StatCard({
       )}
     >
       <div className="flex items-center justify-between mb-4 gap-4">
-        <span className="stat-label truncate group-hover:text-foreground transition-colors">{title}</span>
+        <span className="stat-label truncate group-hover:text-foreground transition-colors pr-2">{title}</span>
         {Icon && (
           <div
             className={cn(
-              'p-2.5 rounded-xl transition-all duration-300 group-hover:scale-110 group-hover:rotate-6 shadow-lg shadow-black/20',
+              'p-2.5 rounded-2xl transition-all duration-500 group-hover:scale-110 group-hover:rotate-12 shadow-xl shadow-black/20 shrink-0',
               iconStyles[variant]
             )}
           >
-            <Icon className="h-4.5 w-4.5" />
+            <Icon className="h-5 w-5" />
           </div>
         )}
       </div>
 
-      <div className="flex flex-col gap-1">
-        <div className="stat-value">
+      <div className="flex flex-col gap-1.5 mt-auto">
+        <div className="stat-value truncate leading-tight">
           {typeof value === 'number' ? value.toLocaleString() : value}
         </div>
 
         {(change !== undefined || changeLabel) && (
-          <div className="mt-2 flex items-center gap-2 flex-wrap">
+          <div className="mt-3 flex items-center gap-2.5 flex-wrap">
             {change !== undefined && (
               <span
                 className={cn(
                   change >= 0 ? 'stat-change-positive' : 'stat-change-negative',
-                  "shadow-inner shadow-black/10"
+                  "shadow-lg"
                 )}
               >
                 {change >= 0 ? '↑' : '↓'} {Math.abs(change).toFixed(1)}%
               </span>
             )}
             {changeLabel && (
-              <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider opacity-60 group-hover:opacity-100 transition-opacity whitespace-nowrap">{changeLabel}</span>
+              <span className="text-[10px] text-muted-foreground font-black uppercase tracking-widest opacity-40 group-hover:opacity-100 transition-opacity whitespace-nowrap">{changeLabel}</span>
             )}
           </div>
         )}

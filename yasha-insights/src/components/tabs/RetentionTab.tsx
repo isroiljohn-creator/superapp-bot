@@ -43,7 +43,7 @@ export function RetentionTab({ isLoading: externalLoading = false }: RetentionTa
       </div>
 
       {/* Retention KPIs */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6">
         <StatCard
           title="D1 RETENTION"
           value={`${(displayData.d1_retention * 100).toFixed(1)}%`}
@@ -67,39 +67,46 @@ export function RetentionTab({ isLoading: externalLoading = false }: RetentionTa
           variant="primary"
           isLoading={isLoading}
           changeLabel="Target: >5%"
+          className="col-span-2 md:col-span-1"
         />
       </div>
 
       {/* Retention Funnel */}
-      <div className="glass-card p-8">
-        <div className="flex items-center justify-between mb-8">
-          <span className="stat-label">Qaytuvchanlik Voronkasi</span>
-          <div className="px-3 py-1 bg-white/5 rounded-full border border-white/5 text-[10px] font-black uppercase tracking-widest opacity-60">Visual Funnel</div>
+      <div className="glass-card p-10 border-primary/5 bg-primary/5">
+        <div className="flex items-center justify-between mb-10">
+          <div className="flex flex-col">
+            <span className="stat-label">Qaytuvchanlik Voronkasi</span>
+            <span className="text-[10px] font-black uppercase tracking-widest text-primary/60 mt-0.5">Drop-off Analytics</span>
+          </div>
+          <div className="px-4 py-1.5 bg-background/50 rounded-full border border-white/5 text-[10px] font-black uppercase tracking-widest">Mathematical View</div>
         </div>
 
-        <div className="space-y-6 max-w-md mx-auto">
+        <div className="space-y-8 max-w-2xl mx-auto">
           {[
-            { label: 'Day 0', value: 1, color: 'hsl(var(--primary))', raw: '100%' },
-            { label: 'Day 1', value: displayData.d1_retention, color: 'hsl(var(--success))', raw: `${(displayData.d1_retention * 100).toFixed(0)}%` },
-            { label: 'Day 7', value: displayData.d7_retention, color: 'hsl(var(--warning))', raw: `${(displayData.d7_retention * 100).toFixed(0)}%` },
-            { label: 'Day 30', value: displayData.d30_retention, color: 'hsl(var(--destructive))', raw: `${(displayData.d30_retention * 100).toFixed(0)}%` },
+            { label: 'Day 0', value: 1, color: 'hsl(var(--primary))', raw: '100% Initialization', icon: Users },
+            { label: 'Day 1', value: displayData.d1_retention, color: 'hsl(var(--success))', raw: `${(displayData.d1_retention * 100).toFixed(1)}% Active`, icon: TrendingUp },
+            { label: 'Day 7', value: displayData.d7_retention, color: 'hsl(var(--warning))', raw: `${(displayData.d7_retention * 100).toFixed(1)}% Retained`, icon: BarChart3 },
+            { label: 'Day 30', value: displayData.d30_retention, color: 'hsl(var(--destructive))', raw: `${(displayData.d30_retention * 100).toFixed(1)}% Loyal`, icon: Calendar },
           ].map((item, i) => (
-            <div key={item.label} className="group flex items-center gap-6">
-              <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest w-12 opacity-40 group-hover:opacity-100 transition-opacity">
-                {item.label}
-              </span>
-              <div className="flex-1 h-10 bg-white/5 rounded-2xl relative overflow-hidden p-1 shadow-inner ring-1 ring-white/5">
+            <div key={item.label} className="group flex items-center gap-8">
+              <div className="flex flex-col items-center w-16 shrink-0">
+                <span className="text-[12px] font-black text-foreground uppercase tracking-widest mb-1">{item.label}</span>
+                <item.icon className="w-5 h-5 text-muted-foreground opacity-40 group-hover:opacity-100 transition-opacity" />
+              </div>
+              <div className="flex-1 h-12 bg-background/40 rounded-3xl relative overflow-hidden p-1.5 shadow-inner ring-1 ring-white/5 border border-white/5">
                 <div
-                  className="h-full rounded-xl transition-all duration-1000 ease-out shadow-lg"
+                  className="h-full rounded-2xl transition-all duration-1000 ease-out shadow-2xl group-hover:animate-pulse"
                   style={{
                     width: `${item.value * 100}%`,
                     backgroundColor: item.color,
-                    opacity: 0.8 + (item.value * 0.2)
+                    opacity: 0.7 + (item.value * 0.3)
                   }}
                 />
-                <span className="absolute inset-x-0 inset-y-0 flex items-center justify-center text-[11px] font-black text-white mix-blend-difference uppercase tracking-tighter">
-                  {item.raw}
-                </span>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <span className="text-[11px] font-black text-white mix-blend-difference uppercase tracking-widest">
+                    {item.raw}
+                  </span>
+                </div>
               </div>
             </div>
           ))}

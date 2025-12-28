@@ -180,19 +180,21 @@ def profile_inline_keyboard(lang="uz"):
     from bot.languages import get_text
     markup = InlineKeyboardMarkup(row_width=1)
     
+    mini_app_url = os.getenv("MINI_APP_URL", "https://yasha-insights.up.railway.app")
     markup.add(
         InlineKeyboardButton(get_text("btn_edit_profile", lang), callback_data="profile_edit"),
-        InlineKeyboardButton(get_text("btn_health_stats", lang), web_app=WebAppInfo(url=os.getenv("MINI_APP_URL")))
+        InlineKeyboardButton(get_text("btn_health_stats", lang), web_app=WebAppInfo(url=f"{mini_app_url}?tab=reports"))
     )
     return markup
 
 def premium_inline_keyboard(lang="uz"):
     from bot.languages import get_text
     markup = InlineKeyboardMarkup()
+    mini_app_url = os.getenv("MINI_APP_URL", "https://yasha-insights.up.railway.app")
     # Main button: Unlock Features (previously Change Plan)
     markup.row(InlineKeyboardButton(get_text("btn_unlock_features", lang), callback_data="premium_buy"))
     # Challenges button (opens Mini App)
-    markup.row(InlineKeyboardButton(get_text("btn_challenges_menu", lang), web_app=WebAppInfo(url=os.getenv("MINI_APP_URL"))))
+    markup.row(InlineKeyboardButton(get_text("btn_challenges_menu", lang), web_app=WebAppInfo(url=f"{mini_app_url}?tab=challenges")))
     return markup
 
 def payment_links_keyboard(lang="uz"):
@@ -225,9 +227,13 @@ def gamification_keyboard():
 def ai_coach_submenu_keyboard(lang="uz"):
     """Reply Submenu for '🤖 AI murabbiy' (Legacy - kept for fallback)"""
     markup = ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
+    mini_app_url = os.getenv("MINI_APP_URL", "https://yasha-insights.up.railway.app")
     markup.add(KeyboardButton(get_text("btn_workout", lang=lang)), KeyboardButton(get_text("btn_meal", lang=lang)))
     markup.add(KeyboardButton(get_text("btn_ai_recipe", lang=lang)), KeyboardButton(get_text("btn_shopping_list", lang=lang)))
-    markup.add(KeyboardButton(get_text("btn_ai_qa", lang=lang)), KeyboardButton(get_text("btn_back", lang=lang)))
+    markup.add(
+        KeyboardButton(get_text("btn_ai_qa", lang=lang), web_app=WebAppInfo(url=f"{mini_app_url}?tab=ai-coach")),
+        KeyboardButton(get_text("btn_back", lang=lang))
+    )
     return markup
 
 def ai_coach_inline_keyboard(lang="uz"):
@@ -243,8 +249,9 @@ def ai_coach_inline_keyboard(lang="uz"):
         InlineKeyboardButton(get_text("btn_shopping_list_kb", lang=lang), callback_data="ai_sub_shopping")
     )
     # Changed QA to open Mini App, Removed Back/Close (user can just swipe or use main menu)
+    mini_app_url = os.getenv("MINI_APP_URL", "https://yasha-insights.up.railway.app")
     markup.add(
-        InlineKeyboardButton(get_text("btn_ai_qa", lang=lang), web_app=WebAppInfo(url=os.getenv("MINI_APP_URL") + "/ai-coach"))
+        InlineKeyboardButton(get_text("btn_ai_qa", lang=lang), web_app=WebAppInfo(url=f"{mini_app_url}?tab=ai-coach"))
     )
     return markup
 
@@ -258,7 +265,11 @@ def challenges_submenu_keyboard(lang="uz"):
 def help_submenu_keyboard(lang="uz"):
     """Submenu for '📩 Yordam'"""
     markup = ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
-    markup.add(KeyboardButton(get_text("btn_ask_question", lang=lang)), KeyboardButton(get_text("btn_help_lang", lang=lang)))
+    mini_app_url = os.getenv("MINI_APP_URL", "https://yasha-insights.up.railway.app")
+    markup.add(
+        KeyboardButton(get_text("btn_ask_question", lang=lang), web_app=WebAppInfo(url=f"{mini_app_url}?tab=ai-coach")),
+        KeyboardButton(get_text("btn_help_lang", lang=lang))
+    )
     markup.add(KeyboardButton(get_text("btn_back", lang=lang)))
     return markup
 

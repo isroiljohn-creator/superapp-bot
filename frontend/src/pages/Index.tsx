@@ -29,7 +29,11 @@ import { LanguageProvider } from '@/contexts/LanguageContext';
 
 const AppContent: React.FC = () => {
   const { isOnboarded, isLoading } = useUser();
-  const [activeTab, setActiveTab] = useState('home');
+  const [activeTab, setActiveTab] = useState(() => {
+    // Deep linking support via ?tab=...
+    const params = new URLSearchParams(window.location.search);
+    return params.get('tab') || 'home';
+  });
   const [showSplash, setShowSplash] = useState(true);
 
   useEffect(() => {

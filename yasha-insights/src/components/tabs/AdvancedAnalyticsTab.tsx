@@ -40,54 +40,58 @@ export function AdvancedAnalyticsTab() {
     }
 
     return (
-        <div className="space-y-6 animate-fade-in pb-12">
-            <div>
-                <h2 className="text-xl font-semibold">Kengaytirilgan Analitika</h2>
-                <p className="text-sm text-muted-foreground">O'sish, konversiya va qaytuvchanlik ko'rsatkichlari bo'yicha chuqur tahlil.</p>
+        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-12">
+            <div className="px-2">
+                <h2 className="text-2xl font-black tracking-tight text-foreground/90">Kengaytirilgan Analitika</h2>
+                <p className="text-sm text-muted-foreground font-medium mt-1">O'sish, konversiya va qaytuvchanlik ko'rsatkichlari bo'yicha chuqur tahlil.</p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Growth Chart */}
-                <div className="stat-card">
-                    <h3 className="text-sm font-medium mb-4 text-muted-foreground uppercase tracking-wider">Kunlik Faol Foydalanuvchilar (DAU)</h3>
+                <div className="glass-card">
+                    <h3 className="stat-label mb-6">Kunlik Faol Foydalanuvchilar (DAU)</h3>
                     <div className="h-[250px] w-full">
                         <ResponsiveContainer width="100%" height="100%">
                             <LineChart data={growth?.data || []}>
-                                <CartesianGrid strokeDasharray="3 3" opacity={0.1} vertical={false} stroke="hsl(var(--muted-foreground))" />
+                                <CartesianGrid strokeDasharray="3 3" opacity={0.05} vertical={false} stroke="hsl(var(--foreground))" />
                                 <XAxis
                                     dataKey="date"
-                                    fontSize={12}
+                                    fontSize={10}
                                     tickLine={false}
                                     axisLine={false}
                                     stroke="hsl(var(--muted-foreground))"
-                                    tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                                    tick={{ fill: 'hsl(var(--muted-foreground))', fontWeight: 'bold' }}
                                     dy={10}
                                 />
                                 <YAxis
-                                    fontSize={12}
+                                    fontSize={10}
                                     tickLine={false}
                                     axisLine={false}
                                     stroke="hsl(var(--muted-foreground))"
-                                    tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                                    tick={{ fill: 'hsl(var(--muted-foreground))', fontWeight: 'bold' }}
                                 />
                                 <Tooltip
                                     contentStyle={{
-                                        backgroundColor: 'hsl(var(--card))',
-                                        borderColor: 'hsl(var(--border))',
+                                        backgroundColor: 'hsl(var(--card)/0.8)',
+                                        backdropFilter: 'blur(12px)',
+                                        borderColor: 'hsl(var(--white)/0.1)',
                                         color: 'hsl(var(--foreground))',
-                                        borderRadius: 'var(--radius)',
-                                        fontSize: '12px'
+                                        borderRadius: '16px',
+                                        fontSize: '11px',
+                                        fontWeight: 'bold',
+                                        border: '1px solid hsla(0,0%,100%,0.1)',
+                                        boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)'
                                     }}
-                                    itemStyle={{ color: 'hsl(var(--foreground))' }}
-                                    cursor={{ stroke: 'hsl(var(--muted-foreground))', strokeWidth: 1, opacity: 0.5 }}
+                                    itemStyle={{ color: 'hsl(var(--primary))' }}
+                                    cursor={{ stroke: 'hsl(var(--primary))', strokeWidth: 2, strokeDasharray: '3 3' }}
                                 />
                                 <Line
                                     type="monotone"
                                     dataKey="value"
-                                    stroke="hsl(var(--chart-1))"
-                                    strokeWidth={2}
-                                    dot={{ r: 4, fill: "hsl(var(--background))", strokeWidth: 2 }}
-                                    activeDot={{ r: 6, fill: "hsl(var(--chart-1))" }}
+                                    stroke="hsl(var(--primary))"
+                                    strokeWidth={3}
+                                    dot={{ r: 4, fill: "hsl(var(--background))", strokeWidth: 2, stroke: "hsl(var(--primary))" }}
+                                    activeDot={{ r: 6, fill: "hsl(var(--primary))", strokeWidth: 0 }}
                                 />
                             </LineChart>
                         </ResponsiveContainer>
@@ -95,38 +99,39 @@ export function AdvancedAnalyticsTab() {
                 </div>
 
                 {/* Funnel Chart */}
-                <div className="stat-card">
-                    <h3 className="text-sm font-medium mb-4 text-muted-foreground uppercase tracking-wider">Foydalanuvchi Voronkasi (30 kun)</h3>
+                <div className="glass-card">
+                    <h3 className="stat-label mb-6">Foydalanuvchi Voronkasi (30 kun)</h3>
                     <div className="h-[250px] w-full">
                         <ResponsiveContainer width="100%" height="100%">
                             <BarChart data={funnel?.data || []} layout="vertical" barSize={32}>
-                                <CartesianGrid strokeDasharray="3 3" horizontal={false} opacity={0.1} stroke="hsl(var(--muted-foreground))" />
+                                <CartesianGrid strokeDasharray="3 3" horizontal={false} opacity={0.05} stroke="hsl(var(--foreground))" />
                                 <XAxis type="number" hide />
                                 <YAxis
                                     dataKey="name"
                                     type="category"
-                                    width={80}
-                                    fontSize={11}
+                                    width={100}
+                                    fontSize={10}
                                     tickLine={false}
                                     axisLine={false}
                                     stroke="hsl(var(--muted-foreground))"
-                                    tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                                    tick={{ fill: 'hsl(var(--muted-foreground))', fontWeight: 'bold' }}
                                 />
                                 <Tooltip
-                                    cursor={{ fill: 'hsl(var(--muted)/0.2)' }}
+                                    cursor={{ fill: 'hsl(var(--muted)/0.1)', radius: 8 }}
                                     contentStyle={{
-                                        backgroundColor: 'hsl(var(--card))',
-                                        borderColor: 'hsl(var(--border))',
-                                        color: 'hsl(var(--foreground))',
-                                        borderRadius: 'var(--radius)',
-                                        fontSize: '12px'
+                                        backgroundColor: 'hsl(var(--card)/0.8)',
+                                        backdropFilter: 'blur(12px)',
+                                        borderColor: 'hsl(var(--white)/0.1)',
+                                        borderRadius: '16px',
+                                        fontSize: '11px',
+                                        fontWeight: 'bold'
                                     }}
                                 />
                                 <Bar
                                     dataKey="value"
                                     fill="hsl(var(--chart-2))"
-                                    radius={[0, 4, 4, 0]}
-                                    label={{ position: 'right', fill: 'hsl(var(--foreground))', fontSize: 12 }}
+                                    radius={[0, 8, 8, 0]}
+                                    label={{ position: 'right', fill: 'hsl(var(--foreground))', fontSize: 10, fontWeight: 'bold' }}
                                 />
                             </BarChart>
                         </ResponsiveContainer>
@@ -134,48 +139,49 @@ export function AdvancedAnalyticsTab() {
                 </div>
 
                 {/* Retention Chart */}
-                <div className="stat-card">
-                    <h3 className="text-sm font-medium mb-4 text-muted-foreground uppercase tracking-wider">Qaytuvchanlik darajasi (%)</h3>
+                <div className="glass-card">
+                    <h3 className="stat-label mb-6">Qaytuvchanlik darajasi (%)</h3>
                     <div className="h-[250px] w-full">
                         <ResponsiveContainer width="100%" height="100%">
                             <BarChart data={retention?.data || []}>
-                                <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.1} stroke="hsl(var(--muted-foreground))" />
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.05} stroke="hsl(var(--foreground))" />
                                 <XAxis
                                     dataKey="name"
-                                    fontSize={12}
+                                    fontSize={10}
                                     tickLine={false}
                                     axisLine={false}
                                     stroke="hsl(var(--muted-foreground))"
-                                    tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                                    tick={{ fill: 'hsl(var(--muted-foreground))', fontWeight: 'bold' }}
                                     dy={10}
                                 />
                                 <YAxis
                                     unit="%"
-                                    fontSize={12}
+                                    fontSize={10}
                                     tickLine={false}
                                     axisLine={false}
                                     stroke="hsl(var(--muted-foreground))"
-                                    tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                                    tick={{ fill: 'hsl(var(--muted-foreground))', fontWeight: 'bold' }}
                                 />
                                 <Tooltip
-                                    cursor={{ fill: 'hsl(var(--muted)/0.2)' }}
+                                    cursor={{ fill: 'hsl(var(--muted)/0.1)', radius: 8 }}
                                     contentStyle={{
-                                        backgroundColor: 'hsl(var(--card))',
-                                        borderColor: 'hsl(var(--border))',
-                                        color: 'hsl(var(--foreground))',
-                                        borderRadius: 'var(--radius)',
-                                        fontSize: '12px'
+                                        backgroundColor: 'hsl(var(--card)/0.8)',
+                                        backdropFilter: 'blur(12px)',
+                                        borderColor: 'hsl(var(--white)/0.1)',
+                                        borderRadius: '16px',
+                                        fontSize: '11px',
+                                        fontWeight: 'bold'
                                     }}
                                 />
-                                <Bar dataKey="value" fill="hsl(var(--chart-3))" radius={[4, 4, 0, 0]} />
+                                <Bar dataKey="value" fill="hsl(var(--chart-3))" radius={[8, 8, 0, 0]} />
                             </BarChart>
                         </ResponsiveContainer>
                     </div>
                 </div>
 
                 {/* Premium Distribution */}
-                <div className="stat-card">
-                    <h3 className="text-sm font-medium mb-4 text-muted-foreground uppercase tracking-wider">Premium vs Bepul</h3>
+                <div className="glass-card">
+                    <h3 className="stat-label mb-6">Premium vs Bepul</h3>
                     <div className="h-[250px] w-full">
                         <ResponsiveContainer width="100%" height="100%">
                             <PieChart>
@@ -184,11 +190,11 @@ export function AdvancedAnalyticsTab() {
                                     cx="50%"
                                     cy="50%"
                                     innerRadius={60}
-                                    outerRadius={80}
-                                    paddingAngle={5}
+                                    outerRadius={90}
+                                    paddingAngle={8}
                                     dataKey="value"
                                     stroke="hsl(var(--card))"
-                                    strokeWidth={2}
+                                    strokeWidth={4}
                                 >
                                     {(premium?.data || []).map((entry, index) => (
                                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
@@ -196,15 +202,15 @@ export function AdvancedAnalyticsTab() {
                                 </Pie>
                                 <Tooltip
                                     contentStyle={{
-                                        backgroundColor: 'hsl(var(--card))',
-                                        borderColor: 'hsl(var(--border))',
-                                        color: 'hsl(var(--foreground))',
-                                        borderRadius: 'var(--radius)',
-                                        fontSize: '12px'
+                                        backgroundColor: 'hsl(var(--card)/0.8)',
+                                        backdropFilter: 'blur(12px)',
+                                        borderColor: 'hsl(var(--white)/0.1)',
+                                        borderRadius: '16px',
+                                        fontSize: '11px',
+                                        fontWeight: 'bold'
                                     }}
-                                    itemStyle={{ color: 'hsl(var(--foreground))' }}
                                 />
-                                <Legend wrapperStyle={{ fontSize: '12px', color: 'hsl(var(--muted-foreground))' }} />
+                                <Legend wrapperStyle={{ fontSize: '10px', fontWeight: 'bold', paddingTop: '20px' }} />
                             </PieChart>
                         </ResponsiveContainer>
                     </div>

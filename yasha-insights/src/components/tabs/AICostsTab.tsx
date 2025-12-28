@@ -47,7 +47,7 @@ export function AICostsTab({ isLoading: externalLoading = false }: AICostsTabPro
       </div>
 
       {/* Total Metrics */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-2 gap-4 md:gap-6">
         <StatCard
           title="Jami Tokenlar"
           value={(displayData.total_tokens / 1000000).toFixed(2) + 'M'}
