@@ -90,7 +90,6 @@ def upgrade() -> None:
         # Common fields in seed: name_uz, calories, protein, fats, carbohydrates, meal_type, ingredients, is_active
         # DB fields: id (auto), created_at (auto), is_active (default true)
         
-        from sqlalchemy.sql import text
         
         # Prepare batch insert
         # Note: 'fats' in JSON maps to 'fat' in DB? Let's check model. 
