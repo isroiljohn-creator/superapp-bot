@@ -454,7 +454,7 @@ async def get_growth_stats(db: AsyncSession = Depends(get_db), admin_id: int = D
 @router.get("/analytics/funnel")
 async def get_funnel_stats(db: AsyncSession = Depends(get_db), admin_id: int = Depends(get_current_admin)):
     """
-    Funnel: Registered -> Onboarded -> Trial -> Premium
+    Funnel: Registered -> Onboarded -> Started Trial -> Premium
     """
     # 1. Registered (Total)
     total = (await db.execute(select(func.count(User.id)))).scalar() or 0
@@ -462,16 +462,17 @@ async def get_funnel_stats(db: AsyncSession = Depends(get_db), admin_id: int = D
     # 2. Onboarded
     onboarded = (await db.execute(select(func.count(User.id)).where(User.is_onboarded == True))).scalar() or 0
     
-    # 3. Trial (Active Trial) - Actually "Started Trial" would be better, but let's use current status
-    trial = (await db.execute(select(func.count(User.id)).where(User.plan_type == 'trial'))).scalar() or 0
+    # 3. Started Trial (Historical - trial_start is not null)
+    # This captures anyone who EVER started a trial, avoiding the "current snapshot" drop-off.
+    started_trial = (await db.execute(select(func.count(User.id)).where(User.trial_start.isnot(None)))).scalar() or 0
     
-    # 4. Premium/Plus/Pro
-    paid = (await db.execute(select(func.count(User.id)).where(User.plan_type.in_(['premium', 'plus', 'vip', 'pro'])))).scalar() or 0
+    # 4. Premium/Plus/Pro (Current Active Paid)
+    paid = (await db.execute(select(func.count(User.id)).where(User.plan_type.in_(['premium', 'plus', 'vip', 'pro']), User.premium_until > datetime.utcnow()))).scalar() or 0
     
     return {"data": [
         {"name": "Ro'yxatdan o'tgan", "value": total},
         {"name": "Onboarding", "value": onboarded},
-        {"name": "Sinov (Trial)", "value": trial},
+        {"name": "Sinov boshlagan", "value": started_trial},
         {"name": "To'lov qilgan", "value": paid}
     ]}
 
