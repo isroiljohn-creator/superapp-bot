@@ -66,7 +66,7 @@ interface MenuScreenProps {
 }
 
 export const MenuScreen: React.FC<MenuScreenProps> = ({ onNavigate }) => {
-  const { isPremium, getTodayMeals, getTodayCalories, profile } = useUser();
+  const { isPremium, getTodayMeals, getTodayCalories, profile, planType, canUseFeature } = useUser();
   const { t } = useLanguage();
   const { vibrate } = useHaptic();
   const [selectedDay, setSelectedDay] = useState(0);
@@ -106,7 +106,7 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onNavigate }) => {
   };
 
   const generatePlan = async () => {
-    if (!isPremium()) {
+    if (!canUseFeature('menu_generate')) {
       setShowPaywall(true);
       return;
     }
@@ -143,11 +143,12 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onNavigate }) => {
   const weekDays = getWeekDays(t);
 
   const today = new Date();
-  const days = Array.from({ length: 7 }, (_, i) => {
+  const daysToShow = planType === 'pro' || planType === 'vip' ? 28 : 7;
+  const days = Array.from({ length: daysToShow }, (_, i) => {
     const date = new Date(today);
     date.setDate(today.getDate() + i);
     return {
-      day: weekDays[date.getDay() === 0 ? 6 : date.getDay() - 1],
+      day: daysToShow > 7 ? `${date.getDate()}/${date.getMonth() + 1}` : weekDays[date.getDay() === 0 ? 6 : date.getDay() - 1],
       date: date.getDate(),
       isToday: i === 0,
     };
@@ -306,7 +307,11 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onNavigate }) => {
                 disabled={isGenerating}
                 className="h-8 w-8 p-0 sm:w-auto sm:px-3"
               >
-                <RefreshCw className={`w-4 h-4 ${isGenerating ? 'animate-spin' : ''}`} />
+                {canUseFeature('menu_generate') ? (
+                  <RefreshCw className={`w-4 h-4 ${isGenerating ? 'animate-spin' : ''}`} />
+                ) : (
+                  <Lock className="w-4 h-4 text-muted-foreground" />
+                )}
                 <span className="sr-only sm:not-sr-only sm:ml-2 text-xs">AI</span>
               </Button>
             )}

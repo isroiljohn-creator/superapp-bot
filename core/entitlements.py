@@ -12,32 +12,40 @@ import pytz
 UZ_TZ = pytz.timezone('Asia/Tashkent')
 
 # Plan definitions
+# Plan Constraints
+PLAN_FREE = "free"
+PLAN_PLUS = "plus"
+PLAN_PRO = "pro"
+
 PlanType = Literal['free', 'plus', 'pro']
-FeatureKey = Literal['menu_generate', 'workout_generate', 'calorie_scan', 'ai_chat', 'meal_swap']
+FeatureKey = Literal['menu_generate', 'workout_generate', 'calorie_scan', 'ai_chat', 'meal_swap', 'coach_strict_mode']
 PeriodType = Literal['day', 'month']
 
 # Feature limits by plan
 PLAN_LIMITS: Dict[PlanType, Dict[FeatureKey, Dict[str, any]]] = {
-    'free': {
-        'menu_generate': {'limit': 0, 'period': 'month'},
-        'workout_generate': {'limit': 0, 'period': 'month'},
-        'calorie_scan': {'limit': 1, 'period': 'day'},
-        'ai_chat': {'limit': 0, 'period': 'day'},
-        'meal_swap': {'limit': 0, 'period': 'day'},
+    PLAN_FREE: {
+        'menu_generate': {'limit': 0, 'period': 'month'},      # No custom menu
+        'workout_generate': {'limit': 0, 'period': 'month'},   # No custom workout
+        'calorie_scan': {'limit': 0, 'period': 'day'},         # No scan
+        'ai_chat': {'limit': 0, 'period': 'day'},             # No AI chat
+        'meal_swap': {'limit': 0, 'period': 'day'},            # No swaps
+        'coach_strict_mode': {'limit': 0, 'period': 'month'},  # No strict mode
     },
-    'plus': {
-        'menu_generate': {'limit': 1, 'period': 'month'},
+    PLAN_PLUS: {
+        'menu_generate': {'limit': 1, 'period': 'month'},      # 7-day plan basically implies generating new plan
         'workout_generate': {'limit': 1, 'period': 'month'},
-        'calorie_scan': {'limit': 3, 'period': 'day'},
-        'ai_chat': {'limit': 3, 'period': 'day'},
-        'meal_swap': {'limit': 1, 'period': 'day'},
+        'calorie_scan': {'limit': 2, 'period': 'day'},         # 2 times per day
+        'ai_chat': {'limit': 5, 'period': 'day'},             # Moderate chat
+        'meal_swap': {'limit': 2, 'period': 'day'},            # 1-2 swaps/day
+        'coach_strict_mode': {'limit': 0, 'period': 'month'},  # No strict mode
     },
-    'pro': {
-        'menu_generate': {'limit': None, 'period': 'month'},  # unlimited
+    PLAN_PRO: {
+        'menu_generate': {'limit': None, 'period': 'month'},   # Unlimited
         'workout_generate': {'limit': None, 'period': 'month'},
         'calorie_scan': {'limit': None, 'period': 'day'},
         'ai_chat': {'limit': None, 'period': 'day'},
         'meal_swap': {'limit': None, 'period': 'day'},
+        'coach_strict_mode': {'limit': None, 'period': 'month'}, # Yes
     }
 }
 
@@ -78,19 +86,32 @@ def get_user_plan(user_id: int) -> PlanType:
     """
     user = db.get_user(user_id)
     if not user:
-        return 'free'
+        return PLAN_FREE
     
     plan = user.get('plan_type', '').lower()
     
+    # Check expiry
+    premium_until = user.get('premium_until')
+    if premium_until and isinstance(premium_until, str):
+         # Handle string (SQLite legacy sometimes) or just in case
+         try:
+             premium_until = datetime.fromisoformat(premium_until)
+         except:
+             pass
+
+    if premium_until and isinstance(premium_until, datetime):
+        if datetime.utcnow() > premium_until:
+            return PLAN_FREE
+    
     # Map old names to new system
     if plan == 'premium':
-        return 'plus'
+        return PLAN_PLUS
     elif plan == 'vip':
-        return 'pro'
-    elif plan in ['plus', 'pro']:
+        return PLAN_PRO
+    elif plan in [PLAN_PLUS, PLAN_PRO]:
         return plan
     else:
-        return 'free'
+        return PLAN_FREE
 
 def get_usage_status(user_id: int, feature_key: FeatureKey) -> Dict:
     """
@@ -105,7 +126,19 @@ def get_usage_status(user_id: int, feature_key: FeatureKey) -> Dict:
     }
     """
     plan = get_user_plan(user_id)
-    feature_config = PLAN_LIMITS[plan][feature_key]
+    feature_config = PLAN_LIMITS[plan].get(feature_key)
+    
+    # Secure fallback if feature key missing (safety)
+    if not feature_config:
+         return {
+            'plan': plan,
+            'limit': 0,
+            'used': 0,
+            'remaining': 0,
+            'period': 'day',
+            'reset_at': None
+        }
+
     limit = feature_config['limit']
     period = feature_config['period']
     
@@ -166,23 +199,33 @@ def check_and_consume(user_id: int, feature_key: FeatureKey) -> Dict:
         return {**status, 'allowed': True}
     
     # Check if limit reached
-    if status['remaining'] <= 0:
+    if status['remaining'] is not None and status['remaining'] <= 0:
         # Blocked - return upsell info
-        upgrade_to = 'plus' if status['plan'] == 'free' else 'pro'
+        upgrade_to = PLAN_PLUS if status['plan'] == PLAN_FREE else PLAN_PRO
         
+        # Default messages for common features
         messages = {
-            'menu_generate': f"Oylik reja yaratish limiti tugadi. {'Cheksiz reja uchun Pro tarifiga o\'ting' if upgrade_to == 'pro' else 'Plus tarifiga o\'tib, yangi reja yarating'}.",
-            'workout_generate': f"Oylik mashq rejasi yaratish limiti tugadi. {'Cheksiz reja uchun Pro tarifiga o\'ting' if upgrade_to == 'pro' else 'Plus tarifiga o\'tib, yangi reja yarating'}.",
-            'calorie_scan': f"Bugungi kaloriya tahlil limiti tugadi. {'Cheksiz tahlil uchun Pro tarifiga o\'ting' if upgrade_to == 'pro' else 'Kuniga 3 ta tahlil uchun Plus tarifiga o\'ting'}.",
-            'ai_chat': f"Bugungi AI chat limiti tugadi. {'Cheksiz suhbat uchun Pro tarifiga o\'ting' if upgrade_to == 'pro' else 'Kuniga 3 ta savol uchun Plus tarifiga o\'ting'}.",
-            'meal_swap': f"Bugungi ovqat almashtirish limiti tugadi. {'Cheksiz almashtirish uchun Pro tarifiga o\'ting' if upgrade_to == 'pro' else 'Kuniga 1 ta almashtirish uchun Plus tarifiga o\'ting'}.",
+            'menu_generate': f"Shaxsiy ovqat menyusi faqat {upgrade_to.capitalize()} tarifida mavjud.",
+            'workout_generate': f"Shaxsiy mashq rejasi faqat {upgrade_to.capitalize()} tarifida mavjud.",
+            'calorie_scan': f"Bugungi kaloriya tahlil limiti tugadi. {'Cheksiz tahlil uchun Pro tarifiga o\'ting' if upgrade_to == PLAN_PRO else 'Tahlil qilish uchun Plus tarifiga o\'ting'}.",
+            'ai_chat': f"AI murabbiy bilan suhbat limiti tugadi. {'Cheksiz suhbat uchun Pro tarifiga o\'ting' if upgrade_to == PLAN_PRO else 'Suhbatlashish uchun Plus tarifiga o\'ting'}.",
+            'meal_swap': f"Ovqat almashtirish limiti tugadi. {'Cheksiz almashtirish uchun Pro tarifiga o\'ting' if upgrade_to == PLAN_PRO else 'Kuniga 2 ta almashtirish uchun Plus tarifiga o\'ting'}.",
+            'coach_strict_mode': "Qat'iy nazorat rejimi faqat Pro tarifida mavjud.",
         }
         
+        # Override specific zero-limit cases for Free plan to match "Not Available" logic
+        if status['plan'] == PLAN_FREE:
+             messages['calorie_scan'] = "Kaloriya tahlili faqat Plus tarifida mavjud 🌱"
+             messages['ai_chat'] = "AI murabbiy faqat Plus tarifida mavjud 🌱"
+             messages['meal_swap'] = "Ovqat almashtirish faqat Plus tarifida mavjud 🌱"
+             messages['menu_generate'] = "Shaxsiy menyu tuzish faqat Plus tarifida mavjud 🌱"
+             messages['workout_generate'] = "Shaxsiy mashq rejasi faqat Plus tarifida mavjud 🌱"
+
         return {
             **status,
             'allowed': False,
             'upgrade_to': upgrade_to,
-            'message_uz': messages.get(feature_key, "Limit tugadi. Tarifni ko'tarish kerak.")
+            'message_uz': messages.get(feature_key, f"Bu imkoniyat {upgrade_to.capitalize()} tarifida mavjud 🌱")
         }
     
     # Consume 1 usage
@@ -201,7 +244,8 @@ def check_and_consume(user_id: int, feature_key: FeatureKey) -> Dict:
     
     # Update status after consumption
     status['used'] += 1
-    status['remaining'] -= 1
+    if status['remaining'] is not None:
+        status['remaining'] -= 1
     
     return {**status, 'allowed': True}
 
@@ -219,7 +263,7 @@ def get_all_entitlements(user_id: int) -> Dict:
     active_until = user.get('premium_until') if user else None
     
     features = {}
-    for feature_key in ['menu_generate', 'workout_generate', 'calorie_scan', 'ai_chat', 'meal_swap']:
+    for feature_key in ['menu_generate', 'workout_generate', 'calorie_scan', 'ai_chat', 'meal_swap', 'coach_strict_mode']:
         features[feature_key] = get_usage_status(user_id, feature_key)
     
     return {

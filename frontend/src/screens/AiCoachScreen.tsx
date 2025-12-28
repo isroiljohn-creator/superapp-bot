@@ -14,7 +14,7 @@ interface Message {
 const API_URL = import.meta.env.VITE_API_URL || 'https://yasha-bot-production.up.railway.app/api/v1';
 
 export const AiCoachScreen: React.FC = () => {
-  const { profile, todayLog } = useUser();
+  const { profile, todayLog, canUseFeature } = useUser();
   const { t } = useLanguage();
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -231,17 +231,17 @@ export const AiCoachScreen: React.FC = () => {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyPress={handleKeyPress}
-            placeholder="Savolingizni yozing..."
-            className="flex-1 h-12 px-4 rounded-full bg-card border border-border/50 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-            disabled={isLoading}
+            placeholder={canUseFeature('ai_chat') ? "Savolingizni yozing..." : "Faqat Plus/Pro tarifida mavjud 🔒"}
+            className="flex-1 h-12 px-4 rounded-full bg-card border border-border/50 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50 disabled:bg-muted"
+            disabled={isLoading || !canUseFeature('ai_chat')}
           />
           <Button
             size="icon"
             onClick={sendMessage}
-            disabled={!input.trim() || isLoading}
+            disabled={!input.trim() || isLoading || !canUseFeature('ai_chat')}
             className="w-12 h-12 rounded-full"
           >
-            <Send className="w-5 h-5" />
+            {canUseFeature('ai_chat') ? <Send className="w-5 h-5" /> : <div className="w-5 h-5 text-muted-foreground">🔒</div>}
           </Button>
         </div>
       </div>

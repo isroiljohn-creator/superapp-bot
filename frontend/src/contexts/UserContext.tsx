@@ -45,7 +45,7 @@ export interface DailyLog {
   workout_done: boolean;
 }
 
-export type PlanType = 'free' | 'trial' | 'premium' | 'vip';
+export type PlanType = 'free' | 'plus' | 'pro' | 'trial' | 'premium' | 'vip';
 
 interface UserState {
   isOnboarded: boolean;
@@ -73,6 +73,7 @@ interface UserState {
     sleepTime: string;
   };
   language: 'uz' | 'ru';
+  entitlements: any | null;
 }
 
 interface UserContextType extends UserState {
@@ -82,6 +83,8 @@ interface UserContextType extends UserState {
   addWater: (ml: number) => void;
   isPremium: () => boolean;
   checkAndDowngrade: () => boolean;
+  canUseFeature: (feature: string) => boolean;
+  getFeatureStatus: (feature: string) => any;
   // Meals management
   addMeal: (meal: Omit<Meal, 'id' | 'date'>) => void;
   removeMeal: (id: string) => void;
@@ -143,6 +146,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         sleepTime: '22:00',
       },
       language: 'uz',
+      entitlements: null,
     };
   });
 
@@ -168,11 +172,17 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
             localStorage.setItem('token', token);
             axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
 
-            // Fetch latest profile
-            const profileRes = await axios.get(`${API_URL}/user/profile`);
+            // Fetch profile AND entitlements in parallel
+            const [profileRes, entRes] = await Promise.all([
+              axios.get(`${API_URL}/user/profile`),
+              axios.get(`${API_URL}/user/entitlements`).catch(e => ({ data: null }))
+            ]);
+
             const userData = profileRes.data;
+            const entitlements = entRes.data || null;
 
             console.log("DEBUG: Initial User Profile Fetched:", userData);
+            console.log("DEBUG: Entitlements:", entitlements);
 
             // Construct new state from backend data mapping snake_case to camelCase
             const profile: UserProfile = {
@@ -205,16 +215,19 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 ...prev,
                 isOnboarded: isOnboarded,
                 profile: profile,
-                planType: (userData.plan_type || 'free').toLowerCase() as PlanType,
+                // Prefer entitlements plan if available, else profile plan
+                planType: (entitlements?.plan || userData.plan_type || 'free').toLowerCase() as PlanType,
                 premiumUntil: userData.premium_until ? new Date(userData.premium_until) : null,
                 points: userData.points || 0,
                 elixir: userData.elixir || 0, // Fetch from backend
+                entitlements: entitlements,
                 // Streaks from backend
                 streaks: {
                   ...prev.streaks,
                   water: userData.streak_water || 0,
                   sleep: userData.streak_sleep || 0,
                   mood: userData.streak_mood || 0,
+                  workout: userData.streak_workout || 0,
                 },
                 // trialUsed from backend? Not in profile response explicitly but handled via planType logic usually
                 // Backend profile has "plan_type"
@@ -553,10 +566,31 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const isPremium = useCallback(() => {
     const type = state.planType?.toLowerCase();
-    if (type === 'premium' || type === 'vip' || type === 'trial') return true;
-    if (!state.premiumUntil) return false;
-    return new Date() < state.premiumUntil;
-  }, [state.planType, state.premiumUntil]);
+    return type === 'plus' || type === 'pro' || type === 'premium' || type === 'vip';
+  }, [state.planType]);
+
+  const canUseFeature = useCallback((feature: string) => {
+    if (state.entitlements && state.entitlements.features) {
+      const feat = state.entitlements.features[feature];
+      if (!feat) return false;
+
+      if (feat.limit === null) return true; // Unlimited
+      if (feat.remaining !== undefined) return feat.remaining > 0;
+      if (feat.limit === 0) return false;
+    }
+
+    // Fallback
+    const isPrem = isPremium();
+    if (feature === 'menu_generate' || feature === 'workout_generate') return isPrem;
+    return true;
+  }, [state.entitlements, isPremium]);
+
+  const getFeatureStatus = useCallback((feature: string) => {
+    if (state.entitlements && state.entitlements.features) {
+      return state.entitlements.features[feature] || null;
+    }
+    return null;
+  }, [state.entitlements]);
 
   const checkAndDowngrade = useCallback(() => {
     if (state.planType !== 'free' && state.premiumUntil && new Date() >= state.premiumUntil) {
@@ -589,6 +623,8 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         premiumUntil: null,
         trialUsed: false,
         points: 0,
+        elixir: 0,
+        entitlements: null,
         streaks: { water: 0, sleep: 0, mood: 0, workout: 0 },
         todayLog: null,
         meals: [],
@@ -616,6 +652,8 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         updateTodayLog,
         addWater,
         isPremium,
+        canUseFeature,
+        getFeatureStatus,
         checkAndDowngrade,
         addMeal,
         removeMeal,

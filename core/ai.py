@@ -436,8 +436,11 @@ MOCK_MENU_DATA = {
 
 
 
-def ai_generate_weekly_meal_plan_json(user_profile, daily_target=2000, lang="uz"):
-    """Generates a 7-day structured meal plan + shopping list in JSON. (Unified logic)"""
+def ai_generate_weekly_meal_plan_json(user_profile, daily_target=2000, lang="uz", duration_weeks=1):
+    """
+    Generates a meal plan in JSON. 
+    If duration_weeks > 1 (e.g. 4 for Pro), replicates the 1-week plan to fill the duration.
+    """
     user_id = user_profile.get('telegram_id')
     
     # 1. Try DB Assembly first (Priority)
@@ -735,6 +738,15 @@ VAZIFA: Menga 7 kunlik (Dushanba-Yakshanba) ovqatlanish rejasi kerak.
                     day['total_calories'] = d_sum
                     total_week_cals += d_sum
 
+                # Replicate if needed
+                if duration_weeks > 1:
+                     original_plan = list(plan)
+                     for w in range(1, duration_weeks):
+                         for day_item in original_plan:
+                             new_day = day_item.copy()
+                             new_day['day'] = day_item['day'] + (7 * w)
+                             plan.append(new_day)
+
                 return {
                     "menu": plan,
                     "shopping_list": shopping_list
@@ -786,6 +798,16 @@ VAZIFA: Menga 7 kunlik (Dushanba-Yakshanba) ovqatlanish rejasi kerak.
 
         if not plan:
             return None
+        
+        # Replicate for Pro users (Duration > 1 week)
+        if duration_weeks > 1:
+             original_plan = list(plan)
+             for w in range(1, duration_weeks):
+                 for day_item in original_plan:
+                     new_day = day_item.copy()
+                     new_day['day'] = day_item['day'] + (7 * w)
+                     # Optional: Add note about repeating?
+                     plan.append(new_day)
         
         merged_data = {
             "menu": plan,
@@ -1239,10 +1261,10 @@ def ai_provide_psychological_support(reason, lang="uz"):
         return response_text
     return "Tushunaman, ba'zida shunday kunlar bo'ladi. O'zingizni ehtiyot qiling va chuqur nafas oling. 💚"
 
-def ai_generate_weekly_workout_json(user_profile, lang="uz"):
+def ai_generate_weekly_workout_json(user_profile, lang="uz", duration_weeks=1):
     """
-    Generates a 7-DAY Weekly Workout Plan in strict JSON format.
-    Mirrors the logic of the menu system.
+    Generates a Weekly Workout Plan in strict JSON format.
+    Supports duration_weeks > 1 by replicating the 1-week base plan.
     """
     user_id = user_profile.get('telegram_id')
     
@@ -1288,6 +1310,15 @@ def ai_generate_weekly_workout_json(user_profile, lang="uz"):
                 if db_plan.get("explanation"):
                     result["explanation"] = db_plan["explanation"]
                     
+                # Replicate if needed
+                if duration_weeks > 1:
+                     original_schedule = list(result['schedule'])
+                     for w in range(1, duration_weeks):
+                         for day_item in original_schedule:
+                             new_day = day_item.copy()
+                             new_day['day'] = day_item['day'] + (7 * w)
+                             result['schedule'].append(new_day)
+                    
                 return result
             else:
                 is_fallback = True
@@ -1329,7 +1360,18 @@ def ai_generate_weekly_workout_json(user_profile, lang="uz"):
                      "ai_cost_usd": 0
                  }
              )
-             return json.loads(cached['workout_json'])
+             plan_schedule = json.loads(cached['workout_json'])
+             
+             # Replicate if needed
+             if duration_weeks > 1:
+                  original_schedule = list(plan_schedule)
+                  for w in range(1, duration_weeks):
+                      for day_item in original_schedule:
+                          new_day = day_item.copy()
+                          new_day['day'] = day_item['day'] + (7 * w)
+                          plan_schedule.append(new_day)
+
+             return plan_schedule
         except Exception as e:
              print(f"Cache Corrupt: {e}")
     
@@ -1550,6 +1592,21 @@ Talablar:
                 "ai_cost_usd": usage_ai.get("cost", 0)
             }
         )
+        
+        # Replicate if needed (After DB save, so DB has clean 1-week)
+        if duration_weeks > 1:
+             original_schedule = list(data['schedule'])
+             for w in range(1, duration_weeks):
+                 for day_item in original_schedule:
+                     new_day = day_item.copy()
+                     new_day['day'] = day_item['day'] + (7 * w)
+                     bucket_day = new_day.get('day', 0)
+                     # Optional: Should we update 'today_plan_template' or day names?
+                     # Day names are usually static or managed by UI. 
+                     # The AI output might hardcode "Dushanba" in formatted string. 
+                     # We accept that repetition.
+                     data['schedule'].append(new_day)
+
         return data
 
     except Exception as e:

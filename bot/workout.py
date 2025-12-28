@@ -14,6 +14,8 @@ import threading
 GENERATION_LOCKS = set()
 LOCKS_MUTEX = threading.Lock()
 
+from core.entitlements import get_user_plan
+
 
 def handle_plan_menu(message, bot):
     user_id = message.from_user.id
@@ -192,15 +194,18 @@ def generate_ai_workout(message, bot, user_id=None):
                         extra_ctx += get_founder_tone_prompt()
                         
                     if extra_ctx:
-                        current_goal = user_ctx.get('goal', '')
                         user_ctx['goal'] = f"{current_goal}. {extra_ctx}"
                         
-                    data = ai_generate_weekly_workout_json(user_ctx, lang=lang)
+                    # Determine Duration
+                    plan_type = get_user_plan(user_id)
+                    weeks = 4 if plan_type == 'pro' else 1
+                    
+                    data = ai_generate_weekly_workout_json(user_ctx, lang=lang, duration_weeks=weeks)
                     
                     if data and 'schedule' in data and isinstance(data['schedule'], list):
                         item_count = len(data['schedule'])
                         
-                        if item_count >= 5: # Accept at least 5 days
+                        if item_count >= 5: # Accept at least 5 days (Basic check)
                             break
                         else:
                             if attempt < max_retries - 1:
@@ -553,7 +558,11 @@ def generate_ai_meal(message, bot, user_id=None):
                     if user.get('goal') == 'lose': target -= 500
                     elif user.get('goal') == 'gain': target += 300
 
-                    data = ai_generate_weekly_meal_plan_json(user_ctx, daily_target=target, lang=lang)
+                    # Determine Duration
+                    plan_type = get_user_plan(user_id)
+                    weeks = 4 if plan_type == 'pro' else 1
+
+                    data = ai_generate_weekly_meal_plan_json(user_ctx, daily_target=target, lang=lang, duration_weeks=weeks)
                     
                     if data and 'menu' in data and isinstance(data['menu'], list):
                         item_count = len(data['menu'])

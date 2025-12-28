@@ -316,131 +316,42 @@ class Database:
         Returns: (allowed: bool, message: str, limit_info: str)
         """
         with get_sync_db() as session:
+            # CIRCULAR IMPORT FIX
+            from core.entitlements import get_usage_status, PLAN_PRO, PLAN_PLUS, PLAN_FREE
+            
             user = session.query(User).filter(User.telegram_id == user_id).first()
             if not user: return False, "User not found", ""
 
-            # Lazy Expiration Check
-            if user.premium_until and user.premium_until < datetime.now():
-                if user.plan_type != 'free':
-                    user.plan_type = 'free'
-                    user.is_premium = False
-                    session.commit() # Commit downgrade
+            # DELEGATE TO ENTITLEMENTS
+            # Map feature_type to entitlement key
+            key_map = {
+                'menu_gen': 'menu_generate',
+                'workout_gen': 'workout_generate',
+                'calorie': 'calorie_scan',
+                'chat': 'ai_chat'
+            }
+            ent_key = key_map.get(feature_type)
+            if not ent_key: return False, "Unknown feature", ""
             
-            plan = user.plan_type or 'free'
+            status = get_usage_status(user_id, ent_key)
             
-            # 1. Menu Generation Limit
-            if feature_type == 'menu_gen':
-                current_month = datetime.now().strftime("%Y-%m")
-                
-                # Reset monthly
-                if user.ai_last_reset_month != current_month:
-                    user.ai_menu_count = 0
-                    user.ai_workout_count = 0
-                    user.ai_last_reset_month = current_month
-                    session.commit()
-                
-                usage = user.ai_menu_count
-                
-                # Limits (Updated as per plan)
-                if plan == 'vip': limit = 999 
-                elif plan == 'premium': limit = 999
-                elif plan == 'trial': limit = 1
-                else: limit = 0 # Free
-                
-                if usage >= limit:
-                    lang = getattr(user, 'language', 'uz')
-                    if lang == 'ru':
-                        msg = "⚠️ Ваш лимит исчерпан."
-                        if plan == 'premium' or plan == 'vip':
-                            msg += "\n\nВы достигли месячного лимита."
-                        elif plan == 'trial':
-                             msg += "\n\nЛимит меню для пробного периода (1 шт) исчерпан. Выберите тариф для продолжения."
-                        elif plan == 'free':
-                             msg = "🔒 Эта функция доступна только в Premium/VIP."
-                    else:
-                        msg = "⚠️ Sizning limitingiz tugadi."
-                        if plan == 'premium' or plan == 'vip':
-                            msg += "\n\nOylik limitga yetdingiz."
-                        elif plan == 'trial':
-                             msg += "\n\nSinov davri uchun Menyular limiti (1 ta) tugadi. Davom etish uchun tarif tanlang."
-                        elif plan == 'free':
-                             msg = "🔒 Bu funksiya faqat Premium/VIP da mavjud."
-                    return False, msg, f"{usage}/{limit}"
-                    
-                return True, "OK", f"{usage}/{limit}"
-
-            # 2. Workout Generation Limit
-            elif feature_type == 'workout_gen':
-                usage = user.ai_workout_count
-                
-                # Limits (Same structure as menu)
-                if plan == 'vip': limit = 999
-                elif plan == 'premium': limit = 999
-                elif plan == 'trial': limit = 1
-                else: limit = 0
-                
-                if usage >= limit:
-                    lang = getattr(user, 'language', 'uz')
-                    if lang == 'ru':
-                         msg = "⚠️ Ваш лимит исчерпан."
-                         if plan == 'premium' or plan == 'vip':
-                            msg += "\n\nВы достигли месячного лимита."
-                         elif plan == 'trial':
-                             msg += "\n\nЛимит тренировок для пробного периода (1 шт) исчерпан."
-                         elif plan == 'free':
-                             msg = "🔒 Эта функция доступна только в Premium/VIP."
-                    else:
-                        msg = "⚠️ Sizning limitingiz tugadi."
-                        if plan == 'premium' or plan == 'vip':
-                            msg += "\n\nOylik limitga yetdingiz."
-                        elif plan == 'trial':
-                             msg += "\n\nSinov davri uchun Mashqlar limiti (1 ta) tugadi."
-                        elif plan == 'free':
-                             msg = "🔒 Bu funksiya faqat Premium/VIP da mavjud."
-                    return False, msg, f"{usage}/{limit}"
-
-                return True, "OK", f"{usage}/{limit}"
-
-            # 2. Calorie / Chat (Daily Limits)
-            # 2. Daily Limits (Calorie & Chat) - Atomic Column Based
-            elif feature_type in ['calorie', 'chat']:
-                today = datetime.now().strftime("%Y-%m-%d")
-                
-                # Default values
-                daily_limit = 0
-                if plan == 'vip': daily_limit = 9999
-                elif plan == 'premium': daily_limit = 3
-                elif plan == 'trial': daily_limit = 1
-                else: daily_limit = 0
-                
-                current_usage = 0
-                last_use = None
-                
-                if feature_type == 'chat':
-                    current_usage = user.chat_daily_uses or 0
-                    last_use = user.chat_last_use_date
-                elif feature_type == 'calorie':
-                    current_usage = user.calorie_daily_uses or 0
-                    last_use = user.calorie_last_use_date
-                
-                # Reset if new day
-                if last_use != today:
-                    current_usage = 0
-                
-                if current_usage >= daily_limit:
-                    if plan == 'free':
-                         return False, "🔒 Bu funksiya faqat Premium/VIP da mavjud.", f"{current_usage}/{daily_limit}"
-                    
-                    msg = f"⚠️ Kunlik limit ({daily_limit} ta) tugadi.\n\n"
-                    if plan == 'premium':
-                        msg += "Ertaga qaytib keling yoki cheksiz ishlatish uchun VIP ga o'ting! 🚀"
-                    elif plan == 'trial':
-                         msg += "Sinov davrida kuniga 1 marta mumkin. To'liq imkoniyat uchun Premium oling."
-                    return False, msg, f"{current_usage}/{daily_limit}"
-                
-                return True, "OK", f"{current_usage}/{daily_limit}"
-                
-            return False, "Unknown feature", ""
+            # Formulate message similar to legacy format
+            if status['remaining'] is not None and status['remaining'] <= 0:
+                 # Reconstruct message based on plan
+                 upgrade_to = PLAN_PLUS if status['plan'] == PLAN_FREE else PLAN_PRO
+                 lang = getattr(user, 'language', 'uz')
+                 
+                 limit_display = f"{status['used']}/{status['limit']}"
+                 
+                 if lang == 'ru':
+                     msg = "🔒 Лимит исчерпан."
+                 else:
+                     msg = f"🔒 Limit tugadi. {upgrade_to.capitalize()} tarifiga o'ting."
+                     
+                 return False, msg, limit_display
+                 
+            limit_display = "∞" if status['limit'] is None else f"{status['used']}/{status['limit']}"
+            return True, "OK", limit_display
 
     def increment_tiered_usage(self, user_id, feature_type):
         with get_sync_db() as session:
@@ -862,9 +773,8 @@ class Database:
             session.commit()
 
     def is_premium(self, user_id):
-        # Wraps lazy check
-        is_active, _ = self.check_subscription_status(user_id)
-        return is_active
+        from core.entitlements import get_user_plan, PLAN_FREE
+        return get_user_plan(user_id) != PLAN_FREE
 
     def get_premium_status(self, user_id):
         with get_sync_db() as session:
@@ -1319,36 +1229,15 @@ class Database:
             )
             session.commit()    
     def check_calorie_limit(self, user_id):
-        if self.is_premium(user_id):
-            return True, "premium"
-            
-        with get_sync_db() as session:
-            user = session.query(User).filter(User.telegram_id == user_id).first()
-            if not user: return False, "user_not_found"
-            
-            today = datetime.now().strftime("%Y-%m-%d")
-            
-            if user.calorie_last_use_date != today:
-                return True, "free_daily"
-            
-            uses = user.calorie_daily_uses or 0
-            if uses < 3:
-                return True, "free_daily"
-                
+        from core.entitlements import get_usage_status
+        status = get_usage_status(user_id, 'calorie_scan')
+        if status['remaining'] is not None and status['remaining'] <= 0:
             return False, "limit_reached"
+        return True, "ok"
 
     def increment_calorie_usage(self, user_id):
-        with get_sync_db() as session:
-            user = session.query(User).filter(User.telegram_id == user_id).first()
-            if not user: return
-            
-            today = datetime.now().strftime("%Y-%m-%d")
-            
-            if user.calorie_last_use_date != today:
-                user.calorie_last_use_date = today
-                user.calorie_daily_uses = 1
-            else:
-                user.calorie_daily_uses = (user.calorie_daily_uses or 0) + 1
+        from core.entitlements import check_and_consume
+        check_and_consume(user_id, 'calorie_scan')
 
     def log_calorie_check(self, user_id, total_kcal, json_data):
         with get_sync_db() as session:
