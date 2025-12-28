@@ -149,7 +149,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onNavigate }) => {
     goal: language === 'ru' ? 'Цель' : 'Maqsad',
     currentPlan: language === 'ru' ? 'Текущий план' : 'Hozirgi reja',
     daysLeft: language === 'ru' ? 'дней осталось' : 'kun qoldi',
-    getPremium: language === 'ru' ? 'Получить Премиум' : 'Premium olish',
+    getPremium: language === 'ru' ? 'Получить Премиум' : 'Imkoniyatlarni kengaytirish',
     yourPoints: language === 'ru' ? 'Ваши баллы' : 'Ballaringiz',
     points: language === 'ru' ? 'баллов' : 'ball',
     logout: language === 'ru' ? 'Выйти' : 'Chiqish',

@@ -11,7 +11,7 @@ import { useHaptic } from '@/hooks/useHaptic';
 import axios from 'axios';
 import { toast } from 'sonner';
 
-const API_URL = import.meta.env.VITE_API_URL || '/api/v1';
+// axios.defaults.baseURL is set in UserContext.tsx
 
 const getWeekDays = (t: (key: string) => string) => [
   t('day.mon'), t('day.tue'), t('day.wed'), t('day.thu'), t('day.fri'), t('day.sat'), t('day.sun')

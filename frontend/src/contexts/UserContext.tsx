@@ -475,12 +475,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         protein: meal.protein,
         carbs: meal.carbs,
         fat: meal.fat,
-        meal_type: meal.mealType, // Camel to Snake? Backend expects meal_type, Pydantic handles validation? 
-        // Backend Pydantic uses 'meal_type'. 
-        // Check UserContext 'mealType' vs Backend expected. 
-        // Frontend interface Meal has 'mealType'.
-        // Backend MealEntry has 'meal_type'.
-        // So I must map it.
+        meal_type: meal.mealType,
         date: today
       });
     } catch (e) {
@@ -579,11 +574,10 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     saveState(newState);
 
     try {
-      await axios.post(`${API_URL}/entry/workouts`, {
+      await axios.post('/entry/workouts', {
         name: workout.name,
         duration: workout.duration,
-        calories_burned: workout.caloriesBurned, // Frontend camelCase to Snake?
-        // Backend expects 'calories_burned'
+        calories_burned: workout.caloriesBurned,
         date: today
       });
     } catch (e) {
@@ -671,7 +665,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const token = localStorage.getItem('token');
       if (token) {
-        await axios.post(`${API_URL}/user/reset`);
+        await axios.post('/user/reset');
       }
     } catch (e) {
       console.error("Reset failed", e);
