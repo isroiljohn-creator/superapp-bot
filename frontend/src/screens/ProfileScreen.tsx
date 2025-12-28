@@ -1,9 +1,10 @@
+
 import React, { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
 import {
   User, Crown, ChevronRight, LogOut,
   Bell, HelpCircle, Shield, Star, Trophy,
-  Camera, Edit2, ShoppingBag, Target, Settings, BarChart3
+  Camera, Edit2, ShoppingBag, Target, Settings, BarChart3, Coins
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Paywall } from '@/components/Paywall';
@@ -206,11 +207,11 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onNavigate }) => {
           </div>
         </motion.div>
 
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className={`rounded-2xl p-4 mb-4 ${isPremium() ? 'bg-gradient-to-r from-primary/20 to-primary/10 border border-primary/30' : 'bg-card border border-border/50'}`}>
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className={`rounded - 2xl p - 4 mb - 4 ${isPremium() ? 'bg-gradient-to-r from-primary/20 to-primary/10 border border-primary/30' : 'bg-card border border-border/50'} `}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className={`w-11 h-11 rounded-xl flex items-center justify-center ${isPremium() ? 'bg-primary/20' : 'bg-muted'}`}>
-                <Crown className={`w-5 h-5 ${isPremium() ? 'text-primary' : 'text-muted-foreground'}`} />
+              <div className={`w - 11 h - 11 rounded - xl flex items - center justify - center ${isPremium() ? 'bg-primary/20' : 'bg-muted'} `}>
+                <Crown className={`w - 5 h - 5 ${isPremium() ? 'text-primary' : 'text-muted-foreground'} `} />
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">{labels.currentPlan}</p>
@@ -230,13 +231,20 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onNavigate }) => {
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="bg-card border border-border/50 rounded-2xl p-4 mb-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-11 h-11 rounded-xl bg-yellow-500/20 flex items-center justify-center"><Trophy className="w-5 h-5 text-yellow-400" /></div>
+              <div className="w-11 h-11 rounded-xl bg-amber-500/10 flex items-center justify-center">
+                <Coins className="w-5 h-5 text-amber-500" />
+              </div>
               <div>
-                <p className="text-xs text-muted-foreground">{labels.yourPoints}</p>
-                <p className="text-base font-bold text-foreground">{points} {labels.points}</p>
+                <p className="text-xs text-muted-foreground">{language === 'ru' ? 'Ваш баланс' : 'Sizning balansingiz'}</p>
+                <p className="text-base font-bold text-foreground">{points} Yasha Coin</p>
               </div>
             </div>
-            <Star className="w-7 h-7 text-yellow-400" />
+            <button
+              onClick={() => onNavigate?.('shop')}
+              className="bg-primary/10 hover:bg-primary/20 text-primary px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors"
+            >
+              {language === 'ru' ? 'Потратить' : 'Ishlatish'}
+            </button>
           </div>
         </motion.div>
 

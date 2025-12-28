@@ -75,7 +75,9 @@ async def get_profile(current_user: User = Depends(get_current_user), db: AsyncS
         "is_premium": current_user.is_premium,
         "premium_until": current_user.premium_until,
         "is_onboarded": current_user.is_onboarded,
-        "points": current_user.points,
+        "points": current_user.yasha_points if (current_user.yasha_points and current_user.yasha_points > 0) else current_user.points, # Prefer yasha_points (Tanga)
+        "yasha_points": current_user.yasha_points, # Explicit field
+        "elixir": current_user.elixir, # Explicit field
         "plan_type": current_user.plan_type,
         "streak_water": current_user.streak_water,
         "streak_sleep": current_user.streak_sleep,

@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Droplets, Footprints, Moon, Flame, Trophy, Bot, ChevronRight, Sparkles, Target, Utensils, Dumbbell } from 'lucide-react';
+import { Droplets, Footprints, Moon, Flame, Trophy, Bot, ChevronRight, Sparkles, Target, Utensils, Dumbbell, Zap, Coins } from 'lucide-react';
 import { StatCard } from '@/components/StatCard';
 import { useUser } from '@/contexts/UserContext';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -93,18 +93,18 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate }) => {
           </div>
           <div className="flex items-center gap-2">
             {/* Elixir */}
-            <div className="flex items-center gap-1.5 bg-blue-500/10 px-2.5 py-1.5 rounded-full border border-blue-500/20">
-              <span className="text-base">🧪</span>
-              <span className="text-sm font-bold text-blue-500">{useUser().elixir}</span>
+            <div className="flex items-center gap-1.5 bg-violet-500/10 px-2.5 py-1.5 rounded-full border border-violet-500/20 active:scale-95 transition-transform">
+              <Zap className="w-4 h-4 text-violet-500 fill-violet-500/20" />
+              <span className="text-sm font-bold text-violet-600">{useUser().elixir}</span>
             </div>
 
-            {/* Tanga */}
+            {/* Tanga (Coins) */}
             <button
               onClick={() => onNavigate?.('achievements')}
-              className="flex items-center gap-1.5 bg-yellow-500/10 px-2.5 py-1.5 rounded-full border border-yellow-500/20"
+              className="flex items-center gap-1.5 bg-amber-500/10 px-2.5 py-1.5 rounded-full border border-amber-500/20 active:scale-95 transition-transform"
             >
-              <span className="text-base bg-yellow-400 rounded-full w-4 h-4 flex items-center justify-center text-[10px] text-black font-bold">T</span>
-              <span className="text-sm font-bold text-yellow-600">{points}</span>
+              <Coins className="w-4 h-4 text-amber-500 fill-amber-500/20" />
+              <span className="text-sm font-bold text-amber-600">{points}</span>
             </button>
           </div>
         </div>
