@@ -319,8 +319,8 @@ async def get_retention_stats(db: AsyncSession = Depends(get_db), admin_id: int 
             -- For standard retention, we often just use event_logs if it captures 'launch'
             -- Since we added 'webapp_launch' to event_logs, this is pretty good coverage.
             SELECT distinct user_id, date(created_at) as act_date FROM event_logs WHERE created_at >= now() - interval '8 weeks'
-            UNION
-            SELECT distinct user_id, date(date) as act_date FROM daily_logs WHERE date >= (now() - interval '8 weeks')::date
+--             UNION
+--             SELECT distinct user_id, date(date) as act_date FROM daily_logs WHERE date >= (now() - interval '8 weeks')::date
         )
         SELECT 
             c.cohort_date,
@@ -595,8 +595,8 @@ async def get_retention_graph(db: AsyncSession = Depends(get_db), admin_id: int 
         ),
         activity AS (
             SELECT distinct user_id, date(created_at) as act_date FROM event_logs WHERE created_at >= now() - interval '8 weeks'
-            UNION
-            SELECT distinct user_id, date(date) as act_date FROM daily_logs WHERE date >= (now() - interval '8 weeks')::date
+--             UNION
+--             SELECT distinct user_id, date(date) as act_date FROM daily_logs WHERE date >= (now() - interval '8 weeks')::date
         )
         SELECT 
             count(distinct c.user_id) as total_users,
