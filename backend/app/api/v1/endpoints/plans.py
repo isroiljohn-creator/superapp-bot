@@ -131,13 +131,10 @@ async def generate_meal(
             from core.ai import ai_generate_weekly_meal_plan_json
             
             # Deactivate old links
-            # Deactivate old links
             from sqlalchemy import update
             stmt = update(UserMenuLink).where(UserMenuLink.user_id == current_user.id).values(is_active=False)
             await db_session.execute(stmt)
-            for link in old_links.scalars():
-                link.is_active = False
-            
+
             # AI Generation
             full_data = ai_generate_weekly_meal_plan_json(
                 user_profile={
