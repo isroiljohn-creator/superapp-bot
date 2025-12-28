@@ -567,3 +567,16 @@ class UsageCounter(Base):
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
+class KnowledgeBase(Base):
+    __tablename__ = "knowledge_base"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    question = Column(Text, nullable=False, index=True)
+    answer = Column(Text, nullable=False)
+    topic = Column(String, nullable=True)
+    is_ai_generated = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    # Using a simple index for similarity search support in SQL if needed
+    # Full-text search or vector search would be better for high volumes,
+    # but for ~100-1000 entries, trigram or pattern matching is sufficient.

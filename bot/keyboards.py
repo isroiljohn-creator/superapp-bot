@@ -121,7 +121,10 @@ def main_menu_keyboard(is_admin=False, user_id=None, lang=None):
     # Row 3: Profil | Yordam
     profile_text = get_text("btn_profile", lang=lang)
     help_text = get_text("btn_help", lang=lang)
-    markup.add(KeyboardButton(profile_text), KeyboardButton(help_text))
+    markup.add(
+        KeyboardButton(profile_text, web_app=WebAppInfo(url=f"{mini_app_url}?tab=profile")),
+        KeyboardButton(help_text)
+    )
     
     return markup
 
