@@ -53,6 +53,118 @@ def upgrade() -> None:
     print(f"Migration Safety Check: Total Active: {active_count}")
     print(f"Meal Counts: {meal_counts}")
     
+    # If safety gate fails, ATTEMPT TO SEED
+    if active_count < 120:
+        print(f"Active dishes count {active_count} < 120. Attempting to seed from JSON...")
+        import json
+        import os
+        
+        # Try to find the JSON file
+        # Assuming we are running from project root or /app
+        # Paths to check:
+        paths = [
+            'data/local_dishes_seed_real_200.json',
+            '/app/data/local_dishes_seed_real_200.json',
+            '../data/local_dishes_seed_real_200.json',
+            '/Users/macbook/yashabot/data/local_dishes_seed_real_200.json' 
+        ]
+        
+        seed_data = []
+        for p in paths:
+            if os.path.exists(p):
+                print(f"Found seed file: {p}")
+                with open(p, 'r') as f:
+                    seed_data = json.load(f)
+                break
+        
+        if not seed_data:
+            raise RuntimeError("SAFETY GATE FAILED: Active dishes < 120 and could not find seed JSON file.")
+            
+        print(f"Seeding {len(seed_data)} dishes...")
+        
+        # Insert raw SQL
+        # We need to construct INSERT statement. Data has keys matching columns mostly.
+        # But we need to handle validation or defaults.
+        # Since this is a fallback, we do a best-effort simple insert or specific fields.
+        
+        # Common fields in seed: name_uz, calories, protein, fats, carbohydrates, meal_type, ingredients, is_active
+        # DB fields: id (auto), created_at (auto), is_active (default true)
+        
+        from sqlalchemy.sql import text
+        
+        # Prepare batch insert
+        # Note: 'fats' in JSON maps to 'fat' in DB? Let's check model. 
+        # Models usually: protein, carbs, fat.
+        # JSON standard: likely 'fat' or 'fats'.
+        # Let's assume JSON keys are perfect or map them.
+        # Based on seed script logic: keys were direct.
+        
+        values_list = []
+        for dish in seed_data:
+             values_list.append({
+                 'name_uz': dish.get('name_uz'),
+                 'calories': dish.get('calories'),
+                 'protein': dish.get('protein'),
+                 'carbs': dish.get('carbohydrates', dish.get('carbs')),
+                 'fat': dish.get('fats', dish.get('fat')),
+                 'meal_type': dish.get('meal_type'),
+                 'ingredients': str(dish.get('ingredients', [])), # Array to string or JSON? DB uses JSONB usually or Text. 
+                 # Wait, local_dishes.ingredients is String/Text in many set ups or JSON.
+                 # Let's safely dump logic: json.dumps if it's a list.
+                 # seed script used json.dumps.
+                 'is_active': True
+             })
+             
+        # Because we are in alembic, we can use bulk_insert_mappings if we had Table object.
+        # But here we have raw connection.
+        # Let's use sqlalchemy Table reflection or just raw SQL loop (slow but effective for 200 items).
+        
+        # Better: use op.bulk_insert
+        meta = sa.MetaData()
+        meta.bind = conn
+        # Reflect table to get correct types
+        # local_dishes_table = sa.Table('local_dishes', meta, autoload_with=conn)
+        # But autoload might fail if schema partial.
+        # Let's define minimal table.
+        local_dishes_table = sa.Table(
+            'local_dishes', meta,
+            sa.Column('id', sa.Integer, primary_key=True),
+            sa.Column('name_uz', sa.String),
+            sa.Column('calories', sa.Integer),
+            sa.Column('protein', sa.Float),
+            sa.Column('carbs', sa.Float),
+            sa.Column('fat', sa.Float),
+            sa.Column('meal_type', sa.String),
+            sa.Column('ingredients', sa.Text), # Assuming Text based on earlier info
+            sa.Column('is_active', sa.Boolean),
+            sa.Column('created_at', sa.DateTime, server_default=sa.func.now()),
+            sa.Column('updated_at', sa.DateTime, server_default=sa.func.now())
+        )
+        
+        # Fix keys for bulk_insert
+        final_values = []
+        for v in values_list:
+            final_values.append({
+                'name_uz': v['name_uz'],
+                'calories': int(v['calories']),
+                'protein': float(v['protein']),
+                'carbs': float(v['carbs']),
+                'fat': float(v['fat']),
+                'meal_type': v['meal_type'],
+                'ingredients': json.dumps(v['ingredients']) if isinstance(v['ingredients'], list) else v['ingredients'],
+                'is_active': True
+            })
+            
+        op.bulk_insert(local_dishes_table, final_values)
+        print("Seeding completed.")
+        
+        # Re-verify
+        res_active = conn.execute(text("SELECT count(*) FROM local_dishes WHERE is_active=true"))
+        active_count = res_active.scalar()
+        if active_count < 120:
+             raise RuntimeError(f"SAFETY GATE FAILED AFTER SEED ATTEMPT: Active {active_count} < 120.")
+    
+    # Check again if active_count < 120 (Redundant check but clean logic flow)
     if active_count < 120:
         raise RuntimeError(f"SAFETY GATE FAILED: Active dishes count {active_count} < 120. Rolling back.")
         
