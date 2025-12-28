@@ -32,12 +32,12 @@ interface Tab {
 }
 
 const tabs: Tab[] = [
-  { id: 'overview', label: 'Overview', icon: LayoutDashboard },
-  { id: 'referral', label: 'Invite Friends', icon: Users },
-  { id: 'analytics', label: 'Pro Analytics', icon: BarChart3 },
-  { id: 'retention', label: 'Retention', icon: Users },
-  { id: 'ai-costs', label: 'AI Costs', icon: Cpu },
-  { id: 'quality', label: 'Quality', icon: Star },
+  { id: 'overview', label: 'Umumiy', icon: LayoutDashboard },
+  { id: 'referral', label: "Do'stlarni chaqirish", icon: Users },
+  { id: 'analytics', label: 'Pro Analitika', icon: BarChart3 },
+  { id: 'retention', label: 'Qaytuvchanlik', icon: Users },
+  { id: 'ai-costs', label: 'AI Xarajatlari', icon: Cpu },
+  { id: 'quality', label: 'Sifat', icon: Star },
 ];
 
 export function AdminDashboard() {
@@ -85,7 +85,7 @@ export function AdminDashboard() {
               <SheetContent side="left" className="w-64 p-0">
                 <div className="p-4 border-b border-border">
                   <h2 className="font-semibold text-lg">YASHA Admin</h2>
-                  <p className="text-xs text-muted-foreground">Analytics Dashboard</p>
+                  <p className="text-xs text-muted-foreground">Analitika Paneli</p>
                 </div>
                 <nav className="p-2">
                   {tabs.map((tab) => (
@@ -108,7 +108,7 @@ export function AdminDashboard() {
             </Sheet>
             <div>
               <h1 className="font-semibold text-sm">YASHA</h1>
-              <p className="text-[10px] text-muted-foreground">Admin Analytics</p>
+              <p className="text-[10px] text-muted-foreground">Admin Analitika</p>
             </div>
           </div>
 
