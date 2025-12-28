@@ -5,7 +5,8 @@ export interface OverviewData {
   active_30d: number;
   free_users: number;
   trial_users: number;
-  premium_users: number;
+  plus_users: number;
+  pro_users: number;
 }
 
 export interface CohortData {

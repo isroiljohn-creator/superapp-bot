@@ -26,16 +26,19 @@ export function OverviewTab({ isLoading: externalLoading = false }: OverviewTabP
     active_30d: 0,
     free_users: 0,
     trial_users: 0,
-    premium_users: 0
+    plus_users: 0,
+    pro_users: 0
   };
 
+  const payingUsers = displayData.plus_users + displayData.pro_users;
+
   const conversionRate = displayData.total_users > 0
-    ? ((displayData.premium_users / displayData.total_users) * 100).toFixed(1)
+    ? ((payingUsers / displayData.total_users) * 100).toFixed(1)
     : '0.0';
 
-  const trialTotal = displayData.trial_users + displayData.premium_users;
+  const trialTotal = displayData.trial_users + payingUsers;
   const trialConversion = trialTotal > 0
-    ? ((displayData.premium_users / trialTotal) * 100).toFixed(1)
+    ? ((payingUsers / trialTotal) * 100).toFixed(1)
     : '0.0';
 
   return (
@@ -105,7 +108,7 @@ export function OverviewTab({ isLoading: externalLoading = false }: OverviewTabP
         <h3 className="text-sm font-medium text-muted-foreground mb-3 uppercase tracking-wider">
           Foydalanuvchi segmentlari
         </h3>
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           <StatCard
             title="Bepul"
             value={displayData.free_users}
@@ -120,10 +123,18 @@ export function OverviewTab({ isLoading: externalLoading = false }: OverviewTabP
             isLoading={isLoading}
           />
           <StatCard
-            title="Premium"
-            value={displayData.premium_users}
+            title="Plus"
+            value={displayData.plus_users}
             icon={Crown}
             variant="success"
+            isLoading={isLoading}
+          />
+          <StatCard
+            title="Pro"
+            value={displayData.pro_users}
+            icon={Crown}
+            variant="success"
+            className="bg-primary/10 border-primary/20"
             isLoading={isLoading}
           />
         </div>
@@ -135,14 +146,14 @@ export function OverviewTab({ isLoading: externalLoading = false }: OverviewTabP
           <span className="stat-label">Umumiy konversiya</span>
           <div className="stat-value text-primary">{conversionRate}%</div>
           <p className="text-xs text-muted-foreground mt-1">
-            Bepul → Premium
+            Bepul → Plus/Pro
           </p>
         </div>
         <div className="stat-card border-success/20">
           <span className="stat-label">Sinov konversiyasi</span>
           <div className="stat-value text-success">{trialConversion}%</div>
           <p className="text-xs text-muted-foreground mt-1">
-            Sinov → Premium
+            Sinov → Plus/Pro
           </p>
         </div>
       </div>
@@ -161,10 +172,14 @@ export function OverviewTab({ isLoading: externalLoading = false }: OverviewTabP
           />
           <div
             className="bg-success h-full transition-all"
-            style={{ width: `${(displayData.premium_users / displayData.total_users) * 100}%` }}
+            style={{ width: `${(displayData.plus_users / displayData.total_users) * 100}%` }}
+          />
+          <div
+            className="bg-primary h-full transition-all"
+            style={{ width: `${(displayData.pro_users / displayData.total_users) * 100}%` }}
           />
         </div>
-        <div className="flex justify-between mt-3 text-xs">
+        <div className="flex justify-between mt-3 text-xs flex-wrap gap-2">
           <span className="flex items-center gap-1.5">
             <div className="w-2 h-2 rounded-full bg-muted-foreground/50" />
             Bepul
@@ -175,7 +190,11 @@ export function OverviewTab({ isLoading: externalLoading = false }: OverviewTabP
           </span>
           <span className="flex items-center gap-1.5">
             <div className="w-2 h-2 rounded-full bg-success" />
-            Premium
+            Plus
+          </span>
+          <span className="flex items-center gap-1.5">
+            <div className="w-2 h-2 rounded-full bg-primary" />
+            Pro
           </span>
         </div>
       </div>

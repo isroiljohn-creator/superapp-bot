@@ -202,14 +202,16 @@ async def get_stats(db: AsyncSession = Depends(get_db), admin_id: int = Depends(
     new_users_q = await db.execute(select(func.count()).where(User.created_at >= one_day_ago))
     new_users = new_users_q.scalar() or 0
 
-    # Premium/VIP/Trial Stats (Active)
+    # Premium/Plus/Pro/Trial Stats (Active)
     now = datetime.utcnow()
     
-    premium_q = await db.execute(select(func.count()).where(User.plan_type == 'premium', User.premium_until > now, User.is_onboarded == True))
-    premium = premium_q.scalar() or 0
+    # Plus (includes legacy 'premium')
+    plus_q = await db.execute(select(func.count()).where(User.plan_type.in_(['premium', 'plus']), User.premium_until > now, User.is_onboarded == True))
+    plus = plus_q.scalar() or 0
     
-    vip_q = await db.execute(select(func.count()).where(User.plan_type == 'vip', User.premium_until > now, User.is_onboarded == True))
-    vip = vip_q.scalar() or 0
+    # Pro (includes legacy 'vip')
+    pro_q = await db.execute(select(func.count()).where(User.plan_type.in_(['vip', 'pro']), User.premium_until > now, User.is_onboarded == True))
+    pro = pro_q.scalar() or 0
     
     trial_q = await db.execute(select(func.count()).where(User.plan_type == 'trial', User.premium_until > now, User.is_onboarded == True))
     trial = trial_q.scalar() or 0
@@ -219,9 +221,9 @@ async def get_stats(db: AsyncSession = Depends(get_db), admin_id: int = Depends(
         "active_24h": dau,
         "active_7d": wau,
         "active_30d": mau,
-        "premium_users": premium,
-        "vip_users": vip,
-        "free_users": total_users - (premium + vip + trial),
+        "plus_users": plus,
+        "pro_users": pro,
+        "free_users": total_users - (plus + pro + trial),
         "trial_users": trial,
         "new_users_24h": new_users,
         "menu_generations_24h": menu_gen,

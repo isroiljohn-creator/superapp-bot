@@ -94,7 +94,8 @@ export const mockOverview: OverviewData = {
   active_30d: 2156,
   free_users: 1823,
   trial_users: 412,
-  premium_users: 612,
+  plus_users: 412,
+  pro_users: 200,
 };
 
 export const mockRetention: RetentionData = {
