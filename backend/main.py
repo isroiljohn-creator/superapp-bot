@@ -86,6 +86,10 @@ async def serve_admin(full_path: str):
         return {"error": "Admin frontend not built"}
     
     file_path = os.path.join(ADMIN_DIST, full_path)
+    full_path = str(full_path)
+    print(f"DEBUG: Serving Admin Path: {full_path} - Version Check Triggered {datetime.utcnow()}")
+    
+    # Force no-cache for index.html to ensure updates
     if os.path.exists(file_path) and os.path.isfile(file_path):
         media_type = None
         if file_path.endswith(".js"):
