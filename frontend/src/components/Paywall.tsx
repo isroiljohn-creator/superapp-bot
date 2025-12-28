@@ -77,9 +77,9 @@ export const Paywall: React.FC<PaywallProps> = ({
     },
   ].filter(p => {
     // Hide Premium if user is VIP.
-    if (currentTier === 'vip' && p.id === 'premium') return false;
+    if ((currentTier === 'vip' || currentTier === 'pro') && p.id === 'premium') return false;
     // Hide Premium if user is already Premium (optional, but logical)
-    if (currentTier === 'premium' && p.id === 'premium') return false;
+    if ((currentTier === 'premium' || currentTier === 'plus') && p.id === 'premium') return false;
     return true;
   });
 

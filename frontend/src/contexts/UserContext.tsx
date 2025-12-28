@@ -625,7 +625,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const isPremium = useCallback(() => {
     const type = state.planType?.toLowerCase();
-    return type === 'plus' || type === 'pro' || type === 'premium' || type === 'vip';
+    return type === 'plus' || type === 'pro' || type === 'premium' || type === 'vip' || type === 'trial';
   }, [state.planType]);
 
   const canUseFeature = useCallback((feature: string) => {

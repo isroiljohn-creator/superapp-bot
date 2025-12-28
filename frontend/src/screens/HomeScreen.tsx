@@ -44,8 +44,8 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate }) => {
 
     let tdee = bmr * activityMultipliers[profile.activityLevel];
 
-    if (profile.goal === 'lose') tdee -= 500;
-    else if (profile.goal === 'gain') tdee += 300;
+    if (profile.goal === 'weight_loss') tdee -= 500;
+    else if (profile.goal === 'muscle_gain') tdee += 300;
 
     return Math.round(tdee);
   };
@@ -110,7 +110,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate }) => {
         </div>
 
         {/* Trial/Premium Banner */}
-        {(planType === 'trial' || planType === 'premium' || planType === 'vip') && (
+        {(planType === 'trial' || planType === 'premium' || planType === 'vip' || planType === 'plus' || planType === 'pro') && (
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
