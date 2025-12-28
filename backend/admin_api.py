@@ -462,18 +462,18 @@ async def get_funnel_stats(db: AsyncSession = Depends(get_db), admin_id: int = D
     # 2. Onboarded
     onboarded = (await db.execute(select(func.count(User.id)).where(User.is_onboarded == True))).scalar() or 0
     
-    # 3. Started Trial (Historical - trial_start is not null)
-    # This captures anyone who EVER started a trial, avoiding the "current snapshot" drop-off.
-    started_trial = (await db.execute(select(func.count(User.id)).where(User.trial_start.isnot(None)))).scalar() or 0
+    # 3. Started Trial (Strict Subset of Onboarded)
+    # Must be onboarded AND have a trial start date
+    started_trial = (await db.execute(select(func.count(User.id)).where(User.is_onboarded == True, User.trial_start.isnot(None)))).scalar() or 0
     
     # 4. Premium/Plus/Pro (Current Active Paid)
     paid = (await db.execute(select(func.count(User.id)).where(User.plan_type.in_(['premium', 'plus', 'vip', 'pro']), User.premium_until > datetime.utcnow()))).scalar() or 0
     
     return {"data": [
-        {"name": "Ro'yxatdan o'tgan", "value": total},
-        {"name": "Onboarding", "value": onboarded},
-        {"name": "Sinov boshlagan", "value": started_trial},
-        {"name": "To'lov qilgan", "value": paid}
+        {"name": "Botga kirdi", "value": total},
+        {"name": "Ro'yxatdan o'tdi", "value": onboarded},
+        {"name": "Sinov oldi", "value": started_trial},
+        {"name": "Sotib oldi", "value": paid}
     ]}
 
 @router.get("/analytics/retention")
