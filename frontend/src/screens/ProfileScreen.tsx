@@ -109,7 +109,6 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onNavigate }) => {
   };
 
   const menuItems = [
-    { icon: Edit2, label: t('profile.editProfile'), action: () => { vibrate('light'); setShowEditProfile(true); } },
     { icon: BarChart3, label: t('explore.reports'), action: () => { vibrate('light'); onNavigate?.('reports'); } },
     { icon: Settings, label: t('profile.settingsLang'), action: () => { vibrate('light'); onNavigate?.('settings'); } },
     { icon: Bell, label: t('profile.notifications'), action: () => { vibrate('light'); onNavigate?.('notifications'); } },
@@ -179,6 +178,12 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onNavigate }) => {
               <h2 className="text-lg font-bold text-foreground truncate">{profile?.name || labels.user}</h2>
               <p className="text-sm text-muted-foreground truncate">{profile?.phone || labels.noPhone}</p>
             </div>
+            <button
+              onClick={() => { vibrate('light'); setShowEditProfile(true); }}
+              className="p-2 rounded-full hover:bg-muted/50 transition-colors"
+            >
+              <Edit2 className="w-5 h-5 text-muted-foreground" />
+            </button>
           </div>
 
           <div className="grid grid-cols-2 gap-2 mb-3">
@@ -207,25 +212,25 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onNavigate }) => {
           </div>
         </motion.div>
 
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className={`rounded - 2xl p - 4 mb - 4 ${isPremium() ? 'bg-gradient-to-r from-primary/20 to-primary/10 border border-primary/30' : 'bg-card border border-border/50'} `}>
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className={`rounded-2xl p-4 mb-4 ${isPremium() ? 'bg-gradient-to-r from-emerald-500/20 to-teal-500/20 border border-emerald-500/30' : 'bg-card border border-border/50'} `}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className={`w - 11 h - 11 rounded - xl flex items - center justify - center ${isPremium() ? 'bg-primary/20' : 'bg-muted'} `}>
-                <Crown className={`w - 5 h - 5 ${isPremium() ? 'text-primary' : 'text-muted-foreground'} `} />
+              <div className={`w-11 h-11 rounded-xl flex items-center justify-center ${isPremium() ? 'bg-emerald-500/20' : 'bg-muted'} `}>
+                <Crown className={`w-6 h-6 ${isPremium() ? 'text-emerald-500' : 'text-muted-foreground'} `} />
               </div>
               <div>
-                <p className="text-xs text-muted-foreground">{labels.currentPlan}</p>
-                <p className="text-base font-bold text-foreground">{getPlanLabel()}</p>
+                <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">{labels.currentPlan}</p>
+                <p className="text-lg font-bold text-foreground">{getPlanLabel()}</p>
               </div>
             </div>
             {isPremium() && (
               <div className="text-right">
-                <p className="text-xl font-bold text-primary">{getDaysRemaining()}</p>
-                <p className="text-[10px] text-muted-foreground">{labels.daysLeft}</p>
+                <p className="text-2xl font-bold text-emerald-500 leading-none">{getDaysRemaining()}</p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">{labels.daysLeft}</p>
               </div>
             )}
           </div>
-          {!isPremium() && <Button variant="hero" className="w-full mt-4" onClick={handlePremiumClick}><Crown className="w-5 h-5" />{labels.getPremium}</Button>}
+          {!isPremium() && <Button variant="hero" className="w-full mt-4" onClick={handlePremiumClick}><Crown className="w-5 h-5 mr-1" />{labels.getPremium}</Button>}
         </motion.div>
 
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="bg-card border border-border/50 rounded-2xl p-4 mb-4">

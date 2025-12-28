@@ -75,14 +75,14 @@ const AppContent: React.FC = () => {
       case 'achievements': return <AchievementsScreen onBack={() => setActiveTab('explore')} />;
       case 'meditation': return <MeditationScreen onBack={() => setActiveTab('explore')} />;
       case 'recipes': return <RecipesScreen />;
-      case 'reports': return <ReportsScreen onBack={() => setActiveTab('explore')} />;
+      case 'reports': return <ReportsScreen onBack={() => setActiveTab('profile')} />;
       case 'friends': return <FriendsScreen onBack={() => setActiveTab('explore')} />;
       case 'challenges': return <ChallengesScreen onBack={() => setActiveTab('explore')} />;
       case 'referrals': return <ReferralsScreen onBack={() => setActiveTab('explore')} />;
       case 'calories': return <CaloriesScreen onBack={() => setActiveTab('explore')} />;
       case 'workout-library': return <WorkoutLibraryScreen onBack={() => setActiveTab('explore')} />;
       case 'daily-tasks': return <DailyTasksScreen onBack={() => setActiveTab('explore')} />;
-      case 'shop': return <ShopScreen onBack={() => setActiveTab('explore')} />;
+      case 'shop': return <ShopScreen onBack={() => setActiveTab('profile')} />;
       case 'notifications': return <NotificationSettingsScreen onBack={() => setActiveTab('profile')} />;
       case 'explore': return <ExploreScreen onNavigate={setActiveTab} onBack={() => setActiveTab('home')} />;
       case 'settings': return <SettingsScreen onBack={() => setActiveTab('profile')} />;
