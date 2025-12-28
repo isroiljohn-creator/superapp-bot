@@ -775,46 +775,57 @@ def show_daily_menu(bot, user_id, link_data, day_idx=None, meal_type='breakfast'
              safe_val = _esc(meal_data) if isinstance(meal_data, str) else none_text
              txt += f"{label}: {safe_val}\n"
 
-        # 3. Dynamic Buttons
         markup = InlineKeyboardMarkup()
         
-        # Row 1: "Iste'mol qildim" (Primary Action)
-        eat_btn = get_text("btn_eaten", user_lang)
-        markup.row(InlineKeyboardButton(eat_btn, callback_data=f"eat_{day_idx}_{meal_type}"))
-        
-        # Row 2: Meal Navigation (Show all EXCEPT current)
-        meal_nav_row = []
+        # Helper to get other meals
         all_types = ['breakfast', 'lunch', 'dinner', 'snack']
-        for mt in all_types:
-            if mt != meal_type:
-                label = meal_labels.get(mt, mt.capitalize())
-                meal_nav_row.append(InlineKeyboardButton(label, callback_data=f"menu_view_{day_idx}_{mt}"))
+        other_meals = [mt for mt in all_types if mt != meal_type]
         
-        # Split into rows if needed (though 3 buttons fit fine)
-        markup.row(*meal_nav_row)
-        
-        # Row 3: Swap (Secondary Action)
-        markup.row(
-            InlineKeyboardButton(get_text("btn_swap", user_lang), callback_data=f"menu_swap_vip_{day_idx}_{meal_type}")
-        )
-        
-        # Row 4: Day Navigation (Navigation)
-        day_nav_row = []
-        if day_idx > 1:
-            day_nav_row.append(InlineKeyboardButton(get_text("menu_prev_day", user_lang), callback_data=f"menu_view_{day_idx-1}_{meal_type}"))
-        if day_idx < total_days:
-            day_nav_row.append(InlineKeyboardButton(get_text("menu_next_day", user_lang), callback_data=f"menu_view_{day_idx+1}_{meal_type}"))
+        # Prepare Navigation Buttons
+        nav_btns = []
+        for mt in other_meals:
+            label = meal_labels.get(mt, mt.capitalize())
+            # Shorten labels for compact layout if needed (optional)
+            nav_btns.append(InlineKeyboardButton(label, callback_data=f"menu_view_{day_idx}_{mt}"))
             
-        if day_nav_row:
-            markup.row(*day_nav_row)
+        # Row 1: Eat + First Nav Meal
+        eat_btn = get_text("btn_eaten", user_lang)
+        row1 = [InlineKeyboardButton(eat_btn, callback_data=f"eat_{day_idx}_{meal_type}")]
+        if nav_btns:
+            row1.append(nav_btns[0])
+        markup.row(*row1)
         
+        # Row 2: Remaining Nav Meals (usually 2 buttons)
+        markup.row(*nav_btns[1:])
+        
+        # Row 3: Swap + Day Navigation
+        row3 = []
+        row3.append(InlineKeyboardButton(get_text("btn_swap", user_lang), callback_data=f"menu_swap_vip_{day_idx}_{meal_type}"))
+        
+        # Day Nav Logic (Prioritize Next, else Prev)
+        if day_idx < total_days:
+            row3.append(InlineKeyboardButton(get_text("menu_next_day", user_lang), callback_data=f"menu_view_{day_idx+1}_{meal_type}"))
+        elif day_idx > 1:
+            row3.append(InlineKeyboardButton(get_text("menu_prev_day", user_lang), callback_data=f"menu_view_{day_idx-1}_{meal_type}"))
+            
+        markup.row(*row3)
+        
+        # Optional Row 4: If we missed a Prev button because we showed Next?
+        # User requested specific grid. Let's stick to 3 rows if possible, but navigating BACK is important.
+        # If we have both Next and Prev available, Row 3 only shows Next.
+        # Let's add Row 4 for Prev if it exists and wasn't shown?
+        # User pattern "Almashtirish - Ertaga" implies strict 2 cols. 
+        # Making Prev button full width on Row 4 if needed.
+        if day_idx > 1 and day_idx < total_days:
+             markup.row(InlineKeyboardButton(get_text("menu_prev_day", user_lang), callback_data=f"menu_view_{day_idx-1}_{meal_type}"))
+
         # [FEEDBACK V1]
         if is_flag_enabled("feedback_v1", user_id):
             t_id = link_data.get('menu_template_id') or link_data.get('id', 0)
             markup.row(
-                InlineKeyboardButton("👍 Yoqdi", callback_data=f"fb:menu:good:{t_id}:{day_idx}"),
-                InlineKeyboardButton("👌 Bo‘ldi", callback_data=f"fb:menu:ok:{t_id}:{day_idx}"),
-                InlineKeyboardButton("👎 Qiyin", callback_data=f"fb:menu:bad:{t_id}:{day_idx}")
+                InlineKeyboardButton("👍", callback_data=f"fb:menu:good:{t_id}:{day_idx}"),
+                InlineKeyboardButton("👌", callback_data=f"fb:menu:ok:{t_id}:{day_idx}"),
+                InlineKeyboardButton("👎", callback_data=f"fb:menu:bad:{t_id}:{day_idx}")
             )
         
         # [PHASE 7.1] Explain Engine
