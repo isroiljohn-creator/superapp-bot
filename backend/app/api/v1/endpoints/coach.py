@@ -111,6 +111,19 @@ Emotsional va do'stona gapiring.
 
         if not user_message:
             return {"reply": "Tushunmadim, qaytadan yozing."}
+            
+        # [QA ENGINE] Check Database First
+        try:
+            from core.qa_engine import get_best_match
+            # Slightly higher threshold for API/Context aware chat to be safe
+            db_match = get_best_match(user_message, threshold=0.65)
+            
+            if db_match:
+                 # Log usage even if cached (it counts as feature usage)
+                db.increment_tiered_usage(current_user.telegram_id, 'chat')
+                return {"reply": db_match['match']['answer']}
+        except Exception as e:
+            print(f"QA Engine Error: {e}")
 
         # 3. Combine History into System Prompt (or prepend to user message)
         full_system_prompt = f"{system_prompt}\n\nSuhbat tarixi:\n{history}"

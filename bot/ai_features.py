@@ -97,18 +97,32 @@ def process_ai_qa(message, bot):
     - Respond strictly in RUSSIAN.
     """
     
+
     try:
-        from core.ai import ask_gemini
-        response = ask_gemini(system_prompt, question)
+        # 1. Check QA Database (Fast Local Match)
+        from core.qa_engine import get_best_match
         
-        # [SAFE LOGGING ADDITION]
-        try:
-            from core.ai_usage_logger import log_ai_usage
-            log_ai_usage(bot, user_id, "chat", 150)
-        except: pass
+        db_match = get_best_match(question, threshold=0.60)
         
-        # Log Event [NEW]
-        db.log_event(user_id, "ai_chat_used")
+        response = None
+        if db_match:
+            response = db_match['match']['answer']
+            # Log event for internal tracking
+            db.log_event(user_id, "ai_chat_db_hit")
+        else:
+            # 2. Fallback to Gemini AI
+            from core.ai import ask_gemini
+            response = ask_gemini(system_prompt, question)
+            
+            # [SAFE LOGGING ADDITION]
+            try:
+                from core.ai_usage_logger import log_ai_usage
+                log_ai_usage(bot, user_id, "chat", 150)
+            except: pass
+            
+            # Log Event [NEW]
+            db.log_event(user_id, "ai_chat_used")
+
 
         
         from bot.languages import get_text
