@@ -297,16 +297,87 @@ async def get_retention_stats(db: AsyncSession = Depends(get_db), admin_id: int 
     """
     # Simply dummy metrics for now to make UI work
     # In a real app, this would involve complex date-diff joins
+    # Real Cohort Analysis logic
+    # We define a "Check-in" or "Activity" as any EventLog entry.
+    # Cohorts are weekly.
+    
+    # 1. Fetch Weekly Cohorts (Last 4 weeks + current)
+    # weeks = 5
+    # For each week, get user_ids.
+    
+    query = text("""
+        WITH cohort_users AS (
+            SELECT 
+                date_trunc('week', created_at)::date as cohort_date,
+                id as user_id,
+                created_at
+            FROM users 
+            WHERE created_at >= now() - interval '8 weeks'
+        ),
+        activity AS (
+            -- Combine all activity sources (Events, Daily Logs, AI Logs)
+            -- For standard retention, we often just use event_logs if it captures 'launch'
+            -- Since we added 'webapp_launch' to event_logs, this is pretty good coverage.
+            SELECT distinct user_id, date(created_at) as act_date FROM event_logs WHERE created_at >= now() - interval '8 weeks'
+            UNION
+            SELECT distinct user_id, date(date) as act_date FROM daily_logs WHERE date >= (now() - interval '8 weeks')::date
+        )
+        SELECT 
+            c.cohort_date,
+            count(distinct c.user_id) as total_users,
+            count(distinct case when a.act_date = date(c.created_at) + interval '1 day' then c.user_id end) as d1,
+            count(distinct case when a.act_date >= date(c.created_at) + interval '7 days' AND a.act_date < date(c.created_at) + interval '8 days' then c.user_id end) as d7,
+            count(distinct case when a.act_date >= date(c.created_at) + interval '30 days' AND a.act_date < date(c.created_at) + interval '31 days' then c.user_id end) as d30
+        FROM cohort_users c
+        LEFT JOIN activity a ON c.user_id = a.user_id
+        GROUP BY 1
+        ORDER BY 1 DESC
+    """)
+    
+    result = await db.execute(query)
+    rows = result.fetchall()
+    
+    # Format for UI
+    # UI expects: { cohort_date: "YYYY-MM-DD", new_users: N, d1: N, d7: N, d30: N }
+    # And percentages for the summary cards (weighted average)
+    
+    cohorts_data = []
+    total_new = 0
+    total_d1 = 0
+    total_d7 = 0
+    total_d30 = 0
+    
+    for r in rows:
+        c_date = r[0].strftime("%Y-%m-%d") if hasattr(r[0], 'strftime') else str(r[0])
+        new = r[1]
+        d1 = r[2]
+        d7 = r[3]
+        d30 = r[4]
+        
+        cohorts_data.append({
+            "cohort_date": c_date,
+            "new_users": new,
+            "d1": d1,
+            "d7": d7,
+            "d30": d30
+        })
+        
+        # Accumulate for averages (only if cohort is old enough? actually simple avg is fine for 'snapshot')
+        total_new += new
+        total_d1 += d1
+        total_d7 += d7
+        total_d30 += d30
+
+    # Avoid div by zero
+    avg_d1 = (total_d1 / total_new) if total_new > 0 else 0
+    avg_d7 = (total_d7 / total_new) if total_new > 0 else 0
+    avg_d30 = (total_d30 / total_new) if total_new > 0 else 0
+    
     return {
-        "d1_retention": 0.65,
-        "d7_retention": 0.38,
-        "d30_retention": 0.22,
-        "cohorts": [
-            {"cohort_date": (datetime.utcnow() - timedelta(days=21)).strftime("%Y-%m-%d"), "new_users": 150, "d1": 98, "d7": 62, "d30": 0},
-            {"cohort_date": (datetime.utcnow() - timedelta(days=14)).strftime("%Y-%m-%d"), "new_users": 182, "d1": 124, "d7": 78, "d30": 0},
-            {"cohort_date": (datetime.utcnow() - timedelta(days=7)).strftime("%Y-%m-%d"), "new_users": 210, "d1": 145, "d7": 0, "d30": 0},
-            {"cohort_date": datetime.utcnow().strftime("%Y-%m-%d"), "new_users": 45, "d1": 0, "d7": 0, "d30": 0},
-        ]
+        "d1_retention": round(avg_d1, 2),
+        "d7_retention": round(avg_d7, 2),
+        "d30_retention": round(avg_d30, 2),
+        "cohorts": cohorts_data
     }
 
 @router.get("/adaptation")
