@@ -131,14 +131,10 @@ async def generate_meal(
             from core.ai import ai_generate_weekly_meal_plan_json
             
             # Deactivate old links
-            await db_session.execute(
-                select(UserMenuLink)
-                .where(UserMenuLink.user_id == current_user.id)
-            ).update({"is_active": False}) # This might need explicit iteration in async sqlalchemy depending on version
-            # Let's use clean SQL or loop
-            old_links = await db_session.execute(
-                 select(UserMenuLink).where(UserMenuLink.user_id == current_user.id, UserMenuLink.is_active == True)
-            )
+            # Deactivate old links
+            from sqlalchemy import update
+            stmt = update(UserMenuLink).where(UserMenuLink.user_id == current_user.id).values(is_active=False)
+            await db_session.execute(stmt)
             for link in old_links.scalars():
                 link.is_active = False
             
