@@ -219,3 +219,38 @@ async def join_challenge(challenge_id: int, current_user: User = Depends(get_cur
     db.add(participant)
     await db.commit()
     return {"status": "success"}
+
+@router.get("/referrals")
+async def get_my_referrals(current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    """Get user's referral stats and list"""
+    import os
+    
+    # 1. Ensure referral code exists
+    if not current_user.referral_code:
+        # Generate one (simple logic: r + id)
+        current_user.referral_code = f"r{current_user.id}"
+        await db.commit()
+    
+    # 2. Get referrers
+    res = await db.execute(select(User).where(User.referrer_id == current_user.id).order_by(desc(User.created_at)))
+    referrers = res.scalars().all()
+    
+    # 3. Format
+    refs_list = []
+    for r in referrers:
+        refs_list.append({
+            "id": r.id,
+            "name": r.full_name or r.username or f"User {r.id}",
+            "date": r.created_at.strftime("%Y-%m-%d"),
+            "points": 1 # Hardcoded +1 per referral as per rules
+        })
+        
+    bot_username = os.getenv("BOT_USERNAME", "yashabot")
+    
+    return {
+        "code": current_user.referral_code,
+        "link": f"https://t.me/{bot_username}?start={current_user.referral_code}",
+        "total_invited": len(refs_list),
+        "total_earned": len(refs_list) * 1, # Provided 1 point per referral mostly
+        "referrals": refs_list
+    }

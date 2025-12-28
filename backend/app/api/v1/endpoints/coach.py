@@ -138,4 +138,7 @@ Emotsional va do'stona gapiring.
 
     except Exception as e:
         print(f"Chat Error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Coach Error: {str(e)}")
+

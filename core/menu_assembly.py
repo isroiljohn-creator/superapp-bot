@@ -97,6 +97,7 @@ def assemble_menu_7day(user_data, kcal_target):
     for mtype, items in dishes_by_type.items():
         if len(items) < 3: # Arbitrary "enough" threshold
             logger.warning(f"INSUFFICIENT_DATA: type={mtype} goal={goal} count={len(items)}")
+            logger.info("MENU_SOURCE=AI is_fallback=true fallback_reason=insufficient_data")
             return None # Fallback to AI
 
     for i in range(7):
@@ -168,6 +169,7 @@ def assemble_menu_7day(user_data, kcal_target):
         session.add(new_template)
         session.commit()
 
+    logger.info("MENU_SOURCE=LOCAL")
     return final_json
 
 def get_swap_options(user_data, meal_type, target_kcal, current_dish_id=None, limit=3):

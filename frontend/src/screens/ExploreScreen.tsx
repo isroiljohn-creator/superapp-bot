@@ -35,6 +35,7 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({ onNavigate, onBack
 
   const wellnessFeatures = [
     { id: 'meditation', icon: Brain, labelKey: 'explore.meditation', descKey: 'explore.meditationDesc', color: 'indigo' },
+    { id: 'referrals', icon: Users, labelKey: 'explore.referrals', descKey: 'explore.referralsDesc', color: 'green' },
   ];
 
   const socialFeatures = [
@@ -114,22 +115,9 @@ export const ExploreScreen: React.FC<ExploreScreenProps> = ({ onNavigate, onBack
             <h2 className="text-base font-bold text-foreground mb-3 flex items-center gap-2">
               🧘 {t('explore.wellness')}
             </h2>
-            <div className="grid grid-cols-1">
+            <div className="grid grid-cols-2 gap-3">
               {wellnessFeatures.map((feature) => (
-                <button
-                  key={feature.id}
-                  onClick={() => onNavigate?.(feature.id)}
-                  className="p-6 rounded-2xl bg-indigo-500/15 border border-indigo-500/30 text-left transition-all active:scale-[0.98] flex items-center gap-4 group"
-                >
-                  <div className="w-14 h-14 rounded-xl bg-indigo-500/20 flex items-center justify-center shrink-0">
-                    <Brain className="w-8 h-8 text-indigo-400" />
-                  </div>
-                  <div>
-                    <p className="text-lg font-bold text-foreground">{t(feature.labelKey)}</p>
-                    <p className="text-sm text-muted-foreground">{t(feature.descKey)}</p>
-                  </div>
-                  <ChevronRight className="w-5 h-5 text-indigo-400 ml-auto opacity-50 group-active:opacity-100" />
-                </button>
+                <FeatureButton key={feature.id} feature={feature} />
               ))}
             </div>
           </motion.div>

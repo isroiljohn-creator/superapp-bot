@@ -150,7 +150,9 @@ Siz bilan birga sog‘lom hayot sari 💚""",
         "reminder_day_3": "☀️ Salom {name}! Maqsadingiz sari intilishda davom eting! Bugun suv va mashqlar qanday bo'ldi? 💧💪\n\n/start tugmasi sizni kutmoqda!",
         "reminder_day_4": "☀️ Salom {name}! Bugungi suv ichish va mashg'ulotlar haqida unutmang, sog'lig'ingiz o'z qo'lingizda! 💧💪\n\n/start ni bosib belgilang!",
         "reminder_day_5": "☀️ Salom {name}! Dam olish kuningiz unumli o'tsin. Bugun ham suv va mashqlar esingizdamu? 💧💪\n\n/start orqali tekshiring!",
-        "reminder_day_6": "☀️ Salom {name}! Yakshanba - o'z ustingizda ishlash uchun yaxshi kun. Suv ichdingizmi va mashqlarni qildingizmi? 💧💪\n\n/start ni bosing!",
+        "reminder_day_6": "Yakshanba – dam olish kuni! 🏖 Lekin faol bo'lishni unutmang. Sayr qilishga nima deysiz?",
+        
+        "reminder_workout_prompt": "Bugungi mashg'ulot vaqti bo'ldi! {name}, tayyormisiz? 🏋️‍♂️\nBoshlash uchun pastdagi tugmani bosing!",
 
         # Templates
         "workout_templates_title": "📋 **Mashq rejalari**",

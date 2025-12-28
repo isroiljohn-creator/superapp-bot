@@ -66,7 +66,7 @@ def register_all_handlers(bot):
         txt += f"✅ Is Admin? {uid in ADMIN_IDS}"
         bot.send_message(message.chat.id, txt, parse_mode="Markdown")
 
-    @bot.message_handler(func=lambda message: message.text == "👨‍💻 Dasturchi")
+    @bot.message_handler(func=lambda message: message.text == "👨‍💻 DASTURCHI")
     def developer_menu(message):
         if message.from_user.id in ADMIN_IDS:
              # ... existing code ...

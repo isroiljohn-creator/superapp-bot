@@ -15,6 +15,7 @@ import { RecipesScreen } from '@/screens/RecipesScreen';
 import { ReportsScreen } from '@/screens/ReportsScreen';
 import { FriendsScreen } from '@/screens/FriendsScreen';
 import { ChallengesScreen } from '@/screens/ChallengesScreen';
+import { ReferralsScreen } from '@/screens/ReferralsScreen';
 import { CaloriesScreen } from '@/screens/CaloriesScreen';
 import { WorkoutLibraryScreen } from '@/screens/WorkoutLibraryScreen';
 import { DailyTasksScreen } from '@/screens/DailyTasksScreen';
@@ -77,6 +78,7 @@ const AppContent: React.FC = () => {
       case 'reports': return <ReportsScreen onBack={() => setActiveTab('explore')} />;
       case 'friends': return <FriendsScreen onBack={() => setActiveTab('explore')} />;
       case 'challenges': return <ChallengesScreen onBack={() => setActiveTab('explore')} />;
+      case 'referrals': return <ReferralsScreen onBack={() => setActiveTab('explore')} />;
       case 'calories': return <CaloriesScreen onBack={() => setActiveTab('explore')} />;
       case 'workout-library': return <WorkoutLibraryScreen onBack={() => setActiveTab('explore')} />;
       case 'daily-tasks': return <DailyTasksScreen onBack={() => setActiveTab('explore')} />;

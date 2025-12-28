@@ -32,8 +32,7 @@ def register_handlers(bot):
         
         # 1. Top - Mini App Dashboard (Prominent)
         markup.add(
-            types.KeyboardButton("🚦 Dashboard", web_app=types.WebAppInfo(url=webapp_url)),
-            types.KeyboardButton("👨‍💻 Dasturchi")
+            types.KeyboardButton("👨‍💻 DASTURCHI")
         )
         
         # 2. Main Controls
