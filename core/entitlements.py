@@ -6,6 +6,8 @@ Manages plan-based access control and usage limits for YASHA.
 from datetime import datetime, date, timedelta
 from typing import Dict, Optional, Literal
 from core.db import db
+from backend.database import get_sync_db
+from sqlalchemy import text
 import pytz
 
 # Uzbekistan timezone
@@ -177,14 +179,15 @@ def get_usage_status(user_id: int, feature_key: FeatureKey) -> Dict:
     period_start = get_period_start(period)
     reset_at = get_reset_datetime(period)
     
-    usage_row = db.db.execute(
-        """
-        SELECT used_count FROM usage_counters
-        WHERE user_id = %s AND feature_key = %s 
-        AND period_type = %s AND period_start = %s
-        """,
-        (user_id, feature_key, period, period_start)
-    ).fetchone()
+    with get_sync_db() as session:
+        usage_row = session.execute(
+            text("""
+            SELECT used_count FROM usage_counters
+            WHERE user_id = :user_id AND feature_key = :feature_key 
+            AND period_type = :period_type AND period_start = :period_start
+            """),
+            {"user_id": user_id, "feature_key": feature_key, "period_type": period, "period_start": period_start}
+        ).fetchone()
     
     used = usage_row[0] if usage_row else 0
     remaining = max(0, limit - used)
@@ -207,16 +210,17 @@ def consume_usage(user_id: int, feature_key: FeatureKey) -> bool:
     period = status['period']
     period_start = get_period_start(period)
     
-    db.db.execute(
-        """
-        INSERT INTO usage_counters (user_id, feature_key, period_type, period_start, used_count, created_at, updated_at)
-        VALUES (%s, %s, %s, %s, 1, NOW(), NOW())
-        ON CONFLICT (user_id, feature_key, period_type, period_start)
-        DO UPDATE SET used_count = usage_counters.used_count + 1, updated_at = NOW()
-        """,
-        (user_id, feature_key, period, period_start)
-    )
-    db.db.commit()
+    with get_sync_db() as session:
+        session.execute(
+            text("""
+            INSERT INTO usage_counters (user_id, feature_key, period_type, period_start, used_count, created_at, updated_at)
+            VALUES (:user_id, :feature_key, :period_type, :period_start, 1, NOW(), NOW())
+            ON CONFLICT (user_id, feature_key, period_type, period_start)
+            DO UPDATE SET used_count = usage_counters.used_count + 1, updated_at = NOW()
+            """),
+            {"user_id": user_id, "feature_key": feature_key, "period_type": period, "period_start": period_start}
+        )
+        session.commit()
     return True
 
 def check_and_consume(user_id: int, feature_key: FeatureKey) -> Dict:
