@@ -59,7 +59,7 @@ export const StatCard: React.FC<StatCardProps> = ({
       whileTap={{ scale: 0.98 }}
       onClick={onClick}
       className={cn(
-        "flex flex-col p-4 rounded-2xl bg-card border border-border/50 text-left w-full h-[120px]",
+        "flex flex-col p-4 rounded-2xl bg-card border border-border/50 text-left w-full min-h-[120px]",
         onClick && "cursor-pointer active:bg-card/80"
       )}
     >
@@ -67,9 +67,9 @@ export const StatCard: React.FC<StatCardProps> = ({
         <div className={cn("p-2 rounded-xl", styles.bg)}>
           <Icon className={cn("w-4 h-4", styles.icon)} />
         </div>
-        <span className="text-xs font-medium text-muted-foreground">{label}</span>
+        <span className="text-xs font-medium text-muted-foreground break-words leading-tight">{label}</span>
       </div>
-      
+
       <div className="flex items-baseline gap-1 mt-auto">
         <span className="text-xl font-bold text-foreground">{value}</span>
         {unit && <span className="text-xs text-muted-foreground">{unit}</span>}

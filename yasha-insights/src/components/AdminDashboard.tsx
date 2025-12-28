@@ -85,8 +85,8 @@ export function AdminDashboard() {
                     YASHA <span className="text-foreground">Admin</span>
                   </h1>
                   <div className="flex items-center gap-2 mt-2">
-                    <span className="px-2 py-0.5 rounded-full bg-primary/10 text-[10px] font-bold text-primary border border-primary/20 uppercase tracking-widest">
-                      v2.6 Premium
+                    <span className="px-2 py-0.5 rounded-full bg-primary/10 text-[10px] font-bold text-primary border border-primary/20 uppercase tracking-widest animate-pulse">
+                      v2.7 Refresh Fix
                     </span>
                   </div>
                 </div>
