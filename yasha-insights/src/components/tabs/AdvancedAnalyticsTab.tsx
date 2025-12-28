@@ -109,7 +109,7 @@ export function AdvancedAnalyticsTab() {
                                 <YAxis
                                     dataKey="name"
                                     type="category"
-                                    width={100}
+                                    width={140}
                                     fontSize={10}
                                     tickLine={false}
                                     axisLine={false}

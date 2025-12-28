@@ -105,8 +105,9 @@ def main_menu_keyboard(is_admin=False, user_id=None, lang=None):
     coach_text = get_text("btn_ai_murabbiy", lang=lang)
     app_text = get_text("btn_mini_app", lang=lang)
     
-    mini_app_url = os.getenv("MINI_APP_URL", "https://yasha-insights.up.railway.app")
-    
+    mini_app_url = os.getenv("MINI_APP_URL") or os.getenv("WEBAPP_URL") or "https://yasha-insights.up.railway.app"
+    if mini_app_url.endswith("/"): mini_app_url = mini_app_url[:-1]
+
     markup.add(
         KeyboardButton(coach_text),
         KeyboardButton(app_text, web_app=WebAppInfo(url=mini_app_url))
@@ -180,7 +181,9 @@ def profile_inline_keyboard(lang="uz"):
     from bot.languages import get_text
     markup = InlineKeyboardMarkup(row_width=1)
     
-    mini_app_url = os.getenv("MINI_APP_URL", "https://yasha-insights.up.railway.app")
+    mini_app_url = os.getenv("MINI_APP_URL") or os.getenv("WEBAPP_URL") or "https://yasha-insights.up.railway.app"
+    if mini_app_url.endswith("/"): mini_app_url = mini_app_url[:-1]
+
     markup.add(
         InlineKeyboardButton(get_text("btn_edit_profile", lang), callback_data="profile_edit"),
         InlineKeyboardButton(get_text("btn_health_stats", lang), web_app=WebAppInfo(url=f"{mini_app_url}?tab=reports"))
@@ -190,7 +193,8 @@ def profile_inline_keyboard(lang="uz"):
 def premium_inline_keyboard(lang="uz"):
     from bot.languages import get_text
     markup = InlineKeyboardMarkup()
-    mini_app_url = os.getenv("MINI_APP_URL", "https://yasha-insights.up.railway.app")
+    mini_app_url = os.getenv("MINI_APP_URL") or os.getenv("WEBAPP_URL") or "https://yasha-insights.up.railway.app"
+    if mini_app_url.endswith("/"): mini_app_url = mini_app_url[:-1]
     # Main button: Unlock Features (previously Change Plan)
     markup.row(InlineKeyboardButton(get_text("btn_unlock_features", lang), callback_data="premium_buy"))
     # Challenges button (opens Mini App)
@@ -249,7 +253,8 @@ def ai_coach_inline_keyboard(lang="uz"):
         InlineKeyboardButton(get_text("btn_shopping_list_kb", lang=lang), callback_data="ai_sub_shopping")
     )
     # Changed QA to open Mini App, Removed Back/Close (user can just swipe or use main menu)
-    mini_app_url = os.getenv("MINI_APP_URL", "https://yasha-insights.up.railway.app")
+    mini_app_url = os.getenv("MINI_APP_URL") or os.getenv("WEBAPP_URL") or "https://yasha-insights.up.railway.app"
+    if mini_app_url.endswith("/"): mini_app_url = mini_app_url[:-1]
     markup.add(
         InlineKeyboardButton(get_text("btn_ai_qa", lang=lang), web_app=WebAppInfo(url=f"{mini_app_url}?tab=ai-coach"))
     )

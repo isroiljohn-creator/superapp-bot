@@ -29,12 +29,17 @@ import { LanguageProvider } from '@/contexts/LanguageContext';
 
 const AppContent: React.FC = () => {
   const { isOnboarded, isLoading } = useUser();
-  const [activeTab, setActiveTab] = useState(() => {
-    // Deep linking support via ?tab=...
-    const params = new URLSearchParams(window.location.search);
-    return params.get('tab') || 'home';
-  });
+  const [activeTab, setActiveTab] = useState('home');
   const [showSplash, setShowSplash] = useState(true);
+
+  // Deep linking support via ?tab=...
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const tab = params.get('tab');
+    if (tab) {
+      setActiveTab(tab);
+    }
+  }, [window.location.search]);
 
   useEffect(() => {
     // Splash faqat bir marta ko'rsatiladi (kuniga bir marta)

@@ -60,7 +60,7 @@ export function StatCard({
       )}
     >
       <div className="flex items-center justify-between mb-4 gap-4">
-        <span className="stat-label truncate group-hover:text-foreground transition-colors pr-2">{title}</span>
+        <span className="stat-label group-hover:text-foreground transition-colors pr-2 break-words leading-tight">{title}</span>
         {Icon && (
           <div
             className={cn(
@@ -74,7 +74,7 @@ export function StatCard({
       </div>
 
       <div className="flex flex-col gap-1.5 mt-auto">
-        <div className="stat-value truncate leading-tight">
+        <div className="stat-value leading-tight break-words">
           {typeof value === 'number' ? value.toLocaleString() : value}
         </div>
 
