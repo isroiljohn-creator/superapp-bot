@@ -778,39 +778,35 @@ def show_daily_menu(bot, user_id, link_data, day_idx=None, meal_type='breakfast'
         # 3. Dynamic Buttons
         markup = InlineKeyboardMarkup()
         
-        # Row 1: "Iste'mol qildim"
+        # Row 1: "Iste'mol qildim" (Primary Action)
         eat_btn = get_text("btn_eaten", user_lang)
         markup.row(InlineKeyboardButton(eat_btn, callback_data=f"eat_{day_idx}_{meal_type}"))
         
-        # Row 2: Meal Navigation (Breakfast, Lunch, Dinner)
-        main_meals_row = []
-        if meal_type != 'breakfast':
-            main_meals_row.append(InlineKeyboardButton(meal_labels['breakfast'], callback_data=f"menu_view_{day_idx}_breakfast"))
-        if meal_type != 'lunch':
-            main_meals_row.append(InlineKeyboardButton(meal_labels['lunch'], callback_data=f"menu_view_{day_idx}_lunch"))
-        if meal_type != 'dinner':
-            main_meals_row.append(InlineKeyboardButton(meal_labels['dinner'], callback_data=f"menu_view_{day_idx}_dinner"))
+        # Row 2: Meal Navigation (Show all EXCEPT current)
+        meal_nav_row = []
+        all_types = ['breakfast', 'lunch', 'dinner', 'snack']
+        for mt in all_types:
+            if mt != meal_type:
+                label = meal_labels.get(mt, mt.capitalize())
+                meal_nav_row.append(InlineKeyboardButton(label, callback_data=f"menu_view_{day_idx}_{mt}"))
         
-        markup.row(*main_meals_row)
+        # Split into rows if needed (though 3 buttons fit fine)
+        markup.row(*meal_nav_row)
         
-        # Row 3: Snack + Day Navigation
-        snack_nav_row = []
-        if meal_type != 'snack':
-             snack_nav_row.append(InlineKeyboardButton(meal_labels['snack'], callback_data=f"menu_view_{day_idx}_snack"))
-        
-        # Boundary-safe Day Nav
-        if day_idx > 1:
-            snack_nav_row.append(InlineKeyboardButton(get_text("menu_prev_day", user_lang), callback_data=f"menu_view_{day_idx-1}_{meal_type}"))
-        if day_idx < total_days:
-            snack_nav_row.append(InlineKeyboardButton(get_text("menu_next_day", user_lang), callback_data=f"menu_view_{day_idx+1}_{meal_type}"))
-        
-        markup.row(*snack_nav_row)
-        
-        # Row 4: Tools
+        # Row 3: Swap (Secondary Action)
         markup.row(
-            InlineKeyboardButton(get_text("btn_shopping_list", user_lang), callback_data="menu_shopping"),
             InlineKeyboardButton(get_text("btn_swap", user_lang), callback_data=f"menu_swap_vip_{day_idx}_{meal_type}")
         )
+        
+        # Row 4: Day Navigation (Navigation)
+        day_nav_row = []
+        if day_idx > 1:
+            day_nav_row.append(InlineKeyboardButton(get_text("menu_prev_day", user_lang), callback_data=f"menu_view_{day_idx-1}_{meal_type}"))
+        if day_idx < total_days:
+            day_nav_row.append(InlineKeyboardButton(get_text("menu_next_day", user_lang), callback_data=f"menu_view_{day_idx+1}_{meal_type}"))
+            
+        if day_nav_row:
+            markup.row(*day_nav_row)
         
         # [FEEDBACK V1]
         if is_flag_enabled("feedback_v1", user_id):
