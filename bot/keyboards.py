@@ -295,7 +295,7 @@ def admin_developer_keyboard():
     webapp_url = f"{base_url}/admin-insights/"
 
     markup.row(
-        InlineKeyboardButton("🚦 Dashboard", web_app=types.WebAppInfo(url=webapp_url)),
+        InlineKeyboardButton("🚦 Dashboard", web_app=WebAppInfo(url=webapp_url)),
         InlineKeyboardButton("🗑 AI Bazani Tozalash", callback_data="dev_clear_ai_db")
     )
     markup.row(
