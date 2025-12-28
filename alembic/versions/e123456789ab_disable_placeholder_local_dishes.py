@@ -147,12 +147,12 @@ def upgrade() -> None:
         final_values = []
         for v in values_list:
             final_values.append({
-                'name_uz': v['name_uz'],
-                'total_kcal': int(v['total_kcal'] or v['calories'] or 0), # Fallback safety
-                'protein_g': float(v['protein_g'] or v['protein'] or 0.0),
-                'carbs_g': float(v['carbs_g'] or v['carbs'] or 0.0),
-                'fat_g': float(v['fat_g'] or v['fat'] or 0.0),
-                'meal_type': v['meal_type'],
+                'name_uz': v.get('name_uz'),
+                'total_kcal': int(v.get('total_kcal') or v.get('calories') or 0),
+                'protein_g': float(v.get('protein_g') or v.get('protein') or 0.0),
+                'carbs_g': float(v.get('carbs_g') or v.get('carbs') or 0.0),
+                'fat_g': float(v.get('fat_g') or v.get('fat') or 0.0),
+                'meal_type': v.get('meal_type'),
                 # 'ingredients': ... # Skipped
                 'is_active': True,
                 'portion_type': 'medium',
