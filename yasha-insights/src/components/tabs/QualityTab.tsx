@@ -60,23 +60,23 @@ export function QualityTab({ isLoading: externalLoading = false }: QualityTabPro
     <div className="space-y-6 animate-fade-in">
       {/* Header */}
       <div>
-        <h2 className="text-xl font-semibold">Quality</h2>
+        <h2 className="text-xl font-semibold">Sifat (Quality)</h2>
         <p className="text-sm text-muted-foreground">
-          Feedback & adaptation engine impact
+          Fikr-mulohazalar va moslashish dvigateli ta'siri
         </p>
       </div>
 
       {/* Feedback Overview */}
       <div className="grid grid-cols-2 gap-3">
         <StatCard
-          title="Menu Satisfaction"
+          title="Menyu Qoniqishi"
           value={`${menuSatisfaction}%`}
           icon={ThumbsUp}
           variant="success"
           isLoading={isLoading}
         />
         <StatCard
-          title="Coach Love Rate"
+          title="Murabbiy Sevimliligi"
           value={`${coachTotal > 0 ? (((feedback.coach.love || 0) / coachTotal) * 100).toFixed(0) : '0'}%`}
           icon={Heart}
           variant="primary"
@@ -88,7 +88,7 @@ export function QualityTab({ isLoading: externalLoading = false }: QualityTabPro
       <div className="stat-card">
         <div className="flex items-center gap-2 mb-4">
           <span className="text-lg">🍽️</span>
-          <span className="font-medium">Menu Feedback</span>
+          <span className="font-medium">Menyu Fikrlari</span>
           <span className="ml-auto text-xs text-muted-foreground">
             {feedback.menu.users} users
           </span>
@@ -137,7 +137,7 @@ export function QualityTab({ isLoading: externalLoading = false }: QualityTabPro
       <div className="stat-card">
         <div className="flex items-center gap-2 mb-4">
           <span className="text-lg">💪</span>
-          <span className="font-medium">Workout Feedback</span>
+          <span className="font-medium">Mashq Fikrlari</span>
           <span className="ml-auto text-xs text-muted-foreground">
             {feedback.workout.users} users
           </span>
@@ -168,7 +168,7 @@ export function QualityTab({ isLoading: externalLoading = false }: QualityTabPro
       <div className="stat-card">
         <div className="flex items-center gap-2 mb-4">
           <Heart className="h-4 w-4 text-destructive" />
-          <span className="font-medium">Top Loved Coach Messages</span>
+          <span className="font-medium">Eng sevimli murabbiy maslahatlari</span>
         </div>
         <div className="space-y-2">
           {feedback.top_loved_coach.map((msg, i) => (
@@ -200,19 +200,19 @@ export function QualityTab({ isLoading: externalLoading = false }: QualityTabPro
       <div className="border-t border-border pt-6">
         <div className="flex items-center gap-2 mb-4">
           <Settings2 className="h-5 w-5 text-primary" />
-          <h3 className="text-lg font-semibold">Adaptation Engine</h3>
+          <h3 className="text-lg font-semibold">Moslashish Dvigateli</h3>
         </div>
 
         <div className="grid grid-cols-2 gap-3 mb-4">
           <StatCard
-            title="Adapted Users"
+            title="Moslashganlar"
             value={adaptation.adapted_users}
             icon={Zap}
             variant="primary"
             isLoading={isLoading}
           />
           <StatCard
-            title="Kcal Adjusted"
+            title="Kcal O'zgartirildi"
             value={adaptation.kcal_adjusted}
             icon={TrendingUp}
             isLoading={isLoading}
@@ -221,12 +221,12 @@ export function QualityTab({ isLoading: externalLoading = false }: QualityTabPro
 
         <div className="grid grid-cols-2 gap-3 mb-4">
           <StatCard
-            title="Soft Mode"
+            title="Yumshoq rejim"
             value={adaptation.soft_mode_users}
             isLoading={isLoading}
           />
           <StatCard
-            title="Variant Switches"
+            title="Variantlar alishdi"
             value={adaptation.variant_switches}
             isLoading={isLoading}
           />
@@ -234,7 +234,7 @@ export function QualityTab({ isLoading: externalLoading = false }: QualityTabPro
 
         {/* Validation Metrics */}
         <div className="stat-card">
-          <span className="stat-label mb-4 block">Engine Validation</span>
+          <span className="stat-label mb-4 block">Dvigatelni Tekshirish</span>
           <div className="space-y-4">
             <div className="flex items-center gap-3">
               <AlertCircle className="h-4 w-4 text-warning" />
@@ -281,7 +281,7 @@ export function QualityTab({ isLoading: externalLoading = false }: QualityTabPro
         {/* Daily Adaptations Chart */}
         <div className="stat-card mt-4">
           <div className="flex items-center justify-between mb-4">
-            <span className="stat-label">Daily Adaptations (14d)</span>
+            <span className="stat-label">Kunlik Moslashishlar (14 kun)</span>
           </div>
           <div className="flex items-end justify-between h-24 gap-0.5">
             {adaptation.daily.map((day) => (

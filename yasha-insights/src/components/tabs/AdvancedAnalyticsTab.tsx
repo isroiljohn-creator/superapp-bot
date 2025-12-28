@@ -42,14 +42,14 @@ export function AdvancedAnalyticsTab() {
     return (
         <div className="space-y-6 animate-fade-in pb-12">
             <div>
-                <h2 className="text-xl font-semibold">Advanced Analytics</h2>
-                <p className="text-sm text-muted-foreground">Deep dive into growth, conversion, and retention metrics.</p>
+                <h2 className="text-xl font-semibold">Kengaytirilgan Analitika</h2>
+                <p className="text-sm text-muted-foreground">O'sish, konversiya va qaytuvchanlik ko'rsatkichlari bo'yicha chuqur tahlil.</p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Growth Chart */}
                 <div className="stat-card">
-                    <h3 className="text-sm font-medium mb-4 text-muted-foreground uppercase tracking-wider">Daily Active Users</h3>
+                    <h3 className="text-sm font-medium mb-4 text-muted-foreground uppercase tracking-wider">Kunlik Faol Foydalanuvchilar (DAU)</h3>
                     <div className="h-[250px] w-full">
                         <ResponsiveContainer width="100%" height="100%">
                             <LineChart data={growth?.data || []}>
@@ -96,7 +96,7 @@ export function AdvancedAnalyticsTab() {
 
                 {/* Funnel Chart */}
                 <div className="stat-card">
-                    <h3 className="text-sm font-medium mb-4 text-muted-foreground uppercase tracking-wider">User Funnel (30 Days)</h3>
+                    <h3 className="text-sm font-medium mb-4 text-muted-foreground uppercase tracking-wider">Foydalanuvchi Voronkasi (30 kun)</h3>
                     <div className="h-[250px] w-full">
                         <ResponsiveContainer width="100%" height="100%">
                             <BarChart data={funnel?.data || []} layout="vertical" barSize={32}>
@@ -135,7 +135,7 @@ export function AdvancedAnalyticsTab() {
 
                 {/* Retention Chart */}
                 <div className="stat-card">
-                    <h3 className="text-sm font-medium mb-4 text-muted-foreground uppercase tracking-wider">Retention Rates (%)</h3>
+                    <h3 className="text-sm font-medium mb-4 text-muted-foreground uppercase tracking-wider">Qaytuvchanlik darajasi (%)</h3>
                     <div className="h-[250px] w-full">
                         <ResponsiveContainer width="100%" height="100%">
                             <BarChart data={retention?.data || []}>
@@ -175,7 +175,7 @@ export function AdvancedAnalyticsTab() {
 
                 {/* Premium Distribution */}
                 <div className="stat-card">
-                    <h3 className="text-sm font-medium mb-4 text-muted-foreground uppercase tracking-wider">Premium vs Free</h3>
+                    <h3 className="text-sm font-medium mb-4 text-muted-foreground uppercase tracking-wider">Premium vs Bepul</h3>
                     <div className="h-[250px] w-full">
                         <ResponsiveContainer width="100%" height="100%">
                             <PieChart>

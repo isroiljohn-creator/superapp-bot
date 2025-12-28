@@ -40,9 +40,9 @@ export function AICostsTab({ isLoading: externalLoading = false }: AICostsTabPro
     <div className="space-y-6 animate-fade-in">
       {/* Header */}
       <div>
-        <h2 className="text-xl font-semibold">AI Costs</h2>
+        <h2 className="text-xl font-semibold">AI Xarajatlari</h2>
         <p className="text-sm text-muted-foreground">
-          Token usage & cost breakdown
+          Token iste'moli va xarajatlar taqsimoti
         </p>
       </div>
 
@@ -67,7 +67,7 @@ export function AICostsTab({ isLoading: externalLoading = false }: AICostsTabPro
       {/* Cost Per Token */}
       <div className="stat-card">
         <div className="flex items-center justify-between">
-          <span className="stat-label">Avg Cost per 1K Tokens</span>
+          <span className="stat-label">O'rtacha 1K Token narxi</span>
           <Zap className="h-4 w-4 text-warning" />
         </div>
         <div className="stat-value text-warning mt-2">
@@ -78,7 +78,7 @@ export function AICostsTab({ isLoading: externalLoading = false }: AICostsTabPro
       {/* By Feature */}
       <div>
         <h3 className="text-sm font-medium text-muted-foreground mb-3 uppercase tracking-wider">
-          Cost by Feature
+          Funksiyalar bo'yicha Xarajat
         </h3>
         <div className="space-y-3">
           {displayData.by_feature.map((feature) => (
@@ -122,7 +122,7 @@ export function AICostsTab({ isLoading: externalLoading = false }: AICostsTabPro
       {/* Daily Chart */}
       <div className="stat-card">
         <div className="flex items-center justify-between mb-4">
-          <span className="stat-label">Daily Cost (7d)</span>
+          <span className="stat-label">Kunlik Xarajat (7 kun)</span>
           <TrendingUp className="h-4 w-4 text-muted-foreground" />
         </div>
         <div className="flex items-end justify-between h-32 gap-1">
@@ -165,15 +165,15 @@ export function AICostsTab({ isLoading: externalLoading = false }: AICostsTabPro
       {/* Daily Breakdown Table */}
       <div className="stat-card overflow-hidden p-0">
         <div className="p-4 border-b border-border">
-          <span className="font-medium">Daily Breakdown</span>
+          <span className="font-medium">Kunlik Tafsilotlar</span>
         </div>
         <div className="overflow-x-auto">
           <table className="data-table">
             <thead>
               <tr>
-                <th>Date</th>
-                <th className="text-right">Tokens</th>
-                <th className="text-right">Cost</th>
+                <th>Sana</th>
+                <th className="text-right">Tokenlar</th>
+                <th className="text-right">Narx</th>
               </tr>
             </thead>
             <tbody>
@@ -202,15 +202,15 @@ export function AICostsTab({ isLoading: externalLoading = false }: AICostsTabPro
       {displayData.top_users && displayData.top_users.length > 0 && (
         <div className="stat-card overflow-hidden p-0">
           <div className="p-4 border-b border-border">
-            <span className="font-medium">Top 5 Spenders (30 Days)</span>
+            <span className="font-medium">Eng ko'p ishlatganlar (30 kun)</span>
           </div>
           <div className="overflow-x-auto">
             <table className="data-table">
               <thead>
                 <tr>
-                  <th>User</th>
+                  <th>Foydalanuvchi</th>
                   <th className="text-right">ID</th>
-                  <th className="text-right">Spent</th>
+                  <th className="text-right">Xarajat</th>
                 </tr>
               </thead>
               <tbody>

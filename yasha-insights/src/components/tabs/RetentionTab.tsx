@@ -36,9 +36,9 @@ export function RetentionTab({ isLoading: externalLoading = false }: RetentionTa
     <div className="space-y-6 animate-fade-in">
       {/* Header */}
       <div>
-        <h2 className="text-xl font-semibold">Retention</h2>
+        <h2 className="text-xl font-semibold">Qaytuvchanlik</h2>
         <p className="text-sm text-muted-foreground">
-          Cohort analysis & user retention
+          Kogorta tahlili va foydalanuvchilarning qaytish darajasi
         </p>
       </div>
 
@@ -68,7 +68,7 @@ export function RetentionTab({ isLoading: externalLoading = false }: RetentionTa
 
       {/* Retention Funnel */}
       <div className="stat-card">
-        <span className="stat-label mb-4 block">Retention Funnel</span>
+        <span className="stat-label mb-4 block">Qaytuvchanlik Voronkasi</span>
         <div className="space-y-3">
           <div className="flex items-center gap-3">
             <span className="text-xs text-muted-foreground w-8">D0</span>
@@ -119,15 +119,15 @@ export function RetentionTab({ isLoading: externalLoading = false }: RetentionTa
         <div className="p-4 border-b border-border">
           <div className="flex items-center gap-2">
             <Users className="h-4 w-4 text-muted-foreground" />
-            <span className="font-medium">Weekly Cohorts</span>
+            <span className="font-medium">Haftalik Kogortalar</span>
           </div>
         </div>
         <div className="overflow-x-auto">
           <table className="data-table">
             <thead>
               <tr>
-                <th>Cohort</th>
-                <th className="text-center">New</th>
+                <th>Kogorta</th>
+                <th className="text-center">Yangi</th>
                 <th className="text-center">D1</th>
                 <th className="text-center">D7</th>
                 <th className="text-center">D30</th>
