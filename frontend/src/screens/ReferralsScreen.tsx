@@ -42,6 +42,11 @@ export const ReferralsScreen: React.FC<ReferralsScreenProps> = ({ onBack }) => {
             const res = await axios.get(`${import.meta.env.VITE_API_URL || '/api/v1'}/social/referrals`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
+
+            if (typeof res.data === 'string' || !res.data.referrals) {
+                throw new Error("Invalid API response");
+            }
+
             setData(res.data);
         } catch (error) {
             console.error(error);
