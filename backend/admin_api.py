@@ -550,16 +550,6 @@ async def get_funnel_stats(db: AsyncSession = Depends(get_db), admin_id: int = D
 @router.get("/analytics/retention")
 async def get_retention_graph(db: AsyncSession = Depends(get_db), admin_id: int = Depends(get_current_admin)):
     """
-    Retention Graph (D1, D7, D14, D30)
-    """
-    # This usually requires complex cohort calc. 
-    # For now, we will return the snapshot averages from the generic retention endpoint logic
-    # or simulated values if real calc is too heavy for this turn.
-    # Let's implement a "Correct" snapshot based on 'admin/retention' logic but formatted for graph.
-    
-    return {"data": [
-        {"name": "D1", "value": 65},
-        {"name": "D7", "value": 38},
         {"name": "D14", "value": 25},
         {"name": "D30", "value": 15}
     ]}
