@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from backend.database import get_db
-from backend.models import User, DailyLog
+from backend.models import User, DailyLog, EventLog
 from backend.auth import verify_token
 from fastapi.security import OAuth2PasswordBearer
 from pydantic import BaseModel
@@ -58,6 +58,21 @@ async def get_profile(current_user: User = Depends(get_current_user), db: AsyncS
             await db.refresh(current_user)
         except:
             await db.rollback()
+
+    # Log webapp launch event for DAU tracking
+    try:
+        launch_log = EventLog(user_id=current_user.id, event_type="webapp_launch")
+        db.add(launch_log)
+        await db.commit() # Commit the log
+    except Exception as e:
+        print(f"Failed to log webapp_launch: {e}")
+        # Don't fail the request for logging
+        await db.rollback() # Rollback the log transaction if failed, though session might be shared.
+        # Actually in async session rollback resets session.
+        # Since we might have committed auto-heal above, we should be careful.
+        # Auto-heal has its own try/except commit/rollback.
+        # So here we are clean.
+
 
     return {
         "id": current_user.id,

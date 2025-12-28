@@ -108,7 +108,7 @@ async def serve_admin(full_path: str):
     if "." in full_path.split("/")[-1]:
         raise HTTPException(status_code=404, detail="Admin asset not found")
         
-    return FileResponse(os.path.join(ADMIN_DIST, "index.html"))
+    return FileResponse(os.path.join(ADMIN_DIST, "index.html"), headers={"Cache-Control": "no-cache, no-store, must-revalidate"})
 
 @app.get("/{full_path:path}")
 async def serve_main(full_path: str):
@@ -135,4 +135,4 @@ async def serve_main(full_path: str):
     if "." in full_path.split("/")[-1]:
         raise HTTPException(status_code=404, detail="File not found")
         
-    return FileResponse(os.path.join(FRONTEND_DIST, "index.html"))
+    return FileResponse(os.path.join(FRONTEND_DIST, "index.html"), headers={"Cache-Control": "no-cache, no-store, must-revalidate"})
