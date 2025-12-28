@@ -747,6 +747,8 @@ async def get_retention_data(db: AsyncSession = Depends(get_db), admin_id: int =
 
 @router.get("/analytics/premium_dist")
 async def get_premium_dist(db: AsyncSession = Depends(get_db), admin_id: int = Depends(get_current_admin)):
+@router.get("/analytics/premium_dist_legacy")
+async def get_premium_dist_legacy(db: AsyncSession = Depends(get_db), admin_id: int = Depends(get_current_admin)):
     """Premium vs Free distribution"""
     now = datetime.utcnow()
     premium = (await db.execute(select(func.count()).where(User.plan_type == 'premium', User.premium_until > now))).scalar() or 0
