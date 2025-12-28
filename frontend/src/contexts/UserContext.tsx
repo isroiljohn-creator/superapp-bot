@@ -54,6 +54,7 @@ interface UserState {
   premiumUntil: Date | null;
   trialUsed: boolean;
   points: number;
+  elixir: number;
   streaks: {
     water: number;
     sleep: number;
@@ -111,6 +112,8 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         premiumUntil: parsed.premiumUntil ? new Date(parsed.premiumUntil) : null,
         meals: parsed.meals || [],
         workouts: parsed.workouts || [],
+        points: parsed.points || 0,
+        elixir: parsed.elixir || 0,
         streaks: {
           water: parsed.streaks?.water || 0,
           sleep: parsed.streaks?.sleep || 0,
@@ -126,6 +129,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
       premiumUntil: null,
       trialUsed: false,
       points: 0,
+      elixir: 0,
       streaks: { water: 0, sleep: 0, mood: 0, workout: 0 },
       todayLog: null,
       meals: [],
@@ -204,6 +208,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 planType: (userData.plan_type || 'free').toLowerCase() as PlanType,
                 premiumUntil: userData.premium_until ? new Date(userData.premium_until) : null,
                 points: userData.points || 0,
+                elixir: userData.elixir || 0, // Fetch from backend
                 // Streaks from backend
                 streaks: {
                   ...prev.streaks,

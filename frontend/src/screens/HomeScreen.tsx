@@ -17,7 +17,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate }) => {
   const waterProgress = todayLog ? (todayLog.water_ml / 2500) * 100 : 0;
   const stepsProgress = todayLog ? (todayLog.steps / 10000) * 100 : 0;
   const sleepProgress = todayLog ? (todayLog.sleep_hours / 8) * 100 : 0;
-  
+
   // Get synced data from context
   const todayCalories = getTodayCalories();
   const todayWorkouts = getTodayWorkouts();
@@ -26,14 +26,14 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate }) => {
   // Calculate daily calorie goal based on profile
   const calculateDailyGoal = () => {
     if (!profile) return 2000;
-    
+
     let bmr: number;
     if (profile.gender === 'male') {
       bmr = 88.362 + (13.397 * profile.weight) + (4.799 * profile.height) - (5.677 * profile.age);
     } else {
       bmr = 447.593 + (9.247 * profile.weight) + (3.098 * profile.height) - (4.330 * profile.age);
     }
-    
+
     const activityMultipliers = {
       sedentary: 1.2,
       light: 1.375,
@@ -41,12 +41,12 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate }) => {
       active: 1.725,
       very_active: 1.9,
     };
-    
+
     let tdee = bmr * activityMultipliers[profile.activityLevel];
-    
+
     if (profile.goal === 'lose') tdee -= 500;
     else if (profile.goal === 'gain') tdee += 300;
-    
+
     return Math.round(tdee);
   };
 
@@ -91,13 +91,22 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate }) => {
               </p>
             </div>
           </div>
-          <button 
-            onClick={() => onNavigate?.('achievements')}
-            className="flex items-center gap-2 bg-primary/15 px-3 py-1.5 rounded-full border border-primary/30"
-          >
-            <Trophy className="w-4 h-4 text-primary" />
-            <span className="text-sm font-bold text-primary">{points}</span>
-          </button>
+          <div className="flex items-center gap-2">
+            {/* Elixir */}
+            <div className="flex items-center gap-1.5 bg-blue-500/10 px-2.5 py-1.5 rounded-full border border-blue-500/20">
+              <span className="text-base">🧪</span>
+              <span className="text-sm font-bold text-blue-500">{useUser().elixir}</span>
+            </div>
+
+            {/* Tanga */}
+            <button
+              onClick={() => onNavigate?.('achievements')}
+              className="flex items-center gap-1.5 bg-yellow-500/10 px-2.5 py-1.5 rounded-full border border-yellow-500/20"
+            >
+              <span className="text-base bg-yellow-400 rounded-full w-4 h-4 flex items-center justify-center text-[10px] text-black font-bold">T</span>
+              <span className="text-sm font-bold text-yellow-600">{points}</span>
+            </button>
+          </div>
         </div>
 
         {/* Trial/Premium Banner */}

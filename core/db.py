@@ -733,6 +733,14 @@ class Database:
                 synchronize_session=False
             )
 
+    def add_elixir(self, user_id, amount):
+        with get_sync_db() as session:
+            session.query(User).filter(User.telegram_id == user_id).update(
+                {"elixir": User.elixir + amount},
+                synchronize_session=False
+            )
+            session.commit()
+
     def get_daily_log(self, user_id, date_str):
         with get_sync_db() as session:
             pk = self._get_user_pk(session, user_id)
@@ -1895,10 +1903,12 @@ class Database:
             link = UserMenuLink(
                 user_id=pk,
                 menu_template_id=template_id,
-                current_day_index=1,
-                is_active=True
+                meal_type=meal_type,
+                date=date
             )
             session.add(link)
+            # Award Elixir for tracking food (+10)
+            self.add_elixir(user_id, 10)
             session.commit()
 
     def deactivate_all_user_menus(self, user_id):

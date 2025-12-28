@@ -62,7 +62,8 @@ class User(Base):
     updated_at = Column(DateTime, nullable=True)
     
     # Gamification & Streaks
-    yasha_points = Column(Integer, default=0)
+    yasha_points = Column(Integer, default=0) # Tanga (Hard Currency)
+    elixir = Column(Integer, default=0)       # XP/Energy (Soft Currency)
     streak_water = Column(Integer, default=0)
     streak_workout = Column(Integer, default=0) # Added via migration
     streak_sleep = Column(Integer, default=0)
