@@ -1,21 +1,26 @@
-from core.db import db
-from core.flags import is_flag_enabled
 
-def check_and_fix():
-    print("Checking 'coach_zone' flag...")
-    flag = db.get_feature_flag("coach_zone")
-    if not flag:
-        print("Flag missing. Creating and enabling...")
-        db.set_feature_flag("coach_zone", True, rollout_percent=100)
-    else:
-        print(f"Flag found: {flag}")
-        if not flag['enabled'] or flag['rollout_percent'] < 100:
-            print("Enabling flag and setting rollout to 100%...")
-            db.set_feature_flag("coach_zone", True, rollout_percent=100)
+from core.db import db
+import json
+
+def check_flags():
+    flags = [
+        "feedback_v1",
+        "smart_paywall",
+        "stateful_ai_context",
+        "founder_tone",
+        "phase7_explain_v1"
+    ]
     
-    # Verify
-    enabled = is_flag_enabled("coach_zone")
-    print(f"Final status: {'ENABLED' if enabled else 'DISABLED'}")
+    print("--- Feature Flag Audit ---")
+    for key in flags:
+        flag = db.get_feature_flag(key)
+        if flag:
+            print(f"Flag: {key}")
+            print(f"  Enabled: {flag['enabled']}")
+            print(f"  Rollout: {flag['rollout_percent']}%")
+            print(f"  Allowlist: {flag.get('allowlist')}")
+        else:
+            print(f"Flag: {key} -> NOT FOUND in DB (default=False)")
 
 if __name__ == "__main__":
-    check_and_fix()
+    check_flags()

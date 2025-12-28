@@ -33,152 +33,162 @@ export function RetentionTab({ isLoading: externalLoading = false }: RetentionTa
   };
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
       {/* Header */}
-      <div>
-        <h2 className="text-xl font-semibold">Qaytuvchanlik</h2>
-        <p className="text-sm text-muted-foreground">
-          Kogorta tahlili va foydalanuvchilarning qaytish darajasi
+      <div className="px-2">
+        <h2 className="text-2xl font-black tracking-tight text-foreground/90">Qaytuvchanlik (Retention)</h2>
+        <p className="text-sm text-muted-foreground font-medium mt-1">
+          Kogorta tahlili va foydalanuvchilarning botga sodiqlik darajasi
         </p>
       </div>
 
       {/* Retention KPIs */}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <StatCard
-          title="D1 Retention"
-          value={`${(displayData.d1_retention * 100).toFixed(0)}%`}
+          title="D1 RETENTION"
+          value={`${(displayData.d1_retention * 100).toFixed(1)}%`}
           icon={TrendingUp}
           variant="success"
           isLoading={isLoading}
+          changeLabel="Target: >40%"
         />
         <StatCard
-          title="D7 Retention"
-          value={`${(displayData.d7_retention * 100).toFixed(0)}%`}
+          title="D7 RETENTION"
+          value={`${(displayData.d7_retention * 100).toFixed(1)}%`}
           icon={BarChart3}
           variant="warning"
           isLoading={isLoading}
+          changeLabel="Target: >15%"
         />
         <StatCard
-          title="D30 Retention"
-          value={`${(displayData.d30_retention * 100).toFixed(0)}%`}
+          title="D30 RETENTION"
+          value={`${(displayData.d30_retention * 100).toFixed(1)}%`}
           icon={Calendar}
+          variant="primary"
           isLoading={isLoading}
+          changeLabel="Target: >5%"
         />
       </div>
 
       {/* Retention Funnel */}
-      <div className="stat-card">
-        <span className="stat-label mb-4 block">Qaytuvchanlik Voronkasi</span>
-        <div className="space-y-3">
-          <div className="flex items-center gap-3">
-            <span className="text-xs text-muted-foreground w-8">D0</span>
-            <div className="flex-1 h-8 rounded bg-primary relative overflow-hidden">
-              <span className="absolute inset-0 flex items-center justify-center text-xs font-medium text-primary-foreground">
-                100%
+      <div className="glass-card p-8">
+        <div className="flex items-center justify-between mb-8">
+          <span className="stat-label">Qaytuvchanlik Voronkasi</span>
+          <div className="px-3 py-1 bg-white/5 rounded-full border border-white/5 text-[10px] font-black uppercase tracking-widest opacity-60">Visual Funnel</div>
+        </div>
+
+        <div className="space-y-6 max-w-md mx-auto">
+          {[
+            { label: 'Day 0', value: 1, color: 'hsl(var(--primary))', raw: '100%' },
+            { label: 'Day 1', value: displayData.d1_retention, color: 'hsl(var(--success))', raw: `${(displayData.d1_retention * 100).toFixed(0)}%` },
+            { label: 'Day 7', value: displayData.d7_retention, color: 'hsl(var(--warning))', raw: `${(displayData.d7_retention * 100).toFixed(0)}%` },
+            { label: 'Day 30', value: displayData.d30_retention, color: 'hsl(var(--destructive))', raw: `${(displayData.d30_retention * 100).toFixed(0)}%` },
+          ].map((item, i) => (
+            <div key={item.label} className="group flex items-center gap-6">
+              <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest w-12 opacity-40 group-hover:opacity-100 transition-opacity">
+                {item.label}
               </span>
+              <div className="flex-1 h-10 bg-white/5 rounded-2xl relative overflow-hidden p-1 shadow-inner ring-1 ring-white/5">
+                <div
+                  className="h-full rounded-xl transition-all duration-1000 ease-out shadow-lg"
+                  style={{
+                    width: `${item.value * 100}%`,
+                    backgroundColor: item.color,
+                    opacity: 0.8 + (item.value * 0.2)
+                  }}
+                />
+                <span className="absolute inset-x-0 inset-y-0 flex items-center justify-center text-[11px] font-black text-white mix-blend-difference uppercase tracking-tighter">
+                  {item.raw}
+                </span>
+              </div>
             </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <span className="text-xs text-muted-foreground w-8">D1</span>
-            <div
-              className="h-8 rounded bg-success relative overflow-hidden"
-              style={{ width: `${displayData.d1_retention * 100}%` }}
-            >
-              <span className="absolute inset-0 flex items-center justify-center text-xs font-medium text-success-foreground">
-                {(displayData.d1_retention * 100).toFixed(0)}%
-              </span>
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <span className="text-xs text-muted-foreground w-8">D7</span>
-            <div
-              className="h-8 rounded bg-warning relative overflow-hidden"
-              style={{ width: `${displayData.d7_retention * 100}%` }}
-            >
-              <span className="absolute inset-0 flex items-center justify-center text-xs font-medium text-warning-foreground">
-                {(displayData.d7_retention * 100).toFixed(0)}%
-              </span>
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <span className="text-xs text-muted-foreground w-8">D30</span>
-            <div
-              className="h-8 rounded bg-destructive relative overflow-hidden"
-              style={{ width: `${displayData.d30_retention * 100}%` }}
-            >
-              <span className="absolute inset-0 flex items-center justify-center text-xs font-medium text-destructive-foreground">
-                {(displayData.d30_retention * 100).toFixed(0)}%
-              </span>
-            </div>
-          </div>
+          ))}
         </div>
       </div>
 
       {/* Cohort Table */}
-      <div className="stat-card overflow-hidden p-0">
-        <div className="p-4 border-b border-border">
-          <div className="flex items-center gap-2">
-            <Users className="h-4 w-4 text-muted-foreground" />
-            <span className="font-medium">Haftalik Kogortalar</span>
+      <div className="data-table-container">
+        <div className="p-6 border-b border-border flex items-center justify-between bg-white/5">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-primary/10 rounded-xl">
+              <Users className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <span className="text-sm font-black uppercase tracking-widest">Haftalik Kogortalar</span>
+              <p className="text-[10px] text-muted-foreground font-bold mt-0.5">VAQT BO'YICHA TAHLIL</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-4 text-[10px] font-black uppercase tracking-widest">
+            <span className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-success/20 ring-1 ring-success/50" />
+              Sog'lom
+            </span>
+            <span className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-destructive/20 ring-1 ring-destructive/50" />
+              Xavfli
+            </span>
           </div>
         </div>
-        <div className="overflow-x-auto">
+
+        <div className="overflow-x-auto scrollbar-hide">
           <table className="data-table">
             <thead>
               <tr>
-                <th>Kogorta</th>
-                <th className="text-center">Yangi</th>
-                <th className="text-center">D1</th>
-                <th className="text-center">D7</th>
-                <th className="text-center">D30</th>
+                <th className="font-black">Kogorta Davri</th>
+                <th className="text-center font-black">Yangi</th>
+                <th className="text-center font-black">D1 Retention</th>
+                <th className="text-center font-black">D7 Retention</th>
+                <th className="text-center font-black">D30 Retention</th>
               </tr>
             </thead>
             <tbody>
               {displayData.cohorts.map((cohort) => (
-                <tr key={cohort.cohort_date}>
-                  <td className="font-medium">
-                    {new Date(cohort.cohort_date).toLocaleDateString('en-US', {
-                      month: 'short',
+                <tr key={cohort.cohort_date} className="group">
+                  <td className="font-bold text-foreground">
+                    {new Date(cohort.cohort_date).toLocaleDateString('uz-UZ', {
+                      month: 'long',
                       day: 'numeric',
                     })}
                   </td>
-                  <td className="text-center">{cohort.new_users}</td>
-                  <td className="text-center">
-                    <span
+                  <td className="text-center font-mono opacity-60 group-hover:opacity-100 transition-opacity">
+                    {cohort.new_users}
+                  </td>
+                  <td className="p-2 text-center h-full">
+                    <div
                       className={cn(
-                        'retention-cell inline-block min-w-[48px]',
+                        'retention-cell w-full max-w-[80px] mx-auto',
                         getRetentionColor(cohort.d1 / cohort.new_users)
                       )}
                     >
                       {formatPercent(cohort.d1, cohort.new_users)}
-                    </span>
+                    </div>
                   </td>
-                  <td className="text-center">
+                  <td className="p-2 text-center h-full">
                     {cohort.d7 > 0 ? (
-                      <span
+                      <div
                         className={cn(
-                          'retention-cell inline-block min-w-[48px]',
+                          'retention-cell w-full max-w-[80px] mx-auto',
                           getRetentionColor(cohort.d7 / cohort.new_users)
                         )}
                       >
                         {formatPercent(cohort.d7, cohort.new_users)}
-                      </span>
+                      </div>
                     ) : (
-                      <span className="text-muted-foreground">—</span>
+                      <span className="text-[10px] text-muted-foreground/30 font-black tracking-widest">NO DATA</span>
                     )}
                   </td>
-                  <td className="text-center">
+                  <td className="p-2 text-center h-full">
                     {cohort.d30 > 0 ? (
-                      <span
+                      <div
                         className={cn(
-                          'retention-cell inline-block min-w-[48px]',
+                          'retention-cell w-full max-w-[80px] mx-auto',
                           getRetentionColor(cohort.d30 / cohort.new_users)
                         )}
                       >
                         {formatPercent(cohort.d30, cohort.new_users)}
-                      </span>
+                      </div>
                     ) : (
-                      <span className="text-muted-foreground">—</span>
+                      <span className="text-[10px] text-muted-foreground/30 font-black tracking-widest">NO DATA</span>
                     )}
                   </td>
                 </tr>
@@ -186,22 +196,6 @@ export function RetentionTab({ isLoading: externalLoading = false }: RetentionTa
             </tbody>
           </table>
         </div>
-      </div>
-
-      {/* Legend */}
-      <div className="flex items-center justify-center gap-4 text-xs">
-        <span className="flex items-center gap-1.5">
-          <div className="w-3 h-3 rounded bg-success/20 border border-success/50" />
-          <span className="text-muted-foreground">{'≥60%'}</span>
-        </span>
-        <span className="flex items-center gap-1.5">
-          <div className="w-3 h-3 rounded bg-warning/20 border border-warning/50" />
-          <span className="text-muted-foreground">30-60%</span>
-        </span>
-        <span className="flex items-center gap-1.5">
-          <div className="w-3 h-3 rounded bg-destructive/20 border border-destructive/50" />
-          <span className="text-muted-foreground">{'<30%'}</span>
-        </span>
       </div>
     </div>
   );

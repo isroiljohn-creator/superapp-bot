@@ -312,11 +312,10 @@ async def get_retention_stats(db: AsyncSession = Depends(get_db), admin_id: int 
         ),
         activity AS (
             -- Combine all activity sources (Events, Daily Logs, AI Logs)
-            -- For standard retention, we often just use event_logs if it captures 'launch'
-            -- Since we added 'webapp_launch' to event_logs, this is pretty good coverage.
             SELECT distinct user_id, date(created_at) as act_date FROM event_logs WHERE created_at >= now() - interval '8 weeks'
---             UNION
---             SELECT distinct user_id, date(date) as act_date FROM daily_logs WHERE date >= (now() - interval '8 weeks')::date
+            UNION
+            -- Fix: cast varchar date to date type to avoid comparison error
+            SELECT distinct user_id, (date::date) as act_date FROM daily_logs WHERE date ~ '^\d{4}-\d{2}-\d{2}$' AND (date::date) >= (now() - interval '8 weeks')::date
         )
         SELECT 
             c.cohort_date,
@@ -422,11 +421,27 @@ async def get_adaptation_stats(db: AsyncSession = Depends(get_db), admin_id: int
         "kcal_adjusted": kcal_count,
         "soft_mode_users": soft,
         "variant_switches": total, # Approximation
-        "daily": [
-            {"date": (datetime.utcnow() - timedelta(days=i)).strftime("%Y-%m-%d"), 
-             "count": (await db.execute(select(func.count()).where(UserAdaptationState.updated_at >= (datetime.utcnow() - timedelta(days=i+1)), UserAdaptationState.updated_at < (datetime.utcnow() - timedelta(days=i))))).scalar() or 0}
-            for i in range(13, -1, -1)
-        ],
+    # Optimized daily query
+    daily_q = await db.execute(text("""
+        SELECT date(updated_at) as d, count(*) as c
+        FROM user_adaptation_state
+        WHERE updated_at >= now() - interval '14 days'
+        GROUP BY 1
+        ORDER BY 1 ASC
+    """))
+    daily_rows = {str(r[0]): r[1] for r in daily_q.fetchall()}
+    
+    daily_data = []
+    for i in range(13, -1, -1):
+        d_str = (datetime.utcnow() - timedelta(days=i)).strftime("%Y-%m-%d")
+        daily_data.append({"date": d_str, "count": daily_rows.get(d_str, 0)})
+
+    return {
+        "adapted_users": total,
+        "kcal_adjusted": kcal_count,
+        "soft_mode_users": soft,
+        "variant_switches": total, # Approximation
+        "daily": daily_data,
         "validation": {
             "menu_complaints": val.complained if val else 0,
             "menu_fixed": val.adapted if val else 0,
@@ -446,20 +461,25 @@ async def get_cost_stats(db: AsyncSession = Depends(get_db), admin_id: int = Dep
     total_tokens = totals[0] or 0
     total_cost = totals[1] or 0.0
 
-    # 2. Daily Breakdown (Last 7 days)
+    # Optimized daily query
+    daily_q = await db.execute(text("""
+        SELECT date(timestamp) as d, SUM(total_tokens), SUM(cost_usd)
+        FROM ai_usage_logs
+        WHERE timestamp >= now() - interval '7 days'
+        GROUP BY 1
+        ORDER BY 1 ASC
+    """))
+    daily_rows = {str(r[0]): (r[1], r[2]) for r in daily_q.fetchall()}
+    
     daily_stats = []
     days = 7
     for i in range(days - 1, -1, -1):
-        d_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(days=i)
-        d_end = d_start + timedelta(days=1)
-        
-        q = await db.execute(text("SELECT SUM(total_tokens), SUM(cost_usd) FROM ai_usage_logs WHERE timestamp >= :s AND timestamp < :e"), {"s": d_start, "e": d_end})
-        res = q.fetchone()
-        
+        d_str = (datetime.utcnow() - timedelta(days=i)).strftime("%Y-%m-%d")
+        tokens, cost = daily_rows.get(d_str, (0, 0.0))
         daily_stats.append({
-            "date": d_start.strftime("%Y-%m-%d"),
-            "tokens": res[0] or 0,
-            "cost_usd": res[1] or 0.0
+            "date": d_str,
+            "tokens": tokens or 0,
+            "cost_usd": cost or 0.0
         })
 
     # 3. By Feature (Last 30 days)
@@ -507,16 +527,7 @@ async def get_growth_stats(db: AsyncSession = Depends(get_db), admin_id: int = D
     Daily Active Users (last 30 days)
     """
     days = 30
-    data = []
-    for i in range(days):
-        d = datetime.utcnow() - timedelta(days=i)
-        # Simplified DAU for graph: just use feedback/logs count for that specific day
-        # Note: This is an approximation. Ideally we'd group by day in SQL.
-        # For performance/simplicity in this fix, we'll try a group by query.
-        pass
-    
-    # Optimized Group By Query
-    start_date = datetime.utcnow() - timedelta(days=30)
+    start_date = datetime.utcnow() - timedelta(days=days)
     
     # We will union all activity and group by date
     # This might be heavy, so we limit to cached/simplified version if needed.
@@ -592,6 +603,8 @@ async def get_retention_graph(db: AsyncSession = Depends(get_db), admin_id: int 
         ),
         activity AS (
             SELECT distinct user_id, date(created_at) as act_date FROM event_logs WHERE created_at >= now() - interval '8 weeks'
+            UNION
+            SELECT distinct user_id, (date::date) as act_date FROM daily_logs WHERE date ~ '^\d{4}-\d{2}-\d{2}$' AND (date::date) >= (now() - interval '8 weeks')::date
         )
         SELECT 
             count(distinct c.user_id) as total_users,

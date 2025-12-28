@@ -23,30 +23,30 @@ export function StatCard({
   className,
 }: StatCardProps) {
   const variantStyles = {
-    default: 'border-border',
-    primary: 'border-primary/30 glow-primary',
-    success: 'border-success/30',
-    warning: 'border-warning/30',
-    destructive: 'border-destructive/30',
+    default: '',
+    primary: 'border-primary/20 bg-primary/5',
+    success: 'border-success/20 bg-success/5',
+    warning: 'border-warning/20 bg-warning/5',
+    destructive: 'border-destructive/20 bg-destructive/5',
   };
 
   const iconStyles = {
-    default: 'text-muted-foreground',
-    primary: 'text-primary',
-    success: 'text-success',
-    warning: 'text-warning',
-    destructive: 'text-destructive',
+    default: 'text-muted-foreground bg-muted/20',
+    primary: 'text-primary bg-primary/10',
+    success: 'text-success bg-success/10',
+    warning: 'text-warning bg-warning/10',
+    destructive: 'text-destructive bg-destructive/10',
   };
 
   if (isLoading) {
     return (
-      <div className={cn('stat-card animate-fade-in', className)}>
-        <div className="flex items-start justify-between mb-3">
-          <div className="skeleton h-4 w-24 rounded" />
-          <div className="skeleton h-8 w-8 rounded-lg" />
+      <div className={cn('glass-card animate-pulse shadow-none', className)}>
+        <div className="flex items-start justify-between mb-4">
+          <div className="skeleton h-4 w-24" />
+          <div className="skeleton h-10 w-10" />
         </div>
-        <div className="skeleton h-8 w-32 rounded mb-2" />
-        <div className="skeleton h-4 w-20 rounded" />
+        <div className="skeleton h-10 w-32 mb-2" />
+        <div className="skeleton h-4 w-20" />
       </div>
     );
   }
@@ -54,45 +54,48 @@ export function StatCard({
   return (
     <div
       className={cn(
-        'stat-card animate-fade-in',
+        'glass-card group',
         variantStyles[variant],
         className
       )}
     >
-      <div className="flex items-start justify-between mb-3 gap-2">
-        <span className="stat-label truncate min-w-0 flex-1">{title}</span>
+      <div className="flex items-center justify-between mb-4 gap-4">
+        <span className="stat-label truncate group-hover:text-foreground transition-colors">{title}</span>
         {Icon && (
           <div
             className={cn(
-              'p-2 rounded-lg bg-secondary/50 shrink-0',
+              'p-2.5 rounded-xl transition-all duration-300 group-hover:scale-110 group-hover:rotate-6 shadow-lg shadow-black/20',
               iconStyles[variant]
             )}
           >
-            <Icon className="h-4 w-4" />
+            <Icon className="h-4.5 w-4.5" />
           </div>
         )}
       </div>
 
-      <div className="stat-value animate-count-up">
-        {typeof value === 'number' ? value.toLocaleString() : value}
-      </div>
-
-      {(change !== undefined || changeLabel) && (
-        <div className="mt-2 flex items-center gap-2">
-          {change !== undefined && (
-            <span
-              className={cn(
-                change >= 0 ? 'stat-change-positive' : 'stat-change-negative'
-              )}
-            >
-              {change >= 0 ? '↑' : '↓'} {Math.abs(change).toFixed(1)}%
-            </span>
-          )}
-          {changeLabel && (
-            <span className="text-xs text-muted-foreground">{changeLabel}</span>
-          )}
+      <div className="flex flex-col gap-1">
+        <div className="stat-value">
+          {typeof value === 'number' ? value.toLocaleString() : value}
         </div>
-      )}
+
+        {(change !== undefined || changeLabel) && (
+          <div className="mt-2 flex items-center gap-2 flex-wrap">
+            {change !== undefined && (
+              <span
+                className={cn(
+                  change >= 0 ? 'stat-change-positive' : 'stat-change-negative',
+                  "shadow-inner shadow-black/10"
+                )}
+              >
+                {change >= 0 ? '↑' : '↓'} {Math.abs(change).toFixed(1)}%
+              </span>
+            )}
+            {changeLabel && (
+              <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider opacity-60 group-hover:opacity-100 transition-opacity whitespace-nowrap">{changeLabel}</span>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
