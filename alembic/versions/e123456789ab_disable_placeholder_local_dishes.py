@@ -129,15 +129,18 @@ def upgrade() -> None:
             'local_dishes', meta,
             sa.Column('id', sa.Integer, primary_key=True),
             sa.Column('name_uz', sa.String),
-            sa.Column('calories', sa.Integer),
-            sa.Column('protein', sa.Float),
-            sa.Column('carbs', sa.Float),
-            sa.Column('fat', sa.Float),
+            sa.Column('total_kcal', sa.Integer),
+            sa.Column('protein_g', sa.Float),
+            sa.Column('carbs_g', sa.Float),
+            sa.Column('fat_g', sa.Float),
             sa.Column('meal_type', sa.String),
-            sa.Column('ingredients', sa.Text), # Assuming Text based on earlier info
+            sa.Column('portion_type', sa.String, server_default='medium'),
+            sa.Column('goal_tag', sa.String, server_default='maintenance'),
+            sa.Column('variant', sa.String, server_default='normal'),
+            sa.Column('ingredients', sa.Text), 
             sa.Column('is_active', sa.Boolean),
             sa.Column('created_at', sa.DateTime, server_default=sa.func.now()),
-            sa.Column('updated_at', sa.DateTime, server_default=sa.func.now())
+            sa.Column('updated_at', sa.DateTime, server_default=sa.func.now()) # Some schemas use updated_at, some don't. Safe to omit if not in DB.
         )
         
         # Fix keys for bulk_insert
@@ -145,13 +148,16 @@ def upgrade() -> None:
         for v in values_list:
             final_values.append({
                 'name_uz': v['name_uz'],
-                'calories': int(v['calories'] or 0),
-                'protein': float(v['protein'] or 0.0),
-                'carbs': float(v['carbs'] or 0.0),
-                'fat': float(v['fat'] or 0.0),
+                'total_kcal': int(v['calories'] or 0),
+                'protein_g': float(v['protein'] or 0.0),
+                'carbs_g': float(v['carbs'] or 0.0),
+                'fat_g': float(v['fat'] or 0.0),
                 'meal_type': v['meal_type'],
                 'ingredients': json.dumps(v['ingredients']) if isinstance(v['ingredients'], list) else v['ingredients'],
-                'is_active': True
+                'is_active': True,
+                'portion_type': 'medium',
+                'goal_tag': 'maintenance',
+                'variant': 'normal'
             })
             
         op.bulk_insert(local_dishes_table, final_values)
