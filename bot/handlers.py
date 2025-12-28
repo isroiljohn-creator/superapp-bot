@@ -66,12 +66,6 @@ def register_all_handlers(bot):
         txt += f"✅ Is Admin? {uid in ADMIN_IDS}"
         bot.send_message(message.chat.id, txt, parse_mode="Markdown")
 
-    @bot.message_handler(func=lambda message: message.text == "👨‍💻 DASTURCHI")
-    def developer_menu(message):
-        if message.from_user.id in ADMIN_IDS:
-             # ... existing code ...
-            # Show Inline Keyboard with Admin Commands
-            bot.send_message(message.chat.id, "👨‍💻 **Dasturchi Paneli**\n\nBuyruqni tanlang:", reply_markup=admin_developer_keyboard(), parse_mode="Markdown")
 
     # --- Calorie Handlers ---
     @bot.message_handler(func=lambda message: message.text and ("Kaloriya" in message.text or "Анализ калорий" in message.text))

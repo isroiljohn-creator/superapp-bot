@@ -24,7 +24,7 @@ def register_handlers(bot):
 
         # WebApp URL Construction
         import os
-        base_url = os.getenv("MINI_APP_URL", "https://web-production-b606.up.railway.app")
+        base_url = os.getenv("MINI_APP_URL", "https://yasha-insights.up.railway.app")
         if base_url.endswith("/"): base_url = base_url[:-1]
         webapp_url = f"{base_url}/admin-insights/"
 
@@ -45,6 +45,11 @@ def register_handlers(bot):
             types.KeyboardButton("💳 Obunalar")
         )
         bot.send_message(message.chat.id, "👨‍💼 **Admin Panel**", reply_markup=markup, parse_mode="Markdown")
+
+    @bot.message_handler(func=lambda message: message.text == "👨‍💻 DASTURCHI" and message.from_user.id in ADMIN_IDS)
+    def developer_menu_handler(message):
+        from bot.keyboards import admin_developer_keyboard
+        bot.send_message(message.chat.id, "👨‍💻 **Dasturchi Paneli**\n\nBuyruqni tanlang:", reply_markup=admin_developer_keyboard(), parse_mode="Markdown")
         
     # Register sub handlers
     register_subscription_handlers(bot)
@@ -54,7 +59,7 @@ def register_handlers(bot):
     def dashboard_command(message):
         if message.from_user.id not in ADMIN_IDS: return
         import os
-        base_url = os.getenv("MINI_APP_URL", "https://web-production-b606.up.railway.app")
+        base_url = os.getenv("MINI_APP_URL", "https://yasha-insights.up.railway.app")
         if base_url.endswith("/"): base_url = base_url[:-1]
         webapp_url = f"{base_url}/admin-insights/"
         

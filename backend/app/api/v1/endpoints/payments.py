@@ -49,6 +49,7 @@ async def mock_payment(
     return {"status": "success", "message": f"Premium {days} days activated"}
 
 @router.post("/invoice")
+@router.post("/invoice/")
 def create_invoice_link(
     req: InvoiceRequest,
     current_user: User = Depends(get_current_user)

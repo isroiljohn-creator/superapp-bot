@@ -121,8 +121,7 @@ export const Onboarding: React.FC = () => {
 
     // Sync to Backend (Fix Persistence Bug)
     try {
-      const API_URL = import.meta.env.VITE_API_URL || '/api/v1';
-      console.log("Syncing onboarding profile to", API_URL);
+      console.log("Syncing onboarding profile...");
       const payload: any = {
         full_name: profile.name,
         phone: profile.phone,
@@ -138,7 +137,7 @@ export const Onboarding: React.FC = () => {
       console.log("DEBUG: Sending profile update:", payload);
 
       // We must await to ensure backend sets is_onboarded=True before completeOnboarding()
-      const res = await axios.put(`${API_URL}/user/profile`, payload);
+      const res = await axios.put('/user/profile', payload);
       console.log("DEBUG: Backend response:", res.data);
 
       setProfile(profile);

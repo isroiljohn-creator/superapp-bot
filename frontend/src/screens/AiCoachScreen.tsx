@@ -11,7 +11,7 @@ interface Message {
   content: string;
 }
 
-const API_URL = import.meta.env.VITE_API_URL || 'https://yasha-bot-production.up.railway.app/api/v1';
+// API URL is handled by axios baseURL in UserContext
 
 export const AiCoachScreen: React.FC = () => {
   const { profile, todayLog, canUseFeature } = useUser();
@@ -54,7 +54,7 @@ export const AiCoachScreen: React.FC = () => {
         throw new Error('Token topilmadi. Qayta kiring.');
       }
 
-      const response = await axios.post(`${API_URL}/coach/chat`, {
+      const response = await axios.post('/coach/chat', {
         messages: messages.concat(userMessage).map(m => ({
           id: m.id,
           role: m.role,

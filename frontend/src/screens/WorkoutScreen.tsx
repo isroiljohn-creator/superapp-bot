@@ -62,14 +62,22 @@ interface WorkoutScreenProps {
 }
 
 export const WorkoutScreen: React.FC<WorkoutScreenProps> = ({ onNavigate }) => {
-  const { isPremium, todayLog, markWorkoutDone, getTodayWorkouts } = useUser();
+  const { isPremium, todayLog, markWorkoutDone, getTodayWorkouts, selectedDate, setSelectedDate } = useUser();
   const { t } = useLanguage();
   const { vibrate } = useHaptic();
-  const [selectedDay, setSelectedDay] = useState(0);
   const [showPaywall, setShowPaywall] = useState(false);
 
-  const todayWorkouts = getTodayWorkouts();
-  const workoutDone = todayLog?.workout_done || todayWorkouts.length > 0;
+  const calculateDateStr = (index: number) => {
+    const d = new Date();
+    d.setDate(d.getDate() + index);
+    return d.toISOString().split('T')[0];
+  };
+
+  const selectedDateStr = calculateDateStr(selectedDate);
+  const todayWorkouts = useUser().getWorkoutsForDate(selectedDateStr);
+  const isSelectedToday = selectedDate === 0;
+  const workoutDone = isSelectedToday ? (todayLog?.workout_done || todayWorkouts.length > 0) : todayWorkouts.length > 0;
+
   const weekDays = getWeekDays(t);
   const freeWorkouts = getFreeWorkouts(t);
   const videoWorkouts = getVideoWorkouts(t);
@@ -91,17 +99,17 @@ export const WorkoutScreen: React.FC<WorkoutScreenProps> = ({ onNavigate }) => {
       setShowPaywall(true);
       return;
     }
-    setSelectedDay(index);
+    setSelectedDate(index);
   };
 
   const handleWorkoutClick = (index: number) => {
     vibrate('medium');
-    if (!isPremium() && selectedDay > 0) {
+    if (!isPremium() && selectedDate > 0) {
       setShowPaywall(true);
       return;
     }
     // Mark workout as done for today
-    if (selectedDay === 0 && !workoutDone) {
+    if (selectedDate === 0 && !workoutDone) {
       markWorkoutDone();
     }
   };
@@ -144,7 +152,7 @@ export const WorkoutScreen: React.FC<WorkoutScreenProps> = ({ onNavigate }) => {
         <div className="mb-5">
           <DaySelector
             days={days}
-            selectedDay={selectedDay}
+            selectedDay={selectedDate}
             onDaySelect={handleDaySelect}
             isPremium={isPremium()}
           />
@@ -192,15 +200,15 @@ export const WorkoutScreen: React.FC<WorkoutScreenProps> = ({ onNavigate }) => {
         className="px-4 space-y-3"
       >
         <motion.p variants={itemVariants} className="text-sm text-muted-foreground mb-2">
-          {t('common.day')} {selectedDay + 1} - {selectedDay === 0 ? t('common.today') : days[selectedDay].day}
+          {t('common.day')} {selectedDate + 1} - {selectedDate === 0 ? t('common.today') : days[selectedDate].day}
         </motion.p>
 
         {freeWorkouts.map((workout, index) => (
           <motion.div key={index} variants={itemVariants}>
             <WorkoutCard
               {...workout}
-              isLocked={selectedDay > 0 && !isPremium()}
-              isCompleted={selectedDay === 0 && index === 0 && todayLog?.workout_done}
+              isLocked={selectedDate > 0 && !isPremium()}
+              isCompleted={selectedDate === 0 && index === 0 && todayLog?.workout_done}
               onClick={() => handleWorkoutClick(index)}
             />
           </motion.div>

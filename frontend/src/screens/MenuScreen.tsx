@@ -66,10 +66,9 @@ interface MenuScreenProps {
 }
 
 export const MenuScreen: React.FC<MenuScreenProps> = ({ onNavigate }) => {
-  const { isPremium, getTodayMeals, getTodayCalories, profile, planType, canUseFeature } = useUser();
+  const { isPremium, getTodayMeals, getTodayCalories, profile, planType, canUseFeature, selectedDate, setSelectedDate } = useUser();
   const { t } = useLanguage();
   const { vibrate } = useHaptic();
-  const [selectedDay, setSelectedDay] = useState(0);
   const [showPaywall, setShowPaywall] = useState(false);
 
   const [weeklyPlan, setWeeklyPlan] = useState<any[] | null>(null);
@@ -85,7 +84,7 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onNavigate }) => {
       const token = localStorage.getItem('token');
       if (!token) return;
 
-      const res = await axios.get(`${API_URL}/ai/meal`, {
+      const res = await axios.get('/ai/meal', {
         headers: { Authorization: `Bearer ${token}` }
       });
 
@@ -114,7 +113,7 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onNavigate }) => {
       setIsGenerating(true);
       const token = localStorage.getItem('token');
       // Start generation
-      const res = await axios.post(`${API_URL}/ai/meal`, {}, {
+      const res = await axios.post('/ai/meal', {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (res.data.plan) {
@@ -160,7 +159,7 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onNavigate }) => {
       setShowPaywall(true);
       return;
     }
-    setSelectedDay(index);
+    setSelectedDate(index);
   };
 
   // Get today's actual meals from context
@@ -201,7 +200,7 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onNavigate }) => {
 
   // 1. Show AI Weekly Plan (Priority)
   if (weeklyPlan && weeklyPlan.length > 0) {
-    const dailyData = weeklyPlan.find(d => d.day === selectedDay + 1);
+    const dailyData = weeklyPlan.find(d => d.day === selectedDate + 1);
     if (dailyData && dailyData.meals) {
       const types = ['breakfast', 'lunch', 'dinner', 'snack'];
       displayMeals = types.map(type => {
@@ -219,7 +218,7 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onNavigate }) => {
     }
   }
   // 2. Show Logged Meals for Today (Fallback or if no AI Plan)
-  else if (selectedDay === 0 && todayMeals.length > 0) {
+  else if (selectedDate === 0 && todayMeals.length > 0) {
     displayMeals = todayMeals.map(m => ({
       type: m.mealType,
       title: m.name,
@@ -243,24 +242,24 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onNavigate }) => {
         };
       });
     };
-    displayMeals = getSuggestedMeals(selectedDay);
+    displayMeals = getSuggestedMeals(selectedDate);
   }
 
   const suggestedTotalCalories = displayMeals.reduce((sum, m) => sum + (m.calories || 0), 0);
 
   // For day 0 (today), show actual logged calories
   // For other days, show 0 (since they haven't happened yet)
-  const displayTotalCalories = selectedDay === 0 ? todayCalories : 0;
+  const displayTotalCalories = selectedDate === 0 ? todayCalories : 0;
 
   // Calculate macros from meals
   const calculateMacros = () => {
-    if (selectedDay === 0 && todayMeals.length > 0) {
+    if (selectedDate === 0 && todayMeals.length > 0) {
       const protein = todayMeals.reduce((sum, m) => sum + (m.protein || 0), 0);
       const carbs = todayMeals.reduce((sum, m) => sum + (m.carbs || 0), 0);
       const fat = todayMeals.reduce((sum, m) => sum + (m.fat || 0), 0);
       return { protein, carbs, fat };
     } else if (weeklyPlan && weeklyPlan.length > 0) {
-      const dailyData = weeklyPlan.find(d => d.day === selectedDay + 1);
+      const dailyData = weeklyPlan.find(d => d.day === selectedDate + 1);
       if (dailyData && dailyData.meals) {
         const meals = Object.values(dailyData.meals) as any[];
         const protein = meals.reduce((sum: number, m: any) => sum + (m.protein || 0), 0);
@@ -326,7 +325,7 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onNavigate }) => {
         <div className="mb-5">
           <DaySelector
             days={days}
-            selectedDay={selectedDay}
+            selectedDay={selectedDate}
             onDaySelect={handleDaySelect}
             isPremium={isPremium()}
           />
@@ -346,7 +345,7 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onNavigate }) => {
               </div>
               <div>
                 <p className="text-sm font-bold text-foreground">{t('menu.dailyTotal')}</p>
-                <p className="text-[10px] text-muted-foreground">{selectedDay === 0 ? t('common.today') : t('menu.excess')}</p>
+                <p className="text-[10px] text-muted-foreground">{selectedDate === 0 ? t('common.today') : days[selectedDate].day}</p>
               </div>
             </div>
             <div className="text-right">
@@ -391,9 +390,9 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onNavigate }) => {
         >
           <motion.div variants={itemVariants} className="flex items-center justify-between">
             <p className="text-sm text-muted-foreground">
-              {t('common.day')} {selectedDay + 1} - {selectedDay === 0 ? t('common.today') : days[selectedDay].day}
+              {t('common.day')} {selectedDate + 1} - {selectedDate === 0 ? t('common.today') : days[selectedDate].day}
             </p>
-            {selectedDay === 0 && todayMeals.length > 0 && (
+            {selectedDate === 0 && todayMeals.length > 0 && (
               <span className="text-xs bg-success/20 text-success px-2 py-0.5 rounded-full">
                 {t('menu.actualData')}
               </span>
@@ -416,7 +415,7 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onNavigate }) => {
             </motion.div>
           ) : (
             displayMeals.map((meal, index) => {
-              const isEaten = selectedDay === 0 && todayMeals.some(m => m.mealType === meal.type);
+              const isEaten = selectedDate === 0 && todayMeals.some(m => m.mealType === meal.type);
 
               return (
                 <motion.div
@@ -424,7 +423,7 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onNavigate }) => {
                   variants={itemVariants}
                   onClick={() => {
                     if (isEaten) return;
-                    if (selectedDay > 0 && !isPremium()) {
+                    if (selectedDate > 0 && !isPremium()) {
                       setShowPaywall(true);
                     } else {
                       vibrate('light');
@@ -436,7 +435,7 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onNavigate }) => {
                     }
                   }}
                   className={`p-4 rounded-xl bg-card border border-border/50 transition-all active:scale-[0.98] ${isEaten ? 'opacity-50 cursor-default' : 'cursor-pointer hover:border-primary/40'
-                    } ${selectedDay > 0 && !isPremium() ? 'opacity-60' : ''}`}
+                    } ${selectedDate > 0 && !isPremium() ? 'opacity-60' : ''}`}
                 >
                   <div className="flex items-start gap-3">
                     <div className="p-2.5 rounded-xl bg-muted shrink-0 text-primary">
@@ -459,7 +458,7 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onNavigate }) => {
                           {t('common.done')}
                         </span>
                       </div>
-                    ) : (selectedDay > 0 && !isPremium() ? (
+                    ) : (selectedDate > 0 && !isPremium() ? (
                       <Lock className="w-4 h-4 text-muted-foreground shrink-0" />
                     ) : (
                       <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0 mt-1" />

@@ -88,7 +88,7 @@ export const Paywall: React.FC<PaywallProps> = ({
 
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.post('/api/v1/pay/invoice', {
+      const response = await axios.post('/pay/invoice', {
         plan_id: planId
       }, {
         headers: {
@@ -201,7 +201,7 @@ export const Paywall: React.FC<PaywallProps> = ({
               <div className="mb-4">
                 <h3 className="text-xl font-bold text-foreground mb-1">{plan.name}</h3>
                 <p className="text-sm text-muted-foreground mb-3">{t(plan.descKey)}</p>
-                <div className="flex items-baseline gap-1">
+                <div className="flex items-center gap-1">
                   <span className="text-3xl font-bold text-foreground">
                     {plan.price}
                   </span>

@@ -16,9 +16,8 @@ interface CaloriesScreenProps {
 
 export const CaloriesScreen: React.FC<CaloriesScreenProps> = ({ onBack }) => {
   const { toast } = useToast();
-  const { getTodayMeals, addMeal, removeMeal, profile, isPremium } = useUser();
+  const { getTodayMeals, addMeal, removeMeal, profile, isPremium, selectedDate, setSelectedDate } = useUser();
   const { t } = useLanguage();
-  const [selectedDay, setSelectedDay] = useState(6);
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [newMeal, setNewMeal] = useState({ name: '', calories: '', protein: '', carbs: '', fat: '', mealType: 'breakfast' });
 
@@ -26,18 +25,25 @@ export const CaloriesScreen: React.FC<CaloriesScreenProps> = ({ onBack }) => {
   const today = new Date();
   const days = Array.from({ length: 7 }, (_, i) => {
     const date = new Date(today);
-    date.setDate(today.getDate() - (6 - i));
-    return { day: weekDays[date.getDay() === 0 ? 6 : date.getDay() - 1], date: date.getDate(), isToday: i === 6 };
+    date.setDate(today.getDate() + i);
+    return { day: weekDays[date.getDay() === 0 ? 6 : date.getDay() - 1], date: date.getDate(), isToday: i === 0 };
   });
 
-  const meals = getTodayMeals();
+  const calculateDateStr = (index: number) => {
+    const d = new Date();
+    d.setDate(d.getDate() + index);
+    return d.toISOString().split('T')[0];
+  };
+
+  const selectedDateStr = calculateDateStr(selectedDate);
+  const meals = useUser().getMealsForDate(selectedDateStr);
   const calculateDailyGoal = () => {
     if (!profile) return 2000;
     let bmr = profile.gender === 'male' ? 88.362 + (13.397 * profile.weight) + (4.799 * profile.height) - (5.677 * profile.age) : 447.593 + (9.247 * profile.weight) + (3.098 * profile.height) - (4.330 * profile.age);
     const multipliers = { sedentary: 1.2, light: 1.375, moderate: 1.55, active: 1.725, very_active: 1.9 };
     let tdee = bmr * multipliers[profile.activityLevel];
-    if (profile.goal === 'lose') tdee -= 500;
-    else if (profile.goal === 'gain') tdee += 300;
+    if (profile.goal === 'weight_loss') tdee -= 500;
+    else if (profile.goal === 'muscle_gain') tdee += 300;
     return Math.round(tdee);
   };
 
@@ -119,11 +125,11 @@ export const CaloriesScreen: React.FC<CaloriesScreenProps> = ({ onBack }) => {
           </Dialog>
         </div>
 
-        <div className="mb-5"><DaySelector days={days} selectedDay={selectedDay} onDaySelect={setSelectedDay} isPremium={isPremium()} /></div>
+        <div className="mb-5"><DaySelector days={days} selectedDay={selectedDate} onDaySelect={setSelectedDate} isPremium={isPremium()} /></div>
 
         <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="p-5 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/30 mb-6">
           <div className="flex items-center justify-between mb-4">
-            <div><p className="text-sm text-muted-foreground">{t('calories.todayCalories')}</p><p className="text-3xl font-bold text-foreground">{totalCalories.toLocaleString()}</p></div>
+            <div><p className="text-sm text-muted-foreground">{selectedDate === 0 ? t('calories.todayCalories') : `${days[selectedDate].day} ${t('calories.title')}`}</p><p className="text-3xl font-bold text-foreground">{totalCalories.toLocaleString()}</p></div>
             <div className="text-right"><p className="text-sm text-muted-foreground">{t('calories.remaining')}</p><p className={`text-2xl font-bold ${remaining >= 0 ? 'text-green-400' : 'text-red-400'}`}>{remaining >= 0 ? remaining.toLocaleString() : `+${Math.abs(remaining).toLocaleString()}`}</p></div>
           </div>
           <div className="h-3 bg-muted rounded-full overflow-hidden mb-4"><motion.div className={`h-full rounded-full ${totalCalories > dailyGoal ? 'bg-red-400' : 'bg-primary'}`} initial={{ width: 0 }} animate={{ width: `${Math.min((totalCalories / dailyGoal) * 100, 100)}%` }} transition={{ duration: 1 }} /></div>
@@ -135,7 +141,7 @@ export const CaloriesScreen: React.FC<CaloriesScreenProps> = ({ onBack }) => {
         </motion.div>
 
         <div className="space-y-3">
-          <h2 className="text-base font-bold text-foreground">{t('calories.todayMeals')}</h2>
+          <h2 className="text-base font-bold text-foreground">{selectedDate === 0 ? t('calories.todayMeals') : `${days[selectedDate].day} ${t('calories.todayMeals').toLowerCase()}`}</h2>
           {meals.length === 0 ? (
             <div className="p-6 rounded-2xl bg-card border border-border/50 text-center"><Flame className="w-12 h-12 mx-auto mb-3 text-muted-foreground/50" /><p className="text-muted-foreground">{t('calories.noMeals')}</p><p className="text-sm text-muted-foreground/70">{t('calories.addMealHint')}</p></div>
           ) : meals.map((meal) => (

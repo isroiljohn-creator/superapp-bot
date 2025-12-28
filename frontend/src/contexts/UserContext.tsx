@@ -89,15 +89,20 @@ interface UserContextType extends UserState {
   addMeal: (meal: Omit<Meal, 'id' | 'date'>) => void;
   removeMeal: (id: string) => void;
   getTodayMeals: () => Meal[];
+  getMealsForDate: (date: string) => Meal[];
   getTodayCalories: () => number;
+  getCaloriesForDate: (date: string) => number;
   // Workouts management
   addWorkout: (workout: Omit<WorkoutLog, 'id' | 'date'>) => void;
   getTodayWorkouts: () => WorkoutLog[];
+  getWorkoutsForDate: (date: string) => WorkoutLog[];
   markWorkoutDone: () => void;
   resetData: () => Promise<void>;
   updateNotificationSettings: (settings: Partial<UserState['notificationSettings']>) => Promise<void>;
   updateLanguage: (lang: 'uz' | 'ru') => Promise<void>;
   isLoading: boolean;
+  selectedDate: number; // Index of the selected day (0-6 or more)
+  setSelectedDate: (date: number) => void;
 }
 
 
@@ -156,6 +161,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }
 
   const [isLoading, setIsLoading] = useState(true); // Start as loading by default! 
+  const [selectedDate, setSelectedDate] = useState(0);
 
   // Axios Interceptor for 401 Auto-Refresh
   useEffect(() => {
@@ -175,7 +181,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
               console.log("🔄 401 Detected! Auto-refreshing token via initData...");
 
               // Call login directly (bypass full initializeUser for speed)
-              const authRes = await axios.post(`${API_URL}/auth/telegram`, {
+              const authRes = await axios.post('/auth/telegram', {
                 initData: tg.initData
               });
 
@@ -208,7 +214,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const tg = (window as any).Telegram?.WebApp;
         if (tg?.initData) {
           console.log("Authenticating with Telegram initData...");
-          const authRes = await axios.post(`${API_URL}/auth/telegram`, {
+          const authRes = await axios.post('/auth/telegram', {
             initData: tg.initData
           });
 
@@ -219,8 +225,8 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
             // Fetch profile AND entitlements in parallel
             const [profileRes, entRes] = await Promise.all([
-              axios.get(`${API_URL}/user/profile`),
-              axios.get(`${API_URL}/user/entitlements`).catch(e => ({ data: null }))
+              axios.get('/user/profile'),
+              axios.get('/user/entitlements').catch(e => ({ data: null }))
             ]);
 
             const userData = profileRes.data;
@@ -318,7 +324,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setState(prev => ({ ...prev, notificationSettings: updatedSettings }));
 
     try {
-      await axios.put(`${API_URL}/user/profile`, {
+      await axios.put('/user/profile', {
         notification_settings: updatedSettings
       });
     } catch (e) {
@@ -331,7 +337,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.setItem('yasha_language', lang); // Also sync with LanguageContext's local storage key
 
     try {
-      await axios.put(`${API_URL}/user/profile`, {
+      await axios.put('/user/profile', {
         language: lang
       });
     } catch (e) {
@@ -423,7 +429,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     saveState(newState);
 
     try {
-      await axios.post(`${API_URL}/entry/water`, { amount: ml });
+      await axios.post('/entry/water', { amount: ml });
     } catch (e) {
       console.error("Sync water failed", e);
     }
@@ -463,7 +469,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     saveState(newState);
 
     try {
-      await axios.post(`${API_URL}/entry/meals`, {
+      await axios.post('/entry/meals', {
         name: meal.name,
         calories: meal.calories,
         protein: meal.protein,
@@ -516,10 +522,20 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return state.meals.filter(m => m.date === today);
   }, [state.meals]);
 
+  const getMealsForDate = useCallback((date: string) => {
+    return state.meals.filter(m => m.date === date);
+  }, [state.meals]);
+
   const getTodayCalories = useCallback(() => {
     const today = getTodayDate();
     return state.meals
       .filter(m => m.date === today)
+      .reduce((sum, m) => sum + m.calories, 0);
+  }, [state.meals]);
+
+  const getCaloriesForDate = useCallback((date: string) => {
+    return state.meals
+      .filter(m => m.date === date)
       .reduce((sum, m) => sum + m.calories, 0);
   }, [state.meals]);
 
@@ -578,6 +594,10 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const getTodayWorkouts = useCallback(() => {
     const today = getTodayDate();
     return state.workouts.filter(w => w.date === today);
+  }, [state.workouts]);
+
+  const getWorkoutsForDate = useCallback((date: string) => {
+    return state.workouts.filter(w => w.date === date);
   }, [state.workouts]);
 
   const markWorkoutDone = useCallback(() => {
@@ -703,14 +723,19 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         addMeal,
         removeMeal,
         getTodayMeals,
+        getMealsForDate,
         getTodayCalories,
+        getCaloriesForDate,
         addWorkout,
         getTodayWorkouts,
+        getWorkoutsForDate,
         markWorkoutDone,
         resetData,
         updateNotificationSettings,
         updateLanguage,
         isLoading,
+        selectedDate,
+        setSelectedDate,
       }}
     >
       {children}
