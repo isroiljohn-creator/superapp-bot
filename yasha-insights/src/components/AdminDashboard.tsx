@@ -84,8 +84,8 @@ export function AdminDashboard() {
               </SheetTrigger>
               <SheetContent side="left" className="w-64 p-0">
                 <div className="p-4 border-b border-border">
-                  <h2 className="font-semibold text-lg">YASHA Admin</h2>
-                  <p className="text-xs text-muted-foreground">Analitika Paneli</p>
+                  <h2 className="font-semibold text-lg">YASHA Admin v2.1</h2>
+                  <p className="text-xs text-muted-foreground">Analitika Paneli (UZ)</p>
                 </div>
                 <nav className="p-2">
                   {tabs.map((tab) => (
