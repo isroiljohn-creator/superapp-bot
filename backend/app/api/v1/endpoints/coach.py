@@ -46,6 +46,25 @@ async def chat_with_coach(
     AI Coach Chat Endpoint.
     Replaces Supabase Edge Function to provide AI advice based on context.
     """
+    from core.entitlements import check_and_consume
+    
+    # Check entitlements before processing
+    result = check_and_consume(current_user.telegram_id, 'ai_chat')
+    if not result['allowed']:
+        raise HTTPException(
+            status_code=402,
+            detail={
+                "error": "LIMIT_REACHED",
+                "feature_key": "ai_chat",
+                "plan": result['plan'],
+                "limit": result['limit'],
+                "used": result['used'],
+                "reset_at": result['reset_at'].isoformat() if result['reset_at'] else None,
+                "upgrade_to": result.get('upgrade_to'),
+                "message_uz": result.get('message_uz')
+            }
+        )
+    
     try:
         # 1. Construct System Prompt with Context
         ctx = req.userContext

@@ -184,3 +184,18 @@ async def reset_profile(
     except Exception as e:
         await db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/entitlements")
+async def get_user_entitlements(current_user: User = Depends(get_current_user)):
+    """
+    Get user's plan and all feature entitlements with current usage.
+    Used by Mini App to display limits and enforce client-side UI.
+    """
+    from core.entitlements import get_all_entitlements
+    
+    try:
+        entitlements = get_all_entitlements(current_user.telegram_id)
+        return entitlements
+    except Exception as e:
+        print(f"Entitlements error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
