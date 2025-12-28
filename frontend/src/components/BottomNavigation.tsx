@@ -52,14 +52,24 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
                 )}
               >
                 <motion.div
-                  className="w-6 h-6 mb-1"
+                  className="w-6 h-6 mb-1 relative z-10"
                   animate={{
-                    scale: isActive ? 1.1 : 1,
+                    scale: isActive ? 1.2 : 1,
+                    y: isActive ? -2 : 0
                   }}
-                  transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                  transition={{ type: "spring", stiffness: 500, damping: 15 }}
                 >
                   {tab.icon}
                 </motion.div>
+                {isActive && (
+                  <motion.div
+                    layoutId="activeTab"
+                    className="absolute inset-x-1 inset-y-1 bg-primary/10 rounded-xl -z-0"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                  />
+                )}
                 <span className={cn(
                   "text-[11px] font-medium leading-tight",
                   isActive ? "opacity-100" : "opacity-70"

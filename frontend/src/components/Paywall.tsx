@@ -35,7 +35,7 @@ export const Paywall: React.FC<PaywallProps> = ({
   const plans = [
     {
       id: 'premium',
-      name: '💎 PREMIUM',
+      name: '💎 PLUS',
       price: "49,000",
       periodKey: 'paywall.perMonth',
       descKey: 'paywall.premiumDesc',
@@ -55,7 +55,7 @@ export const Paywall: React.FC<PaywallProps> = ({
     },
     {
       id: 'vip',
-      name: '👑 VIP',
+      name: '👑 PRO',
       price: "97,000",
       periodKey: 'paywall.perMonth',
       descKey: 'paywall.vipDesc',

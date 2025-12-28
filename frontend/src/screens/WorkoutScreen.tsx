@@ -129,9 +129,17 @@ export const WorkoutScreen: React.FC<WorkoutScreenProps> = ({ onNavigate }) => {
     },
   };
 
-  const itemVariants = {
-    hidden: { opacity: 0, y: 20 },
-    show: { opacity: 1, y: 0 },
+  const itemVariants: any = {
+    hidden: { opacity: 0, y: 15 },
+    show: {
+      opacity: 1,
+      y: 0,
+      transition: {
+        type: "spring",
+        stiffness: 300,
+        damping: 30
+      }
+    },
   };
 
   return (

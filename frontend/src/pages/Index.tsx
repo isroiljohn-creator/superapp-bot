@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Onboarding } from '@/components/Onboarding';
 import { BottomNavigation } from '@/components/BottomNavigation';
 import { SplashScreen } from '@/components/SplashScreen';
@@ -92,7 +93,18 @@ const AppContent: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      {renderScreen()}
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={activeTab}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -10 }}
+          transition={{ duration: 0.2, ease: "easeOut" }}
+          className="w-full"
+        >
+          {renderScreen()}
+        </motion.div>
+      </AnimatePresence>
       <BottomNavigation activeTab={activeTab} onTabChange={setActiveTab} />
     </div>
   );

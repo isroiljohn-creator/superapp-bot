@@ -70,9 +70,22 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate }) => {
     },
   };
 
-  const itemVariants = {
-    hidden: { opacity: 0, y: 15 },
-    show: { opacity: 1, y: 0 },
+  const itemVariants: any = {
+    hidden: { opacity: 0, y: 20 },
+    show: {
+      opacity: 1,
+      y: 0,
+      transition: {
+        type: "spring",
+        stiffness: 260,
+        damping: 20
+      }
+    },
+  };
+
+  const tapTransition = {
+    whileTap: { scale: 0.98 },
+    transition: { type: "spring", stiffness: 400, damping: 10 }
   };
 
   return (
@@ -119,7 +132,8 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate }) => {
             <div className="flex items-center justify-between">
               <div>
                 <span className="text-[10px] text-primary font-semibold uppercase tracking-wider">
-                  {planType === 'trial' ? t('home.trialPeriod') : planType.toUpperCase()}
+                  {planType === 'trial' ? t('home.trialPeriod') :
+                    (planType === 'vip' || planType === 'pro' ? 'PRO' : 'PLUS')}
                 </span>
                 <p className="text-base font-bold text-foreground">
                   {getDaysRemaining()} {t('home.daysRemaining')}
@@ -144,7 +158,12 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate }) => {
           {t('home.todayResults')}
         </motion.h2>
 
-        <button onClick={() => onNavigate?.('habits')} className="w-full">
+        <motion.button
+          variants={itemVariants}
+          whileTap={{ scale: 0.98 }}
+          onClick={() => onNavigate?.('habits')}
+          className="w-full"
+        >
           <div className="grid grid-cols-2 gap-3">
             <motion.div variants={itemVariants}>
               <StatCard
@@ -191,7 +210,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate }) => {
               />
             </motion.div>
           </div>
-        </button>
+        </motion.button>
 
         {/* Streaks */}
         <motion.div variants={itemVariants} className="mt-3">
@@ -222,7 +241,9 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate }) => {
 
         {/* AI Coach - Main CTA */}
         <motion.div variants={itemVariants} className="mt-4">
-          <button
+          <motion.button
+            variants={itemVariants}
+            whileTap={{ scale: 0.98 }}
             onClick={() => onNavigate?.('ai-coach')}
             className="w-full p-3.5 rounded-xl bg-gradient-to-r from-primary/25 to-primary/15 border border-primary/40 flex items-center justify-between transition-all active:scale-[0.98]"
           >
@@ -236,12 +257,14 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate }) => {
               </div>
             </div>
             <ChevronRight className="w-5 h-5 text-primary" />
-          </button>
+          </motion.button>
         </motion.div>
 
         {/* Daily Habits Button */}
         <motion.div variants={itemVariants} className="mt-2.5">
-          <button
+          <motion.button
+            variants={itemVariants}
+            whileTap={{ scale: 0.98 }}
             onClick={() => onNavigate?.('habits')}
             className="w-full p-3.5 rounded-xl bg-gradient-to-r from-emerald-500/20 to-teal-500/15 border border-emerald-500/30 flex items-center justify-between transition-all active:scale-[0.98]"
           >
@@ -255,12 +278,14 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate }) => {
               </div>
             </div>
             <ChevronRight className="w-5 h-5 text-emerald-400" />
-          </button>
+          </motion.button>
         </motion.div>
 
         {/* Explore More Button */}
         <motion.div variants={itemVariants} className="mt-2.5 mb-4">
-          <button
+          <motion.button
+            variants={itemVariants}
+            whileTap={{ scale: 0.98 }}
             onClick={() => onNavigate?.('explore')}
             className="w-full p-3.5 rounded-xl bg-card border border-border/50 flex items-center justify-between transition-all active:scale-[0.98]"
           >
@@ -274,7 +299,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate }) => {
               </div>
             </div>
             <ChevronRight className="w-5 h-5 text-muted-foreground" />
-          </button>
+          </motion.button>
         </motion.div>
       </motion.div>
     </div>

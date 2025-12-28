@@ -48,19 +48,19 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onNavigate }) => {
     if (language === 'ru') {
       switch (planType?.toLowerCase()) {
         case 'pro':
-        case 'vip': return '👑 VIP';
+        case 'vip': return '👑 PRO';
         case 'plus':
-        case 'premium': return '💎 Премиум';
-        case 'trial': return 'Пробный (Премиум)';
+        case 'premium': return '💎 PLUS';
+        case 'trial': return 'Пробный (PLUS)';
         default: return 'Бесплатный';
       }
     }
     switch (planType?.toLowerCase()) {
       case 'pro':
-      case 'vip': return '👑 VIP';
+      case 'vip': return '👑 PRO';
       case 'plus':
-      case 'premium': return '💎 Premium';
-      case 'trial': return 'Sinov (Premium)';
+      case 'premium': return '💎 PLUS';
+      case 'trial': return 'Sinov (PLUS)';
       default: return 'Bepul';
     }
   };
