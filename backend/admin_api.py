@@ -416,12 +416,6 @@ async def get_adaptation_stats(db: AsyncSession = Depends(get_db), admin_id: int
     kcal_q = await db.execute(select(func.count()).where(UserAdaptationState.menu_kcal_adjust_pct < 0))
     kcal_count = kcal_q.scalar() or 0
 
-    return {
-        "adapted_users": total,
-        "kcal_adjusted": kcal_count,
-        "soft_mode_users": soft,
-        "variant_switches": total, # Approximation
-    # Optimized daily query
     daily_q = await db.execute(text("""
         SELECT date(updated_at) as d, count(*) as c
         FROM user_adaptation_state
