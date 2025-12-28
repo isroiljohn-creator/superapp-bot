@@ -13,7 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from jose import jwt, JWTError
 
 from backend.database import get_db
-from backend.models import User, DailyLog, Plan, Transaction, Feedback, MenuFeedback, WorkoutFeedback, CoachFeedback, UserAdaptationState, AIUsageLog, AdminEvent
+from backend.models import User, DailyLog, Plan, Transaction, Feedback, MenuFeedback, WorkoutFeedback, CoachFeedback, UserAdaptationState, AIUsageLog, AdminEvent, EventLog
 from core.config import BOT_TOKEN, ADMIN_IDS
 from backend.auth import SECRET_KEY, ALGORITHM
 
@@ -155,6 +155,8 @@ async def get_stats(db: AsyncSession = Depends(get_db), admin_id: int = Depends(
             SELECT user_id FROM workout_feedback WHERE created_at >= :d
             UNION
             SELECT user_id FROM ai_usage_logs WHERE timestamp >= :d
+            UNION
+            SELECT user_id FROM event_logs WHERE created_at >= :d
         ) t
     """), {"d": one_day_ago})
     dau = dau_q.scalar() or 0
@@ -167,6 +169,8 @@ async def get_stats(db: AsyncSession = Depends(get_db), admin_id: int = Depends(
             SELECT user_id FROM workout_feedback WHERE created_at >= :d
             UNION
             SELECT user_id FROM ai_usage_logs WHERE timestamp >= :d
+            UNION
+            SELECT user_id FROM event_logs WHERE created_at >= :d
         ) t
     """), {"d": seven_days_ago})
     wau = wau_q.scalar() or 0
@@ -180,6 +184,8 @@ async def get_stats(db: AsyncSession = Depends(get_db), admin_id: int = Depends(
             SELECT user_id FROM workout_feedback WHERE created_at >= :d
             UNION
             SELECT user_id FROM ai_usage_logs WHERE timestamp >= :d
+            UNION
+            SELECT user_id FROM event_logs WHERE created_at >= :d
         ) t
     """), {"d": thirty_days_ago})
     mau = mau_q.scalar() or 0
