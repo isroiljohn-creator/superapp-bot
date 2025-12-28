@@ -66,54 +66,53 @@ async def chat_with_coach(
         )
     
     try:
-    ctx = req.userContext
-    user_message = ""
-    history = ""
+        ctx = req.userContext
+        user_message = ""
+        history = ""
     
-    # Take the last message as the current prompt
-    if req.messages:
-        last_msg = req.messages[-1]
-        if last_msg.role == 'user':
-            user_message = last_msg.content
-        
-        # Format previous messages as history
-        recent_msgs = req.messages[:-1]
-        if len(recent_msgs) > 10:
-            recent_msgs = recent_msgs[-10:]
-        
-        for m in recent_msgs:
-            role_label = "Foydalanuvchi" if m.role == 'user' else "AI Coach"
-            history += f"{role_label}: {m.content}\n"
+        # Take the last message as the current prompt
+        if req.messages:
+            last_msg = req.messages[-1]
+            if last_msg.role == 'user':
+                user_message = last_msg.content
+            
+            # Format previous messages as history
+            recent_msgs = req.messages[:-1]
+            if len(recent_msgs) > 10:
+                recent_msgs = recent_msgs[-10:]
+            
+            for m in recent_msgs:
+                role_label = "Foydalanuvchi" if m.role == 'user' else "AI Coach"
+                history += f"{role_label}: {m.content}\n"
 
-    if not user_message:
-        return {"reply": "Tushunmadim, qaytadan yozing."}
+        if not user_message:
+            return {"reply": "Tushunmadim, qaytadan yozing."}
 
-    # 1. [FAQ ENGINE] Check Database First (This is FREE and doesn't consume AI limits)
-    try:
-        from core.qa_engine import get_best_match
-        db_match = get_best_match(user_message, threshold=0.75) # Higher threshold for strict FAQ
+        # 1. [FAQ ENGINE] Check Database First (This is FREE and doesn't consume AI limits)
+        try:
+            from core.qa_engine import get_best_match
+            db_match = get_best_match(user_message, threshold=0.75) # Higher threshold for strict FAQ
+            
+            if db_match:
+                return {
+                    "reply": db_match['match']['answer'],
+                    "source": "knowledge_base"
+                }
+        except Exception as e:
+            print(f"QA Engine Error: {e}")
+
+        # 2. Check Entitlements BEFORE calling AI
+        from core.entitlements import check_and_consume
+        limit_result = check_and_consume(current_user.telegram_id, 'ai_chat')
         
-        if db_match:
+        if not limit_result['allowed']:
+            # Return structured error that frontend can handle or just show the message_uz
             return {
-                "reply": db_match['match']['answer'],
-                "source": "knowledge_base"
+                "reply": limit_result.get('message_uz', "Limitingiz tugadi."),
+                "error": "LIMIT_REACHED",
+                "upgrade_to": limit_result.get('upgrade_to')
             }
-    except Exception as e:
-        print(f"QA Engine Error: {e}")
 
-    # 2. Check Entitlements BEFORE calling AI
-    from core.entitlements import check_and_consume
-    limit_result = check_and_consume(current_user.telegram_id, 'ai_chat')
-    
-    if not limit_result['allowed']:
-        # Return structured error that frontend can handle or just show the message_uz
-        return {
-            "reply": limit_result.get('message_uz', "Limitingiz tugadi."),
-            "error": "LIMIT_REACHED",
-            "upgrade_to": limit_result.get('upgrade_to')
-        }
-
-    try:
         # 3. AI Generation
         context_str = ""
         if ctx:
