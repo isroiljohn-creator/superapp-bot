@@ -9,7 +9,6 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
-import ReferenceTab from './tabs/ReferralTab';
 import { OverviewTab } from './tabs/OverviewTab';
 import { RetentionTab } from './tabs/RetentionTab';
 import { AICostsTab } from './tabs/AICostsTab';
@@ -33,7 +32,6 @@ interface Tab {
 
 const tabs: Tab[] = [
   { id: 'overview', label: 'Umumiy', icon: LayoutDashboard },
-  { id: 'referral', label: "Do'stlarni chaqirish", icon: Users },
   { id: 'analytics', label: 'Pro Analitika', icon: BarChart3 },
   { id: 'retention', label: 'Qaytuvchanlik', icon: Users },
   { id: 'ai-costs', label: 'AI Xarajatlari', icon: Cpu },
@@ -55,8 +53,7 @@ export function AdminDashboard() {
     switch (activeTab) {
       case 'overview':
         return <OverviewTab />;
-      case 'referral':
-        return <ReferenceTab />;
+
       case 'analytics':
         return <AdvancedAnalyticsTab />;
       case 'retention':

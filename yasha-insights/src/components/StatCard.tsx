@@ -59,8 +59,8 @@ export function StatCard({
         className
       )}
     >
-      <div className="flex items-start justify-between mb-3">
-        <span className="stat-label">{title}</span>
+      <div className="flex items-start justify-between mb-3 gap-2">
+        <span className="stat-label truncate min-w-0 flex-1">{title}</span>
         {Icon && (
           <div
             className={cn(
