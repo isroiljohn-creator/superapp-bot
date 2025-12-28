@@ -33,14 +33,14 @@
     --success: 142 70% 45%;
     --success-foreground: 144 60% 98%;
 
-    --warning: 48 96% 53%;
+    --warning: 48 96% 51%;
     --warning-foreground: 48 96% 10%;
 
     --info: 204 94% 56%;
     --info-foreground: 213 31% 91%;
 
-    --border: 224 71% 15%;
-    --input: 224 71% 15%;
+    --border: 213 31% 16%;
+    --input: 213 31% 16%;
     --ring: 204 94% 56%;
 
     --radius: 1.5rem;
@@ -63,13 +63,13 @@
 
   .light {
     --background: 210 40% 98%;
-    --foreground: 224 71% 4%;
+    --foreground: 222 47% 11%;
 
     --card: 0 0% 100%;
-    --card-foreground: 224 71% 4%;
+    --card-foreground: 222 47% 11%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 224 71% 4%;
+    --popover-foreground: 222 47% 11%;
 
     --primary: 204 94% 48%;
     --primary-foreground: 0 0% 100%;
@@ -77,25 +77,22 @@
     --secondary: 210 40% 96%;
     --secondary-foreground: 222 47% 11%;
 
-    --muted: 210 40% 90%;
-    --muted-foreground: 215 16% 47%;
+    --muted: 210 40% 92%;
+    --muted-foreground: 215 25% 40%;
 
-    --accent: 210 40% 96%;
-    --accent-foreground: 222 47% 11%;
+    --accent: 204 94% 48%;
+    --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 214 32% 91%;
-    --input: 214 32% 91%;
+    --border: 214 32% 88%;
+    --input: 214 32% 88%;
     --ring: 204 94% 48%;
 
     --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 224 71% 4%;
+    --sidebar-foreground: 222 47% 11%;
     --sidebar-primary: 204 94% 48%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 210 40% 96%;
-    --sidebar-accent-foreground: 224 71% 4%;
+    --sidebar-accent-foreground: 222 47% 11%;
     --sidebar-border: 214 32% 91%;
     --sidebar-ring: 204 94% 48%;
   }
@@ -111,7 +108,7 @@
   }
 
   body {
-    @apply bg-background text-foreground antialiased;
+    @apply bg-background text-foreground antialiased selection:bg-primary selection:text-white transition-colors duration-300;
   }
 
   .font-mono {
@@ -121,48 +118,53 @@
 
 @layer components {
   .glass-panel {
-    @apply bg-card/60 backdrop-blur-md border border-white/10 shadow-xl;
+    @apply bg-background/80 backdrop-blur-2xl border-b border-border shadow-sm;
   }
 
   .glass-card {
-    @apply bg-card/40 backdrop-blur-xl border border-white/10 rounded-3xl p-5 md:p-6 transition-all duration-300 active:scale-[0.99];
+    @apply bg-card/60 backdrop-blur-xl border border-border rounded-3xl p-5 md:p-6 transition-all duration-300;
+    box-shadow: 0 10px 40px -15px rgba(0, 0, 0, 0.05);
 
     &:hover {
-      @apply bg-card/60 border-primary/40;
+      @apply border-primary/50 translate-y-[-4px];
       box-shadow: 0 20px 50px -12px hsl(var(--primary) / 0.15);
+    }
+
+    &:active {
+      @apply scale-[0.98];
     }
   }
 
   .stat-value {
-    @apply text-2xl md:text-4xl font-black tracking-tight font-mono text-gradient break-words overflow-hidden;
+    @apply text-2xl md:text-4xl font-black tracking-tight font-mono text-gradient break-words overflow-hidden leading-tight;
   }
 
   .stat-label {
-    @apply text-sm uppercase tracking-widest text-muted-foreground font-semibold mb-1;
+    @apply text-sm uppercase tracking-widest text-muted-foreground font-bold mb-1;
   }
 
   .stat-change-positive {
-    @apply text-success bg-success/10 px-2 py-0.5 rounded-full text-xs font-bold flex items-center gap-1;
+    @apply text-success bg-success/10 px-2.5 py-1 rounded-full text-xs font-bold flex items-center gap-1;
   }
 
   .stat-change-negative {
-    @apply text-destructive bg-destructive/10 px-2 py-0.5 rounded-full text-xs font-bold flex items-center gap-1;
+    @apply text-destructive bg-destructive/10 px-2.5 py-1 rounded-full text-xs font-bold flex items-center gap-1;
   }
 
   .data-table-container {
-    @apply rounded-2xl border border-border overflow-hidden bg-card/30 backdrop-blur-sm;
+    @apply rounded-3xl border border-border overflow-hidden bg-card/40 backdrop-blur-sm shadow-sm;
   }
 
   .data-table {
-    @apply w-full text-sm;
+    @apply w-full text-sm border-collapse;
   }
 
   .data-table th {
-    @apply text-left text-xs uppercase tracking-widest text-muted-foreground font-bold py-4 px-6 border-b border-border bg-secondary/50;
+    @apply text-left text-[11px] uppercase tracking-[0.1em] text-muted-foreground font-black py-5 px-6 border-b border-border bg-muted/30;
   }
 
   .data-table td {
-    @apply py-4 px-6 border-b border-border/40 font-mono text-sm transition-colors;
+    @apply py-5 px-6 border-b border-border/40 font-mono text-sm transition-colors;
   }
 
   .data-table tr:last-child td {
@@ -170,38 +172,31 @@
   }
 
   .data-table tr:hover td {
-    @apply bg-primary/5;
-  }
-
-  .tab-active {
-    @apply text-primary bg-primary/10 border-b-2 border-primary font-bold;
+    @apply bg-primary/5 text-primary;
   }
 
   .retention-cell {
-    @apply text-center py-3 px-2 text-xs font-bold font-mono rounded-lg transition-all hover:scale-105;
+    @apply text-center py-3 px-2 text-xs font-bold font-mono rounded-xl transition-all hover:scale-105;
   }
 
   .retention-high {
-    background: linear-gradient(135deg, hsl(var(--success) / 0.3), hsl(var(--success) / 0.1));
-    @apply text-success border border-success/20;
+    @apply bg-success/20 text-success border border-success/30;
   }
 
   .retention-medium {
-    background: linear-gradient(135deg, hsl(var(--warning) / 0.3), hsl(var(--warning) / 0.1));
-    @apply text-warning border border-warning/20;
+    @apply bg-warning/20 text-warning border border-warning/30;
   }
 
   .retention-low {
-    background: linear-gradient(135deg, hsl(var(--destructive) / 0.3), hsl(var(--destructive) / 0.1));
-    @apply text-destructive border border-destructive/20;
+    @apply bg-destructive/20 text-destructive border border-destructive/30;
   }
 
   .skeleton {
-    @apply animate-pulse bg-muted rounded-xl;
+    @apply animate-pulse bg-muted/50 rounded-2xl;
   }
 
   .glow-primary {
-    box-shadow: 0 0 30px hsl(var(--primary) / 0.2);
+    box-shadow: 0 0 40px hsl(var(--primary) / 0.25);
   }
 
   .premium-gradient {
@@ -211,11 +206,11 @@
 
 @layer utilities {
   .text-gradient {
-    @apply bg-clip-text text-transparent bg-gradient-to-br from-white via-white to-primary/50;
+    @apply bg-clip-text text-transparent bg-gradient-to-br from-foreground via-foreground to-primary/40;
   }
 
   .text-gradient-vibrant {
-    @apply bg-clip-text text-transparent bg-gradient-to-r from-primary via-chart-2 to-info;
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-primary via-chart-2 to-primary;
   }
 
   .scrollbar-hide {

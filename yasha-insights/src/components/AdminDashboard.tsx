@@ -68,9 +68,9 @@ export function AdminDashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-background selection:bg-primary/20">
+    <div className="min-h-screen bg-background selection:bg-primary/20 transition-colors duration-500">
       {/* Header */}
-      <header className="sticky top-0 z-50 glass-panel backdrop-blur-2xl border-b border-white/5">
+      <header className="sticky top-0 z-50 glass-panel border-b border-border shadow-sm">
         <div className="container mx-auto flex items-center justify-between px-4 h-16">
           <div className="flex items-center gap-4">
             <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
@@ -79,8 +79,8 @@ export function AdminDashboard() {
                   <Menu className="h-6 w-6 text-primary" />
                 </Button>
               </SheetTrigger>
-              <SheetContent side="left" className="w-80 p-0 glass-panel border-r border-white/5">
-                <div className="p-8 border-b border-white/5">
+              <SheetContent side="left" className="w-80 p-0 glass-panel border-r border-border shadow-xl">
+                <div className="p-8 border-b border-border/50">
                   <h1 className="text-3xl font-black tracking-tighter text-gradient-vibrant">
                     YASHA <span className="text-foreground">Admin</span>
                   </h1>
@@ -99,7 +99,7 @@ export function AdminDashboard() {
                         'w-full flex items-center gap-4 px-6 py-4 rounded-2xl text-sm font-bold transition-all duration-300',
                         activeTab === tab.id
                           ? 'bg-primary text-white shadow-lg shadow-primary/25 glow-primary scale-[1.02]'
-                          : 'text-muted-foreground hover:bg-white/5 hover:text-foreground hover:translate-x-1'
+                          : 'text-muted-foreground hover:bg-muted hover:text-foreground hover:translate-x-1'
                       )}
                     >
                       <tab.icon className={cn("h-5 w-5", activeTab === tab.id ? "animate-pulse" : "")} />
@@ -116,7 +116,7 @@ export function AdminDashboard() {
             </div>
 
             {/* Desktop Tab Bar */}
-            <nav className="hidden md:flex items-center gap-1 ml-8 h-10 p-1 bg-secondary/50 rounded-xl border border-white/5">
+            <nav className="hidden md:flex items-center gap-1 ml-8 h-10 p-1 bg-muted/50 rounded-xl border border-border/50">
               {tabs.map((tab) => (
                 <button
                   key={tab.id}
@@ -125,7 +125,7 @@ export function AdminDashboard() {
                     'flex items-center gap-2 px-5 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all duration-300',
                     activeTab === tab.id
                       ? 'bg-primary text-white shadow-md glow-primary'
-                      : 'text-muted-foreground hover:bg-white/5 hover:text-foreground'
+                      : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                   )}
                 >
                   <tab.icon className="h-3.5 w-3.5" />
@@ -138,7 +138,7 @@ export function AdminDashboard() {
           <div className="flex items-center gap-4">
             <ThemeToggle />
             {user && (
-              <div className="flex items-center gap-3 pl-4 border-l border-white/10">
+              <div className="flex items-center gap-3 pl-4 border-l border-border">
                 <div className="hidden sm:flex flex-col items-end">
                   <span className="text-xs font-bold text-foreground leading-none">{user.first_name}</span>
                   <span className="text-[9px] text-muted-foreground uppercase font-black tracking-widest leading-none mt-1">Superadmin</span>
@@ -157,8 +157,8 @@ export function AdminDashboard() {
       </header>
 
       {/* Main Content */}
-      <main className="p-4 pb-24 md:pb-8">
-        <div className="max-w-6xl mx-auto">{renderTabContent()}</div>
+      <main className="p-4 md:p-8 pb-24 md:pb-12">
+        <div className="max-w-[1400px] mx-auto">{renderTabContent()}</div>
       </main>
 
       {/* Bottom Tab Bar - Mobile */}

@@ -39,8 +39,8 @@ export function AICostsTab({ isLoading: externalLoading = false }: AICostsTabPro
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
       {/* Header */}
-      <div className="px-2">
-        <h2 className="text-2xl font-black tracking-tight text-foreground/90">AI Xarajatlari (AI Costs)</h2>
+      <div className="px-1">
+        <h2 className="text-3xl font-black tracking-tight text-foreground">AI Xarajatlari (AI Costs)</h2>
         <p className="text-sm text-muted-foreground font-medium mt-1">
           Sun'iy intellekt tokenlari iste'moli va moliyaviy tahlil
         </p>
@@ -67,27 +67,33 @@ export function AICostsTab({ isLoading: externalLoading = false }: AICostsTabPro
       </div>
 
       {/* Cost Per Token & Efficiency */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="glass-card flex items-center justify-between p-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8">
+        <div className="glass-card flex items-center justify-between p-10 group overflow-hidden relative">
+          <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
+            <DollarSign className="w-24 h-24 text-warning" />
+          </div>
           <div>
             <span className="stat-label">1M Token Narxi</span>
-            <div className="stat-value text-4xl mt-1 text-warning">
+            <div className="stat-value text-5xl mt-2 text-warning" style={{ backgroundImage: 'none', color: 'hsl(var(--warning))' }}>
               ${displayData.total_tokens > 0 ? ((displayData.total_cost_usd / displayData.total_tokens) * 1000000).toFixed(2) : '0.00'}
             </div>
           </div>
-          <div className="p-4 bg-warning/10 rounded-2xl ring-1 ring-warning/20">
-            <Zap className="h-8 w-8 text-warning" />
+          <div className="p-4 bg-warning/10 rounded-2xl border border-warning/30 shadow-sm relative z-10 transition-transform group-hover:scale-110">
+            <Zap className="h-10 w-10 text-warning" />
           </div>
         </div>
-        <div className="glass-card flex items-center justify-between p-8 border-primary/20">
+        <div className="glass-card flex items-center justify-between p-10 group overflow-hidden relative border-primary/20">
+          <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
+            <Zap className="w-24 h-24 text-primary" />
+          </div>
           <div>
             <span className="stat-label">AI Samaradorligi</span>
-            <div className="stat-value text-4xl mt-1 text-primary">
+            <div className="stat-value text-5xl mt-2 text-primary">
               {displayData.total_tokens > 0 ? (displayData.total_tokens / displayData.total_cost_usd / 1000).toFixed(0) : '0'}K
             </div>
           </div>
-          <div className="p-4 bg-primary/10 rounded-2xl ring-1 ring-primary/20">
-            <TrendingUp className="h-8 w-8 text-primary" />
+          <div className="p-4 bg-primary/10 rounded-2xl border border-primary/30 shadow-sm relative z-10 transition-transform group-hover:scale-110">
+            <TrendingUp className="h-10 w-10 text-primary" />
           </div>
         </div>
       </div>
@@ -128,10 +134,10 @@ export function AICostsTab({ isLoading: externalLoading = false }: AICostsTabPro
                     </span>
                   </div>
                 </div>
-                <div className="h-2.5 bg-white/5 rounded-full overflow-hidden shadow-inner ring-1 ring-white/5">
+                <div className="h-3 bg-muted rounded-full overflow-hidden shadow-inner border border-border/50">
                   <div
                     className={cn(
-                      'h-full rounded-full transition-all duration-1000 ease-out shadow-[0_0_10px_rgba(var(--warning),0.3)]',
+                      'h-full rounded-full transition-all duration-1000 ease-out shadow-sm group-hover:glow-primary',
                       featureColors[feature.feature] || 'bg-primary'
                     )}
                     style={{
@@ -155,21 +161,21 @@ export function AICostsTab({ isLoading: externalLoading = false }: AICostsTabPro
           <TrendingUp className="h-5 w-5 text-primary" />
         </div>
 
-        <div className="flex items-end justify-between h-48 gap-3">
+        <div className="flex items-end justify-between h-56 gap-4">
           {displayData.daily.map((day) => (
             <div
               key={day.date}
-              className="group flex-1 flex flex-col items-center gap-3"
+              className="group flex-1 flex flex-col items-center gap-4"
             >
-              <div className="relative w-full flex flex-col items-center">
-                <div className="opacity-0 group-hover:opacity-100 transition-opacity absolute -top-10 bg-primary text-white text-[10px] font-black px-2 py-1 rounded-md shadow-lg pointer-events-none z-10 scale-90 group-hover:scale-100 origin-bottom duration-300">
+              <div className="relative w-full flex flex-col items-center h-full justify-end">
+                <div className="opacity-0 group-hover:opacity-100 transition-all duration-300 absolute -top-12 bg-primary text-white text-[10px] font-black px-2.5 py-1.5 rounded-xl shadow-xl pointer-events-none z-10 scale-75 group-hover:scale-100 origin-bottom border border-white/20">
                   ${day.cost_usd.toFixed(2)}
                 </div>
                 <div
-                  className="w-full bg-gradient-to-t from-primary/80 to-primary rounded-2xl transition-all duration-700 hover:scale-x-110 hover:shadow-[0_0_20px_rgba(34,197,94,0.3)] cursor-pointer"
+                  className="w-full bg-gradient-to-t from-primary/60 to-primary rounded-2xl transition-all duration-700 group-hover:scale-x-110 group-hover:glow-primary cursor-pointer border border-primary/20"
                   style={{
                     height: `${maxDailyCost > 0 ? (day.cost_usd / maxDailyCost) * 100 : 0}%`,
-                    minHeight: '8px',
+                    minHeight: '12px',
                   }}
                 />
               </div>
@@ -185,9 +191,9 @@ export function AICostsTab({ isLoading: externalLoading = false }: AICostsTabPro
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
         {/* Daily Breakdown Table */}
         <div className="data-table-container">
-          <div className="p-6 border-b border-white/5 bg-white/5 flex items-center justify-between">
-            <span className="text-sm font-black uppercase tracking-widest">Kunlik Dinamika</span>
-            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest opacity-60">History Detail</span>
+          <div className="p-6 border-b border-border bg-muted/30 flex items-center justify-between">
+            <span className="text-[11px] font-black uppercase tracking-[0.2em] text-foreground">Kunlik Dinamika</span>
+            <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest opacity-60">History Detail</span>
           </div>
           <div className="overflow-x-auto scrollbar-hide">
             <table className="data-table">
@@ -222,10 +228,10 @@ export function AICostsTab({ isLoading: externalLoading = false }: AICostsTabPro
 
         {/* Top Spenders */}
         {displayData.top_users && displayData.top_users.length > 0 && (
-          <div className="data-table-container border-primary/10">
-            <div className="p-6 border-b border-white/5 bg-primary/5 flex items-center justify-between">
-              <span className="text-sm font-black uppercase tracking-widest text-primary">Eng faollar (30 kun)</span>
-              <span className="text-[10px] font-bold text-primary/60 uppercase tracking-widest">Power Users</span>
+          <div className="data-table-container border-primary/20">
+            <div className="p-6 border-b border-border bg-primary/10 flex items-center justify-between">
+              <span className="text-[11px] font-black uppercase tracking-[0.2em] text-primary">Eng faollar (30 kun)</span>
+              <span className="text-[10px] font-black text-primary/60 uppercase tracking-widest">Power Users</span>
             </div>
             <div className="overflow-x-auto scrollbar-hide">
               <table className="data-table">
@@ -240,7 +246,7 @@ export function AICostsTab({ isLoading: externalLoading = false }: AICostsTabPro
                     <tr key={user.user_id} className="group">
                       <td>
                         <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center font-black text-xs text-primary ring-1 ring-white/10 group-hover:scale-110 transition-transform">
+                          <div className="w-10 h-10 rounded-xl bg-muted border border-border flex items-center justify-center font-black text-sm text-primary shadow-sm group-hover:scale-110 group-hover:border-primary/50 transition-all duration-300">
                             {user.full_name[0]}
                           </div>
                           <div className="flex flex-col truncate min-w-0">

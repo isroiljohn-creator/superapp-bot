@@ -46,14 +46,14 @@ export function OverviewTab({ isLoading: externalLoading = false }: OverviewTabP
       {/* Header */}
       <div className="flex items-end justify-between px-2">
         <div>
-          <h2 className="text-2xl font-black tracking-tight text-foreground/90">Umumiy ko'rinish</h2>
+          <h2 className="text-3xl font-black tracking-tight text-foreground">Umumiy ko'rinish</h2>
           <p className="text-sm text-muted-foreground font-medium mt-1">
             Jonli foydalanuvchi metrikalari va asosiy KPI ko'rsatkichlari
           </p>
         </div>
-        <div className="flex items-center gap-3 px-4 py-2 glass-panel rounded-2xl border-white/5 shadow-inner">
-          <div className="w-2.5 h-2.5 rounded-full bg-success animate-pulse shadow-[0_0_10px_rgba(34,197,94,0.5)]" />
-          <span className="text-[10px] uppercase font-black tracking-widest text-success">Live Sync</span>
+        <div className="flex items-center gap-3 px-5 py-2.5 glass-panel rounded-2xl border-border shadow-sm w-fit transition-all hover:border-primary/50">
+          <div className="w-2.5 h-2.5 rounded-full bg-success animate-pulse shadow-[0_0_15px_rgba(34,197,94,0.4)]" />
+          <span className="text-[11px] uppercase font-black tracking-[0.15em] text-success">Live Syncing</span>
         </div>
       </div>
 
@@ -105,10 +105,10 @@ export function OverviewTab({ isLoading: externalLoading = false }: OverviewTabP
       </div>
 
       {/* User Segments */}
-      <div className="space-y-4">
-        <div className="flex items-center gap-2 px-2">
-          <Crown className="w-4 h-4 text-primary" />
-          <h3 className="text-xs font-black text-muted-foreground uppercase tracking-[0.2em]">
+      <div className="space-y-6">
+        <div className="flex items-center gap-3 px-1">
+          <div className="w-1 h-4 bg-primary rounded-full" />
+          <h3 className="text-[11px] font-black text-muted-foreground uppercase tracking-[0.2em]">
             Foydalanuvchi segmentlari
           </h3>
         </div>
@@ -144,40 +144,40 @@ export function OverviewTab({ isLoading: externalLoading = false }: OverviewTabP
       </div>
 
       {/* Conversion Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-        <div className="glass-card flex flex-col items-center justify-center text-center py-10 relative overflow-hidden group">
-          <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
-            <TrendingUp className="w-24 h-24" />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8">
+        <div className="glass-card flex flex-col items-center justify-center text-center py-12 relative overflow-hidden group">
+          <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:opacity-20 transition-all duration-500 translate-x-4 translate-y-[-4px]">
+            <TrendingUp className="w-32 h-32" />
           </div>
           <span className="stat-label mb-4">Umumiy konversiya</span>
-          <div className="stat-value text-5xl md:text-6xl mb-4">{conversionRate}%</div>
-          <div className="flex items-center gap-3 px-4 py-1.5 bg-primary/10 rounded-full border border-primary/20">
+          <div className="stat-value text-6xl lg:text-7xl mb-6">{conversionRate}%</div>
+          <div className="flex items-center gap-3 px-5 py-2 bg-primary/10 rounded-full border border-primary/20">
             <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-            <span className="text-[10px] font-black uppercase tracking-widest text-primary">Bepul → Paid</span>
+            <span className="text-[11px] font-black uppercase tracking-[0.1em] text-primary">Bepul → Paid</span>
           </div>
         </div>
 
-        <div className="glass-card flex flex-col items-center justify-center text-center py-10 relative overflow-hidden group">
-          <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
-            <Sparkles className="w-24 h-24 text-success" />
+        <div className="glass-card flex flex-col items-center justify-center text-center py-12 relative overflow-hidden group">
+          <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:opacity-20 transition-all duration-500 translate-x-4 translate-y-[-4px]">
+            <Sparkles className="w-32 h-32 text-success" />
           </div>
-          <span className="stat-label mb-4">Sinov konversiyasi</span>
-          <div className="stat-value text-5xl md:text-6xl mb-4 text-success" style={{ backgroundImage: 'none', color: 'hsl(var(--success))' }}>{trialConversion}%</div>
-          <div className="flex items-center gap-3 px-4 py-1.5 bg-success/10 rounded-full border border-success/20">
+          <span className="stat-label mb-4 text-success/80">Sinov konversiyasi</span>
+          <div className="stat-value text-6xl lg:text-7xl mb-6 text-success" style={{ backgroundImage: 'none', color: 'hsl(var(--success))' }}>{trialConversion}%</div>
+          <div className="flex items-center gap-3 px-5 py-2 bg-success/10 rounded-full border border-success/20">
             <div className="w-2 h-2 rounded-full bg-success animate-pulse" />
-            <span className="text-[10px] font-black uppercase tracking-widest text-success">Sinov → Paid</span>
+            <span className="text-[11px] font-black uppercase tracking-[0.1em] text-success">Sinov → Paid</span>
           </div>
         </div>
       </div>
 
       {/* User Distribution Bar */}
-      <div className="glass-card p-8">
-        <div className="flex items-center justify-between mb-6">
+      <div className="glass-card p-10">
+        <div className="flex items-center justify-between mb-8">
           <span className="stat-label">Foydalanuvchilar taqsimoti</span>
-          <span className="text-[10px] font-black uppercase tracking-widest px-3 py-1 bg-white/5 rounded-full border border-white/5">Segment Analytics</span>
+          <span className="text-[10px] font-black uppercase tracking-[0.15em] px-4 py-1.5 bg-muted rounded-full border border-border">Segment Analytics</span>
         </div>
 
-        <div className="h-4 rounded-full bg-white/5 overflow-hidden flex shadow-inner">
+        <div className="h-5 rounded-full bg-muted overflow-hidden flex shadow-inner border border-border/50">
           <div
             className="bg-muted-foreground/30 h-full transition-all duration-1000 ease-out"
             style={{ width: `${(displayData.free_users / displayData.total_users) * 100}%` }}
@@ -196,34 +196,34 @@ export function OverviewTab({ isLoading: externalLoading = false }: OverviewTabP
           />
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 mt-8">
-          <div className="flex flex-col gap-1">
-            <span className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest opacity-60">
-              <div className="w-2.5 h-2.5 rounded-full bg-muted-foreground/50" />
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-8 mt-10">
+          <div className="flex flex-col gap-2 group transition-transform hover:translate-y-[-2px]">
+            <span className="flex items-center gap-2.5 text-[11px] font-black uppercase tracking-widest opacity-70 group-hover:opacity-100 transition-opacity">
+              <div className="w-3 h-3 rounded-full bg-muted-foreground/50" />
               Bepul
             </span>
-            <span className="text-xl font-bold font-mono">{((displayData.free_users / displayData.total_users) * 100).toFixed(1)}%</span>
+            <span className="text-2xl font-black font-mono leading-none">{((displayData.free_users / displayData.total_users) * 100).toFixed(1)}%</span>
           </div>
-          <div className="flex flex-col gap-1">
-            <span className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest opacity-60">
-              <div className="w-2.5 h-2.5 rounded-full bg-warning" />
+          <div className="flex flex-col gap-2 group transition-transform hover:translate-y-[-2px]">
+            <span className="flex items-center gap-2.5 text-[11px] font-black uppercase tracking-widest opacity-70 group-hover:opacity-100 transition-opacity">
+              <div className="w-3 h-3 rounded-full bg-warning shadow-[0_0_10px_rgba(var(--warning),0.3)]" />
               Sinov
             </span>
-            <span className="text-xl font-bold font-mono">{((displayData.trial_users / displayData.total_users) * 100).toFixed(1)}%</span>
+            <span className="text-2xl font-black font-mono leading-none text-warning">{((displayData.trial_users / displayData.total_users) * 100).toFixed(1)}%</span>
           </div>
-          <div className="flex flex-col gap-1">
-            <span className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest opacity-60">
-              <div className="w-2.5 h-2.5 rounded-full bg-success" />
+          <div className="flex flex-col gap-2 group transition-transform hover:translate-y-[-2px]">
+            <span className="flex items-center gap-2.5 text-[11px] font-black uppercase tracking-widest opacity-70 group-hover:opacity-100 transition-opacity">
+              <div className="w-3 h-3 rounded-full bg-success shadow-[0_0_10px_rgba(var(--success),0.3)]" />
               Plus
             </span>
-            <span className="text-xl font-bold font-mono">{((displayData.plus_users / displayData.total_users) * 100).toFixed(1)}%</span>
+            <span className="text-2xl font-black font-mono leading-none text-success">{((displayData.plus_users / displayData.total_users) * 100).toFixed(1)}%</span>
           </div>
-          <div className="flex flex-col gap-1">
-            <span className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest opacity-60">
-              <div className="w-2.5 h-2.5 rounded-full bg-primary" />
+          <div className="flex flex-col gap-2 group transition-transform hover:translate-y-[-2px]">
+            <span className="flex items-center gap-2.5 text-[11px] font-black uppercase tracking-widest opacity-70 group-hover:opacity-100 transition-opacity">
+              <div className="w-3 h-3 rounded-full bg-primary shadow-[0_0_10px_rgba(var(--primary),0.3)]" />
               Pro
             </span>
-            <span className="text-xl font-bold font-mono">{((displayData.pro_users / displayData.total_users) * 100).toFixed(1)}%</span>
+            <span className="text-2xl font-black font-mono leading-none text-primary">{((displayData.pro_users / displayData.total_users) * 100).toFixed(1)}%</span>
           </div>
         </div>
       </div>

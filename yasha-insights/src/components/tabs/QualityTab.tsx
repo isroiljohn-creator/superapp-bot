@@ -60,8 +60,8 @@ export function QualityTab({ isLoading: externalLoading = false }: QualityTabPro
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
       {/* Header */}
-      <div className="px-2">
-        <h2 className="text-2xl font-black tracking-tight text-foreground/90">Sifat va Moslashuv (Quality)</h2>
+      <div className="px-1">
+        <h2 className="text-3xl font-black tracking-tight text-foreground">Sifat va Moslashuv (Quality)</h2>
         <p className="text-sm text-muted-foreground font-medium mt-1">
           Fikr-mulohazalar monitoringi va AI moslashish samaradorligi
         </p>
@@ -90,16 +90,16 @@ export function QualityTab({ isLoading: externalLoading = false }: QualityTabPro
       {/* Feedback Modules */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Menu Feedback */}
-        <div className="glass-card">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-3">
-              <span className="text-2xl">🍽️</span>
+        <div className="glass-card p-10">
+          <div className="flex items-center justify-between mb-8">
+            <div className="flex items-center gap-4">
+              <span className="text-3xl">🍽️</span>
               <div className="flex flex-col">
-                <span className="font-black uppercase tracking-widest text-sm">Menyu Fikrlari</span>
-                <span className="text-[10px] font-bold text-muted-foreground mt-0.5">{feedback.menu.users} FOYDALANUVCHI</span>
+                <span className="font-black uppercase tracking-[0.15em] text-[11px] text-foreground/70">Menyu Fikrlari</span>
+                <span className="text-[10px] font-black text-muted-foreground mt-0.5 uppercase tracking-widest">{feedback.menu.users} FOYDALANUVCHI</span>
               </div>
             </div>
-            <div className="px-2 py-1 bg-success/10 rounded-lg text-[10px] font-black text-success border border-success/20">MEAL QUALITY</div>
+            <div className="px-4 py-1.5 bg-success/10 rounded-full text-[10px] font-black text-success border border-success/20 uppercase tracking-widest shadow-sm">MEAL QUALITY</div>
           </div>
 
           <div className="space-y-5">
@@ -108,14 +108,14 @@ export function QualityTab({ isLoading: externalLoading = false }: QualityTabPro
               { label: "O'rtacha", value: feedback.menu.ok, color: 'bg-warning', label_eng: 'OK' },
               { label: 'Yomon', value: feedback.menu.bad, color: 'bg-destructive', label_eng: 'Bad' },
             ].map((item) => (
-              <div key={item.label} className="space-y-2">
-                <div className="flex items-center justify-between text-[11px] font-black uppercase tracking-wider">
-                  <span className="opacity-60">{item.label}</span>
-                  <span className="font-mono">{item.value || 0}</span>
+              <div key={item.label} className="space-y-3">
+                <div className="flex items-center justify-between text-[11px] font-black uppercase tracking-[0.1em]">
+                  <span className="opacity-70">{item.label}</span>
+                  <span className="font-mono text-foreground">{item.value || 0}</span>
                 </div>
-                <div className="h-2.5 bg-white/5 rounded-full overflow-hidden shadow-inner ring-1 ring-white/5">
+                <div className="h-3 bg-muted rounded-full overflow-hidden shadow-inner border border-border/50">
                   <div
-                    className={cn('h-full transition-all duration-1000 ease-out shadow-lg', item.color)}
+                    className={cn('h-full transition-all duration-1000 ease-out shadow-sm group-hover:glow-primary', item.color)}
                     style={{ width: `${menuTotal > 0 ? ((item.value || 0) / menuTotal) * 100 : 0}%` }}
                   />
                 </div>
@@ -156,34 +156,39 @@ export function QualityTab({ isLoading: externalLoading = false }: QualityTabPro
       </div>
 
       {/* Top Loved Coach Messages */}
-      <div className="glass-card overflow-hidden p-0 border-destructive/10">
-        <div className="p-6 border-b border-white/5 flex items-center justify-between bg-destructive/5">
-          <div className="flex items-center gap-3">
-            <Heart className="h-5 w-5 text-destructive fill-destructive/20" />
-            <span className="font-black uppercase tracking-widest text-sm">Eng sevimli maslahatlar</span>
+      <div className="glass-card overflow-hidden p-0 border-destructive/20 relative">
+        <div className="p-8 border-b border-border flex items-center justify-between bg-destructive/10">
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-destructive/20 rounded-2xl border border-destructive/30">
+              <Heart className="h-6 w-6 text-destructive fill-destructive/20" />
+            </div>
+            <div>
+              <span className="font-black uppercase tracking-[0.15em] text-[11px] text-foreground">Eng sevimli maslahatlar</span>
+              <p className="text-[10px] font-black text-destructive/70 uppercase tracking-widest mt-0.5 opacity-60">Top Rated Insights</p>
+            </div>
           </div>
-          <span className="text-[10px] font-black text-destructive/60 uppercase tracking-widest">Top Rated Insights</span>
+          <div className="px-5 py-2 bg-background/50 rounded-full border border-destructive/20 text-[10px] font-black uppercase tracking-widest text-destructive">Audience Choice</div>
         </div>
-        <div className="divide-y divide-white/5">
+        <div className="divide-y divide-border">
           {feedback.top_loved_coach.map((msg, i) => (
             <div
               key={msg.coach_msg_key}
-              className="group flex items-center gap-4 p-5 transition-all hover:bg-white/5"
+              className="group flex items-center gap-6 p-6 transition-all hover:bg-muted/50"
             >
-              <div className="w-10 h-10 rounded-2xl bg-white/5 flex items-center justify-center font-black text-lg text-muted-foreground group-hover:text-foreground group-hover:scale-110 transition-all border border-white/5">
+              <div className="w-12 h-12 rounded-2xl bg-muted border border-border flex items-center justify-center font-black text-xl text-muted-foreground group-hover:text-foreground group-hover:border-primary/50 group-hover:scale-105 transition-all shadow-sm">
                 {i + 1}
               </div>
               <div className="flex-1 min-w-0">
-                <div className="text-sm font-black uppercase tracking-tight text-foreground/90 group-hover:text-foreground transition-colors">
+                <div className="text-base font-black uppercase tracking-tight text-foreground/90 group-hover:text-foreground transition-colors">
                   {msg.category.replace(/_/g, ' ')}
                 </div>
-                <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest opacity-40 group-hover:opacity-60 transition-opacity">
+                <div className="text-[10px] font-black text-muted-foreground uppercase tracking-widest opacity-40 group-hover:opacity-60 transition-opacity mt-1">
                   {msg.coach_msg_key}
                 </div>
               </div>
-              <div className="flex items-center gap-2 px-4 py-2 bg-destructive/10 rounded-xl ring-1 ring-destructive/20 group-hover:scale-110 transition-all transform-gpu">
-                <Heart className="h-4 w-4 text-destructive fill-current animate-pulse" />
-                <span className="font-black font-mono text-destructive text-lg">{msg.love || 0}</span>
+              <div className="flex items-center gap-3 px-5 py-2.5 bg-destructive/10 rounded-2xl border border-destructive/20 group-hover:scale-105 transition-all transform-gpu shadow-sm group-hover:border-destructive/40">
+                <Heart className="h-5 w-5 text-destructive fill-current animate-pulse" />
+                <span className="font-black font-mono text-destructive text-2xl leading-none">{msg.love || 0}</span>
               </div>
             </div>
           ))}
@@ -230,74 +235,77 @@ export function QualityTab({ isLoading: externalLoading = false }: QualityTabPro
         </div>
 
         {/* Validation Metrics */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8">
           {/* Menu Fixes */}
-          <div className="glass-card p-8 border-success/10 bg-success/5 relative overflow-hidden group">
+          <div className="glass-card p-10 border-success/20 bg-success/10 relative overflow-hidden group">
             <div className="absolute -right-4 -top-4 opacity-5 group-hover:opacity-10 transition-opacity">
-              <CheckCircle2 className="w-24 h-24 text-success" />
+              <CheckCircle2 className="w-32 h-32 text-success" />
             </div>
-            <div className="flex items-center justify-between mb-6">
-              <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Nutrition Adaptation Rate</span>
-              <span className="text-2xl font-mono font-black text-success">{fixRate}%</span>
+            <div className="flex items-center justify-between mb-8">
+              <span className="text-[11px] font-black uppercase tracking-[0.15em] text-muted-foreground/70">Nutrition Adaptation Rate</span>
+              <span className="text-3xl font-mono font-black text-success">{fixRate}%</span>
             </div>
-            <div className="h-4 bg-white/5 rounded-full overflow-hidden shadow-inner ring-1 ring-white/5 mb-8">
+            <div className="h-4 bg-muted rounded-full overflow-hidden shadow-inner border border-border/50 mb-10">
               <div
-                className="h-full bg-success transition-all duration-1000 ease-out shadow-[0_0_20px_rgba(34,197,94,0.4)]"
+                className="h-full bg-success transition-all duration-1000 ease-out shadow-lg group-hover:glow-success"
                 style={{ width: `${fixRate}%` }}
               />
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="flex flex-col p-3 rounded-2xl bg-white/5 border border-white/5">
+            <div className="grid grid-cols-2 gap-6">
+              <div className="flex flex-col p-4 rounded-2xl bg-muted border border-border group-hover:border-border transition-colors">
                 <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest opacity-60">Shikoyat</span>
-                <span className="text-xl font-black">{adaptation.validation.menu_complaints}</span>
+                <span className="text-2xl font-black mt-1">{adaptation.validation.menu_complaints}</span>
               </div>
-              <div className="flex flex-col p-3 rounded-2xl bg-success/10 border border-success/20">
+              <div className="flex flex-col p-4 rounded-2xl bg-success/20 border border-success/30 group-hover:border-success/50 transition-colors">
                 <span className="text-[10px] font-black text-success/60 uppercase tracking-widest opacity-60">Tuzatildi</span>
-                <span className="text-xl font-black text-success">{adaptation.validation.menu_fixed}</span>
+                <span className="text-2xl font-black text-success mt-1">{adaptation.validation.menu_fixed}</span>
               </div>
             </div>
           </div>
 
           {/* Soft Mode */}
-          <div className="glass-card p-8 border-primary/10 bg-primary/5 relative overflow-hidden group">
+          <div className="glass-card p-10 border-primary/20 bg-primary/10 relative overflow-hidden group">
             <div className="absolute -right-4 -top-4 opacity-5 group-hover:opacity-10 transition-opacity">
-              <Zap className="w-24 h-24 text-primary" />
+              <Zap className="w-32 h-32 text-primary" />
             </div>
-            <div className="flex items-center justify-between mb-6">
-              <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Workout Fatigue Care</span>
-              <span className="text-2xl font-mono font-black text-primary">{softModeRate}%</span>
+            <div className="flex items-center justify-between mb-8">
+              <span className="text-[11px] font-black uppercase tracking-[0.15em] text-muted-foreground/70">Workout Fatigue Care</span>
+              <span className="text-3xl font-mono font-black text-primary">{softModeRate}%</span>
             </div>
-            <div className="h-4 bg-white/5 rounded-full overflow-hidden shadow-inner ring-1 ring-white/5 mb-8">
+            <div className="h-4 bg-muted rounded-full overflow-hidden shadow-inner border border-border/50 mb-10">
               <div
-                className="h-full bg-primary transition-all duration-1000 ease-out shadow-[0_0_20px_rgba(var(--primary),0.4)]"
+                className="h-full bg-primary transition-all duration-1000 ease-out shadow-lg group-hover:glow-primary"
                 style={{ width: `${softModeRate}%` }}
               />
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="flex flex-col p-3 rounded-2xl bg-white/5 border border-white/5">
+            <div className="grid grid-cols-2 gap-6">
+              <div className="flex flex-col p-4 rounded-2xl bg-muted border border-border group-hover:border-border transition-colors">
                 <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest opacity-60">Charchoq</span>
-                <span className="text-xl font-black">{adaptation.validation.workout_tired}</span>
+                <span className="text-2xl font-black mt-1">{adaptation.validation.workout_tired}</span>
               </div>
-              <div className="flex flex-col p-3 rounded-2xl bg-primary/10 border border-primary/20">
+              <div className="flex flex-col p-4 rounded-2xl bg-primary/20 border border-primary/30 group-hover:border-primary/50 transition-colors">
                 <span className="text-[10px] font-black text-primary/60 uppercase tracking-widest opacity-60">Yumshatildi</span>
-                <span className="text-xl font-black text-primary">{adaptation.validation.soft_mode_applied}</span>
+                <span className="text-2xl font-black text-primary mt-1">{adaptation.validation.soft_mode_applied}</span>
               </div>
             </div>
           </div>
         </div>
 
         {/* Daily Adaptations Chart */}
-        <div className="glass-card p-8 bg-primary/5 border-primary/10">
-          <div className="flex items-center justify-between mb-8">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-primary/20 rounded-xl">
-                <Activity className="h-4 w-4 text-primary" />
+        <div className="glass-card p-10 bg-primary/10 border-primary/20">
+          <div className="flex items-center justify-between mb-10">
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-primary/20 rounded-2xl border border-primary/30">
+                <Activity className="h-6 w-6 text-primary" />
               </div>
-              <span className="text-sm font-black uppercase tracking-widest">Kunlik Moslashishlar</span>
+              <div>
+                <span className="text-[11px] font-black uppercase tracking-[0.15em] text-foreground">Kunlik Moslashishlar</span>
+                <p className="text-[10px] font-black text-primary/70 uppercase tracking-widest mt-0.5 opacity-60">Adaptation Volume</p>
+              </div>
             </div>
-            <span className="text-[10px] font-black text-primary/60 uppercase tracking-widest opacity-60">Adaptation Volume</span>
+            <span className="px-4 py-1.5 bg-background/50 rounded-full border border-primary/20 text-[10px] font-black uppercase tracking-widest text-primary">Live Tracking</span>
           </div>
-          <div className="flex items-end justify-between h-32 gap-1.5 px-4 overflow-hidden">
+          <div className="flex items-end justify-between h-40 gap-2 px-6 overflow-hidden">
             {adaptation.daily.map((day, i) => (
               <div
                 key={day.date}
@@ -305,22 +313,22 @@ export function QualityTab({ isLoading: externalLoading = false }: QualityTabPro
                 style={{ height: '100%' }}
               >
                 <div
-                  className="absolute bottom-0 w-full bg-gradient-to-t from-primary/40 to-primary rounded-t-xl transition-all duration-1000 ease-out hover:from-primary hover:to-primary group-hover:shadow-[0_0_15px_rgba(var(--primary),0.4)]"
+                  className="absolute bottom-0 w-full bg-gradient-to-t from-primary/60 to-primary rounded-t-2xl transition-all duration-1000 ease-out hover:from-primary hover:to-primary group-hover:glow-primary shadow-lg border-x border-t border-primary/30"
                   style={{
                     height: `${(day.count / (maxDailyAdapt || 1)) * 100}%`,
-                    minHeight: '4px',
+                    minHeight: '8px',
                     transitionDelay: `${i * 30}ms`
                   }}
                 />
-                <div className="opacity-0 group-hover:opacity-100 absolute -top-10 left-1/2 -translate-x-1/2 bg-primary text-white text-[10px] font-black px-2 py-1 rounded-md shadow-lg pointer-events-none transition-all duration-300 scale-90 group-hover:scale-100">
-                  {day.count}
+                <div className="opacity-0 group-hover:opacity-100 absolute -top-12 left-1/2 -translate-x-1/2 bg-primary text-white text-[10px] font-black px-2.5 py-1.5 rounded-xl shadow-xl pointer-events-none transition-all duration-300 scale-75 group-hover:scale-100 origin-bottom border border-white/20 whitespace-nowrap z-20">
+                  {day.count} Akt
                 </div>
               </div>
             ))}
           </div>
-          <div className="flex justify-between mt-6 px-4 text-[10px] font-black text-muted-foreground uppercase tracking-widest opacity-40">
-            <span>14 kun avval</span>
-            <span>Bugun</span>
+          <div className="flex justify-between mt-8 px-6 text-[10px] font-black text-muted-foreground uppercase tracking-widest opacity-40">
+            <span className="flex items-center gap-2 pt-2 border-t border-border w-32">14 kun avval</span>
+            <span className="flex items-center gap-2 pt-2 border-t border-border w-32 justify-end">Bugun</span>
           </div>
         </div>
       </div>
