@@ -16,18 +16,18 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
     const logoTimer = setTimeout(() => {
       setShowLogo(true);
       vibrate('medium');
-    }, 200);
+    }, 10);
 
     // Uchib chiqish animatsiyasida vibratsiya
     const flyTimer = setTimeout(() => {
       vibrate('success');
-    }, 800);
+    }, 400);
 
     // Splash tugashi
     const completeTimer = setTimeout(() => {
       vibrate('light');
       onComplete();
-    }, 2500);
+    }, 800);
 
     return () => {
       clearTimeout(logoTimer);
@@ -54,14 +54,14 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
         {/* Logo - qush uchib chiqadi */}
         <motion.div
           initial={{ y: 100, opacity: 0, scale: 0.5, rotate: -15 }}
-          animate={showLogo ? { 
-            y: [100, -20, 0], 
-            opacity: 1, 
+          animate={showLogo ? {
+            y: [100, -20, 0],
+            opacity: 1,
             scale: [0.5, 1.2, 1],
             rotate: [-15, 10, 0]
           } : {}}
-          transition={{ 
-            duration: 0.8, 
+          transition={{
+            duration: 0.4,
             ease: "easeOut",
             times: [0, 0.6, 1]
           }}
@@ -78,7 +78,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
               duration: 2,
               repeat: Infinity,
               ease: "easeInOut",
-              delay: 0.8
+              delay: 0.4
             }}
           />
         </motion.div>
@@ -87,16 +87,16 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
         <motion.div
           initial={{ y: 30, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 1, duration: 0.5 }}
+          transition={{ delay: 0.3, duration: 0.3 }}
           className="mt-8 text-center"
         >
           <h1 className="text-4xl font-display font-bold text-foreground mb-2">
             YASHA AI
           </h1>
-          <motion.p 
+          <motion.p
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ delay: 1.3 }}
+            transition={{ delay: 0.5 }}
             className="text-lg text-primary font-medium"
           >
             Sog'lom hayot murabbiyi
@@ -107,7 +107,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 1.5 }}
+          transition={{ delay: 0.6 }}
           className="absolute bottom-20 flex gap-2"
         >
           {[0, 1, 2].map((i) => (
