@@ -2,6 +2,16 @@ import json
 import hashlib
 from core.db import db
 
+# Global Kill Switches (Feature Flag Keys)
+KILL_SWITCH_AI = "disable_ai_generation"
+KILL_SWITCH_OPTIMIZATION = "disable_optimization"
+KILL_SWITCH_READ_ONLY = "read_only_mode"
+
+def is_system_readonly() -> bool:
+    """Check if system is in read-only mode (maintenance)."""
+    return is_flag_enabled(KILL_SWITCH_READ_ONLY, default=False)
+
+
 def is_flag_enabled(key: str, user_id: int = None, default: bool = False) -> bool:
     """
     Check if a feature flag is enabled for a specific user using deterministic rollout.

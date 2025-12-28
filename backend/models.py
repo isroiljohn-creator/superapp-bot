@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime, ForeignKey, Text, BigInteger, JSON, UniqueConstraint
+from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime, Date, ForeignKey, Text, BigInteger, JSON, UniqueConstraint
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from backend.database import Base
@@ -30,7 +30,7 @@ class User(Base):
     is_premium = Column(Boolean, default=False)
     premium_until = Column(DateTime, nullable=True)
     is_onboarded = Column(Boolean, default=False)
-    points = Column(Integer, default=0)
+    points = Column(Integer, default=0) # DEPRECATED: Use yasha_points instead
     
     # Referral
     referral_code = Column(String, unique=True, index=True)
@@ -345,10 +345,11 @@ class Exercise(Base):
     description = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
-    # New columns
-    muscle_group = Column(String, nullable=True)
-    level = Column(String, nullable=True)
+    # New columns for Video Workout System
+    muscle_group = Column(String, nullable=True, index=True)
+    level = Column(String, nullable=True, index=True)
     place = Column(String, nullable=True)
+    equipment = Column(String, nullable=True, index=True) # e.g. "dumbbell", "barbell", "bodyweight"
     duration_sec = Column(Integer, nullable=True)
 
 class LocalDish(Base):
@@ -550,3 +551,19 @@ class ChallengeParticipant(Base):
     challenge_id = Column(Integer, ForeignKey("challenges.id"), primary_key=True)
     user_id = Column(Integer, ForeignKey("users.id"), primary_key=True)
     joined_at = Column(DateTime, default=datetime.utcnow)
+
+class UsageCounter(Base):
+    __tablename__ = "usage_counters"
+    __table_args__ = (
+        UniqueConstraint('user_id', 'feature_key', 'period_type', 'period_start', name='unique_usage'),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(BigInteger, nullable=False, index=True)
+    feature_key = Column(String(50), nullable=False)
+    period_type = Column(String(10), nullable=False)
+    period_start = Column(Date, nullable=False) 
+    used_count = Column(Integer, default=0, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+

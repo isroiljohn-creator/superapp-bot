@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from backend.database import get_db
@@ -10,15 +10,22 @@ import hmac
 import hashlib
 import json
 import os
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 
 router = APIRouter()
+
+# Get limiter from app state or create fallback
+# Note: In router file, we usually need access to the app instance or use dependency injection.
+# For simplicity in this architecture, we'll use request.app.state.limiter mechanism via decorator
 
 class TelegramAuthRequest(BaseModel):
     initData: str
 
 @router.post("/telegram")
-async def telegram_auth(req: TelegramAuthRequest, db: AsyncSession = Depends(get_db)):
-    """Authenticate via Telegram WebApp initData"""
+@Limiter(key_func=get_remote_address).limit("5/minute")
+async def telegram_auth(req: TelegramAuthRequest, request: Request, db: AsyncSession = Depends(get_db)):
+    """Authenticate via Telegram WebApp initData (Rate Limit: 5/min)"""
     bot_token = os.getenv("BOT_TOKEN")
     if not bot_token:
         raise HTTPException(status_code=500, detail="BOT_TOKEN not set")

@@ -97,6 +97,12 @@ def process_ai_qa(message, bot):
     - Respond strictly in RUSSIAN.
     """
     
+    # Check Limit
+    from core.entitlements import check_and_consume
+    ent = check_and_consume(user_id, 'ai_chat')
+    if not ent['allowed']:
+        bot.send_message(user_id, ent['message_uz'], parse_mode="Markdown")
+        return
 
     try:
         # 1. Check QA Database (Fast Local Match)
@@ -113,12 +119,6 @@ def process_ai_qa(message, bot):
             # 2. Fallback to Gemini AI
             from core.ai import ask_gemini
             response = ask_gemini(system_prompt, question)
-            
-            # [SAFE LOGGING ADDITION]
-            try:
-                from core.ai_usage_logger import log_ai_usage
-                log_ai_usage(bot, user_id, "chat", 150)
-            except: pass
             
             # Log Event [NEW]
             db.log_event(user_id, "ai_chat_used")
@@ -262,6 +262,21 @@ def process_recipe_input(message, bot):
     - Respond strictly in RUSSIAN.
     """
     
+    # Check Limit
+    from core.entitlements import check_and_consume
+    ent = check_and_consume(user_id, 'explain_engine') # Using explain_engine limit for recipes as close proxy? 
+    # Or create new key? Matrix doesn't specify recipe limit explicitly. 
+    # It might be under 'ai_chat' or 'menu_generate'.
+    # Let's use 'menu_generate' NO, that's monthly.
+    # 'ai_chat' is daily 5. Recipes are similar.
+    # Let's use 'ai_chat' for recipe gen too for now to be safe.
+    ent = check_and_consume(user_id, 'ai_chat') 
+    
+    if not ent['allowed']:
+         time = "Bugun" if ent['period'] == 'day' else "Bu oy"
+         bot.send_message(message.chat.id, ent['message_uz'], parse_mode="Markdown")
+         return
+    
     try:
         from core.ai import ask_gemini
         response = ask_gemini(system_prompt, ingredients)
@@ -297,6 +312,13 @@ def handle_weekly_report(message, bot, user_id=None):
     
     status_msg = bot.send_message(user_id, "⏳ <b>Haftalik hisobot tayyorlanmoqda...</b>", parse_mode="HTML")
     
+    # Check Limit
+    from core.entitlements import check_and_consume
+    ent = check_and_consume(user_id, 'weekly_mirror')
+    if not ent['allowed']:
+         bot.edit_message_text(ent['message_uz'], user_id, status_msg.message_id, parse_mode="Markdown")
+         return
+
     # Fetch real stats
     stats = db.get_weekly_stats(user_id)
     

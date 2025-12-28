@@ -157,6 +157,51 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const [isLoading, setIsLoading] = useState(true); // Start as loading by default! 
 
+  // Axios Interceptor for 401 Auto-Refresh
+  useEffect(() => {
+    const interceptor = axios.interceptors.response.use(
+      (response) => response,
+      async (error) => {
+        const originalRequest = error.config;
+
+        // If 401 and we haven't retried yet
+        if (error.response?.status === 401 && !originalRequest._retry) {
+          originalRequest._retry = true;
+
+          try {
+            // Attempt re-auth with Telegram initData
+            const tg = (window as any).Telegram?.WebApp;
+            if (tg?.initData) {
+              console.log("🔄 401 Detected! Auto-refreshing token via initData...");
+
+              // Call login directly (bypass full initializeUser for speed)
+              const authRes = await axios.post(`${API_URL}/auth/telegram`, {
+                initData: tg.initData
+              });
+
+              if (authRes.data.token) {
+                const newToken = authRes.data.token;
+                localStorage.setItem('token', newToken);
+                axios.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
+                originalRequest.headers['Authorization'] = `Bearer ${newToken}`;
+                console.log("✅ Token Refreshed! Retrying original request.");
+                return axios(originalRequest);
+              }
+            }
+          } catch (refreshError) {
+            console.error("❌ Token Refresh Failed:", refreshError);
+            // If refresh fails, we might want to logout or just let it fail
+          }
+        }
+        return Promise.reject(error);
+      }
+    );
+
+    return () => {
+      axios.interceptors.response.eject(interceptor);
+    };
+  }, []);
+
   useEffect(() => {
     const initializeUser = async () => {
       try {

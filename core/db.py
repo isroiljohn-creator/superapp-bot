@@ -52,23 +52,6 @@ class Database:
                 # 3. Users table fixes (Handled via Alembic)
                 # add_col('users', 'language', 'VARCHAR', "'uz'")
 
-                # 4. Exercises Table Fallback
-                check_table = text("SELECT to_regclass('public.exercises')")
-                if not session.execute(check_table).scalar():
-                    logger.info("MIGRATION: Creating exercises table...")
-                    session.execute(text("""
-                        CREATE TABLE IF NOT EXISTS exercises (
-                            id SERIAL PRIMARY KEY,
-                            name VARCHAR,
-                            video_url VARCHAR,
-                            category VARCHAR,
-                            difficulty VARCHAR,
-                            description TEXT,
-                            created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT (now() at time zone 'utc')
-                        );
-                    """))
-                    session.commit()
-
                 # 5. Correctis_onboarded for existing users who have data
                 # Identify users who have core profile data but are stuck in False
                 onboarded_backfill = session.query(User).filter(
@@ -354,44 +337,39 @@ class Database:
             return True, "OK", limit_display
 
     def increment_tiered_usage(self, user_id, feature_type):
-        with get_sync_db() as session:
-            pk = self._get_user_pk(session, user_id)
-            user = session.query(User).filter(User.id == pk).first()
-            if not user: return
-            
-            if feature_type == 'menu_gen':
-                session.query(User).filter(User.id == pk).update(
-                    {"ai_menu_count": User.ai_menu_count + 1},
-                    synchronize_session=False
-                )
-            elif feature_type == 'workout_gen':
-                session.query(User).filter(User.id == pk).update(
-                    {"ai_workout_count": User.ai_workout_count + 1},
-                    synchronize_session=False
-                )
-            
-            elif feature_type == 'chat':
-                today = datetime.now().strftime("%Y-%m-%d")
-                # Atomic increment or reset
-                session.query(User).filter(User.id == pk).update({
-                    "chat_daily_uses": case(
-                        (User.chat_last_use_date == today, User.chat_daily_uses + 1),
-                        else_=1
-                    ),
-                    "chat_last_use_date": today
-                }, synchronize_session=False)
+        """
+        Increment usage using core.entitlements system.
+        Legacy bridge for bot handlers.
+        """
+        key_map = {
+            'menu_gen': 'menu_generate',
+            'workout_gen': 'workout_generate',
+            'chat': 'ai_chat',
+            'calorie': 'calorie_scan'
+        }
+        ent_key = key_map.get(feature_type)
+        
+        # If unknown key, assume passed key is valid feature_key (e.g. from new code)
+        if not ent_key: 
+             ent_key = feature_type
 
-            elif feature_type == 'calorie':
-                today = datetime.now().strftime("%Y-%m-%d")
-                session.query(User).filter(User.id == pk).update({
-                    "calorie_daily_uses": case(
-                        (User.calorie_last_use_date == today, User.calorie_daily_uses + 1),
-                        else_=1
-                    ),
-                    "calorie_last_use_date": today
-                }, synchronize_session=False)
-            
-            session.commit()
+        # Fix for raw user_id vs pk
+        # entitlements usually expects telegram_id because it calls db.get_user(user_id) which is telegram_id based typically.
+        # Let's verify entitlements.consume_usage input.
+        # It calls get_usage_status => get_user_plan => db.get_user(user_id) 
+        # db.get_user works with telegram_id. 
+        # So we should pass telegram_id here. 
+        # BUT increment_tiered_usage historically might accept telegram_id (from bot). 
+        # Yes, handlers act on message.from_user.id.
+        
+        try:
+             # CIRCULAR IMPORT FIX
+             from core.entitlements import consume_usage
+             consume_usage(user_id, ent_key)
+        except Exception as e:
+             logger.error(f"Failed to increment usage via entitlements: {e}")
+             # Fallback? No, entitlements is source of truth now.
+             pass
 
     def set_user_plan(self, user_id, plan_type, days=30):
         with get_sync_db() as session:

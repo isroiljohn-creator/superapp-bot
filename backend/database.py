@@ -11,36 +11,42 @@ load_dotenv()
 
 # --- Strict Production Config ---
 RAW_DB_URL = os.getenv("DATABASE_URL")
+ENV_TYPE = os.getenv("ENVIRONMENT", "development").lower()
 
 if not RAW_DB_URL:
-    print("❌ CRITICAL: DATABASE_URL is missing! Please set it in Railway Variables.")
-    # Fallback to local sqlite to at least allow backend to start for logging
+    print("❌ CRITICAL: DATABASE_URL is missing!")
+    # STRICT: Fail fast in production
+    if ENV_TYPE == "production":
+        raise RuntimeError("DATABASE_URL is required in production!")
+    
+    print("⚠️ WARNING: DATABASE_URL missing in DEV. Using fallback SQLite.")
     RAW_DB_URL = "sqlite+aiosqlite:///./fallback.db"
 
-# Fix for Railway/Heroku using postgres:// instead of postgresql://
+# Fix for Railway/Heroku
 if RAW_DB_URL.startswith("postgres://"):
     RAW_DB_URL = RAW_DB_URL.replace("postgres://", "postgresql://", 1)
 
-# Fail fast if someone tries to inject SQLite, BUT allow our own fallback
-if "sqlite" in RAW_DB_URL.lower() and "fallback.db" not in RAW_DB_URL:
-    print("❌ CRITICAL: SQLite is FORBIDDEN in production!")
-    sys.exit(1)
-elif "fallback.db" in RAW_DB_URL:
-    print("⚠️ WARNING: Running with FALLBACK SQLite database. Data will not persist!")
+# Strict SQLite Check for Production
+if ENV_TYPE == "production":
+    if "sqlite" in RAW_DB_URL.lower():
+         # Allow override via explicit flag if absolutely needed (e.g. staging)
+         if os.getenv("ALLOW_SQLITE_IN_PROD") != "true":
+             print("❌ CRITICAL: SQLite is FORBIDDEN in production!")
+             raise RuntimeError("SQLite forbidden in production.")
 
 # Async URL (for FastAPI/Future Proofing)
-# Convert postgresql://user:pass@host/db -> postgresql+asyncpg://...
 ASYNC_DB_URL = RAW_DB_URL.replace("postgresql://", "postgresql+asyncpg://")
 SYNC_DB_URL = RAW_DB_URL
 
 # --- Async Engine (FastAPI) ---
 # Pool Recycle: 1800s (30 mins) to prevent stale connections
+# Pool Size: 20 (Railway friendly), Max Overflow: 10
 engine = create_async_engine(
     ASYNC_DB_URL, 
     echo=False,
     pool_pre_ping=True,
-    pool_size=20, 
-    max_overflow=10,
+    pool_size=int(os.getenv("DB_POOL_SIZE", 20)), 
+    max_overflow=int(os.getenv("DB_MAX_OVERFLOW", 10)),
     pool_recycle=1800
 )
 
@@ -49,13 +55,12 @@ AsyncSessionLocal = sessionmaker(
 )
 
 # --- Sync Engine (TeleBot) ---
-# strictly for bot polling and synchronized handlers
 sync_engine = create_engine(
     SYNC_DB_URL, 
     echo=False, 
     pool_pre_ping=True,
-    pool_size=20, 
-    max_overflow=10,
+    pool_size=int(os.getenv("DB_POOL_SIZE", 20)), 
+    max_overflow=int(os.getenv("DB_MAX_OVERFLOW", 10)),
     pool_recycle=1800
 )
 

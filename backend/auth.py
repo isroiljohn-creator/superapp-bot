@@ -4,7 +4,13 @@ from datetime import datetime, timedelta
 from fastapi import HTTPException, Header
 from typing import Optional
 
-SECRET_KEY = os.getenv("JWT_SECRET", "your-secret-key-change-in-production")
+SECRET_KEY = os.getenv("JWT_SECRET")
+if not SECRET_KEY:
+    # Only raise error if we are NOT in a CI/Build environment (optional, but good for build stages)
+    # For strict security as requested:
+    print("❌ CRITICAL: JWT_SECRET is missing! Application cannot start securely.")
+    raise RuntimeError("JWT_SECRET is required environment variable.")
+
 ALGORITHM = "HS256"
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
@@ -12,7 +18,7 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     if expires_delta:
         expire = datetime.utcnow() + expires_delta
     else:
-        expire = datetime.utcnow() + timedelta(days=30)
+        expire = datetime.utcnow() + timedelta(days=7)
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt

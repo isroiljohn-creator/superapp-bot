@@ -125,9 +125,15 @@ async def generate_meal(
     elif current_user.goal == 'gain': tdee += 300
     daily_target = round(tdee)
     
-    # 2. Check Entitlements (If Premium)
+    # 2. Check Entitlements (Limit Enforced)
     if current_user.is_premium:
         try:
+            from core.entitlements import check_and_consume
+            # Telegram ID is needed for entitlement check
+            ent_status = check_and_consume(current_user.telegram_id, 'menu_generate')
+            if not ent_status['allowed']:
+                raise HTTPException(status_code=403, detail=ent_status.get('message_uz', "Limit tugadi"))
+
             from core.ai import ai_generate_weekly_meal_plan_json
             
             # Deactivate old links
@@ -242,6 +248,11 @@ async def generate_workout(
         return {"plan": template["plan"], "is_premium": False}
         
     try:
+        from core.entitlements import check_and_consume
+        ent_status = check_and_consume(current_user.telegram_id, 'workout_generate')
+        if not ent_status['allowed']:
+             raise HTTPException(status_code=403, detail=ent_status.get('message_uz', "Limit tugadi"))
+
         from core.ai import ai_generate_weekly_workout_json
         profile = {
             "age": current_user.age or 25,

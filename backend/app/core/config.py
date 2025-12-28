@@ -9,6 +9,9 @@ class Settings:
     API_V1_STR: str = "/api/v1"
     
     BOT_TOKEN: str = os.getenv("BOT_TOKEN")
+    if not BOT_TOKEN:
+        print("❌ CRITICAL: BOT_TOKEN is missing!")
+        raise RuntimeError("BOT_TOKEN is required.")
     ADMIN_ID: int = int(os.getenv("ADMIN_ID", 0))
     JWT_SECRET: str = os.getenv("JWT_SECRET", "secret")
     ALGORITHM: str = "HS256"
