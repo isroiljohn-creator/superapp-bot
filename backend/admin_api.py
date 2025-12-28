@@ -156,7 +156,7 @@ async def get_stats(db: AsyncSession = Depends(get_db), admin_id: int = Depends(
             UNION
             SELECT user_id FROM ai_usage_logs WHERE timestamp >= :d
             UNION
-            SELECT user_id FROM event_logs WHERE created_at >= :d
+            SELECT user_id FROM event_logs WHERE created_at >= :d AND event_type NOT LIKE 'reminder_%'
         ) t
     """), {"d": one_day_ago})
     dau = dau_q.scalar() or 0
@@ -170,7 +170,7 @@ async def get_stats(db: AsyncSession = Depends(get_db), admin_id: int = Depends(
             UNION
             SELECT user_id FROM ai_usage_logs WHERE timestamp >= :d
             UNION
-            SELECT user_id FROM event_logs WHERE created_at >= :d
+            SELECT user_id FROM event_logs WHERE created_at >= :d AND event_type NOT LIKE 'reminder_%'
         ) t
     """), {"d": seven_days_ago})
     wau = wau_q.scalar() or 0
@@ -185,10 +185,11 @@ async def get_stats(db: AsyncSession = Depends(get_db), admin_id: int = Depends(
             UNION
             SELECT user_id FROM ai_usage_logs WHERE timestamp >= :d
             UNION
-            SELECT user_id FROM event_logs WHERE created_at >= :d
+            SELECT user_id FROM event_logs WHERE created_at >= :d AND event_type NOT LIKE 'reminder_%'
         ) t
     """), {"d": thirty_days_ago})
     mau = mau_q.scalar() or 0
+
     
     # Menu Generations (24h)
     # Using AI Usage Logs feature='menu'

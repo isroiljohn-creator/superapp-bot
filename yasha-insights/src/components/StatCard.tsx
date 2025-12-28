@@ -64,7 +64,7 @@ export function StatCard({
         {Icon && (
           <div
             className={cn(
-              'p-2 rounded-lg bg-secondary/50',
+              'p-2 rounded-lg bg-secondary/50 shrink-0',
               iconStyles[variant]
             )}
           >
