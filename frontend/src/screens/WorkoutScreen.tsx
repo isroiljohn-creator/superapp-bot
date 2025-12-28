@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Lock, Dumbbell, Play, Video, Clock, Flame, ChevronRight } from 'lucide-react';
 import { WorkoutCard } from '@/components/WorkoutCard';
 import { Paywall } from '@/components/Paywall';
@@ -127,17 +127,18 @@ export const WorkoutScreen: React.FC<WorkoutScreenProps> = ({ onNavigate }) => {
       opacity: 1,
       transition: { staggerChildren: 0.1 },
     },
+    exit: { opacity: 0, transition: { duration: 0.1 } }
   };
 
   const itemVariants: any = {
-    hidden: { opacity: 0, y: 15 },
+    hidden: { opacity: 0, y: 20 },
     show: {
       opacity: 1,
       y: 0,
       transition: {
         type: "spring",
-        stiffness: 300,
-        damping: 30
+        stiffness: 220,
+        damping: 25
       }
     },
   };
@@ -201,103 +202,107 @@ export const WorkoutScreen: React.FC<WorkoutScreenProps> = ({ onNavigate }) => {
       </div>
 
       {/* Workouts */}
-      <motion.div
-        variants={containerVariants}
-        initial="hidden"
-        animate="show"
-        className="px-4 space-y-3"
-      >
-        <motion.p variants={itemVariants} className="text-sm text-muted-foreground mb-2">
-          {t('common.day')} {selectedDate + 1} - {selectedDate === 0 ? t('common.today') : days[selectedDate].day}
-        </motion.p>
-
-        {freeWorkouts.map((workout, index) => (
-          <motion.div key={index} variants={itemVariants}>
-            <WorkoutCard
-              {...workout}
-              isLocked={selectedDate > 0 && !isPremium()}
-              isCompleted={selectedDate === 0 && index === 0 && todayLog?.workout_done}
-              onClick={() => handleWorkoutClick(index)}
-            />
-          </motion.div>
-        ))}
-
-        {/* Video mashqlar bo'limi */}
-        <motion.div variants={itemVariants} className="mt-8">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
-              <Video className="w-5 h-5 text-primary" />
-              {t('workout.videoWorkouts')}
-            </h2>
-            <span className="text-xs text-muted-foreground">{t('workout.comingSoon')}</span>
-          </div>
-
-          <div className="grid grid-cols-1 gap-3">
-            {videoWorkouts.map((video) => (
-              <motion.button
-                key={video.id}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => handleVideoClick(video.isLocked)}
-                className={`relative w-full rounded-2xl overflow-hidden bg-card border border-border/50 ${video.isLocked && !isPremium() ? 'opacity-60' : ''
-                  }`}
-              >
-                {/* Thumbnail placeholder */}
-                <div className="aspect-video bg-muted flex items-center justify-center relative">
-                  <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent" />
-
-                  {video.isLocked && !isPremium() ? (
-                    <div className="w-14 h-14 rounded-full bg-muted-foreground/20 flex items-center justify-center">
-                      <Lock className="w-6 h-6 text-muted-foreground" />
-                    </div>
-                  ) : (
-                    <div className="w-14 h-14 rounded-full bg-primary/90 flex items-center justify-center shadow-glow">
-                      <Play className="w-6 h-6 text-primary-foreground ml-1" />
-                    </div>
-                  )}
-
-                  {/* Video info overlay */}
-                  <div className="absolute bottom-3 left-3 right-3">
-                    <h3 className="text-sm font-semibold text-foreground text-left">{video.title}</h3>
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
-                      <span className="flex items-center gap-1">
-                        <Clock className="w-3 h-3" />
-                        {video.duration}
-                      </span>
-                    </div>
-                  </div>
-
-                  {video.isLocked && !isPremium() && (
-                    <div className="absolute top-2 right-2 px-2 py-1 bg-background/80 rounded-lg text-xs text-muted-foreground flex items-center gap-1">
-                      <Lock className="w-3 h-3" />
-                      Premium
-                    </div>
-                  )}
-                </div>
-              </motion.button>
-            ))}
-          </div>
-
-          <p className="text-xs text-muted-foreground text-center mt-3">
-            {t('workout.videosSoon')}
-          </p>
-        </motion.div>
-
-        {/* Tips section */}
+      <AnimatePresence mode="wait">
         <motion.div
-          variants={itemVariants}
-          className="mt-6 p-4 rounded-2xl bg-card border border-border/50"
+          key={selectedDate}
+          variants={containerVariants}
+          initial="hidden"
+          animate="show"
+          exit="exit"
+          className="px-4 space-y-3"
         >
-          <div className="flex items-start gap-3">
-            <div className="text-2xl">💡</div>
-            <div>
-              <h3 className="font-semibold text-foreground text-sm mb-1">{t('menu.tip')}</h3>
-              <p className="text-sm text-muted-foreground">
-                {t('workout.warmupTip')}
-              </p>
+          <motion.p variants={itemVariants} className="text-sm text-muted-foreground mb-2">
+            {t('common.day')} {selectedDate + 1} - {selectedDate === 0 ? t('common.today') : days[selectedDate].day}
+          </motion.p>
+
+          {freeWorkouts.map((workout, index) => (
+            <motion.div key={index} variants={itemVariants}>
+              <WorkoutCard
+                {...workout}
+                isLocked={selectedDate > 0 && !isPremium()}
+                isCompleted={selectedDate === 0 && index === 0 && todayLog?.workout_done}
+                onClick={() => handleWorkoutClick(index)}
+              />
+            </motion.div>
+          ))}
+
+          {/* Video mashqlar bo'limi */}
+          <motion.div variants={itemVariants} className="mt-8">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
+                <Video className="w-5 h-5 text-primary" />
+                {t('workout.videoWorkouts')}
+              </h2>
+              <span className="text-xs text-muted-foreground">{t('workout.comingSoon')}</span>
             </div>
-          </div>
+
+            <div className="grid grid-cols-1 gap-3">
+              {videoWorkouts.map((video) => (
+                <motion.button
+                  key={video.id}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => handleVideoClick(video.isLocked)}
+                  className={`relative w-full rounded-2xl overflow-hidden bg-card border border-border/50 ${video.isLocked && !isPremium() ? 'opacity-60' : ''
+                    }`}
+                >
+                  {/* Thumbnail placeholder */}
+                  <div className="aspect-video bg-muted flex items-center justify-center relative">
+                    <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent" />
+
+                    {video.isLocked && !isPremium() ? (
+                      <div className="w-14 h-14 rounded-full bg-muted-foreground/20 flex items-center justify-center">
+                        <Lock className="w-6 h-6 text-muted-foreground" />
+                      </div>
+                    ) : (
+                      <div className="w-14 h-14 rounded-full bg-primary/90 flex items-center justify-center shadow-glow">
+                        <Play className="w-6 h-6 text-primary-foreground ml-1" />
+                      </div>
+                    )}
+
+                    {/* Video info overlay */}
+                    <div className="absolute bottom-3 left-3 right-3">
+                      <h3 className="text-sm font-semibold text-foreground text-left">{video.title}</h3>
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
+                        <span className="flex items-center gap-1">
+                          <Clock className="w-3 h-3" />
+                          {video.duration}
+                        </span>
+                      </div>
+                    </div>
+
+                    {video.isLocked && !isPremium() && (
+                      <div className="absolute top-2 right-2 px-2 py-1 bg-background/80 rounded-lg text-xs text-muted-foreground flex items-center gap-1">
+                        <Lock className="w-3 h-3" />
+                        Premium
+                      </div>
+                    )}
+                  </div>
+                </motion.button>
+              ))}
+            </div>
+
+            <p className="text-xs text-muted-foreground text-center mt-3">
+              {t('workout.videosSoon')}
+            </p>
+          </motion.div>
+
+          {/* Tips section */}
+          <motion.div
+            variants={itemVariants}
+            className="mt-6 p-4 rounded-2xl bg-card border border-border/50"
+          >
+            <div className="flex items-start gap-3">
+              <div className="text-2xl">💡</div>
+              <div>
+                <h3 className="font-semibold text-foreground text-sm mb-1">{t('menu.tip')}</h3>
+                <p className="text-sm text-muted-foreground">
+                  {t('workout.warmupTip')}
+                </p>
+              </div>
+            </div>
+          </motion.div>
         </motion.div>
-      </motion.div>
+      </AnimatePresence>
 
       <Paywall
         isOpen={showPaywall}
