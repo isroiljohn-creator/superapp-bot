@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { ArrowLeft, Coins, ShoppingBag, Check, Lock, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useUser } from '@/contexts/UserContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useToast } from '@/hooks/use-toast';
 
@@ -22,7 +23,16 @@ interface ShopScreenProps {
 export const ShopScreen: React.FC<ShopScreenProps> = ({ onBack }) => {
   const { t } = useLanguage();
   const { toast } = useToast();
-  const [userCoins, setUserCoins] = useState(250);
+  const { points } = useUser(); // Connect to real points
+  const [userCoins, setUserCoins] = useState(points); // Initialize with real points, though ideally use points directly
+  // Note: userCoins is used for immediate UI feedback in this screen's local logic for now.
+  // Better approach: use points directly and handle specific purchase sync later.
+  // For the bug fix: Sync start state.
+
+  React.useEffect(() => {
+    setUserCoins(points);
+  }, [points]);
+
   const [activeTab, setActiveTab] = useState('all');
 
   const [items, setItems] = useState<ShopItem[]>([
@@ -56,8 +66,8 @@ export const ShopScreen: React.FC<ShopScreenProps> = ({ onBack }) => {
     }
   };
 
-  const filteredItems = activeTab === 'all' 
-    ? items 
+  const filteredItems = activeTab === 'all'
+    ? items
     : items.filter(item => item.itemType === activeTab);
 
   const handlePurchase = (itemId: string) => {
@@ -83,7 +93,7 @@ export const ShopScreen: React.FC<ShopScreenProps> = ({ onBack }) => {
     }
 
     setUserCoins(prev => prev - item.priceCoins);
-    setItems(items.map(i => 
+    setItems(items.map(i =>
       i.id === itemId ? { ...i, purchased: true } : i
     ));
 
@@ -144,7 +154,7 @@ export const ShopScreen: React.FC<ShopScreenProps> = ({ onBack }) => {
             >
               {filteredItems.map((item) => {
                 const canAfford = userCoins >= item.priceCoins;
-                
+
                 return (
                   <motion.div
                     key={item.id}
@@ -157,23 +167,23 @@ export const ShopScreen: React.FC<ShopScreenProps> = ({ onBack }) => {
                         <Check className="w-4 h-4 text-white" />
                       </div>
                     )}
-                    
+
                     {/* Icon */}
                     <div className="w-12 h-12 rounded-xl bg-muted flex items-center justify-center mb-3 text-2xl">
                       {getItemTypeIcon(item.itemType)}
                     </div>
-                    
+
                     {/* Content */}
                     <h3 className="font-semibold text-foreground text-sm mb-1 line-clamp-1">{t(item.nameKey)}</h3>
                     <p className="text-xs text-muted-foreground mb-4 line-clamp-2 min-h-[32px]">{t(item.descKey)}</p>
-                    
+
                     {/* Footer */}
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-1.5">
                         <Coins className="w-4 h-4 text-amber-400" />
                         <span className="font-bold text-foreground">{item.priceCoins}</span>
                       </div>
-                      
+
                       {item.purchased ? (
                         <span className="text-xs text-green-400 font-medium px-2 py-1 bg-green-500/10 rounded-lg">{t('shop.owned')}</span>
                       ) : (
