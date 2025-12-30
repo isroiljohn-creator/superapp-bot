@@ -700,35 +700,46 @@ class Database:
         from backend.models import User
         # We need a fresh session for atomic update
         with get_sync_db() as session:
-            # Check and update in one query to prevent race condition
-            # UPDATE users SET yasha_points = yasha_points - cost WHERE telegram_id = :uid AND yasha_points >= :cost
-            
-            # Using SQLAlchemy expression
-            user = session.query(User).filter(User.telegram_id == user_id).first()
-            if not user:
-                return False, "Foydalanuvchi topilmadi"
+            try:
+                # 1. Check User & Balance
+                user = session.query(User).filter(User.telegram_id == user_id).first()
+                if not user:
+                    return False, "Foydalanuvchi topilmadi"
+                    
+                if (user.yasha_points or 0) < cost:
+                     return False, f"Hisobingizda yetarli ball yo'q! (Sizda: {user.yasha_points})"
                 
-            # Check balance first (optional optimization but strictly need atomic update)
-            if (user.yasha_points or 0) < cost:
-                 return False, f"Hisobingizda yetarli ball yo'q! (Sizda: {user.yasha_points})"
-            
-            # Atomic decrement
-            # Update returns number of matched rows
-            rows = session.query(User).filter(and_(User.telegram_id == user_id, User.yasha_points >= cost))\
-                .update({User.yasha_points: User.yasha_points - cost}, synchronize_session=False)
-            
-            if rows == 0:
+                # 2. Atomic Decrement
+                # Update returns number of matched rows
+                rows = session.query(User).filter(and_(User.telegram_id == user_id, User.yasha_points >= cost))\
+                    .update({User.yasha_points: User.yasha_points - cost}, synchronize_session=False)
+                
+                if rows == 0:
+                    session.rollback()
+                    return False, "Hisobingizda yetarli ball yo'q yoki xatolik!"
+                
+                # 3. Grant Premium (Inside SAME transaction)
+                # Logic copied from set_premium but using current session object would be ideal.
+                # Since set_premium uses 'with get_sync_db()', calling it here would create a NESTED session (new transaction).
+                # To be truly atomic, we must do it manually here on 'session'.
+                
+                now = datetime.now()
+                # Reload user or use update logic directly
+                # We need to update premium_until on the SAME user record or via query
+                
+                session.query(User).filter(User.telegram_id == user_id).update({
+                    "premium_until": func.greatest(func.coalesce(User.premium_until, now), now) + timedelta(days=days),
+                    "is_premium": True
+                }, synchronize_session=False)
+                
+                # 4. Commit ALL changes
+                session.commit()
+                return True, "Muvaffaqiyatli"
+                
+            except Exception as e:
                 session.rollback()
-                return False, "Hisobingizda yetarli ball yo'q yoki xatolik!"
-                
-            # If successful, add premium
-            self.add_premium(user_id, days, "subscription") # This creates its own session, checking overlap
-            
-            # Since transaction committed? No, add_premium commits. 
-            # We should commit this decrement first.
-            session.commit()
-            
-            return True, "Muvaffaqiyatli"
+                print(f"Redeem Error: {e}")
+                return False, "Tizim xatoligi yuz berdi."
 
     def set_premium(self, user_id, days):
         with get_sync_db() as session:

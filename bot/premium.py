@@ -111,6 +111,8 @@ def register_handlers(bot):
 
     @bot.callback_query_handler(func=lambda call: call.data in ["pay_plus_1", "pay_vip_1", "pay_plus_3", "pay_vip_3"])
     def handle_plan_selection(call):
+        from core.config import PRICE_1_MONTH, PRICE_VIP_1_MONTH, PRICE_3_MONTHS, PRICE_VIP_3_MONTHS
+
         provider_token = os.getenv("PAYMENT_PROVIDER_TOKEN")
         
         if not provider_token:
@@ -119,9 +121,11 @@ def register_handlers(bot):
             
         data = call.data
         days = 30
-        amount = 4900000 
         title_key = "invoice_title_premium"
         plan_code = "premium"
+        
+        # Determine Amount and Plan
+        amount = PRICE_1_MONTH # Default
         
         if "vip" in data:
             plan_code = "vip"
@@ -130,12 +134,12 @@ def register_handlers(bot):
         if "3" in data:
             days = 90
             # 3 month prices
-            if plan_code == "premium": amount = 12900000
-            else: amount = 24900000
+            if plan_code == "premium": amount = PRICE_3_MONTHS
+            else: amount = PRICE_VIP_3_MONTHS
         else:
             # 1 month prices
-            if plan_code == "premium": amount = 4900000
-            else: amount = 9900000
+            if plan_code == "premium": amount = PRICE_1_MONTH
+            else: amount = PRICE_VIP_1_MONTH
             
         price_display = f"{amount // 100:,}".replace(",", " ")
         lang = db.get_user_language(call.from_user.id)

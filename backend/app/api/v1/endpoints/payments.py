@@ -11,7 +11,9 @@ from telebot import TeleBot, types
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 bot = TeleBot(BOT_TOKEN)
 
-from core.config import ADMIN_IDS
+from core.config import (
+    ADMIN_IDS, PRICE_1_MONTH, PRICE_VIP_1_MONTH, PRICE_3_MONTHS
+)
 ENV = os.getenv("ENV", "production")
 
 class InvoiceRequest(BaseModel):
@@ -56,17 +58,17 @@ def create_invoice_link(
 ):
     days = 30
     if req.plan_id == "premium":
-        amount = 4900000
+        amount = PRICE_1_MONTH
         title = "Premium Plus (30 kun)"
         payload = "premium_30"
     elif req.plan_id == "vip":
-        amount = 9900000
+        amount = PRICE_VIP_1_MONTH
         title = "Premium Pro (30 kun)"
         payload = "vip_30"
     else:
         # Fallback for old/other IDs if any
         days = 30 if req.plan_id == "30_days" else 90
-        amount = 4900000 if req.plan_id == "30_days" else 11900000
+        amount = PRICE_1_MONTH if req.plan_id == "30_days" else PRICE_3_MONTHS
         title = f"Premium {days} kun"
         payload = f"premium_{days}"
     provider_token = os.getenv("PAYMENT_PROVIDER_TOKEN")

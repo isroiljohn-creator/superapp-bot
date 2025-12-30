@@ -479,10 +479,24 @@ def finish_onboarding(user_id, message, bot):
         import traceback
         traceback.print_exc()
         try:
-            bot.send_message(user_id, f"⚠️ Error: {str(e)}")
-        except:
-            pass
-        manager.clear_user(user_id)
+            # Fallback to ALLERGY state to allow retry
+            manager.set_state(user_id, STATE_ALLERGY)
+            
+            # Send friendly error message
+            err_msg = get_text("error_generic", lang, default="Xatolik yuz berdi. Iltimos qaytadan urinib ko'ring.")
+            if str(e): # Append technical error if available (optional, maybe too technical?)
+                 # Keep it simple for user, log for admin.
+                 pass
+                 
+            bot.send_message(
+                user_id, 
+                f"⚠️ {err_msg}",
+                reply_markup=allergy_keyboard(lang)
+            )
+        except Exception as inner_e:
+            print(f"Recovery failed: {inner_e}")
+            # If recovery fails, THEN clear
+            manager.clear_user(user_id)
 
 def register_handlers(bot):
     """Register all onboarding-related handlers"""

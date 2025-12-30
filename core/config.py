@@ -78,7 +78,9 @@ except Exception as e:
 PAYMENT_PROVIDER_TOKEN = os.getenv("PAYMENT_PROVIDER_TOKEN")
 
 # Premium Prices (in tiyin/cents - 1 UZS = 100 tiyin)
-PRICE_1_MONTH = 4900000 # 49,000 UZS
-PRICE_VIP_1_MONTH = 9700000 # 97,000 UZS
-PRICE_3_MONTHS = 11900000 # 119,000 UZS
+# Premium Prices (in tiyin/cents - 1 UZS = 100 tiyin)
+PRICE_1_MONTH = 4900000       # 49,000 UZS
+PRICE_VIP_1_MONTH = 9900000   # 99,000 UZS (Updated from 97k)
+PRICE_3_MONTHS = 12900000     # 129,000 UZS (Updated from 119k)
+PRICE_VIP_3_MONTHS = 24900000 # 249,000 UZS
 
