@@ -77,6 +77,7 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onNavigate }) => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [selectedMeal, setSelectedMeal] = useState<any | null>(null);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const [startDate, setStartDate] = useState<string | null>(null);
 
   const fetchPlan = async () => {
     try {
@@ -87,6 +88,10 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onNavigate }) => {
       const res = await axios.get('/ai/meal', {
         headers: { Authorization: `Bearer ${token}` }
       });
+
+      if (res.data.created_at) {
+        setStartDate(res.data.created_at);
+      }
 
       if (res.data.plan) {
         if (Array.isArray(res.data.plan)) {
@@ -116,6 +121,11 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onNavigate }) => {
       const res = await axios.post('/ai/meal', {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
+
+      if (res.data.created_at) {
+        setStartDate(res.data.created_at);
+      }
+
       if (res.data.plan) {
         if (Array.isArray(res.data.plan)) {
           setWeeklyPlan(res.data.plan);
@@ -198,9 +208,37 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onNavigate }) => {
 
   let displayMeals: any[] = [];
 
+  // Calculate plan offset based on start date
+  let planOffset = 0;
+  if (startDate) {
+    const start = new Date(startDate);
+    const now = new Date();
+    // Reset hours to compare just dates
+    start.setHours(0, 0, 0, 0);
+    now.setHours(0, 0, 0, 0);
+    const diffTime = Math.abs(now.getTime() - start.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    // If start date is in past, offset is positive. 
+    // Wait, diffTime is absolute. We need direction.
+    // If start is before now, we proceed into the plan.
+    if (start < now) {
+      planOffset = diffDays;
+    }
+  }
+
   // 1. Show AI Weekly Plan (Priority)
   if (weeklyPlan && weeklyPlan.length > 0) {
-    const dailyData = weeklyPlan.find(d => d.day === selectedDate + 1);
+    // Current viewed Day Index (relative to Today) = selectedDate
+    // The actual Plan Day Index = planOffset + selectedDate + 1 (since plan is 1-based usually)
+    // Actually our API returns `day: 1`, `day: 2` etc.
+    // So we need to match `d.day === planOffset + selectedDate + 1`
+
+    // Safety: if planOffset moves us beyond the plan length?
+    // We can use modulo or just stop. 
+    // For now, let's try direct mapping.
+    const targetDay = (planOffset + selectedDate) % weeklyPlan.length + 1;
+
+    const dailyData = weeklyPlan.find(d => d.day === targetDay);
     if (dailyData && dailyData.meals) {
       const types = ['breakfast', 'lunch', 'dinner', 'snack'];
       displayMeals = types.map(type => {
