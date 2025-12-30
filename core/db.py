@@ -575,11 +575,37 @@ class Database:
             return None
 
     def get_active_users_with_settings(self):
+        """Legacy method - kept for backward compatibility if needed, but risky for large DB."""
         with get_sync_db() as session:
             users = session.query(User.telegram_id, User.full_name, User.username, User.notification_settings)\
                           .filter(User.active == True)\
                           .all()
             return [(u.telegram_id, u.full_name, u.username, u.notification_settings) for u in users]
+
+    def get_active_users_batch(self, limit=100, offset=0):
+        """Fetch active users in batches to prevent OOM."""
+        with get_sync_db() as session:
+            # We strictly order by ID to ensure stable pagination
+            users = session.query(User.telegram_id, User.full_name, User.username, User.notification_settings, User.streak_water, User.streak_workout, User.last_checkin)\
+                          .filter(User.active == True)\
+                          .order_by(User.id)\
+                          .limit(limit)\
+                          .offset(offset)\
+                          .all()
+            
+            # Return enriched structure for Coach
+            results = []
+            for u in users:
+                results.append({
+                    "id": u.telegram_id,
+                    "full_name": u.full_name,
+                    "username": u.username,
+                    "settings": u.notification_settings,
+                    "streak_water": u.streak_water or 0,
+                    "streak_workout": u.streak_workout or 0,
+                    "last_checkin": u.last_checkin
+                })
+            return results
 
     def check_specific_reminder_sent(self, user_id, date_str, type):
         with get_sync_db() as session:
