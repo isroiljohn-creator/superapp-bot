@@ -1,27 +1,25 @@
 import time
 import threading
 import schedule
+from datetime import datetime, timedelta, timezone
 from core.db import db
+from core.coach import get_coach_message
+from bot.languages import get_text
+
+# Uzbekistan Timezone (UTC +5)
+UZ_TZ = timezone(timedelta(hours=5))
 
 def send_daily_reminders(bot):
-    from datetime import datetime
-    now = datetime.now()
+    """Batched reminder process with Uzbekistan timezone awareness."""
+    now = datetime.now(UZ_TZ)
     today = now.strftime("%Y-%m-%d")
     current_time = now.strftime("%H:%M")
-    weekday = now.weekday() # 0 = Monday, 6 = Sunday
-    
-def send_daily_reminders(bot):
-    from datetime import datetime
-    now = datetime.now()
-    today = now.strftime("%Y-%m-%d")
-    current_time = now.strftime("%H:%M")
+    weekday = now.weekday()
     
     # Batch processing to prevent OOM
     BATCH_SIZE = 100
     offset = 0
     total_processed = 0
-    
-    from core.coach import get_coach_message
     
     while True:
         # We need last_checkin for inactivity calculation
@@ -41,13 +39,20 @@ def send_daily_reminders(bot):
                 settings = user.get('settings', {}) or {}
                 
                 # --- QUIET HOURS CHECK ---
-                # Check current hour. 
+                # Check current hour in Tashkent time
                 hour = now.hour
                 is_quiet_hour = (hour >= 23 or hour < 6)
                 
                 # If it's a quiet hour, we ONLY send if it was explicitly requested for this exact minute
                 # (e.g. user set workout at 05:00 for some reason).
                 # But for general "Nudges", we skip.
+
+                # Default Settings if empty
+                if not settings:
+                    settings = {
+                        "workoutReminders": True,
+                        "workoutTime": "09:00",
+                    }
 
                 MSG_SENT = False
 
@@ -62,7 +67,7 @@ def send_daily_reminders(bot):
                         inactivity = 0
                         if last_checkin_str:
                             try:
-                                last_date = datetime.strptime(last_checkin_str, "%Y-%m-%d")
+                                last_date = datetime.strptime(last_checkin_str, "%Y-%m-%d").replace(tzinfo=UZ_TZ)
                                 inactivity = (now - last_date).days
                             except: pass
 
@@ -80,7 +85,6 @@ def send_daily_reminders(bot):
                             msg = f"🧘‍♂️ <b>Coach:</b>\n{coach_msg}"
                             bot.send_message(user_id, msg, parse_mode="HTML")
                         else:
-                            from bot.languages import get_text
                             msg = "🏋️ " + get_text("reminder_workout_prompt", lang=lang, name=name)
                             bot.send_message(user_id, msg)
                         
@@ -94,7 +98,6 @@ def send_daily_reminders(bot):
                         lang = db.get_user_language(user_id)
                         name = full_name if full_name else (user.get('username') or "Aziz foydalanuvchi")
                         # (rest of logic same)
-                        from bot.languages import get_text
                         weekday = now.weekday()
                         msg = get_text(f"reminder_day_{weekday}", lang=lang, name=name)
                         bot.send_message(user_id, msg)
@@ -120,7 +123,7 @@ def send_daily_reminders(bot):
         if offset > 100000: break 
 
     if total_processed > 0:
-        print(f"Daily reminders sent to {total_processed} users (Batched).")
+        print(f"[{current_time} UZ] Daily reminders sent to {total_processed} users (Batched).")
 
 def init_reminder_schedule(bot):
     """Initializes the reminder schedule. Runs every minute to check for specific user times."""

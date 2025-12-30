@@ -86,7 +86,7 @@ def main():
     def run_scheduler():
         while True:
             schedule.run_pending()
-            time.sleep(60)
+            time.sleep(1) # Reduced to 1s to prevent cumulative drift and missed minute windows
 
     scheduler_thread = threading.Thread(target=run_scheduler, daemon=True)
     scheduler_thread.start()
