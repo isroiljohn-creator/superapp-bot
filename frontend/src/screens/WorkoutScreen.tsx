@@ -66,6 +66,8 @@ export const WorkoutScreen: React.FC<WorkoutScreenProps> = ({ onNavigate }) => {
   const { isPremium, todayLog, markWorkoutDone, getTodayWorkouts, selectedDate, setSelectedDate } = useUser();
   const { t } = useLanguage();
   const { vibrate } = useHaptic();
+  const [showPaywall, setShowPaywall] = useState(false);
+
   // State for daily plan
   const [weeklyPlan, setWeeklyPlan] = useState<any>(null);
   const [loadingPlan, setLoadingPlan] = useState(true);
