@@ -27,18 +27,20 @@ async def get_exercises(db: AsyncSession = Depends(get_db)):
 async def get_exercises_with_videos(db: AsyncSession = Depends(get_db)):
     """Fetch all exercises with video URLs for Mini App library."""
     from backend.models import Exercise, ExerciseVideo
-    from sqlalchemy import select, outerjoin
+    from sqlalchemy import select
     
-    # Join exercises with video data
-    stmt = select(Exercise, ExerciseVideo).outerjoin(
-        ExerciseVideo, Exercise.name == ExerciseVideo.name
-    ).order_by(Exercise.category, Exercise.name)
-    
-    result = await db.execute(stmt)
-    rows = result.all()
+    # Get all exercises
+    result = await db.execute(select(Exercise).order_by(Exercise.category, Exercise.name))
+    exercises = result.scalars().all()
     
     exercises_data = []
-    for exercise, video in rows:
+    for exercise in exercises:
+        # Try to find matching video
+        video_result = await db.execute(
+            select(ExerciseVideo).where(ExerciseVideo.name == exercise.name)
+        )
+        video = video_result.scalar_one_or_none()
+        
         video_url = video.video_url if video else None
         file_id = video.file_id if video else None
         
@@ -56,6 +58,7 @@ async def get_exercises_with_videos(db: AsyncSession = Depends(get_db)):
         })
     
     return exercises_data
+
 
 @router.get("/video_url")
 async def get_video_url(exercise_name: str, db: AsyncSession = Depends(get_db)):
