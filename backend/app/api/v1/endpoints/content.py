@@ -29,35 +29,41 @@ async def get_exercises_with_videos(db: AsyncSession = Depends(get_db)):
     from backend.models import Exercise, ExerciseVideo
     from sqlalchemy import select
     
-    # Get all exercises
-    result = await db.execute(select(Exercise).order_by(Exercise.category, Exercise.name))
-    exercises = result.scalars().all()
-    
-    exercises_data = []
-    for exercise in exercises:
-        # Try to find matching video
-        video_result = await db.execute(
-            select(ExerciseVideo).where(ExerciseVideo.name == exercise.name)
-        )
-        video = video_result.scalar_one_or_none()
+    try:
+        # Get all exercises
+        result = await db.execute(select(Exercise).order_by(Exercise.category, Exercise.name))
+        exercises = result.scalars().all()
         
-        video_url = video.video_url if video else None
-        file_id = video.file_id if video else None
+        exercises_data = []
+        for exercise in exercises:
+            # Try to find matching video
+            video_result = await db.execute(
+                select(ExerciseVideo).where(ExerciseVideo.name == exercise.name)
+            )
+            video = video_result.scalar_one_or_none()
+            
+            video_url = video.video_url if video else None
+            file_id = video.file_id if video else None
+            
+            exercises_data.append({
+                "id": exercise.id,
+                "name": exercise.name,
+                "category": exercise.category or "other",
+                "difficulty": exercise.difficulty or "beginner",
+                "video_url": video_url,
+                "file_id": file_id,
+                "muscle_group": exercise.muscle_group or "",
+                "equipment": exercise.equipment or "",
+                "duration_sec": exercise.duration_sec or 60,
+                "description": exercise.description or ""
+            })
         
-        exercises_data.append({
-            "id": exercise.id,
-            "name": exercise.name,
-            "category": exercise.category or "other",
-            "difficulty": exercise.difficulty or "beginner",
-            "video_url": video_url,
-            "file_id": file_id,
-            "muscle_group": exercise.muscle_group,
-            "equipment": exercise.equipment,
-            "duration_sec": exercise.duration_sec or 60,
-            "description": exercise.description
-        })
-    
-    return exercises_data
+        return exercises_data
+    except Exception as e:
+        print(f"Error in get_exercises_with_videos: {e}")
+        import traceback
+        traceback.print_exc()
+        raise
 
 
 @router.get("/video_url")
