@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Lock, Dumbbell, Play, Video, Clock, Flame, ChevronRight } from 'lucide-react';
 import { WorkoutCard } from '@/components/WorkoutCard';
