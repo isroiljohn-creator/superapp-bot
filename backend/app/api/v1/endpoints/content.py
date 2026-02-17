@@ -25,45 +25,57 @@ async def get_exercises(db: AsyncSession = Depends(get_db)):
 
 @router.get("/exercises_with_videos")
 async def get_exercises_with_videos(db: AsyncSession = Depends(get_db)):
-    """Fetch all exercises with video URLs for Mini App library."""
-    from backend.models import Exercise, ExerciseVideo
-    from sqlalchemy import select
+    """Fetch all exercises with video URLs using RAW SQL for reliability."""
+    from sqlalchemy import text
     
     try:
-        # Get all exercises
-        result = await db.execute(select(Exercise).order_by(Exercise.category, Exercise.name))
-        exercises = result.scalars().all()
+        # Raw SQL query to bypass potential ORM mapping issues
+        # Left join to get all exercises even if they don't have a video entry yet
+        sql = text("""
+            SELECT 
+                e.id, 
+                e.name, 
+                e.category, 
+                e.difficulty, 
+                e.muscle_group, 
+                e.equipment, 
+                e.duration_sec, 
+                e.description,
+                v.video_url,
+                v.file_id
+            FROM exercises e
+            LEFT JOIN exercise_videos v ON e.name = v.name
+            ORDER BY e.category, e.name
+        """)
+        
+        result = await db.execute(sql)
+        rows = result.fetchall()
         
         exercises_data = []
-        for exercise in exercises:
-            # Try to find matching video
-            video_result = await db.execute(
-                select(ExerciseVideo).where(ExerciseVideo.name == exercise.name)
-            )
-            video = video_result.scalar_one_or_none()
-            
-            video_url = video.video_url if video else None
-            file_id = video.file_id if video else None
-            
+        for row in rows:
             exercises_data.append({
-                "id": exercise.id,
-                "name": exercise.name,
-                "category": exercise.category or "other",
-                "difficulty": exercise.difficulty or "beginner",
-                "video_url": video_url,
-                "file_id": file_id,
-                "muscle_group": exercise.muscle_group or "",
-                "equipment": exercise.equipment or "",
-                "duration_sec": exercise.duration_sec or 60,
-                "description": exercise.description or ""
+                "id": row.id,
+                "name": row.name,
+                "category": row.category or "other",
+                "difficulty": row.difficulty or "beginner",
+                "video_url": row.video_url,
+                "file_id": row.file_id,
+                "muscle_group": row.muscle_group or "",
+                "equipment": row.equipment or "",
+                "duration_sec": row.duration_sec or 60,
+                "description": row.description or ""
             })
         
+        if not exercises_data:
+             print("WARNING: Raw SQL returned 0 exercises")
+             
         return exercises_data
     except Exception as e:
-        print(f"Error in get_exercises_with_videos: {e}")
+        print(f"CRITICAL ERROR in get_exercises_with_videos: {e}")
         import traceback
         traceback.print_exc()
-        raise
+        # Return empty list instead of 500 so frontend can show fallback
+        return []
 
 
 @router.get("/video_url")
