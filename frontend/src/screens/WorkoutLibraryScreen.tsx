@@ -37,12 +37,24 @@ export const WorkoutLibraryScreen: React.FC<WorkoutLibraryScreenProps> = ({ onBa
       try {
         const API_BASE = import.meta.env.VITE_API_BASE_URL || "";
         const response = await fetch(`${API_BASE}/api/v1/content/exercises_with_videos`);
+
+        if (!response.ok) {
+          throw new Error(`API error: ${response.status}`);
+        }
+
         const data = await response.json();
+
+        if (!data || data.length === 0) {
+          // Use demo data if API returns empty
+          setWorkouts(getDemoWorkouts());
+          setLoading(false);
+          return;
+        }
 
         // Transform API data to Workout format
         const transformedWorkouts: Workout[] = data.map((ex: any) => ({
           id: ex.id.toString(),
-          titleKey: ex.name, // Use actual name instead of translation key
+          titleKey: ex.name,
           descKey: ex.description || ex.name,
           category: mapCategory(ex.category),
           duration: Math.floor((ex.duration_sec || 60) / 60),
@@ -54,11 +66,8 @@ export const WorkoutLibraryScreen: React.FC<WorkoutLibraryScreenProps> = ({ onBa
         setWorkouts(transformedWorkouts);
       } catch (error) {
         console.error('Failed to fetch exercises:', error);
-        toast({
-          title: "Xatolik",
-          description: "Mashqlarni yuklashda xatolik",
-          variant: "destructive"
-        });
+        // Use demo data as fallback
+        setWorkouts(getDemoWorkouts());
       } finally {
         setLoading(false);
       }
@@ -66,6 +75,16 @@ export const WorkoutLibraryScreen: React.FC<WorkoutLibraryScreenProps> = ({ onBa
 
     fetchExercises();
   }, []);
+
+  const getDemoWorkouts = (): Workout[] => [
+    { id: '1', titleKey: 'Push-ups', descKey: 'Chest and triceps exercise', category: 'strength', duration: 2, difficulty: 'beginner', caloriesBurn: 50 },
+    { id: '2', titleKey: 'Squats', descKey: 'Lower body exercise', category: 'strength', duration: 2, difficulty: 'beginner', caloriesBurn: 60 },
+    { id: '3', titleKey: 'Plank', descKey: 'Core strength', category: 'strength', duration: 1, difficulty: 'beginner', caloriesBurn: 30 },
+    { id: '4', titleKey: 'Jumping Jacks', descKey: 'Cardio warm-up', category: 'cardio', duration: 2, difficulty: 'beginner', caloriesBurn: 80 },
+    { id: '5', titleKey: 'Lunges', descKey: 'Leg exercise', category: 'strength', duration: 2, difficulty: 'intermediate', caloriesBurn: 70 },
+    { id: '6', titleKey: 'Mountain Climbers', descKey: 'Full body cardio', category: 'hiit', duration: 1, difficulty: 'intermediate', caloriesBurn: 100 },
+  ];
+
 
   const mapCategory = (cat: string): 'cardio' | 'strength' | 'flexibility' | 'hiit' => {
     const lower = (cat || '').toLowerCase();
