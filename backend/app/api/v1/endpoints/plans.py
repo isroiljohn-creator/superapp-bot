@@ -92,10 +92,85 @@ async def get_workout_plan(
         
     try:
         content = json.loads(plan.content)
-    except:
+        
+        # Enrich with Video URLs
+        # Plan structure usually: {"monday": [{"name": "Push ups", ...}], "tuesday": ...} or just a list
+        # We need to iterate and inject video_url
+        
+        exercises_to_fetch = []
+        
+        # Helper to collect names
+        def collect_names(data):
+            if isinstance(data, list):
+                for item in data:
+                    if isinstance(item, dict) and "name" in item:
+                        exercises_to_fetch.append(item["name"])
+            elif isinstance(data, dict):
+                for key, value in data.items():
+                    collect_names(value)
+
+        collect_names(content)
+        
+        if exercises_to_fetch:
+            from sqlalchemy import text
+            # Fetch videos for these exercises
+            # Use lower case for matching to be safe
+            names_params = {f"n{i}": name for i, name in enumerate(exercises_to_fetch)}
+            
+            if names_params:
+                # Construct WHERE clause like: name ILIKE :n0 OR name ILIKE :n1 ...
+                # Actually, strictly matches might be better for performance, but plans might have slight variations
+                # Let's try exact match first
+                
+                # Fetch dictionary of {name: video_url}
+                video_map = {}
+                
+                # We can't easily do WHERE name IN (...) with asyncpg and params logic efficiently in one go if list is dynamic
+                # So let's just query exercise_videos table for all relevant ones 
+                # OR just query all videos if list is small? No.
+                
+                # Better: loop and query? No, N+1 problem.
+                # Correct: WHERE name = ANY(:names)
+                
+                sql = text("""
+                    SELECT 
+                        e.name, 
+                        COALESCE(v.video_url, e.video_url) as video_url
+                    FROM exercises e
+                    LEFT JOIN exercise_videos v ON e.name = v.name
+                    WHERE e.name = ANY(:names)
+                """)
+                
+                # Execute
+                result = await db_session.execute(sql, {"names": list(exercises_to_fetch)})
+                rows = result.fetchall()
+                
+                for r in rows:
+                    if r.video_url:
+                        video_map[r.name] = r.video_url
+                        # Also handle case insensitive?
+                        video_map[r.name.lower()] = r.video_url
+
+                # Inject back into content
+                def inject_videos(data):
+                    if isinstance(data, list):
+                        for item in data:
+                            if isinstance(item, dict) and "name" in item:
+                                vid = video_map.get(item["name"]) or video_map.get(item["name"].lower())
+                                if vid:
+                                    item["video_url"] = vid
+                    elif isinstance(data, dict):
+                        for key, value in data.items():
+                            inject_videos(value)
+                            
+                inject_videos(content)
+
+    except Exception as e:
+        print(f"Error parse/enrich plan: {e}")
         content = plan.content
         
     return {"plan": content, "is_premium": current_user.is_premium, "created_at": plan.created_at}
+
 
 @router.post("/meal")
 async def generate_meal(

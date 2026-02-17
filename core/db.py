@@ -49,7 +49,15 @@ class Database:
                 # 2. Daily Logs fixes
                 add_col('daily_logs', 'reminder_sent', 'BOOLEAN', 'FALSE')
 
-                # 3. Users table fixes (Handled via Alembic)
+                # 2. Daily Logs fixes
+                add_col('daily_logs', 'reminder_sent', 'BOOLEAN', 'FALSE')
+
+                # 3. Exercise Video Fixes (Phase 2/3)
+                add_col('exercise_videos', 'video_url', 'VARCHAR')
+                add_col('exercises', 'video_url', 'VARCHAR')
+                
+                # 4. Users table fixes (Handled via Alembic)
+
                 # add_col('users', 'language', 'VARCHAR', "'uz'")
 
                 # 5. Correctis_onboarded for existing users who have data
