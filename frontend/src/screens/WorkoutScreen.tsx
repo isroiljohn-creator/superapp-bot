@@ -74,7 +74,7 @@ export const WorkoutScreen: React.FC<WorkoutScreenProps> = ({ onNavigate }) => {
   React.useEffect(() => {
     const fetchPlan = async () => {
       try {
-        const response = await axios.get('/plans/workout');
+        const response = await axios.get('/ai/workout');
         if (response.data && response.data.plan) {
           setWeeklyPlan(response.data.plan);
         }
@@ -98,26 +98,32 @@ export const WorkoutScreen: React.FC<WorkoutScreenProps> = ({ onNavigate }) => {
 
   // Get daily workouts from plan or fallback
   const getDailyWorkouts = () => {
-    if (!weeklyPlan) return []; // Or return freeWorkouts as fallback?
+    if (!weeklyPlan || typeof weeklyPlan !== 'object') return [];
 
-    // Map index 0-6 to day names (assuming plan keys are "monday", "tuesday" etc or 1-7)
-    // Actually simpler: let's map selectedDate (0=Today) to actual day name
-    const d = new Date();
-    d.setDate(d.getDate() + selectedDate);
-    const dayName = d.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase(); // monday, tuesday...
+    try {
+      // Map selectedDate (0=Today) to actual day name
+      const d = new Date();
+      d.setDate(d.getDate() + selectedDate);
+      const dayName = d.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase(); // monday, tuesday...
 
-    const dayPlan = weeklyPlan[dayName] || [];
+      const dayPlan = weeklyPlan[dayName];
 
-    // Transform to UI format
-    return dayPlan.map((ex: any, i: number) => ({
-      id: i,
-      title: ex.name,
-      duration: (ex.duration || '2 min') + '',
-      calories: ex.calories || 50,
-      videoUrl: ex.video_url, // Enriched from backend
-      isLocked: false, // Daily plan is unlocked if user has access to plan
-      exercises: 1
-    }));
+      if (!dayPlan || !Array.isArray(dayPlan)) return [];
+
+      // Transform to UI format
+      return dayPlan.map((ex: any, i: number) => ({
+        id: i,
+        title: ex.name,
+        duration: (ex.duration || '2 min') + '',
+        calories: ex.calories || 50,
+        videoUrl: ex.video_url, // Enriched from backend
+        isLocked: false, // Daily plan is unlocked if user has access to plan
+        exercises: 1
+      }));
+    } catch (e) {
+      console.error("Error parsing daily workouts:", e);
+      return [];
+    }
   };
 
   const dailyWorkouts = getDailyWorkouts();
