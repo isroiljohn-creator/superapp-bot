@@ -36,18 +36,35 @@ if ENV_TYPE == "production":
 
 # Async URL (for FastAPI/Future Proofing)
 ASYNC_DB_URL = RAW_DB_URL.replace("postgresql://", "postgresql+asyncpg://")
-SYNC_DB_URL = RAW_DB_URL
+
+# Sync URL
+# If fallback is sqlite+aiosqlite, sync engine needs just sqlite
+if "sqlite+aiosqlite" in RAW_DB_URL:
+    SYNC_DB_URL = RAW_DB_URL.replace("sqlite+aiosqlite", "sqlite")
+else:
+    SYNC_DB_URL = RAW_DB_URL
+
+# --- Config Args based on DB Type ---
+connect_args = {}
+engine_args = {}
+
+if "sqlite" in RAW_DB_URL:
+    connect_args = {"check_same_thread": False} # Needed for SQLite
+    # SQLite doesn't support pool_size/max_overflow in standard way with NullPool usually used or default
+else:
+    # Postgres
+    engine_args = {
+        "pool_size": int(os.getenv("DB_POOL_SIZE", 20)),
+        "max_overflow": int(os.getenv("DB_MAX_OVERFLOW", 10)),
+        "pool_recycle": 1800,
+        "pool_pre_ping": True
+    }
 
 # --- Async Engine (FastAPI) ---
-# Pool Recycle: 1800s (30 mins) to prevent stale connections
-# Pool Size: 20 (Railway friendly), Max Overflow: 10
 engine = create_async_engine(
     ASYNC_DB_URL, 
     echo=False,
-    pool_pre_ping=True,
-    pool_size=int(os.getenv("DB_POOL_SIZE", 20)), 
-    max_overflow=int(os.getenv("DB_MAX_OVERFLOW", 10)),
-    pool_recycle=1800
+    **engine_args
 )
 
 AsyncSessionLocal = sessionmaker(
@@ -55,13 +72,15 @@ AsyncSessionLocal = sessionmaker(
 )
 
 # --- Sync Engine (TeleBot) ---
+# For SQLite sync engine
+sync_engine_args = engine_args.copy()
+if "sqlite" in SYNC_DB_URL:
+    sync_engine_args = {"connect_args": {"check_same_thread": False}}
+
 sync_engine = create_engine(
     SYNC_DB_URL, 
     echo=False, 
-    pool_pre_ping=True,
-    pool_size=int(os.getenv("DB_POOL_SIZE", 20)), 
-    max_overflow=int(os.getenv("DB_MAX_OVERFLOW", 10)),
-    pool_recycle=1800
+    **sync_engine_args
 )
 
 SyncSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=sync_engine)

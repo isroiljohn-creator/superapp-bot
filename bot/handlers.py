@@ -1,5 +1,9 @@
 from bot import onboarding, gamification, admin, feedback, premium, profile, templates, workout
-from core import coach
+import threading
+from core.ymove import parse_and_find_videos
+from core.maintenance import cache_video_on_demand
+import logging
+
 
 from bot.keyboards import main_menu_keyboard, ai_coach_submenu_keyboard, challenges_submenu_keyboard, help_submenu_keyboard, ai_coach_inline_keyboard, admin_developer_keyboard, challenges_inline_keyboard
 from bot import trackers, ai_features, challenges, calorie_scanner
@@ -657,7 +661,6 @@ def register_all_handlers(bot):
     # Existing handler handles: daily, leaderboard, complete.
     # We added: weekly, monthly, friends, leaderboard.
     # Let's update the existing handler or add new logic.
-    # Existing handler is at line 192. I will replace it or merge.
     # I'll replace the existing challenge callback handler to include new menu items.
 
     # Profile Callbacks
@@ -745,7 +748,123 @@ def register_all_handlers(bot):
     def menu_nav_callback(call):
         workout.handle_menu_callback(call, bot)
 
+    # [NEW] YMove Integration
+    @bot.callback_query_handler(func=lambda call: call.data.startswith('show_videos_'))
+    def show_videos_callback(call):
+        try:
+            # show_videos_{day_idx}
+            parts = call.data.split('_')
+            if len(parts) < 3: return
+            day_idx = int(parts[2])
+            user_id = call.from_user.id
+            
+            link = db.get_user_workout_link(user_id)
+            if not link:
+                bot.answer_callback_query(call.id, "Reja topilmadi.")
+                return
+
+            import json
+            try:
+                data_obj = json.loads(link['workout_json'])
+            except:
+                bot.answer_callback_query(call.id, "Xato json.")
+                return
+            
+            if isinstance(data_obj, dict): schedule = data_obj.get('schedule', [])
+            elif isinstance(data_obj, list): schedule = data_obj
+            else: schedule = []
+                
+            if day_idx < 1 or day_idx > len(schedule):
+                bot.answer_callback_query(call.id, "Kun topilmadi.")
+                return
+                
+            day_data = schedule[day_idx - 1]
+            exercises_text = day_data.get('exercises', '')
+            
+            if len(exercises_text) < 5:
+                bot.answer_callback_query(call.id, "Mashqlar yo'q.")
+                return
+                
+            bot.answer_callback_query(call.id, "Videolar qidirilmoqda... 🔎")
+            
+            exercises_text = workout.get_exercises_text(link.workout_data['schedule'], day_idx)
+            results = parse_and_find_videos(exercises_text)
+            
+            if not results:
+                bot.answer_callback_query(call.id, "Video topilmadi", show_alert=True)
+                return
+
+            # NEW LOGIC: Async Processing
+            # We notify user and start a thread to process videos one by one
+            # This allows "Lazy Caching" without blocking the bot
+            
+            wait_msg = bot.send_message(user_id, "⏳ Videolar tayyorlanmoqda...")
+            
+            def process_videos_async(bot, user_id, results, wait_msg_id):
+                sent_count = 0
+                text_fallback = "📹 **Mashq Videolari:**\n\n"
+                
+                for res in results:
+                    try:
+                        file_id = None
+                        # 1. Check DB
+                        db_video = db.get_exercise_video(res['name'])
+                        if db_video and db_video.get('file_id'):
+                            file_id = db_video['file_id']
+                        else:
+                            # 2. Not in DB -> Lazy Cache (Download-Upload-Save)
+                            # Notify user we are downloading a new video?
+                            # Maybe just do it silently but update the wait message?
+                            # bot.edit_message_text(f"⏳ Yuklanmoqda: {res['name']}...", user_id, wait_msg_id)
+                            file_id = cache_video_on_demand(bot, res['name'], res['url'], res.get('uuid'))
+                            
+                        if file_id:
+                            caption = f"🎬 <b>{res['name']}</b>\n\nTo'liq: {res['url']}"
+                            bot.send_video(user_id, file_id, caption=caption, parse_mode="HTML")
+                            sent_count += 1
+                        else:
+                            # Fallback
+                            text_fallback += f"▫️ <a href='{res['url']}'>{res['name']}</a>\n"
+                            
+                    except Exception as e:
+                        print(f"Async Video Error {res['name']}: {e}")
+                        text_fallback += f"▫️ <a href='{res['url']}'>{res['name']}</a>\n"
+
+                # Cleanup
+                try:
+                    bot.delete_message(user_id, wait_msg_id)
+                except: pass
+                
+                # If some failed or all failed
+                if sent_count < len(results):
+                     # Only send fallback text if it has content (videos that failed)
+                     # If sent_count == 0, we definitely send text.
+                     # If partial, we append the failed ones?
+                     # Logic: text_fallback already accumulates failed ones.
+                     # But it starts with "Mashq Videolari".
+                     # If sent_count > 0 and len(results) > sent_count, we might want to say "Qolganlari:"
+                     
+                     if sent_count > 0 and len(results) > sent_count:
+                         text_fallback = "⚠️ <b>Qolgan videolar (havola):</b>\n\n" + text_fallback.replace("📹 **Mashq Videolari:**\n\n", "")
+                     
+                     if "▫️" in text_fallback:
+                        try:
+                            bot.send_message(user_id, text_fallback, parse_mode="HTML", disable_web_page_preview=True)
+                        except: pass
+
+            # Start Thread
+            t = threading.Thread(target=process_videos_async, args=(bot, user_id, results, wait_msg.message_id))
+            t.start()
+            
+            bot.answer_callback_query(call.id)
+        
+        except Exception as e:
+            print(f"Video Error: {e}")
+            try: bot.answer_callback_query(call.id, "Xatolik yuz berdi.") 
+            except: pass
+
     @bot.callback_query_handler(func=lambda call: call.data == "menu_shopping")
+
     def callback_menu_shopping(call):
         user_id = call.from_user.id
         lang = db.get_user_language(user_id)

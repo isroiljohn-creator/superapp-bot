@@ -578,5 +578,15 @@ class KnowledgeBase(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     
     # Using a simple index for similarity search support in SQL if needed
-    # Full-text search or vector search would be better for high volumes,
     # but for ~100-1000 entries, trigram or pattern matching is sufficient.
+
+class ExerciseVideo(Base):
+    __tablename__ = "exercise_videos"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, index=True, unique=True) # Normalized name
+    file_id = Column(String, nullable=False) # Telegram File ID
+    video_url = Column(String, nullable=True) # Underlying URL for WebApp
+    ymove_id = Column(String, nullable=True) # External reference
+    category = Column(String, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)

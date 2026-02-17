@@ -10,6 +10,7 @@ from core.flags import is_flag_enabled
 import traceback
 
 import threading
+from core.ymove import parse_and_find_videos
 # Thread-safe in-memory lock
 GENERATION_LOCKS = set()
 LOCKS_MUTEX = threading.Lock()
@@ -266,9 +267,33 @@ def generate_ai_workout(message, bot, user_id=None):
     except Exception as e:
          print(f"Outer Gen Error: {e}")
     finally:
-        with LOCKS_MUTEX:
-            if user_id in GENERATION_LOCKS:
                 GENERATION_LOCKS.remove(user_id)
+
+def get_exercises_text(schedule_list, day_idx):
+    """
+    Extract exercise text for a specific day key, stripping URLs.
+    Used by handlers for video search and by show_daily_workout for display.
+    """
+    if not schedule_list or not isinstance(schedule_list, list):
+        return ""
+        
+    total_days = len(schedule_list)
+    if day_idx < 1 or day_idx > total_days:
+        return ""
+        
+    try:
+        day_data = schedule_list[day_idx - 1]
+        text = day_data.get('exercises', '')
+        
+        # Strip Markdown URLs: [Text](URL) -> Text
+        import re
+        text = re.sub(r'\[([^\]]+)\]\([^\)]+\)', r'\1', text)
+        # Strip Raw URLs
+        text = re.sub(r'http[s]?://\S+', '', text)
+        
+        return text.strip()
+    except:
+        return ""
 
 def show_daily_workout(bot, user_id, link_data, override_day_idx=None):
     """Render the workout for specific day index."""
@@ -356,7 +381,10 @@ def show_daily_workout(bot, user_id, link_data, override_day_idx=None):
         txt = f"🏋️ <b>{get_text('workout_title_day', lang, day=day_idx)}</b> (Total {total_days})\n"
         txt += f"{get_text('workout_focus', lang, focus=final_focus)}\n\n"
         
-        exercises_text = day_data.get('exercises', '-')
+        # Use helper to strip links
+        exercises_text = get_exercises_text(schedule, day_idx)
+        if not exercises_text:
+             exercises_text = day_data.get('exercises', '-')
         
         # REST DAY LOGIC
         if "dam" in final_focus.lower() or "rest" in final_focus.lower() or "отдых" in final_focus.lower():
@@ -371,10 +399,10 @@ def show_daily_workout(bot, user_id, link_data, override_day_idx=None):
              txt += f"{rest_msg}\n\n"
              # Show original text if meaningful (like stretching), else hide
              if len(exercises_text) > 20 and "tiklanish" not in exercises_text.lower():
-                 txt += f"<i>Qo'shimcha: {exercises_text}</i>"
+                 txt += f"<i>Qo'shimcha: {_esc(exercises_text)}</i>"
         else:
              # Regular Workout
-             txt += f"{exercises_text}"
+             txt += f"{_esc(exercises_text)}"
         
         # [SMART PAYWALL]
         from core.context import get_smart_paywall_cta
@@ -399,6 +427,15 @@ def show_daily_workout(bot, user_id, link_data, override_day_idx=None):
              markup.row(InlineKeyboardButton(get_text("btn_regenerate", lang), callback_data="workout_regenerate"))
         else:
              markup.row(InlineKeyboardButton(get_text("btn_reset", lang), callback_data="workout_regenerate"))
+        
+        
+        # [NEW] YMove Integration - Mini App Video Player
+        mini_app_url = os.getenv("MINI_APP_URL", "https://web-production-b606.up.railway.app")
+        if not mini_app_url.endswith("/"): 
+            mini_app_url += "/"
+        video_webapp_url = f"{mini_app_url}workout-video?day={day_idx}"
+        markup.row(InlineKeyboardButton("📹 Videolar", web_app=types.WebAppInfo(url=video_webapp_url)))
+        
         
         # [FEEDBACK V1]
         if is_flag_enabled("feedback_v1", user_id):

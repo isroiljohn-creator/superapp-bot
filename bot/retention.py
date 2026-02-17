@@ -43,11 +43,12 @@ def run_retention_check(bot):
         days_triggers = [3, 7, 10, 14]
         
         for days in days_triggers:
-            users = db.get_users_inactive_for(days) # We need to implement this Additive helper
+            users = db.get_users_inactive_for(days) 
             
             for user in users:
-                user_id = user['telegram_id']
-                name = user['full_name']
+                # user is SQLAlchemy object (User model), not dict
+                user_id = user.telegram_id
+                name = user.full_name
                 
                 # Double check flag per user (Rollout support)
                 if not is_flag_enabled("retention_engine", user_id):

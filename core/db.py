@@ -1807,8 +1807,8 @@ class Database:
             link = UserMenuLink(
                 user_id=pk,
                 menu_template_id=template_id,
-                meal_type=meal_type,
-                date=date
+                current_day_index=1,
+                is_active=True
             )
             session.add(link)
             # Award Elixir for tracking food (+10)
@@ -1850,6 +1850,13 @@ class Database:
         from backend.models import WorkoutTemplate
         try:
             with get_sync_db() as session:
+                # Check exist first to avoid UniqueViolation
+                existing = session.query(WorkoutTemplate).filter(WorkoutTemplate.profile_key == profile_key).first()
+                if existing:
+                     existing.workout_json = workout_json
+                     session.commit()
+                     return existing.id
+                
                 new_template = WorkoutTemplate(
                     profile_key=profile_key,
                     workout_json=workout_json
@@ -1858,8 +1865,8 @@ class Database:
                 session.commit()
                 return new_template.id
         except Exception as e:
-            # Handle unique constraint violation gracefully by trying update
-            print(f"Update fallback for workout: {e}")
+            print(f"Create Workout Template Error: {e}")
+            # Fallback to update just in case of race condition
             return self.update_workout_template_content(profile_key, workout_json)
 
     def update_workout_template_content(self, profile_key, workout_json):
@@ -2421,6 +2428,36 @@ class Database:
             except Exception as e:
                 print(f"DB Error in get_trial_users_paginated: {e}")
                 return [], 0
+
+    def get_exercise_video(self, name):
+        """Finds a video by exact name or fuzzy match."""
+        with get_sync_db() as session:
+            from backend.models import ExerciseVideo
+            # 1. Exact match
+            video = session.query(ExerciseVideo).filter(func.lower(ExerciseVideo.name) == name.lower()).first()
+            if video:
+                return {"file_id": video.file_id, "name": video.name, "video_url": video.video_url}
+            
+            # 2. Fuzzy match (Postgres specific or simple like)
+            # Simple ILIKE for partial match
+            video = session.query(ExerciseVideo).filter(ExerciseVideo.name.ilike(f"%{name}%")).first()
+            if video:
+                return {"file_id": video.file_id, "name": video.name, "video_url": video.video_url}
+            return None
+
+    def save_exercise_video(self, name, file_id, ymove_id=None, video_url=None):
+        with get_sync_db() as session:
+            from backend.models import ExerciseVideo
+            video = session.query(ExerciseVideo).filter(ExerciseVideo.name == name).first()
+            if not video:
+                video = ExerciseVideo(name=name, file_id=file_id, ymove_id=ymove_id, video_url=video_url)
+                session.add(video)
+            else:
+                video.file_id = file_id
+                video.ymove_id = ymove_id
+                if video_url:
+                    video.video_url = video_url
+            session.commit()
 
 db = Database()
 

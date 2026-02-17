@@ -243,6 +243,19 @@ def register_handlers(bot):
             # This catches the "All AI models failed" exception
             bot.edit_message_text(f"❌ **Fallback Failed:** {e}", message.chat.id, msg.message_id)
 
+    @bot.message_handler(commands=['sync_videos_now'])
+    @safe_handler(bot)
+    def admin_sync_videos_command(message):
+        if message.from_user.id not in ADMIN_IDS: return
+        
+        msg = bot.send_message(message.chat.id, "🔄 Sync ishga tushirildi... (Fondagi jarayon)")
+        
+        try:
+            from core.maintenance import start_sync_thread
+            start_sync_thread(bot, message.chat.id)
+        except Exception as e:
+            bot.edit_message_text(f"❌ Xatolik: {e}", message.chat.id, msg.message_id)
+
     @bot.message_handler(commands=['resetdb'])
     def admin_reset_db(message):
         if message.from_user.id not in ADMIN_IDS:
