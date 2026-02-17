@@ -65,7 +65,26 @@ export const WorkoutScreen: React.FC<WorkoutScreenProps> = ({ onNavigate }) => {
   const { isPremium, todayLog, markWorkoutDone, getTodayWorkouts, selectedDate, setSelectedDate } = useUser();
   const { t } = useLanguage();
   const { vibrate } = useHaptic();
-  const [showPaywall, setShowPaywall] = useState(false);
+  // State for daily plan
+  const [weeklyPlan, setWeeklyPlan] = useState<any>(null);
+  const [loadingPlan, setLoadingPlan] = useState(true);
+
+  // Fetch plan on mount
+  React.useEffect(() => {
+    const fetchPlan = async () => {
+      try {
+        const response = await axios.get('/plans/workout');
+        if (response.data && response.data.plan) {
+          setWeeklyPlan(response.data.plan);
+        }
+      } catch (error) {
+        console.error("Failed to fetch workout plan:", error);
+      } finally {
+        setLoadingPlan(false);
+      }
+    };
+    fetchPlan();
+  }, []);
 
   const calculateDateStr = (index: number) => {
     const d = new Date();
@@ -74,13 +93,37 @@ export const WorkoutScreen: React.FC<WorkoutScreenProps> = ({ onNavigate }) => {
   };
 
   const selectedDateStr = calculateDateStr(selectedDate);
-  const todayWorkouts = useUser().getWorkoutsForDate(selectedDateStr);
   const isSelectedToday = selectedDate === 0;
-  const workoutDone = isSelectedToday ? (todayLog?.workout_done || todayWorkouts.length > 0) : todayWorkouts.length > 0;
 
+  // Get daily workouts from plan or fallback
+  const getDailyWorkouts = () => {
+    if (!weeklyPlan) return []; // Or return freeWorkouts as fallback?
+
+    // Map index 0-6 to day names (assuming plan keys are "monday", "tuesday" etc or 1-7)
+    // Actually simpler: let's map selectedDate (0=Today) to actual day name
+    const d = new Date();
+    d.setDate(d.getDate() + selectedDate);
+    const dayName = d.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase(); // monday, tuesday...
+
+    const dayPlan = weeklyPlan[dayName] || [];
+
+    // Transform to UI format
+    return dayPlan.map((ex: any, i: number) => ({
+      id: i,
+      title: ex.name,
+      duration: (ex.duration || '2 min') + '',
+      calories: ex.calories || 50,
+      videoUrl: ex.video_url, // Enriched from backend
+      isLocked: false, // Daily plan is unlocked if user has access to plan
+      exercises: 1
+    }));
+  };
+
+  const dailyWorkouts = getDailyWorkouts();
   const weekDays = getWeekDays(t);
-  const freeWorkouts = getFreeWorkouts(t);
-  const videoWorkouts = getVideoWorkouts(t);
+
+  // Use daily workouts if available, else fallback to hardcoded for demo if plan is empty
+  const displayWorkouts = dailyWorkouts.length > 0 ? dailyWorkouts : (loadingPlan ? [] : getFreeWorkouts(t));
 
   const today = new Date();
   const days = Array.from({ length: 7 }, (_, i) => {
@@ -102,22 +145,21 @@ export const WorkoutScreen: React.FC<WorkoutScreenProps> = ({ onNavigate }) => {
     setSelectedDate(index);
   };
 
-  const handleWorkoutClick = (index: number) => {
+  // State for active video
+  const [activeVideo, setActiveVideo] = useState<string | null>(null);
+
+  const handleWorkoutClick = (workout: any) => {
     vibrate('medium');
     if (!isPremium() && selectedDate > 0) {
       setShowPaywall(true);
       return;
     }
-    // Mark workout as done for today
-    if (selectedDate === 0 && !workoutDone) {
-      markWorkoutDone();
-    }
-  };
 
-  const handleVideoClick = (isLocked: boolean) => {
-    vibrate('medium');
-    if (isLocked && !isPremium()) {
-      setShowPaywall(true);
+    if (workout.videoUrl) {
+      setActiveVideo(workout.videoUrl);
+    } else {
+      // Just mark done if no video
+      if (selectedDate === 0) markWorkoutDone();
     }
   };
 
@@ -145,6 +187,34 @@ export const WorkoutScreen: React.FC<WorkoutScreenProps> = ({ onNavigate }) => {
 
   return (
     <div className="min-h-screen bg-background pb-28">
+      {/* Active Video Player Modal/Overlay */}
+      <AnimatePresence>
+        {activeVideo && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            className="fixed inset-0 z-50 bg-black flex flex-col items-center justify-center p-4"
+          >
+            <div className="absolute top-4 right-4 z-10">
+              <button onClick={() => setActiveVideo(null)} className="p-2 bg-white/20 rounded-full text-white">
+                ✕
+              </button>
+            </div>
+            <div className="w-full max-w-lg aspect-video bg-black rounded-xl overflow-hidden shadow-2xl">
+              <video
+                src={activeVideo}
+                controls
+                autoPlay
+                className="w-full h-full"
+                playsInline
+              />
+            </div>
+            <p className="text-white mt-4 text-center text-sm opacity-80">{t('workout.playingVideo')}</p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Header */}
       <div className="px-4 pt-6 pb-4 safe-area-top">
         <div className="flex items-center justify-between mb-5">
@@ -215,76 +285,36 @@ export const WorkoutScreen: React.FC<WorkoutScreenProps> = ({ onNavigate }) => {
             {t('common.day')} {selectedDate + 1} - {selectedDate === 0 ? t('common.today') : days[selectedDate].day}
           </motion.p>
 
-          {freeWorkouts.map((workout, index) => (
-            <motion.div key={index} variants={itemVariants}>
-              <WorkoutCard
-                {...workout}
-                isLocked={selectedDate > 0 && !isPremium()}
-                isCompleted={selectedDate === 0 && index === 0 && todayLog?.workout_done}
-                onClick={() => handleWorkoutClick(index)}
-              />
-            </motion.div>
-          ))}
-
-          {/* Video mashqlar bo'limi */}
-          <motion.div variants={itemVariants} className="mt-8">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
-                <Video className="w-5 h-5 text-primary" />
-                {t('workout.videoWorkouts')}
-              </h2>
-              <span className="text-xs text-muted-foreground">{t('workout.comingSoon')}</span>
-            </div>
-
-            <div className="grid grid-cols-1 gap-3">
-              {videoWorkouts.map((video) => (
-                <motion.button
-                  key={video.id}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => handleVideoClick(video.isLocked)}
-                  className={`relative w-full rounded-2xl overflow-hidden bg-card border border-border/50 ${video.isLocked && !isPremium() ? 'opacity-60' : ''
-                    }`}
+          {loadingPlan ? (
+            <div className="text-center py-10 opacity-50">Yuklanmoqda...</div>
+          ) : (
+            displayWorkouts.map((workout: any, index: number) => (
+              <motion.div key={index} variants={itemVariants}>
+                <div
+                  onClick={() => handleWorkoutClick(workout)}
+                  className="bg-card border border-border/50 rounded-xl p-4 flex items-center justify-between active:scale-[0.99] transition-transform"
                 >
-                  {/* Thumbnail placeholder */}
-                  <div className="aspect-video bg-muted flex items-center justify-center relative">
-                    <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent" />
-
-                    {video.isLocked && !isPremium() ? (
-                      <div className="w-14 h-14 rounded-full bg-muted-foreground/20 flex items-center justify-center">
-                        <Lock className="w-6 h-6 text-muted-foreground" />
-                      </div>
-                    ) : (
-                      <div className="w-14 h-14 rounded-full bg-primary/90 flex items-center justify-center shadow-glow">
-                        <Play className="w-6 h-6 text-primary-foreground ml-1" />
-                      </div>
-                    )}
-
-                    {/* Video info overlay */}
-                    <div className="absolute bottom-3 left-3 right-3">
-                      <h3 className="text-sm font-semibold text-foreground text-left">{video.title}</h3>
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
-                        <span className="flex items-center gap-1">
-                          <Clock className="w-3 h-3" />
-                          {video.duration}
-                        </span>
-                      </div>
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-lg bg-secondary flex items-center justify-center text-2xl">
+                      {workout.videoUrl ? '📺' : '💪'}
                     </div>
-
-                    {video.isLocked && !isPremium() && (
-                      <div className="absolute top-2 right-2 px-2 py-1 bg-background/80 rounded-lg text-xs text-muted-foreground flex items-center gap-1">
-                        <Lock className="w-3 h-3" />
-                        Premium
-                      </div>
-                    )}
+                    <div>
+                      <h3 className="font-bold text-foreground">{workout.title}</h3>
+                      <p className="text-xs text-muted-foreground">{workout.duration} • {workout.calories} kcal</p>
+                    </div>
                   </div>
-                </motion.button>
-              ))}
-            </div>
+                  {workout.videoUrl && <Play className="w-5 h-5 text-primary" />}
+                  {workout.isLocked && !isPremium() && <Lock className="w-4 h-4 text-muted-foreground" />}
+                </div>
+              </motion.div>
+            ))
+          )}
 
-            <p className="text-xs text-muted-foreground text-center mt-3">
-              {t('workout.videosSoon')}
-            </p>
-          </motion.div>
+          {displayWorkouts.length === 0 && !loadingPlan && (
+            <div className="text-center py-8 text-muted-foreground text-sm">
+              Bugun dam olish kuni! 😴
+            </div>
+          )}
 
           {/* Tips section */}
           <motion.div
