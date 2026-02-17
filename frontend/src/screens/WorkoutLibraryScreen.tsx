@@ -207,14 +207,26 @@ export const WorkoutLibraryScreen: React.FC<WorkoutLibraryScreenProps> = ({ onBa
           </div>
         </div>
 
-        <div className="flex-1 flex flex-col items-center justify-center px-4">
+        <div className="flex-1 flex flex-col items-center justify-start px-4 overflow-y-auto">
+          {/* Video Player */}
+          {activeWorkout.videoUrl && (
+            <div className="w-full max-w-md aspect-video mb-6 rounded-xl overflow-hidden bg-black shadow-lg ring-1 ring-white/10">
+              <video
+                src={activeWorkout.videoUrl}
+                controls
+                className="w-full h-full object-contain"
+                playsInline
+              />
+            </div>
+          )}
+
           {/* Timer Display */}
           <motion.div
             initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            className="w-64 h-64 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 border-4 border-primary/50 flex items-center justify-center mb-8"
+            className={`${activeWorkout.videoUrl ? 'w-48 h-48 mb-6' : 'w-64 h-64 mb-8'} rounded-full bg-gradient-to-br from-primary/20 to-primary/5 border-4 border-primary/50 flex items-center justify-center`}
           >
-            <p className="text-5xl font-bold text-foreground">{formatTime(timerSeconds)}</p>
+            <p className={`${activeWorkout.videoUrl ? 'text-4xl' : 'text-5xl'} font-bold text-foreground`}>{formatTime(timerSeconds)}</p>
           </motion.div>
 
           {/* Controls */}
