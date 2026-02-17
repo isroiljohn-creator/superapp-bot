@@ -95,12 +95,19 @@ async def debug_db_status(db: AsyncSession = Depends(get_db)):
         db_url = os.getenv("DATABASE_URL", "NOT_SET")
         is_sqlite = "sqlite" in db_url
         
-        # TEST THE MAIN QUERY
+        # TEST THE MAIN QUERY (EXACT COPY FROM content.py)
         sql = text("""
             SELECT 
                 e.id, 
                 e.name, 
-                e.category
+                e.category, 
+                e.difficulty, 
+                e.muscle_group, 
+                e.equipment, 
+                e.duration_sec, 
+                e.description,
+                COALESCE(v.video_url, e.video_url) as video_url,
+                v.file_id
             FROM exercises e
             LEFT JOIN exercise_videos v ON e.name = v.name
             LIMIT 5
@@ -113,6 +120,7 @@ async def debug_db_status(db: AsyncSession = Depends(get_db)):
         except Exception as qe:
             test_status = f"Query Error: {str(qe)}"
             test_sample = []
+
 
         return {
             "status": "ok",
