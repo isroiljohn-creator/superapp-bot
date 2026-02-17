@@ -95,15 +95,37 @@ async def debug_db_status(db: AsyncSession = Depends(get_db)):
         db_url = os.getenv("DATABASE_URL", "NOT_SET")
         is_sqlite = "sqlite" in db_url
         
+        # TEST THE MAIN QUERY
+        sql = text("""
+            SELECT 
+                e.id, 
+                e.name, 
+                e.category
+            FROM exercises e
+            LEFT JOIN exercise_videos v ON e.name = v.name
+            LIMIT 5
+        """)
+        try:
+            test_result = await db.execute(sql)
+            test_rows = test_result.fetchall()
+            test_status = f"Success: Retrieved {len(test_rows)} rows"
+            test_sample = [dict(r._mapping) for r in test_rows]
+        except Exception as qe:
+            test_status = f"Query Error: {str(qe)}"
+            test_sample = []
+
         return {
             "status": "ok",
             "exercises_count": exercises_count,
             "videos_count": videos_count,
             "is_sqlite": is_sqlite,
+            "query_test": test_status,
+            "query_sample": test_sample,
             "environment": os.getenv("ENVIRONMENT", "dev")
         }
     except Exception as e:
         return {"status": "error", "detail": str(e)}
+
 
 # === Static Files serving for Two Frontends ===
 FRONTEND_DIST = os.path.join(os.getcwd(), "frontend/dist")
