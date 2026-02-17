@@ -6,7 +6,7 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL || "";
 
 export default function WorkoutVideo() {
     const [searchParams] = useSearchParams();
-    const exerciseName = searchParams.get("exercise") || "";
+    const exerciseName = searchParams.get("exercise") || searchParams.get("day") || "";
 
     const [videoUrl, setVideoUrl] = useState("");
     const [loading, setLoading] = useState(true);
@@ -15,8 +15,11 @@ export default function WorkoutVideo() {
     useEffect(() => {
         const fetchVideo = async () => {
             try {
+                // Use generic search term if day parameter provided
+                const searchTerm = searchParams.get("exercise") || "mashq";
+
                 const response = await axios.get(`${API_BASE}/api/v1/content/video_url`, {
-                    params: { exercise_name: exerciseName }
+                    params: { exercise_name: searchTerm }
                 });
                 setVideoUrl(response.data.video_url);
             } catch (err: any) {
@@ -26,13 +29,8 @@ export default function WorkoutVideo() {
             }
         };
 
-        if (exerciseName) {
-            fetchVideo();
-        } else {
-            setError("Mashq nomi ko'rsatilmagan");
-            setLoading(false);
-        }
-    }, [exerciseName]);
+        fetchVideo();
+    }, [exerciseName, searchParams]);
 
     if (loading) {
         return (
