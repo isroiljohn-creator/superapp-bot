@@ -256,6 +256,52 @@ def register_handlers(bot):
         except Exception as e:
             bot.edit_message_text(f"❌ Xatolik: {e}", message.chat.id, msg.message_id)
 
+    @bot.message_handler(commands=['populate_exercises'])
+    @safe_handler(bot)
+    def admin_populate_exercises(message):
+        if message.from_user.id not in ADMIN_IDS: return
+        
+        bot.send_message(message.chat.id, "🔄 YMove'dan mashqlar yuklanmoqda...")
+        
+        try:
+            from core.ymove import _fetch_all_exercises
+            exercises = _fetch_all_exercises()
+            
+            if not exercises:
+                bot.send_message(message.chat.id, "❌ Mashqlar topilmadi!")
+                return
+            
+            bot.send_message(message.chat.id, f"📥 {len(exercises)} ta mashq topildi. Bazaga saqlanmoqda...")
+            count = 0
+            for ex in exercises:
+                try:
+                    cat = (ex.get('category', '') or '').lower()
+                    if 'upper' in cat or 'chest' in cat or 'shoulder' in cat: category = 'Upper Body'
+                    elif 'lower' in cat or 'leg' in cat: category = 'Lower Body'
+                    elif 'cardio' in cat: category = 'Cardio'
+                    elif 'full' in cat: category = 'Full Body'
+                    else: category = 'Upper Body'
+                    
+                    db.save_exercise(
+                        name=ex['title'],
+                        video_url=ex.get('videoUrl'),
+                        category=category,
+                        difficulty=(ex.get('difficulty', 'beginner') or 'beginner').lower(),
+                        description=ex.get('description'),
+                        muscle_group=ex.get('primaryMuscle'),
+                        equipment=ex.get('equipment'),
+                        duration_sec=ex.get('duration', 60)
+                    )
+                    count += 1
+                    if count % 50 == 0:
+                        bot.send_message(message.chat.id, f"📊 {count} ta saqlandi...")
+                except Exception as e:
+                    print(f"Error saving exercise: {e}")
+            
+            bot.send_message(message.chat.id, f"✅ {count} ta mashq saqlandi!")
+        except Exception as e:
+            bot.send_message(message.chat.id, f"❌ Xatolik: {e}")
+
     @bot.message_handler(commands=['resetdb'])
     def admin_reset_db(message):
         if message.from_user.id not in ADMIN_IDS:

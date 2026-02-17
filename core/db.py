@@ -2459,5 +2459,35 @@ class Database:
                     video.video_url = video_url
             session.commit()
 
-db = Database()
+    def save_exercise(self, name, video_url=None, category=None, difficulty=None, 
+                     description=None, muscle_group=None, equipment=None, duration_sec=None):
+        """Save or update exercise in database"""
+        with get_sync_db() as session:
+            from backend.models import Exercise
+            
+            exercise = session.query(Exercise).filter(Exercise.name == name).first()
+            if not exercise:
+                exercise = Exercise(
+                    name=name,
+                    video_url=video_url,
+                    category=category,
+                    difficulty=difficulty,
+                    description=description,
+                    muscle_group=muscle_group,
+                    equipment=equipment,
+                    duration_sec=duration_sec
+                )
+                session.add(exercise)
+            else:
+                # Update existing
+                if video_url: exercise.video_url = video_url
+                if category: exercise.category = category
+                if difficulty: exercise.difficulty = difficulty
+                if description: exercise.description = description
+                if muscle_group: exercise.muscle_group = muscle_group
+                if equipment: exercise.equipment = equipment
+                if duration_sec: exercise.duration_sec = duration_sec
+            
+            session.commit()
 
+db = Database()
