@@ -23,6 +23,40 @@ async def get_exercises(db: AsyncSession = Depends(get_db)):
         for e in exercises
     ]
 
+@router.get("/exercises_with_videos")
+async def get_exercises_with_videos(db: AsyncSession = Depends(get_db)):
+    """Fetch all exercises with video URLs for Mini App library."""
+    from backend.models import Exercise, ExerciseVideo
+    from sqlalchemy import select, outerjoin
+    
+    # Join exercises with video data
+    stmt = select(Exercise, ExerciseVideo).outerjoin(
+        ExerciseVideo, Exercise.name == ExerciseVideo.name
+    ).order_by(Exercise.category, Exercise.name)
+    
+    result = await db.execute(stmt)
+    rows = result.all()
+    
+    exercises_data = []
+    for exercise, video in rows:
+        video_url = video.video_url if video else None
+        file_id = video.file_id if video else None
+        
+        exercises_data.append({
+            "id": exercise.id,
+            "name": exercise.name,
+            "category": exercise.category or "other",
+            "difficulty": exercise.difficulty or "beginner",
+            "video_url": video_url,
+            "file_id": file_id,
+            "muscle_group": exercise.muscle_group,
+            "equipment": exercise.equipment,
+            "duration_sec": exercise.duration_sec or 60,
+            "description": exercise.description
+        })
+    
+    return exercises_data
+
 @router.get("/video_url")
 async def get_video_url(exercise_name: str, db: AsyncSession = Depends(get_db)):
     """Fetch video URL for a given exercise. Returns from cache or fetches from YMove."""

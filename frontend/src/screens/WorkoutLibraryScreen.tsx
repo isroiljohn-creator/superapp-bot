@@ -14,6 +14,7 @@ interface Workout {
   duration: number;
   difficulty: 'beginner' | 'intermediate' | 'advanced';
   caloriesBurn: number;
+  videoUrl?: string;
 }
 
 interface WorkoutLibraryScreenProps {
@@ -27,15 +28,64 @@ export const WorkoutLibraryScreen: React.FC<WorkoutLibraryScreenProps> = ({ onBa
   const [activeWorkout, setActiveWorkout] = useState<Workout | null>(null);
   const [isTimerRunning, setIsTimerRunning] = useState(false);
   const [timerSeconds, setTimerSeconds] = useState(0);
+  const [workouts, setWorkouts] = useState<Workout[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const workouts: Workout[] = [
-    { id: '1', titleKey: 'workoutLib.morningStretch', descKey: 'workoutLib.morningStretchDesc', category: 'flexibility', duration: 10, difficulty: 'beginner', caloriesBurn: 50 },
-    { id: '2', titleKey: 'workoutLib.hiitCardio', descKey: 'workoutLib.hiitCardioDesc', category: 'hiit', duration: 20, difficulty: 'intermediate', caloriesBurn: 250 },
-    { id: '3', titleKey: 'workoutLib.strengthTraining', descKey: 'workoutLib.strengthTrainingDesc', category: 'strength', duration: 30, difficulty: 'intermediate', caloriesBurn: 200 },
-    { id: '4', titleKey: 'workoutLib.yogaBasics', descKey: 'workoutLib.yogaBasicsDesc', category: 'flexibility', duration: 25, difficulty: 'beginner', caloriesBurn: 100 },
-    { id: '5', titleKey: 'workoutLib.absWorkout', descKey: 'workoutLib.absWorkoutDesc', category: 'strength', duration: 15, difficulty: 'beginner', caloriesBurn: 120 },
-    { id: '6', titleKey: 'workoutLib.tabata', descKey: 'workoutLib.tabataDesc', category: 'hiit', duration: 4, difficulty: 'advanced', caloriesBurn: 80 },
-  ];
+  // Fetch exercises from API
+  React.useEffect(() => {
+    const fetchExercises = async () => {
+      try {
+        const API_BASE = import.meta.env.VITE_API_BASE_URL || "";
+        const response = await fetch(`${API_BASE}/api/v1/content/exercises_with_videos`);
+        const data = await response.json();
+
+        // Transform API data to Workout format
+        const transformedWorkouts: Workout[] = data.map((ex: any) => ({
+          id: ex.id.toString(),
+          titleKey: ex.name, // Use actual name instead of translation key
+          descKey: ex.description || ex.name,
+          category: mapCategory(ex.category),
+          duration: Math.floor((ex.duration_sec || 60) / 60),
+          difficulty: ex.difficulty || 'beginner',
+          caloriesBurn: estimateCalories(ex.duration_sec || 60, ex.category),
+          videoUrl: ex.video_url
+        }));
+
+        setWorkouts(transformedWorkouts);
+      } catch (error) {
+        console.error('Failed to fetch exercises:', error);
+        toast({
+          title: "Xatolik",
+          description: "Mashqlarni yuklashda xatolik",
+          variant: "destructive"
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchExercises();
+  }, []);
+
+  const mapCategory = (cat: string): 'cardio' | 'strength' | 'flexibility' | 'hiit' => {
+    const lower = (cat || '').toLowerCase();
+    if (lower.includes('cardio')) return 'cardio';
+    if (lower.includes('strength') || lower.includes('upper') || lower.includes('lower')) return 'strength';
+    if (lower.includes('flexibility') || lower.includes('yoga')) return 'flexibility';
+    if (lower.includes('hiit') || lower.includes('full')) return 'hiit';
+    return 'strength';
+  };
+
+  const estimateCalories = (seconds: number, category: string): number => {
+    const minutes = seconds / 60;
+    const rates = { cardio: 8, hiit: 12, strength: 5, flexibility: 3 };
+    const rate = rates[mapCategory(category)] || 5;
+    return Math.round(minutes * rate);
+  };
+
+  const filteredWorkouts = activeTab === 'all'
+    ? workouts
+    : workouts.filter(w => w.category === activeTab);
 
   const getCategoryColor = (category: string) => {
     switch (category) {
@@ -65,10 +115,6 @@ export const WorkoutLibraryScreen: React.FC<WorkoutLibraryScreenProps> = ({ onBa
       default: return difficulty;
     }
   };
-
-  const filteredWorkouts = activeTab === 'all' 
-    ? workouts 
-    : workouts.filter(w => w.category === activeTab);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -240,8 +286,8 @@ export const WorkoutLibraryScreen: React.FC<WorkoutLibraryScreenProps> = ({ onBa
                           {getCategoryLabel(workout.category)}
                         </span>
                       </div>
-                      <p className="font-semibold text-foreground mb-1">{t(workout.titleKey)}</p>
-                      <p className="text-sm text-muted-foreground mb-2">{t(workout.descKey)}</p>
+                      <p className="font-semibold text-foreground mb-1">{workout.titleKey}</p>
+                      <p className="text-sm text-muted-foreground mb-2">{workout.descKey}</p>
                       <div className="flex items-center gap-4 text-xs text-muted-foreground">
                         <span className="flex items-center gap-1">
                           <Clock className="w-3 h-3" />
