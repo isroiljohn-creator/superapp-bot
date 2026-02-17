@@ -76,6 +76,35 @@ from backend.admin_api import router as admin_router
 app.include_router(api_router, prefix="/api/v1")
 app.include_router(admin_router, prefix="/api/v1")
 
+@app.get("/api/v1/debug/db_status")
+async def debug_db_status(db: AsyncSession = Depends(get_db)):
+    """Check database connection and table counts."""
+    try:
+        from sqlalchemy import text
+        
+        # Check exercises count
+        result = await db.execute(text("SELECT count(*) FROM exercises"))
+        exercises_count = result.scalar()
+        
+        # Check videos count
+        result = await db.execute(text("SELECT count(*) FROM exercise_videos"))
+        videos_count = result.scalar()
+        
+        # Check DB file/url (masked)
+        import os
+        db_url = os.getenv("DATABASE_URL", "NOT_SET")
+        is_sqlite = "sqlite" in db_url
+        
+        return {
+            "status": "ok",
+            "exercises_count": exercises_count,
+            "videos_count": videos_count,
+            "is_sqlite": is_sqlite,
+            "environment": os.getenv("ENVIRONMENT", "dev")
+        }
+    except Exception as e:
+        return {"status": "error", "detail": str(e)}
+
 # === Static Files serving for Two Frontends ===
 FRONTEND_DIST = os.path.join(os.getcwd(), "frontend/dist")
 ADMIN_DIST = os.path.join(os.getcwd(), "yasha-insights/dist")
