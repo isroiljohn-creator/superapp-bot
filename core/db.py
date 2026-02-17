@@ -63,7 +63,15 @@ class Database:
                 
                 session.commit()
                 logger.info("✅ Database migrations checked/applied.")
+                
+                # Ensure all tables exist
+                from backend.database import engine
+                from backend.models import Base
+                Base.metadata.create_all(bind=engine)
+                logger.info("✅ Verified all tables exist.")
+                
             except Exception as e:
+
                 session.rollback()
                 logger.error(f"CRITICAL MIGRATION ERROR: {e}\n{traceback.format_exc()}")
 
