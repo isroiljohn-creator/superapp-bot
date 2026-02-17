@@ -429,12 +429,12 @@ def show_daily_workout(bot, user_id, link_data, override_day_idx=None):
              markup.row(InlineKeyboardButton(get_text("btn_reset", lang), callback_data="workout_regenerate"))
         
         
-        # [NEW] YMove Integration - Mini App Video Player
+        # Video tugmasi - Mini Appdagi Mashqlar bo'limiga olib boradi
         mini_app_url = os.getenv("MINI_APP_URL", "https://web-production-b606.up.railway.app")
         if not mini_app_url.endswith("/"): 
             mini_app_url += "/"
-        video_webapp_url = f"{mini_app_url}workout-video?day={day_idx}"
-        markup.row(InlineKeyboardButton("📹 Videolar", web_app=types.WebAppInfo(url=video_webapp_url)))
+        video_webapp_url = f"{mini_app_url}?tab=workout-library"
+        markup.row(InlineKeyboardButton("📹 Mashqlar", web_app=types.WebAppInfo(url=video_webapp_url)))
         
         
         # [FEEDBACK V1]
