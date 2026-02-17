@@ -41,12 +41,13 @@ async def get_exercises_with_videos(db: AsyncSession = Depends(get_db)):
                 e.equipment, 
                 e.duration_sec, 
                 e.description,
-                v.video_url,
+                COALESCE(v.video_url, e.video_url) as video_url,
                 v.file_id
             FROM exercises e
             LEFT JOIN exercise_videos v ON e.name = v.name
             ORDER BY e.category, e.name
         """)
+
         
         result = await db.execute(sql)
         rows = result.fetchall()
