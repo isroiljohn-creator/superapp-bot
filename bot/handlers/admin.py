@@ -1,5 +1,6 @@
 """Admin handler — content management, broadcasts, analytics, settings."""
 import json
+import os
 from aiogram import Router, F
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
@@ -24,9 +25,23 @@ def is_admin(user_id: int) -> bool:
 # ── Admin Menu Dashboard ─────────────────
 def admin_menu_keyboard() -> InlineKeyboardMarkup:
     """Inline keyboard for the admin dashboard."""
+    
+    # Fallback for WEBAPP_URL to prevent Telegram API crashes if empty
+    base_url = settings.WEBAPP_URL.strip()
+    if not base_url or not base_url.startswith("https://"):
+        # Railway automatically provides this env var for web services
+        railway_domain = os.getenv("RAILWAY_PUBLIC_DOMAIN")
+        if railway_domain:
+            base_url = f"https://{railway_domain}"
+        else:
+            base_url = "https://example.com"
+            
+    # Ensure no trailing slash before appending /admin/
+    base_url = base_url.rstrip("/")
+
     return InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text="📱 Admin Dashboard (Web)", web_app=WebAppInfo(url=f"{settings.WEBAPP_URL}/admin/"))],
+            [InlineKeyboardButton(text="📱 Admin Dashboard (Web)", web_app=WebAppInfo(url=f"{base_url}/admin/"))],
             [InlineKeyboardButton(text="📊 Statistika", callback_data="admin_action:stats")],
             [InlineKeyboardButton(text="📤 Xabar yuborish (Broadcast)", callback_data="admin_action:broadcast")],
             [InlineKeyboardButton(text="⚙️ Taklif sozlamalari", callback_data="admin_action:settings")],
