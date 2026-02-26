@@ -156,28 +156,40 @@ async def cmd_broadcast(message: Message, state: FSMContext, user_id_override: i
         await message.answer(uz.ADMIN_ONLY)
         return
 
-    await message.answer(
-        "📤 <b>Broadcast</b>\n\n"
-        "Filtrlarni JSON formatda yuboring:\n"
-        "<code>{\"source\": \"instagram\", \"level_tag\": \"beginner\"}</code>\n\n"
-        "Barcha foydalanuvchilarga yuborish uchun: <code>{}</code>",
-        parse_mode="HTML",
+    markup = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="👥 Barchaga yuborish", callback_data="broadcast_seg:all")],
+            [InlineKeyboardButton(text="🎬 Video ko'rganlarga", callback_data="broadcast_seg:video")],
+            [InlineKeyboardButton(text="🔥 Issiq mijozlarga", callback_data="broadcast_seg:hot")],
+            [InlineKeyboardButton(text="💳 To'laganlarga", callback_data="broadcast_seg:paid")],
+        ]
     )
-    await state.set_state(BroadcastFSM.waiting_filters)
+
+    await message.answer(
+        "📤 <b>Broadcast</b>\n\nQaysi segmentga xabar yubormoqchisiz?",
+        parse_mode="HTML",
+        reply_markup=markup,
+    )
 
 
-@router.message(BroadcastFSM.waiting_filters)
-async def process_broadcast_filters(message: Message, state: FSMContext):
-    try:
-        filters = json.loads(message.text)
-    except json.JSONDecodeError:
-        await message.answer("❌ Noto'g'ri JSON format. Qayta urinib ko'ring.")
-        return
+@router.callback_query(F.data.startswith("broadcast_seg:"))
+async def process_broadcast_segment(callback: CallbackQuery, state: FSMContext):
+    segment = callback.data.split(":")[1]
+    filters = {}
+    
+    if segment == "video":
+        filters = {"user_status": "free", "lead_score_min": 30}
+    elif segment == "hot":
+        filters = {"lead_segment": "hot"}
+    elif segment == "paid":
+        filters = {"user_status": "paid"}
+    elif segment == "all":
+        filters = {}
 
     await state.update_data(filters=filters)
-    await message.answer(
-        "✍️ Endi xabar matnini yuboring.\n"
-        "Rasm/video yuborish ham mumkin."
+    await callback.message.edit_text(
+        "✍️ Endi xabaringizni yuboring.\n"
+        "Siz istalgan formatda yuborishingiz mumkin: matn, rasm, video, hujjat, ovozli xabar yoki dumaloq video."
     )
     await state.set_state(BroadcastFSM.waiting_content)
 
@@ -188,17 +200,27 @@ async def process_broadcast_content(message: Message, state: FSMContext):
     filters = data.get("filters", {})
 
     content_type = "text"
-    content = message.text or ""
+    content = message.text or message.caption or ""
     file_id = None
 
     if message.photo:
         content_type = "photo"
         file_id = message.photo[-1].file_id
-        content = message.caption or ""
     elif message.video:
         content_type = "video"
         file_id = message.video.file_id
-        content = message.caption or ""
+    elif message.document:
+        content_type = "document"
+        file_id = message.document.file_id
+    elif message.audio:
+        content_type = "audio"
+        file_id = message.audio.file_id
+    elif message.voice:
+        content_type = "voice"
+        file_id = message.voice.file_id
+    elif message.video_note:
+        content_type = "video_note"
+        file_id = message.video_note.file_id
 
     await state.update_data(
         content=content,
@@ -276,23 +298,24 @@ async def _direct_broadcast(bot, users, data):
     sent, failed = 0, 0
     for user in users:
         try:
-            if data.get("content_type") == "photo":
-                await bot.send_photo(
-                    chat_id=user.telegram_id,
-                    photo=data["file_id"],
-                    caption=data.get("content", ""),
-                )
-            elif data.get("content_type") == "video":
-                await bot.send_video(
-                    chat_id=user.telegram_id,
-                    video=data["file_id"],
-                    caption=data.get("content", ""),
-                )
+            c_type = data.get("content_type")
+            f_id = data.get("file_id")
+            cap = data.get("content", "")
+
+            if c_type == "photo" and f_id:
+                await bot.send_photo(chat_id=user.telegram_id, photo=f_id, caption=cap)
+            elif c_type == "video" and f_id:
+                await bot.send_video(chat_id=user.telegram_id, video=f_id, caption=cap)
+            elif c_type == "document" and f_id:
+                await bot.send_document(chat_id=user.telegram_id, document=f_id, caption=cap)
+            elif c_type == "audio" and f_id:
+                await bot.send_audio(chat_id=user.telegram_id, audio=f_id, caption=cap)
+            elif c_type == "voice" and f_id:
+                await bot.send_voice(chat_id=user.telegram_id, voice=f_id, caption=cap)
+            elif c_type == "video_note" and f_id:
+                await bot.send_video_note(chat_id=user.telegram_id, video_note=f_id)
             else:
-                await bot.send_message(
-                    chat_id=user.telegram_id,
-                    text=data.get("content", ""),
-                )
+                await bot.send_message(chat_id=user.telegram_id, text=cap)
             sent += 1
         except Exception:
             failed += 1

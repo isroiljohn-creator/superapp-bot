@@ -4,6 +4,9 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Send, Image, Plus, ChevronDown, ChevronUp } from "lucide-react";
+import { useMutation } from "@tanstack/react-query";
+import { fetchApi } from "@/lib/api";
+import { useToast } from "@/hooks/use-toast";
 
 const audiences = [
   { label: "Barcha foydalanuvchilar", count: 12847 },
@@ -22,6 +25,35 @@ export default function Broadcast() {
   const [selectedAudience, setSelectedAudience] = useState(0);
   const [message, setMessage] = useState("");
   const [expandedBroadcast, setExpandedBroadcast] = useState<number | null>(null);
+  const { toast } = useToast();
+
+  const sendBroadcast = useMutation({
+    mutationFn: async (payload: { audience: number; message: string; }) => {
+      return fetchApi("/api/admin/broadcast", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Xabar yuborildi!",
+        description: data.message || "Xabarlarni tarqatish navbatga qo'yildi.",
+      });
+      setMessage(""); // Clear message
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Xatolik",
+        description: error.message || "Xabarni yuborishda xatolik yuz berdi.",
+        variant: "destructive",
+      });
+    }
+  });
+
+  const handleSend = () => {
+    if (!message.trim()) return;
+    sendBroadcast.mutate({ audience: selectedAudience, message: message.trim() });
+  };
 
   return (
     <div className="space-y-4">
@@ -41,8 +73,8 @@ export default function Broadcast() {
                   key={a.label}
                   onClick={() => setSelectedAudience(i)}
                   className={`px-2.5 py-1 text-[11px] font-medium rounded-md transition-colors ${selectedAudience === i
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-secondary text-secondary-foreground"
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-secondary text-secondary-foreground"
                     }`}
                 >
                   {a.label} ({a.count.toLocaleString()})
@@ -73,9 +105,14 @@ export default function Broadcast() {
                 Tugma
               </Button>
             </div>
-            <Button size="sm" className="h-8 text-xs gap-1" disabled={!message.trim()}>
+            <Button
+              size="sm"
+              className="h-8 text-xs gap-1"
+              disabled={!message.trim() || sendBroadcast.isPending}
+              onClick={handleSend}
+            >
               <Send className="h-3.5 w-3.5" />
-              Yuborish
+              {sendBroadcast.isPending ? "Yuborilmoqda..." : "Yuborish"}
             </Button>
           </div>
         </CardContent>

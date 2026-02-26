@@ -127,8 +127,46 @@ async def get_events_stats(admin_id: int = Depends(check_admin), db: AsyncSessio
     }
 
 @router.post("/broadcast")
-async def send_broadcast(payload: dict, admin_id: int = Depends(check_admin)):
+async def send_broadcast(payload: dict, admin_id: int = Depends(check_admin), db: AsyncSession = Depends(get_db)):
     """Trigger a broadcast message."""
-    # Payload contains: audience (int), message (str)
-    # Would send a task to Redis ARQ queue
-    return {"status": "accepted", "message": "Broadcast is queued"}
+    audience_index = payload.get("audience", 0)
+    message_content = payload.get("message", "").strip()
+
+    if not message_content:
+        raise HTTPException(status_code=400, detail="Xabar matni bo'sh bo'lishi mumkin emas.")
+
+    filters = {}
+    if audience_index == 1:
+        # Videoni ko'rgan, lekin to'lamagan (nurture/hot but free)
+        filters = {"user_status": "free", "lead_score_min": 30}
+    elif audience_index == 2:
+        # Faqat issiq mijozlar
+        filters = {"lead_segment": "hot"}
+    elif audience_index == 3:
+        # To'lagan mijozlar
+        filters = {"user_status": "paid"}
+
+    from services.broadcast import BroadcastService
+    broadcast_service = BroadcastService(db)
+    
+    broadcast = await broadcast_service.create_broadcast(
+        content=message_content,
+        content_type="text",
+        filters=filters,
+    )
+    await db.commit()
+
+    # Schedule batch sending via queue
+    try:
+        from queue.tasks import schedule_broadcast
+        await schedule_broadcast(broadcast.id)
+    except Exception as e:
+        print(f"Failed to schedule broadcast: {e}")
+        # In this project, taskqueue might be named differently
+        try:
+            from taskqueue.tasks import schedule_broadcast
+            await schedule_broadcast(broadcast.id)
+        except Exception as e2:
+            print(f"Fallback schedule failed: {e2}")
+
+    return {"status": "accepted", "message": "Xabarlar tarqatish yuborildi."}

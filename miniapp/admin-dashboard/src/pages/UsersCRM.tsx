@@ -18,38 +18,8 @@ interface MockUser {
   events: { action: string; time: string }[];
 }
 
-const mockUsers: MockUser[] = [
-  {
-    id: 4821, name: "Jasur Karimov", phone: "+998901234567", score: "hot", status: "paid", source: "Instagram", events: [
-      { action: "/start", time: "Jan 15, 10:00" }, { action: "Registered", time: "Jan 15, 10:02" },
-      { action: "VSL Watched", time: "Jan 15, 10:30" }, { action: "Payment: 97,000 UZS", time: "Jan 15, 11:00" },
-    ]
-  },
-  {
-    id: 3192, name: "Dilnoza Rahimova", phone: "+998937654321", score: "nurture", status: "free", source: "Telegram", events: [
-      { action: "/start", time: "Jan 14, 08:00" }, { action: "Registered", time: "Jan 14, 08:05" },
-      { action: "Lead Magnet Opened", time: "Jan 14, 09:00" },
-    ]
-  },
-  {
-    id: 7655, name: "Sardor Tursunov", phone: "+998951112233", score: "cold", status: "dropped", source: "Referral", events: [
-      { action: "/start", time: "Jan 13, 14:00" },
-    ]
-  },
-  {
-    id: 1028, name: "Madina Yusupova", phone: "+998994445566", score: "hot", status: "paid", source: "Campaign X", events: [
-      { action: "/start", time: "Jan 12, 09:00" }, { action: "Registered", time: "Jan 12, 09:03" },
-      { action: "VSL Watched", time: "Jan 12, 10:00" }, { action: "Checkout Opened", time: "Jan 12, 10:30" },
-      { action: "Payment: 197,000 UZS", time: "Jan 12, 11:00" },
-    ]
-  },
-  {
-    id: 9401, name: "Bobur Aliyev", phone: "+998907778899", score: "nurture", status: "free", source: "Instagram", events: [
-      { action: "/start", time: "Jan 11, 16:00" }, { action: "Registered", time: "Jan 11, 16:05" },
-      { action: "Segmented", time: "Jan 11, 16:10" },
-    ]
-  },
-];
+import { useQuery } from "@tanstack/react-query";
+import { fetchApi } from "@/lib/api";
 
 const scoreColors: Record<LeadScore, string> = {
   hot: "bg-destructive/10 text-destructive",
@@ -68,7 +38,14 @@ export default function UsersCRM() {
   const [filterScore, setFilterScore] = useState<LeadScore | "all">("all");
   const [selectedUser, setSelectedUser] = useState<MockUser | null>(null);
 
-  const filtered = mockUsers.filter((u) => {
+  const { data: usersData, isLoading } = useQuery<MockUser[]>({
+    queryKey: ["admin_users"],
+    queryFn: () => fetchApi("/api/admin/users"),
+  });
+
+  const users = usersData || [];
+
+  const filtered = users.filter((u) => {
     const matchSearch = u.name.toLowerCase().includes(search.toLowerCase()) || u.id.toString().includes(search);
     const matchScore = filterScore === "all" || u.score === filterScore;
     return matchSearch && matchScore;
@@ -106,30 +83,36 @@ export default function UsersCRM() {
 
       {/* User List */}
       <div className="space-y-2">
-        {filtered.map((user) => (
-          <Card
-            key={user.id}
-            className="glass-card border-border/30 cursor-pointer hover:border-primary/30 transition-colors"
-            onClick={() => setSelectedUser(user)}
-          >
-            <CardContent className="p-3">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-semibold">{user.name}</p>
-                  <p className="text-[10px] text-muted-foreground">#{user.id} · {user.source}</p>
+        {isLoading ? (
+          <div className="text-xs text-muted-foreground text-center p-4">Yuklanmoqda...</div>
+        ) : filtered.length === 0 ? (
+          <div className="text-xs text-muted-foreground text-center p-4">Foydalanuvchilar topilmadi</div>
+        ) : (
+          filtered.map((user) => (
+            <Card
+              key={user.id}
+              className="glass-card border-border/30 cursor-pointer hover:border-primary/30 transition-colors"
+              onClick={() => setSelectedUser(user)}
+            >
+              <CardContent className="p-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-semibold">{user.name}</p>
+                    <p className="text-[10px] text-muted-foreground">#{user.id} · {user.source}</p>
+                  </div>
+                  <div className="flex gap-1.5">
+                    <Badge variant="secondary" className={`text-[10px] px-1.5 py-0 ${scoreColors[user.score]}`}>
+                      {user.score === "hot" ? "issiq" : user.score === "nurture" ? "iliq" : "sovuq"}
+                    </Badge>
+                    <Badge variant="secondary" className={`text-[10px] px-1.5 py-0 ${statusColors[user.status]}`}>
+                      {user.status === "paid" ? "to'lagan" : user.status === "free" ? "bepul" : "tark etgan"}
+                    </Badge>
+                  </div>
                 </div>
-                <div className="flex gap-1.5">
-                  <Badge variant="secondary" className={`text-[10px] px-1.5 py-0 ${scoreColors[user.score]}`}>
-                    {user.score === "hot" ? "issiq" : user.score === "nurture" ? "iliq" : "sovuq"}
-                  </Badge>
-                  <Badge variant="secondary" className={`text-[10px] px-1.5 py-0 ${statusColors[user.status]}`}>
-                    {user.status === "paid" ? "to'lagan" : user.status === "free" ? "bepul" : "tark etgan"}
-                  </Badge>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+              </CardContent>
+            </Card>
+          ))
+        )}
       </div>
 
       {/* User Profile Modal */}

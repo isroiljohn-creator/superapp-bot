@@ -98,6 +98,29 @@ async def broadcast_task(ctx, broadcast_id: int):
                         video=broadcast.file_id,
                         caption=broadcast.content,
                     )
+                elif broadcast.content_type == "document" and broadcast.file_id:
+                    await bot.send_document(
+                        chat_id=user.telegram_id,
+                        document=broadcast.file_id,
+                        caption=broadcast.content,
+                    )
+                elif broadcast.content_type == "audio" and broadcast.file_id:
+                    await bot.send_audio(
+                        chat_id=user.telegram_id,
+                        audio=broadcast.file_id,
+                        caption=broadcast.content,
+                    )
+                elif broadcast.content_type == "voice" and broadcast.file_id:
+                    await bot.send_voice(
+                        chat_id=user.telegram_id,
+                        voice=broadcast.file_id,
+                        caption=broadcast.content,
+                    )
+                elif broadcast.content_type == "video_note" and broadcast.file_id:
+                    await bot.send_video_note(
+                        chat_id=user.telegram_id,
+                        video_note=broadcast.file_id,
+                    )
                 else:
                     await bot.send_message(
                         chat_id=user.telegram_id,

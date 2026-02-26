@@ -6,11 +6,11 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from "recharts";
 
-const kpis = [
-  { label: "Jami foydalanuvchilar", value: "12,847", change: "+12.5%", up: true, icon: Users },
-  { label: "Yopiq Klub", value: "1,234", change: "+8.3%", up: true, icon: CreditCard },
-  { label: "Tushum", value: "124.5M so'm", change: "+22.1%", up: true, icon: DollarSign },
-  { label: "Konversiya", value: "9.6%", change: "-1.2%", up: false, icon: Percent },
+const defaultKpis = [
+  { label: "Jami foydalanuvchilar", id: "totalUsers", value: 0, change: "+0%", up: true, icon: Users },
+  { label: "Yopiq Klub", id: "activeSubs", value: 0, change: "+0%", up: true, icon: CreditCard },
+  { label: "Tushum", id: "totalRevenue", value: "0 so'm", change: "+0%", up: true, icon: DollarSign },
+  { label: "Konversiya", id: "conversion", value: "0%", change: "0%", up: true, icon: Percent },
 ];
 
 const revenueData7d = [
@@ -41,9 +41,27 @@ const typeColors: Record<string, string> = {
   "kiritish": "bg-accent text-accent-foreground",
 };
 
+import { useQuery } from "@tanstack/react-query";
+import { fetchApi } from "@/lib/api";
+
 export default function DashboardHome() {
   const [range, setRange] = useState<"7d" | "30d">("7d");
-  const data = range === "7d" ? revenueData7d : revenueData30d;
+
+  const { data: statsData, isLoading } = useQuery({
+    queryKey: ["admin_stats"],
+    queryFn: () => fetchApi("/api/admin/stats")
+  });
+
+  const kpis = statsData?.kpis ? [
+    { label: "Jami foydalanuvchilar", value: statsData.kpis.totalUsers.toLocaleString(), change: "+12.5%", up: true, icon: Users },
+    { label: "Yopiq Klub", value: statsData.kpis.activeSubs.toLocaleString(), change: "+8.3%", up: true, icon: CreditCard },
+    { label: "Tushum", value: `${(statsData.kpis.totalRevenue / 1000000).toFixed(1)}M so'm`, change: "+22.1%", up: true, icon: DollarSign },
+    { label: "Konversiya", value: `${statsData.kpis.conversion}%`, change: "-1.2%", up: false, icon: Percent },
+  ] : defaultKpis;
+
+  const data = statsData?.revenueChart7d || (range === "7d" ? revenueData7d : revenueData30d);
+  const displayActivities = statsData?.recentActivity?.length ? statsData.recentActivity : activities;
+
 
   return (
     <div className="space-y-4">
@@ -110,19 +128,26 @@ export default function DashboardHome() {
       <Card className="glass-card border-border/30">
         <CardContent className="p-3">
           <h3 className="text-sm font-semibold mb-3">So'nggi faollik</h3>
-          <div className="space-y-2.5">
-            {activities.map((a) => (
-              <div key={a.id} className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Badge variant="secondary" className={`text-[10px] px-1.5 py-0.5 ${typeColors[a.type]}`}>
-                    {a.type}
-                  </Badge>
-                  <span className="text-xs">{a.text}</span>
+          {isLoading ? (
+            <div className="text-xs text-muted-foreground p-4 text-center">Yuklanmoqda...</div>
+          ) : (
+            <div className="space-y-2.5">
+              {displayActivities.map((a: any) => (
+                <div key={a.id} className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Badge variant="secondary" className={`text-[10px] px-1.5 py-0.5 ${typeColors[a.type] || "bg-secondary text-secondary-foreground"}`}>
+                      {a.type}
+                    </Badge>
+                    <span className="text-xs">{a.text}</span>
+                  </div>
+                  <span className="text-[10px] text-muted-foreground whitespace-nowrap ml-2">{a.time}</span>
                 </div>
-                <span className="text-[10px] text-muted-foreground whitespace-nowrap ml-2">{a.time}</span>
-              </div>
-            ))}
-          </div>
+              ))}
+              {displayActivities.length === 0 && (
+                <div className="text-xs text-muted-foreground text-center py-2">Hozircha faollik yo'q</div>
+              )}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
