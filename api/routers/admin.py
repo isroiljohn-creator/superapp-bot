@@ -17,6 +17,7 @@ async def get_db():
 
 def check_admin(user_data: dict = Depends(validate_init_data)):
     """Check if the requesting Telegram user is an admin."""
+    # validate_init_data now returns the Telegram user dict directly {"id": ..., "first_name": ...}
     user_id = user_data["id"]
     admin_ids = [int(i.strip()) for i in settings.ADMIN_IDS_STR.split(",") if i.strip()]
     if user_id not in admin_ids:
@@ -306,3 +307,68 @@ def _format_time(dt: datetime) -> str:
         return f"{int(diff.total_seconds() // 3600)} soat oldin"
     else:
         return dt.strftime("%d.%m.%Y")
+
+
+@router.get("/audience-counts")
+async def get_audience_counts(admin_id: int = Depends(check_admin), db: AsyncSession = Depends(get_db)):
+    """Return real audience segment counts for the Broadcast composer."""
+    all_q = await db.execute(select(func.count(User.id)))
+    all_users = all_q.scalar() or 0
+
+    # Video watched but not paid: lead_score >= 30 and no active subscription
+    # Use subquery: users not in subscriptions with status='active'
+    from sqlalchemy import not_, exists
+    active_sub_ids = select(Subscription.user_id).where(Subscription.status == "active").scalar_subquery()
+    video_not_paid_q = await db.execute(
+        select(func.count(User.id)).where(
+            User.lead_score >= 30,
+            User.id.not_in(active_sub_ids)
+        )
+    )
+    video_not_paid = video_not_paid_q.scalar() or 0
+
+    # Hot segment
+    hot_q = await db.execute(select(func.count(User.id)).where(User.lead_segment == "hot"))
+    hot = hot_q.scalar() or 0
+
+    # Paid (active subscription)
+    paid_q = await db.execute(
+        select(func.count(func.distinct(Subscription.user_id))).where(Subscription.status == "active")
+    )
+    paid = paid_q.scalar() or 0
+
+    return {
+        "all": all_users,
+        "video_not_paid": video_not_paid,
+        "hot": hot,
+        "paid": paid,
+    }
+
+
+@router.get("/broadcasts")
+async def get_broadcasts_history(admin_id: int = Depends(check_admin), db: AsyncSession = Depends(get_db)):
+    """Return list of past broadcast messages."""
+    from db.models import BroadcastMessage
+    result = await db.execute(
+        select(BroadcastMessage).order_by(BroadcastMessage.created_at.desc()).limit(20)
+    )
+    broadcasts = result.scalars().all()
+
+    status_labels = {
+        "draft": "Tayyorlanmoqda",
+        "sending": "Yuborilmoqda",
+        "completed": "Tugadi",
+        "cancelled": "Bekor qilindi",
+    }
+
+    return [
+        {
+            "id": b.id,
+            "title": b.content[:40] + ("..." if len(b.content) > 40 else ""),
+            "sent": b.sent_count,
+            "delivered": b.sent_count - b.failed_count,
+            "status": status_labels.get(b.status, b.status),
+            "date": _format_time(b.created_at),
+        }
+        for b in broadcasts
+    ]
