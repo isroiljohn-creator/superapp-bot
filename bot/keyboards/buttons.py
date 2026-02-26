@@ -17,8 +17,8 @@ def main_menu_keyboard() -> ReplyKeyboardMarkup:
     return ReplyKeyboardMarkup(
         keyboard=[
             [KeyboardButton(text=uz.MENU_BTN_CLUB), KeyboardButton(text=uz.MENU_BTN_COURSE)],
-            [KeyboardButton(text=uz.MENU_BTN_LESSONS), KeyboardButton(text=uz.MENU_BTN_GUIDES)],
-            [KeyboardButton(text=uz.MENU_BTN_HELP), KeyboardButton(text=uz.MENU_BTN_SETTINGS)],
+            [KeyboardButton(text=uz.MENU_BTN_LESSONS), KeyboardButton(text=uz.MENU_BTN_REFERRAL)],
+            [KeyboardButton(text=uz.MENU_BTN_GUIDES), KeyboardButton(text=uz.MENU_BTN_HELP)],
         ],
         resize_keyboard=True,
     )

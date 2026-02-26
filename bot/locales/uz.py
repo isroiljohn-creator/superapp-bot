@@ -228,26 +228,24 @@ COURSE_ALL_COMPLETE = "🎉 Tabriklaymiz! Barcha modullarni tugatdingiz."
 MENU_BTN_CLUB = "🔐 Yopiq klub"
 MENU_BTN_COURSE = "📚 Nuvi kursi"
 MENU_BTN_LESSONS = "🎓 Darslar"
+MENU_BTN_REFERRAL = "🔗 Referal"
 MENU_BTN_GUIDES = "📖 Qo'llanmalar"
-MENU_BTN_HELP = "❓ Yordam"
-MENU_BTN_SETTINGS = "⚙️ Sozlama"
+MENU_BTN_HELP = "ℹ️ Yordam"
 
 MENU_TEXT = (
     "🏠 <b>Asosiy menyu</b>\n\n"
     "Kerakli bo'limni tanlang 👇"
 )
 
-SETTINGS_TEXT = (
-    "⚙️ <b>Sozlamalar</b>\n\n"
-    "Profilingizni o'zgartirish uchun /start buyrug'ini yuborng.\n"
-    "Yordam: /help"
-)
-
 CLUB_TEXT = (
     "🔐 <b>Yopiq klub</b>\n\n"
-    "Klubga a'zo bo'lish uchun obuna bo'ling!\n"
+    "AI va marketing bo'yicha ekskluziv hamjamiyat!\n\n"
+    "✅ Shaxsiy mentor yordami\n"
+    "✅ Haftalik live darslar\n"
+    "✅ Tayyor shablonlar va promptlar\n"
+    "✅ Ekskluziv hamjamiyat\n\n"
     "💰 Narxi: {price} so'm/oy\n\n"
-    "Tugmani bosing 👇"
+    "Tanishtiruv videoni ko'ring va obuna bo'ling 👇"
 )
 
 COURSE_TEXT = (
@@ -258,14 +256,41 @@ COURSE_TEXT = (
 )
 
 LESSONS_TEXT = (
-    "🎓 <b>Darslar</b>\n\n"
-    "Mavjud darslarni ko'rish uchun kursga obuna bo'ling."
+    "🎓 <b>Bepul darslar</b>\n\n"
+    "Quyidagi darslarni bepul ko'rishingiz mumkin:\n\n"
+)
+
+LESSON_ITEM = "📹 <b>{title}</b>\n{description}\n"
+
+NO_LESSONS_TEXT = (
+    "🎓 <b>Bepul darslar</b>\n\n"
+    "Hozircha bepul darslar mavjud emas.\n"
+    "Tez orada qo'shiladi! 🔔"
 )
 
 GUIDES_TEXT = (
     "📖 <b>Qo'llanmalar</b>\n\n"
     "AI bilan ishlash bo'yicha qo'llanmalar tez orada qo'shiladi!\n"
     "Kuzatib boring 🔔"
+)
+
+HELP_MENU_TEXT = (
+    "ℹ️ <b>Yordam</b>\n\n"
+    "/start — Botni qayta ishga tushirish\n"
+    "/profile — Profilim\n"
+    "/referral — Taklif havolam\n"
+    "/menu — Asosiy menyu\n\n"
+    "Muammo bo'lsa @nuviagency ga yozing."
+)
+
+REFERRAL_MENU_TEXT = (
+    "🔗 <b>Referal dastur</b>\n\n"
+    "Do'stlaringizni taklif qiling va har bir obunachi uchun "
+    "<b>20,000 so'm</b> mukofot oling!\n\n"
+    "Sizning havolangiz:\n"
+    "<code>{link}</code>\n\n"
+    "📊 Jami takliflar: {count}\n"
+    "💰 Balans: {balance} so'm"
 )
 
 # ──────────────────────────────────────────────
