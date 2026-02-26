@@ -101,10 +101,6 @@ class Referral(Base):
     validated_at = Column(DateTime, nullable=True)
     paid_at = Column(DateTime, nullable=True)
 
-    __table_args__ = (
-        Index("ix_referrals_referer_id", "referer_id"),
-    )
-
 
 class ReferralBalance(Base):
     __tablename__ = "referral_balances"
