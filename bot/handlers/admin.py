@@ -3,7 +3,7 @@ import json
 from aiogram import Router, F
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
-from aiogram.types import CallbackQuery, Message, InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.types import CallbackQuery, Message, InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo
 
 from bot.config import settings
 from bot.fsm.states import BroadcastFSM
@@ -26,6 +26,7 @@ def admin_menu_keyboard() -> InlineKeyboardMarkup:
     """Inline keyboard for the admin dashboard."""
     return InlineKeyboardMarkup(
         inline_keyboard=[
+            [InlineKeyboardButton(text="📱 Admin Dashboard (Web)", web_app=WebAppInfo(url=f"{settings.BASE_URL}/admin/"))],
             [InlineKeyboardButton(text="📊 Statistika", callback_data="admin_action:stats")],
             [InlineKeyboardButton(text="📤 Xabar yuborish (Broadcast)", callback_data="admin_action:broadcast")],
             [InlineKeyboardButton(text="⚙️ Taklif sozlamalari", callback_data="admin_action:settings")],

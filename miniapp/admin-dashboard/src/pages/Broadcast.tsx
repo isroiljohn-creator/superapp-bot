@@ -1,0 +1,133 @@
+import { useState } from "react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Send, Image, Plus, ChevronDown, ChevronUp } from "lucide-react";
+
+const audiences = [
+  { label: "Barcha foydalanuvchilar", count: 12847 },
+  { label: "Videoni ko'rgan, lekin to'lamagan", count: 1295 },
+  { label: "Faqat issiq mijozlar", count: 847 },
+  { label: "To'lagan mijozlar", count: 1234 },
+];
+
+const pastBroadcasts = [
+  { id: 1, title: "Yangi kurs e'loni", sent: 8420, delivered: 8100, ctr: "12.5%", date: "20 Yan" },
+  { id: 2, title: "Chegirma - 50%", sent: 4200, delivered: 4050, ctr: "24.3%", date: "15 Yan" },
+  { id: 3, title: "Bepul vebinarga taklif", sent: 12000, delivered: 11500, ctr: "8.7%", date: "10 Yan" },
+];
+
+export default function Broadcast() {
+  const [selectedAudience, setSelectedAudience] = useState(0);
+  const [message, setMessage] = useState("");
+  const [expandedBroadcast, setExpandedBroadcast] = useState<number | null>(null);
+
+  return (
+    <div className="space-y-4">
+      <h2 className="text-base font-bold">Xabarlar yuborish</h2>
+
+      {/* Composer */}
+      <Card className="glass-card border-border/30">
+        <CardContent className="p-3 space-y-3">
+          <h3 className="text-sm font-semibold">Yangi xabar</h3>
+
+          {/* Audience */}
+          <div>
+            <p className="text-[11px] text-muted-foreground mb-1.5">Auditoriya</p>
+            <div className="flex flex-wrap gap-1.5">
+              {audiences.map((a, i) => (
+                <button
+                  key={a.label}
+                  onClick={() => setSelectedAudience(i)}
+                  className={`px-2.5 py-1 text-[11px] font-medium rounded-md transition-colors ${selectedAudience === i
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-secondary text-secondary-foreground"
+                    }`}
+                >
+                  {a.label} ({a.count.toLocaleString()})
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Message */}
+          <div>
+            <textarea
+              placeholder="Xabaringizni yozing..."
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              className="w-full h-24 text-xs bg-secondary border border-border/30 rounded-lg p-2.5 resize-none focus:outline-none focus:ring-1 focus:ring-primary"
+            />
+          </div>
+
+          {/* Actions */}
+          <div className="flex items-center justify-between mt-2 pt-2 border-t border-border/30">
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" className="h-8 text-xs gap-1">
+                <Image className="h-3.5 w-3.5" />
+                Media
+              </Button>
+              <Button variant="outline" size="sm" className="h-8 text-xs gap-1">
+                <Plus className="h-3.5 w-3.5" />
+                Tugma
+              </Button>
+            </div>
+            <Button size="sm" className="h-8 text-xs gap-1" disabled={!message.trim()}>
+              <Send className="h-3.5 w-3.5" />
+              Yuborish
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Past Broadcasts */}
+      <Card className="glass-card border-border/30">
+        <CardContent className="p-3">
+          <h3 className="text-sm font-semibold mb-3">Avvalgi xabarlar</h3>
+          <div className="space-y-2">
+            {pastBroadcasts.map((b) => (
+              <div key={b.id} className="border border-border/30 rounded-lg p-2.5">
+                <button
+                  className="w-full flex items-center justify-between"
+                  onClick={() => setExpandedBroadcast(expandedBroadcast === b.id ? null : b.id)}
+                >
+                  <div className="text-left">
+                    <p className="text-xs font-medium">{b.title}</p>
+                    <p className="text-[10px] text-muted-foreground">{b.date}</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="secondary" className="text-[10px] bg-primary/10 text-primary">
+                      CTR {b.ctr}
+                    </Badge>
+                    {expandedBroadcast === b.id ? (
+                      <ChevronUp className="h-3.5 w-3.5 text-muted-foreground" />
+                    ) : (
+                      <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+                    )}
+                  </div>
+                </button>
+                {expandedBroadcast === b.id && (
+                  <div className="mt-2 pt-2 border-t border-border/30 grid grid-cols-3 gap-2">
+                    <div className="text-center">
+                      <p className="text-sm font-bold">{b.sent.toLocaleString()}</p>
+                      <p className="text-[10px] text-muted-foreground">Yuborildi</p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-sm font-bold">{b.delivered.toLocaleString()}</p>
+                      <p className="text-[10px] text-muted-foreground">Yetkazildi</p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-sm font-bold text-primary">{b.ctr}</p>
+                      <p className="text-[10px] text-muted-foreground">Bosildi (CTR)</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
