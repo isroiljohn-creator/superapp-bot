@@ -3,7 +3,7 @@ import json
 from aiogram import Router, F
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
-from aiogram.types import CallbackQuery, Message
+from aiogram.types import CallbackQuery, Message, InlineKeyboardMarkup, InlineKeyboardButton
 
 from bot.config import settings
 from bot.fsm.states import BroadcastFSM
@@ -21,10 +21,58 @@ def is_admin(user_id: int) -> bool:
     return user_id in settings.ADMIN_IDS
 
 
+# ── Admin Menu Dashboard ─────────────────
+def admin_menu_keyboard() -> InlineKeyboardMarkup:
+    """Inline keyboard for the admin dashboard."""
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="📊 Statistika", callback_data="admin_action:stats")],
+            [InlineKeyboardButton(text="📤 Xabar yuborish (Broadcast)", callback_data="admin_action:broadcast")],
+            [InlineKeyboardButton(text="⚙️ Taklif sozlamalari", callback_data="admin_action:settings")],
+        ]
+    )
+
+
+@router.message(Command("admin"))
+@router.message(F.text == uz.MENU_BTN_ADMIN)
+async def show_admin_dashboard(message: Message):
+    """Show the admin dashboard with inline buttons."""
+    if not is_admin(message.from_user.id):
+        await message.answer(uz.ADMIN_ONLY)
+        return
+
+    await message.answer(
+        uz.ADMIN_PANEL_TEXT,
+        parse_mode="HTML",
+        reply_markup=admin_menu_keyboard(),
+    )
+
+
+@router.callback_query(F.data.startswith("admin_action:"))
+async def process_admin_action(callback: CallbackQuery, state: FSMContext):
+    """Handle admin inline button clicks."""
+    if not is_admin(callback.from_user.id):
+        await callback.answer(uz.ADMIN_ONLY, show_alert=True)
+        return
+
+    action = callback.data.split(":")[1]
+
+    if action == "stats":
+        await callback.answer("Statistikalar yuklanmoqda...")
+        await cmd_stats(callback.message, user_id_override=callback.from_user.id)
+    elif action == "broadcast":
+        await callback.answer()
+        await cmd_broadcast(callback.message, state, user_id_override=callback.from_user.id)
+    elif action == "settings":
+        await callback.answer()
+        await cmd_referral_settings(callback.message, user_id_override=callback.from_user.id)
+
+
 # ── /stats — Analytics dashboard ─────────
 @router.message(Command("stats"))
-async def cmd_stats(message: Message):
-    if not is_admin(message.from_user.id):
+async def cmd_stats(message: Message, user_id_override: int = None):
+    user_id = user_id_override or message.from_user.id
+    if not is_admin(user_id):
         await message.answer(uz.ADMIN_ONLY)
         return
 
@@ -96,8 +144,9 @@ async def cmd_stats(message: Message):
 
 # ── /broadcast — Mass messaging ──────────
 @router.message(Command("broadcast"))
-async def cmd_broadcast(message: Message, state: FSMContext):
-    if not is_admin(message.from_user.id):
+async def cmd_broadcast(message: Message, state: FSMContext, user_id_override: int = None):
+    user_id = user_id_override or message.from_user.id
+    if not is_admin(user_id):
         await message.answer(uz.ADMIN_ONLY)
         return
 
@@ -249,8 +298,9 @@ async def _direct_broadcast(bot, users, data):
 
 # ── /referral_settings — Admin config ────
 @router.message(Command("referral_settings"))
-async def cmd_referral_settings(message: Message):
-    if not is_admin(message.from_user.id):
+async def cmd_referral_settings(message: Message, user_id_override: int = None):
+    user_id = user_id_override or message.from_user.id
+    if not is_admin(user_id):
         await message.answer(uz.ADMIN_ONLY)
         return
 

@@ -153,7 +153,7 @@ class ReferralService:
             select(AdminSetting).where(AdminSetting.key == "reward_amount")
         )
         setting = result.scalar_one_or_none()
-        return int(setting.value) if setting else 10_000  # default 10,000 UZS
+        return int(setting.value) if setting else 500  # default 500 UZS
 
     # ── Stats ────────────────────────────────
     async def get_stats(self, telegram_id: int) -> dict:

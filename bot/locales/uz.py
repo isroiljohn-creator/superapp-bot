@@ -203,6 +203,11 @@ REMINDER_72H = (
 # ──────────────────────────────────────────────
 ADMIN_ONLY = "⛔ Bu buyruq faqat adminlar uchun."
 
+ADMIN_PANEL_TEXT = (
+    "👨‍💻 <b>Admin Panel</b>\n\n"
+    "Quyidagi boshqaruv menyusidan kerakli bo'limni tanlang 👇"
+)
+
 BROADCAST_STARTED = "📤 Xabar yuborish boshlandi: {count} ta foydalanuvchiga"
 BROADCAST_COMPLETE = "✅ Xabar yuborildi: {sent}/{total}"
 
@@ -231,6 +236,7 @@ MENU_BTN_LESSONS = "🎓 Darslar"
 MENU_BTN_REFERRAL = "🔗 Referal"
 MENU_BTN_GUIDES = "📖 Qo'llanmalar"
 MENU_BTN_HELP = "ℹ️ Yordam"
+MENU_BTN_ADMIN = "👨‍💻 Admin"
 
 MENU_TEXT = (
     "🏠 <b>Asosiy menyu</b>\n\n"
