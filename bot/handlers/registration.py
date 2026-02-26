@@ -51,17 +51,23 @@ async def cmd_start(message: Message, state: FSMContext):
         )
 
         if not is_new and user.user_status == "registered":
+            # Fetch balance for the profile
+            ref_service = ReferralService(session)
+            stats = await ref_service.get_stats(user.id)
+            balance = stats.get("balance", 0)
+            referrals = stats.get("total_referrals", 0)
+
             # Already registered
             await message.answer(
                 uz.PROFILE_TEXT.format(
                     name=user.name or "—",
                     age=user.age or "—",
                     phone=user.phone or "—",
-                    goal=user.goal_tag or "—",
-                    level=user.level_tag or "—",
+                    goal=uz.GOAL_NAMES.get(user.goal_tag, user.goal_tag) or "—",
+                    level=uz.LEVEL_NAMES.get(user.level_tag, user.level_tag) or "—",
                     subscription="faol" if False else "yo'q",
-                    score=user.lead_score,
-                    referrals="—",
+                    balance=f"{balance:,}",
+                    referrals=referrals,
                 ),
                 parse_mode="HTML",
                 reply_markup=main_menu_keyboard(),

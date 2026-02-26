@@ -62,16 +62,8 @@ async def cmd_profile(message: Message):
             return
 
         # Map tags to Uzbek labels
-        goal_map = {
-            "make_money": uz.GOAL_MAKE_MONEY,
-            "get_clients": uz.GOAL_GET_CLIENTS,
-            "automate_business": uz.GOAL_AUTOMATE,
-        }
-        level_map = {
-            "beginner": uz.LEVEL_BEGINNER,
-            "freelancer": uz.LEVEL_FREELANCER,
-            "business": uz.LEVEL_BUSINESS,
-        }
+        goal_text = uz.GOAL_NAMES.get(user.goal_tag, user.goal_tag) or "—"
+        level_text = uz.LEVEL_NAMES.get(user.level_tag, user.level_tag) or "—"
 
         from services.subscription import SubscriptionService
         sub_service = SubscriptionService(session)
@@ -79,16 +71,17 @@ async def cmd_profile(message: Message):
 
         ref_service = ReferralService(session)
         stats = await ref_service.get_stats(message.from_user.id)
+        balance = stats.get("balance", 0)
 
     await message.answer(
         uz.PROFILE_TEXT.format(
             name=user.name or "—",
             age=user.age or "—",
             phone=user.phone or "***",
-            goal=goal_map.get(user.goal_tag, "—"),
-            level=level_map.get(user.level_tag, "—"),
-            subscription="✅ Faol" if is_active else "❌ Yo'q",
-            score=user.lead_score,
+            goal=goal_text,
+            level=level_text,
+            subscription="faol" if is_active else "yo'q",
+            balance=f"{balance:,}",
             referrals=stats["total_invited"],
         ),
         parse_mode="HTML",

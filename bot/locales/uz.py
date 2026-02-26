@@ -312,16 +312,29 @@ HELP_TEXT = (
 )
 
 PROFILE_TEXT = (
-    "👤 <b>Profilingiz</b>\n\n"
-    "📛 Ism: {name}\n"
-    "📅 Yosh: {age}\n"
-    "📱 Telefon: {phone}\n"
-    "🎯 Maqsad: {goal}\n"
-    "📊 Daraja: {level}\n"
-    "💎 Obuna: {subscription}\n"
-    "⭐ Ball: {score}\n"
-    "🔗 Takliflar: {referrals}"
+    "👤 <b>Sizning profilingiz</b>\n\n"
+    "- Ismingiz: {name}\n"
+    "- Yoshingiz: {age}\n"
+    "- Telefon raqamingiz: {phone}\n"
+    "- Maqsadingiz: {goal}\n"
+    "- Darajangiz: {level}\n"
+    "- Obunangiz: {subscription}\n"
+    "- Balansingiz: {balance} so'm\n"
+    "Taklif qilgan do'stlaringiz: {referrals}"
 )
+
+# Mappers from DB tags to Uzbek text for Profile
+GOAL_NAMES = {
+    "make_money": "Pul topish",
+    "get_clients": "Mijoz olish",
+    "automate_business": "Biznesni avtomatlashtirish",
+}
+
+LEVEL_NAMES = {
+    "beginner": "Boshlang'ich",
+    "freelancer": "Frilanser",
+    "business": "Biznes egasi",
+}
 
 LEVEL_DESCRIPTIONS = {
     "beginner": "boshlang'ichlar",
