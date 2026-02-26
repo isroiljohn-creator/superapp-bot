@@ -1,8 +1,7 @@
 """FastAPI application — REST API for Mini App."""
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
-from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse, JSONResponse
 import os
 
 from api.routers import user, payment, referral, course, admin
@@ -40,8 +39,7 @@ async def startup():
     from db.database import init_db
     await init_db()
 
-# Provide static files for the React apps
-# We first check if the folder exists to avoid startup errors
+# Override static folder resolution safely
 admin_dist = os.path.join(os.path.dirname(__file__), "static", "admin")
 if os.path.exists(admin_dist):
     app.mount("/admin", StaticFiles(directory=admin_dist, html=True), name="admin_dashboard")
@@ -49,6 +47,8 @@ if os.path.exists(admin_dist):
 # Fallback for React Router (if a user refreshes a subpath)
 @app.exception_handler(404)
 async def custom_404_handler(request, __):
+    # If the user is requesting an admin path, serve the React index file
     if request.url.path.startswith("/admin/") and os.path.exists(os.path.join(admin_dist, "index.html")):
         return FileResponse(os.path.join(admin_dist, "index.html"))
-    return {"detail": "Not Found"}
+    # Otherwise, return a valid JSONResponse (Starlette stringently requires Response objects here)
+    return JSONResponse(status_code=404, content={"detail": "Not Found"})
