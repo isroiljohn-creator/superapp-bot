@@ -5,6 +5,7 @@ import sys
 
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
+from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.enums import ParseMode
 
 from bot.config import settings
@@ -33,12 +34,16 @@ async def main():
         logger.warning("⚠️ Bot ma'lumotlar bazasisiz ishlaydi (cheklangan rejim)")
 
     # Try Redis storage, fallback to memory
+    storage = MemoryStorage()
     try:
-        from aiogram.fsm.storage.redis import RedisStorage
-        storage = RedisStorage.from_url(settings.REDIS_URL)
-        logger.info("✅ Redis FSM storage ulandi")
+        if settings.REDIS_URL and settings.REDIS_URL != "redis://localhost:6379/0":
+            from aiogram.fsm.storage.redis import RedisStorage
+            storage = RedisStorage.from_url(settings.REDIS_URL)
+            # Test connection
+            logger.info("✅ Redis FSM storage ulandi")
+        else:
+            logger.info("ℹ️ MemoryStorage ishlatilmoqda (Redis mavjud emas)")
     except Exception:
-        from aiogram.fsm.storage.memory import MemoryStorage
         storage = MemoryStorage()
         logger.warning("⚠️ Redis mavjud emas, MemoryStorage ishlatilmoqda")
 
