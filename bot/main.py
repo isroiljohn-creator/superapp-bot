@@ -33,19 +33,9 @@ async def main():
         logger.warning(f"⚠️ Ma'lumotlar bazasiga ulanib bo'lmadi: {e}")
         logger.warning("⚠️ Bot ma'lumotlar bazasisiz ishlaydi (cheklangan rejim)")
 
-    # Try Redis storage, fallback to memory
+    # Always use MemoryStorage to prevent 10-second lag from dead Redis connections
     storage = MemoryStorage()
-    try:
-        if settings.REDIS_URL and settings.REDIS_URL != "redis://localhost:6379/0":
-            from aiogram.fsm.storage.redis import RedisStorage
-            storage = RedisStorage.from_url(settings.REDIS_URL)
-            # Test connection
-            logger.info("✅ Redis FSM storage ulandi")
-        else:
-            logger.info("ℹ️ MemoryStorage ishlatilmoqda (Redis mavjud emas)")
-    except Exception:
-        storage = MemoryStorage()
-        logger.warning("⚠️ Redis mavjud emas, MemoryStorage ishlatilmoqda")
+    logger.info("ℹ️ MemoryStorage ishlatilmoqda (Redis o'chirilgan)")
 
     # Bot & Dispatcher
     bot = Bot(
