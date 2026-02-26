@@ -1,0 +1,24 @@
+# Bot
+aiogram==3.13.1
+
+# API
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+
+# Database
+asyncpg==0.30.0
+sqlalchemy[asyncio]==2.0.36
+alembic==1.14.0
+
+# Redis / Queue
+redis==5.2.1
+arq==0.26.1
+
+# Utils
+pydantic>=2.4.1,<2.10
+pydantic-settings>=2.0,<3.0
+python-dotenv==1.0.1
+httpx>=0.25,<1.0
+
+# Payments
+cryptography>=42.0,<45.0
