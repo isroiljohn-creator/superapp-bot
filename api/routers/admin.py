@@ -17,12 +17,26 @@ async def get_db():
 
 def check_admin(user_data: dict = Depends(validate_init_data)):
     """Check if the requesting Telegram user is an admin."""
-    # validate_init_data now returns the Telegram user dict directly {"id": ..., "first_name": ...}
     user_id = user_data["id"]
     admin_ids = [int(i.strip()) for i in settings.ADMIN_IDS_STR.split(",") if i.strip()]
     if user_id not in admin_ids:
         raise HTTPException(status_code=403, detail="Not authorized (Admins only)")
     return user_id
+
+
+@router.get("/debug")
+async def debug_endpoint(db: AsyncSession = Depends(get_db)):
+    """Public debug endpoint — no auth. Shows DB connection and user count."""
+    try:
+        result = await db.execute(select(func.count(User.id)))
+        count = result.scalar() or 0
+        return {
+            "db_ok": True,
+            "total_users_in_db": count,
+            "admin_ids_configured": settings.ADMIN_IDS_STR,
+        }
+    except Exception as e:
+        return {"db_ok": False, "error": str(e)}
 
 
 @router.get("/stats")

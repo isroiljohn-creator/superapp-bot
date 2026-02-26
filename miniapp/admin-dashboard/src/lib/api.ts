@@ -5,8 +5,15 @@ export const API_URL = import.meta.env.VITE_API_URL || "";
  * Helper to get the Telegram WebApp initData securely
  */
 export function getInitData(): string {
-    if (typeof window !== "undefined" && (window as any).Telegram?.WebApp) {
-        return (window as any).Telegram.WebApp.initData || "";
+    try {
+        if (typeof window !== "undefined" && (window as any).Telegram?.WebApp) {
+            const data = (window as any).Telegram.WebApp.initData;
+            if (data && typeof data === "string" && data.length > 0) {
+                return data;
+            }
+        }
+    } catch (e) {
+        console.warn("Failed to get Telegram initData:", e);
     }
     return "";
 }
@@ -23,15 +30,29 @@ export async function fetchApi(endpoint: string, options: RequestInit = {}) {
         headers.set("Authorization", `tma ${initData}`);
     }
 
-    const response = await fetch(`${API_URL}${endpoint}`, {
+    const url = `${API_URL}${endpoint}`;
+    console.log(`[API] ${options.method || "GET"} ${endpoint}`, initData ? "with auth" : "NO AUTH");
+
+    const response = await fetch(url, {
         ...options,
         headers,
     });
 
+    const text = await response.text();
+
     if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.detail || "API xatolik yuz berdi");
+        let errorDetail = `HTTP ${response.status}`;
+        try {
+            const errorData = JSON.parse(text);
+            errorDetail = errorData.detail || errorDetail;
+        } catch { }
+        console.error(`[API] Error ${response.status} on ${endpoint}:`, errorDetail);
+        throw new Error(errorDetail);
     }
 
-    return response.json();
+    try {
+        return JSON.parse(text);
+    } catch {
+        return text;
+    }
 }
