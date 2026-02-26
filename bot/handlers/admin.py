@@ -26,18 +26,8 @@ def is_admin(user_id: int) -> bool:
 def admin_menu_keyboard() -> InlineKeyboardMarkup:
     """Inline keyboard for the admin dashboard."""
     
-    # Fallback for WEBAPP_URL to prevent Telegram API crashes if empty
-    base_url = settings.WEBAPP_URL.strip()
-    if not base_url or not base_url.startswith("https://"):
-        # Railway automatically provides this env var for web services
-        railway_domain = os.getenv("RAILWAY_PUBLIC_DOMAIN")
-        if railway_domain:
-            base_url = f"https://{railway_domain}"
-        else:
-            base_url = "https://example.com"
-            
-    # Ensure no trailing slash before appending /admin/
-    base_url = base_url.rstrip("/")
+    # Explicitly set the base URL to point to the active web service
+    base_url = "https://web-production-0a51f.up.railway.app"
 
     return InlineKeyboardMarkup(
         inline_keyboard=[
