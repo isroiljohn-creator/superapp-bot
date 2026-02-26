@@ -24,6 +24,9 @@ class Settings(BaseSettings):
     PAYME_MERCHANT_ID: str = ""
     PAYME_SECRET_KEY: str = ""
 
+    # Telegram Payments provider token
+    PAYMENT_PROVIDER_TOKEN: str = ""
+
     # Bot settings
     ADMIN_IDS_STR: str = ""
     PRIVATE_GROUP_ID: int = 0

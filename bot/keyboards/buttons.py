@@ -10,6 +10,21 @@ from bot.locales import uz
 
 
 # ──────────────────────────────────────────────
+# Main menu
+# ──────────────────────────────────────────────
+def main_menu_keyboard() -> ReplyKeyboardMarkup:
+    """Main menu with 6 buttons in 3 rows."""
+    return ReplyKeyboardMarkup(
+        keyboard=[
+            [KeyboardButton(text=uz.MENU_BTN_CLUB), KeyboardButton(text=uz.MENU_BTN_COURSE)],
+            [KeyboardButton(text=uz.MENU_BTN_LESSONS), KeyboardButton(text=uz.MENU_BTN_GUIDES)],
+            [KeyboardButton(text=uz.MENU_BTN_HELP), KeyboardButton(text=uz.MENU_BTN_SETTINGS)],
+        ],
+        resize_keyboard=True,
+    )
+
+
+# ──────────────────────────────────────────────
 # Registration
 # ──────────────────────────────────────────────
 def phone_keyboard() -> ReplyKeyboardMarkup:

@@ -6,7 +6,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import Message, ReplyKeyboardRemove
 
 from bot.fsm.states import RegistrationFSM, SegmentationFSM
-from bot.keyboards.buttons import phone_keyboard, goal_keyboard
+from bot.keyboards.buttons import phone_keyboard, goal_keyboard, main_menu_keyboard
 from bot.locales import uz
 from db.database import async_session
 from services.crm import CRMService
@@ -64,6 +64,7 @@ async def cmd_start(message: Message, state: FSMContext):
                     referrals="—",
                 ),
                 parse_mode="HTML",
+                reply_markup=main_menu_keyboard(),
             )
             return
 
@@ -152,7 +153,7 @@ async def process_phone(message: Message, state: FSMContext):
 
     await message.answer(
         uz.REGISTRATION_COMPLETE.format(name=name),
-        reply_markup=ReplyKeyboardRemove(),
+        reply_markup=main_menu_keyboard(),
     )
 
     # Start segmentation

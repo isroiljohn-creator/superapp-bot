@@ -9,7 +9,7 @@ from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.enums import ParseMode
 
 from bot.config import settings
-from bot.handlers import registration, segmentation, lead_magnet, funnel, subscription, referral, admin
+from bot.handlers import registration, segmentation, lead_magnet, funnel, subscription, referral, admin, menu
 
 # Logging
 logging.basicConfig(
@@ -63,6 +63,7 @@ async def main():
         subscription.router,
         referral.router,
         admin.router,
+        menu.router,  # Must be last — catches menu button text
     )
 
     logger.info("✅ Barcha handlerlar ro'yxatdan o'tkazildi")

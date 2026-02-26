@@ -223,6 +223,52 @@ COURSE_MODULE_COMPLETE = "✅ Modul tugatildi! Keyingisiga o'ting 👇"
 COURSE_ALL_COMPLETE = "🎉 Tabriklaymiz! Barcha modullarni tugatdingiz."
 
 # ──────────────────────────────────────────────
+# Main menu
+# ──────────────────────────────────────────────
+MENU_BTN_CLUB = "🔐 Yopiq klub"
+MENU_BTN_COURSE = "📚 Nuvi kursi"
+MENU_BTN_LESSONS = "🎓 Darslar"
+MENU_BTN_GUIDES = "📖 Qo'llanmalar"
+MENU_BTN_HELP = "❓ Yordam"
+MENU_BTN_SETTINGS = "⚙️ Sozlama"
+
+MENU_TEXT = (
+    "🏠 <b>Asosiy menyu</b>\n\n"
+    "Kerakli bo'limni tanlang 👇"
+)
+
+SETTINGS_TEXT = (
+    "⚙️ <b>Sozlamalar</b>\n\n"
+    "Profilingizni o'zgartirish uchun /start buyrug'ini yuborng.\n"
+    "Yordam: /help"
+)
+
+CLUB_TEXT = (
+    "🔐 <b>Yopiq klub</b>\n\n"
+    "Klubga a'zo bo'lish uchun obuna bo'ling!\n"
+    "💰 Narxi: {price} so'm/oy\n\n"
+    "Tugmani bosing 👇"
+)
+
+COURSE_TEXT = (
+    "📚 <b>Nuvi kursi</b>\n\n"
+    "Kursda AI yordamida pul topish, "
+    "mijozlar olish va biznesni avtomatlashtirishni o'rganasiz.\n\n"
+    "Davom etish uchun tanlang 👇"
+)
+
+LESSONS_TEXT = (
+    "🎓 <b>Darslar</b>\n\n"
+    "Mavjud darslarni ko'rish uchun kursga obuna bo'ling."
+)
+
+GUIDES_TEXT = (
+    "📖 <b>Qo'llanmalar</b>\n\n"
+    "AI bilan ishlash bo'yicha qo'llanmalar tez orada qo'shiladi!\n"
+    "Kuzatib boring 🔔"
+)
+
+# ──────────────────────────────────────────────
 # General
 # ──────────────────────────────────────────────
 ERROR_GENERAL = "❌ Xatolik yuz berdi. Iltimos, qayta urinib ko'ring."
