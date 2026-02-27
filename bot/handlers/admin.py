@@ -25,7 +25,14 @@ def is_admin(user_id: int) -> bool:
 # ── Admin Menu Dashboard ─────────────────
 def admin_menu_keyboard() -> InlineKeyboardMarkup:
     """Inline keyboard for the admin dashboard."""
-    base_url = settings.WEBAPP_URL.rstrip("/")
+    # Extract scheme+host only — ignore any path in WEBAPP_URL env var
+    from urllib.parse import urlparse
+    raw = settings.WEBAPP_URL or ""
+    if raw:
+        parsed = urlparse(raw)
+        base_url = f"{parsed.scheme}://{parsed.netloc}"
+    else:
+        base_url = ""
 
     buttons = [
         [InlineKeyboardButton(text="📱 Admin Dashboard (Web)", web_app=WebAppInfo(url=f"{base_url}/admin/"))] if base_url else [],
@@ -33,7 +40,6 @@ def admin_menu_keyboard() -> InlineKeyboardMarkup:
         [InlineKeyboardButton(text="📤 Xabar yuborish (Broadcast)", callback_data="admin_action:broadcast")],
         [InlineKeyboardButton(text="⚙️ Taklif sozlamalari", callback_data="admin_action:settings")],
     ]
-    # Filter out empty rows (when WEBAPP_URL is not set)
     return InlineKeyboardMarkup(inline_keyboard=[row for row in buttons if row])
 
 
