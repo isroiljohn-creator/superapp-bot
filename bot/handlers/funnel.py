@@ -8,7 +8,7 @@ from bot.locales import uz
 from db.database import async_session
 from services.crm import CRMService
 from services.funnel import FunnelService
-from services.analytics import AnalyticsService, EVT_VSL_VIEW, EVT_OFFER_CLICK
+from services.analytics import AnalyticsService, EVT_VSL_VIEW, EVT_OFFER_CLICK, EVT_PAYMENT_OPEN
 from services.lead_scoring import LeadScoringService
 
 router = Router(name="funnel")
@@ -70,13 +70,14 @@ async def handle_learn_more(callback: CallbackQuery):
 
 @router.callback_query(F.data == "funnel:subscribe")
 async def handle_subscribe_click(callback: CallbackQuery):
-    """Track offer click event."""
+    """Track offer click + payment_open event when user taps Subscribe."""
     async with async_session() as session:
         crm = CRMService(session)
         user = await crm.get_user(callback.from_user.id)
         if user:
             analytics = AnalyticsService(session)
             await analytics.track(user_id=user.id, event_type=EVT_OFFER_CLICK)
+            await analytics.track(user_id=user.id, event_type=EVT_PAYMENT_OPEN)
 
             scoring = LeadScoringService(session)
             await scoring.process_event(callback.from_user.id, user.id, EVT_OFFER_CLICK)

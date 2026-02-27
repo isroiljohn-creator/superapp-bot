@@ -25,15 +25,17 @@ def check_admin(user_data: dict = Depends(validate_init_data)):
 
 
 @router.get("/debug")
-async def debug_endpoint(db: AsyncSession = Depends(get_db)):
-    """Public debug endpoint — no auth. Shows DB connection and user count."""
+async def debug_endpoint(admin_id: int = Depends(check_admin), db: AsyncSession = Depends(get_db)):
+    """Protected debug endpoint — admin only. Shows DB connection and environment status."""
     try:
         result = await db.execute(select(func.count(User.id)))
         count = result.scalar() or 0
         return {
             "db_ok": True,
             "total_users_in_db": count,
-            "admin_ids_configured": settings.ADMIN_IDS_STR,
+            "admin_id": admin_id,
+            "payments_enabled": settings.PAYMENTS_ENABLED,
+            "analytics_enabled": settings.ANALYTICS_ENABLED,
         }
     except Exception as e:
         return {"db_ok": False, "error": str(e)}

@@ -25,18 +25,16 @@ def is_admin(user_id: int) -> bool:
 # ── Admin Menu Dashboard ─────────────────
 def admin_menu_keyboard() -> InlineKeyboardMarkup:
     """Inline keyboard for the admin dashboard."""
-    
-    # Explicitly set the base URL to point to the active web service
-    base_url = "https://web-production-0a51f.up.railway.app"
+    base_url = settings.WEBAPP_URL.rstrip("/")
 
-    return InlineKeyboardMarkup(
-        inline_keyboard=[
-            [InlineKeyboardButton(text="📱 Admin Dashboard (Web)", web_app=WebAppInfo(url=f"{base_url}/admin/"))],
-            [InlineKeyboardButton(text="📊 Statistika", callback_data="admin_action:stats")],
-            [InlineKeyboardButton(text="📤 Xabar yuborish (Broadcast)", callback_data="admin_action:broadcast")],
-            [InlineKeyboardButton(text="⚙️ Taklif sozlamalari", callback_data="admin_action:settings")],
-        ]
-    )
+    buttons = [
+        [InlineKeyboardButton(text="📱 Admin Dashboard (Web)", web_app=WebAppInfo(url=f"{base_url}/admin/"))] if base_url else [],
+        [InlineKeyboardButton(text="📊 Statistika", callback_data="admin_action:stats")],
+        [InlineKeyboardButton(text="📤 Xabar yuborish (Broadcast)", callback_data="admin_action:broadcast")],
+        [InlineKeyboardButton(text="⚙️ Taklif sozlamalari", callback_data="admin_action:settings")],
+    ]
+    # Filter out empty rows (when WEBAPP_URL is not set)
+    return InlineKeyboardMarkup(inline_keyboard=[row for row in buttons if row])
 
 
 @router.message(Command("admin"))

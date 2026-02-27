@@ -16,8 +16,7 @@ class SegmentationFSM(StatesGroup):
 
 
 class BroadcastFSM(StatesGroup):
-    """Admin broadcast flow."""
-    waiting_filters = State()
+    """Admin broadcast flow — bot-side compose + confirm."""
     waiting_content = State()
     waiting_confirm = State()
 

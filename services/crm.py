@@ -6,7 +6,7 @@ from typing import Optional
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from db.models import User, ReferralBalance
+from db.models import User, ReferralBalance, Subscription
 
 
 class CRMService:
@@ -132,7 +132,9 @@ class CRMService:
 
     async def get_users_filtered(self, filters: dict, limit: int = 100, offset: int = 0):
         """Get filtered users for broadcast."""
+        from sqlalchemy import exists
         q = select(User)
+
         if filters.get("source"):
             q = q.where(User.source == filters["source"])
         if filters.get("campaign"):
@@ -147,6 +149,15 @@ class CRMService:
             q = q.where(User.user_status == filters["user_status"])
         if filters.get("lead_segment"):
             q = q.where(User.lead_segment == filters["lead_segment"])
+
+        # Paid users — join Subscription table (user_status='paid' does not exist in User model)
+        if filters.get("paid"):
+            active_sub_sq = (
+                select(Subscription.user_id)
+                .where(Subscription.status == "active")
+                .scalar_subquery()
+            )
+            q = q.where(User.id.in_(active_sub_sq))
 
         q = q.limit(limit).offset(offset)
         result = await self.session.execute(q)

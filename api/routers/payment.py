@@ -1,4 +1,5 @@
 """Payment API router — init, Click/Payme webhooks."""
+from datetime import datetime, timezone
 from fastapi import APIRouter, Header, HTTPException, Request
 
 from api.auth import get_telegram_id_from_init_data
@@ -235,7 +236,7 @@ async def payme_webhook(request: Request):
             return {
                 "result": {
                     "transaction": str(payment.id),
-                    "perform_time": int(datetime.utcnow().timestamp() * 1000),
+                    "perform_time": int(datetime.now(timezone.utc).timestamp() * 1000),
                     "state": 2,
                 },
                 "id": rpc_id,
