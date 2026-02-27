@@ -273,7 +273,7 @@ async def get_events_stats(admin_id: int = Depends(check_admin), db: AsyncSessio
 
 @router.post("/broadcast")
 async def send_broadcast(payload: dict, admin_id: int = Depends(check_admin), db: AsyncSession = Depends(get_db)):
-    """Trigger a broadcast message."""
+    """Trigger a broadcast message — sends directly via bot in background."""
     audience_index = payload.get("audience", 0)
     message_content = payload.get("message", "").strip()
 
@@ -289,22 +289,69 @@ async def send_broadcast(payload: dict, admin_id: int = Depends(check_admin), db
         filters = {"user_status": "paid"}
 
     from services.broadcast import BroadcastService
-    broadcast_service = BroadcastService(db)
+    from services.crm import CRMService
+    from bot.config import settings
+    from aiogram import Bot
 
+    # Get recipients BEFORE committing
+    crm = CRMService(db)
+    all_users = await crm.get_users_filtered(filters, limit=50_000)
+    telegram_ids = [u.telegram_id for u in all_users if u.telegram_id]
+
+    # Create broadcast record
+    broadcast_service = BroadcastService(db)
     broadcast = await broadcast_service.create_broadcast(
         content=message_content,
         content_type="text",
         filters=filters,
     )
+    await broadcast_service.mark_sending(broadcast.id, len(telegram_ids))
     await db.commit()
 
+    # Try ARQ queue first
+    queue_ok = False
     try:
         from taskqueue.tasks import schedule_broadcast
         await schedule_broadcast(broadcast.id)
+        queue_ok = True
     except Exception as e:
-        print(f"Schedule broadcast failed: {e}")
+        print(f"[broadcast] ARQ queue unavailable, falling back to direct send: {e}")
 
-    return {"status": "accepted", "message": "Xabarlar tarqatish yuborildi."}
+    # Direct send fallback (non-blocking background task)
+    if not queue_ok:
+        import asyncio
+
+        async def _send_all(ids: list, text: str, broadcast_id: int):
+            bot = Bot(token=settings.BOT_TOKEN)
+            sent = 0
+            failed = 0
+            for tid in ids:
+                try:
+                    await bot.send_message(chat_id=tid, text=text)
+                    sent += 1
+                except Exception as ex:
+                    print(f"[broadcast] Failed to send to {tid}: {ex}")
+                    failed += 1
+                if (sent + failed) % 30 == 0:
+                    await asyncio.sleep(1)
+            # Update status in separate session
+            from db.database import async_session
+            async with async_session() as sess:
+                bs = BroadcastService(sess)
+                await bs.update_progress(broadcast_id, sent, failed)
+                await bs.mark_completed(broadcast_id)
+                await sess.commit()
+            await bot.session.close()
+
+        asyncio.create_task(_send_all(telegram_ids, message_content, broadcast.id))
+
+    count = len(telegram_ids)
+    return {
+        "status": "accepted",
+        "message": f"{count} ta foydalanuvchiga xabar yuborilmoqda...",
+        "recipient_count": count,
+        "method": "queue" if queue_ok else "direct",
+    }
 
 
 # ── Helpers ───────────────────────────────────────
