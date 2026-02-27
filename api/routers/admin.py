@@ -276,24 +276,35 @@ async def send_broadcast(payload: dict, admin_id: int = Depends(check_admin), db
     """Trigger a broadcast message — sends directly via bot in background."""
     audience_index = payload.get("audience", 0)
     message_content = payload.get("message", "").strip()
+    file_id = payload.get("file_id", "")
+    content_type = payload.get("content_type", "text")
+    buttons: list = payload.get("buttons", [])
 
-    if not message_content:
-        raise HTTPException(status_code=400, detail="Xabar matni bo'sh bo'lishi mumkin emas.")
+    if not message_content and not file_id:
+        raise HTTPException(status_code=400, detail="Xabar matni yoki media bo'lishi kerak.")
 
     filters = {}
     if audience_index == 1:
-        filters = {"user_status": "free", "lead_score_min": 30}
+        filters = {"lead_score_min": 30}
     elif audience_index == 2:
         filters = {"lead_segment": "hot"}
     elif audience_index == 3:
-        filters = {"user_status": "paid"}
+        filters = {"paid": True}
 
     from services.broadcast import BroadcastService
     from services.crm import CRMService
     from bot.config import settings
     from aiogram import Bot
+    from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
-    # Get recipients BEFORE committing
+    # Build inline keyboard if buttons provided
+    inline_kb = None
+    if buttons:
+        keyboard_rows = [[InlineKeyboardButton(text=b["text"], url=b["url"])] for b in buttons if b.get("text") and b.get("url")]
+        if keyboard_rows:
+            inline_kb = InlineKeyboardMarkup(inline_keyboard=keyboard_rows)
+
+    # Get recipients
     crm = CRMService(db)
     all_users = await crm.get_users_filtered(filters, limit=50_000)
     telegram_ids = [u.telegram_id for u in all_users if u.telegram_id]
@@ -301,8 +312,9 @@ async def send_broadcast(payload: dict, admin_id: int = Depends(check_admin), db
     # Create broadcast record
     broadcast_service = BroadcastService(db)
     broadcast = await broadcast_service.create_broadcast(
-        content=message_content,
-        content_type="text",
+        content=message_content or f"[{content_type}]" ,
+        content_type=content_type if file_id else "text",
+        file_id=file_id or None,
         filters=filters,
     )
     await broadcast_service.mark_sending(broadcast.id, len(telegram_ids))
@@ -317,24 +329,38 @@ async def send_broadcast(payload: dict, admin_id: int = Depends(check_admin), db
     except Exception as e:
         print(f"[broadcast] ARQ queue unavailable, falling back to direct send: {e}")
 
-    # Direct send fallback (non-blocking background task)
+    # Direct send fallback
     if not queue_ok:
         import asyncio
 
-        async def _send_all(ids: list, text: str, broadcast_id: int):
+        async def _send_all(ids: list, text: str, fid: str, ctype: str, kb, broadcast_id: int):
             bot = Bot(token=settings.BOT_TOKEN)
             sent = 0
             failed = 0
             for tid in ids:
                 try:
-                    await bot.send_message(chat_id=tid, text=text)
+                    if fid:
+                        if ctype == "photo":
+                            await bot.send_photo(chat_id=tid, photo=fid, caption=text or None, reply_markup=kb)
+                        elif ctype == "video":
+                            await bot.send_video(chat_id=tid, video=fid, caption=text or None, reply_markup=kb)
+                        elif ctype == "audio":
+                            await bot.send_audio(chat_id=tid, audio=fid, caption=text or None, reply_markup=kb)
+                        elif ctype == "voice":
+                            await bot.send_voice(chat_id=tid, voice=fid, caption=text or None, reply_markup=kb)
+                        elif ctype == "video_note":
+                            await bot.send_video_note(chat_id=tid, video_note=fid)
+                        else:
+                            await bot.send_document(chat_id=tid, document=fid, caption=text or None, reply_markup=kb)
+                    else:
+                        await bot.send_message(chat_id=tid, text=text, reply_markup=kb)
                     sent += 1
                 except Exception as ex:
                     print(f"[broadcast] Failed to send to {tid}: {ex}")
                     failed += 1
                 if (sent + failed) % 30 == 0:
-                    await asyncio.sleep(1)
-            # Update status in separate session
+                    await asyncio.sleep(1)  # Rate limit
+            # Update DB
             from db.database import async_session
             async with async_session() as sess:
                 bs = BroadcastService(sess)
@@ -343,7 +369,7 @@ async def send_broadcast(payload: dict, admin_id: int = Depends(check_admin), db
                 await sess.commit()
             await bot.session.close()
 
-        asyncio.create_task(_send_all(telegram_ids, message_content, broadcast.id))
+        asyncio.create_task(_send_all(telegram_ids, message_content, file_id, content_type, inline_kb, broadcast.id))
 
     count = len(telegram_ids)
     return {
@@ -376,9 +402,7 @@ async def get_audience_counts(admin_id: int = Depends(check_admin), db: AsyncSes
     all_q = await db.execute(select(func.count(User.id)))
     all_users = all_q.scalar() or 0
 
-    # Video watched but not paid: lead_score >= 30 and no active subscription
-    # Use subquery: users not in subscriptions with status='active'
-    from sqlalchemy import not_, exists
+    from sqlalchemy import not_
     active_sub_ids = select(Subscription.user_id).where(Subscription.status == "active").scalar_subquery()
     video_not_paid_q = await db.execute(
         select(func.count(User.id)).where(
@@ -388,22 +412,15 @@ async def get_audience_counts(admin_id: int = Depends(check_admin), db: AsyncSes
     )
     video_not_paid = video_not_paid_q.scalar() or 0
 
-    # Hot segment
     hot_q = await db.execute(select(func.count(User.id)).where(User.lead_segment == "hot"))
     hot = hot_q.scalar() or 0
 
-    # Paid (active subscription)
     paid_q = await db.execute(
         select(func.count(func.distinct(Subscription.user_id))).where(Subscription.status == "active")
     )
     paid = paid_q.scalar() or 0
 
-    return {
-        "all": all_users,
-        "video_not_paid": video_not_paid,
-        "hot": hot,
-        "paid": paid,
-    }
+    return {"all": all_users, "video_not_paid": video_not_paid, "hot": hot, "paid": paid}
 
 
 @router.get("/broadcasts")
@@ -427,9 +444,66 @@ async def get_broadcasts_history(admin_id: int = Depends(check_admin), db: Async
             "id": b.id,
             "title": b.content[:40] + ("..." if len(b.content) > 40 else ""),
             "sent": b.sent_count,
-            "delivered": b.sent_count - b.failed_count,
+            "total": b.total_count,
+            "failed": b.failed_count,
             "status": status_labels.get(b.status, b.status),
             "date": _format_time(b.created_at),
         }
         for b in broadcasts
     ]
+
+
+@router.post("/upload-media")
+async def upload_media(
+    admin_id: int = Depends(check_admin),
+):
+    """Placeholder — handled by upload_media_multipart below."""
+    raise HTTPException(status_code=400, detail="Use multipart/form-data upload.")
+
+
+from fastapi import UploadFile, File as FastAPIFile
+
+@router.post("/upload-media-form")
+async def upload_media_form(
+    file: UploadFile = FastAPIFile(...),
+    admin_id: int = Depends(check_admin),
+):
+    """
+    Accept a media file via multipart form, send it to the admin's Telegram chat
+    to get a stable file_id, and return it.
+    """
+    from aiogram import Bot
+    from aiogram.types import BufferedInputFile
+    from bot.config import settings
+
+    content = await file.read()
+    mime = file.content_type or ""
+    filename = file.filename or "file"
+
+    bot = Bot(token=settings.BOT_TOKEN)
+    try:
+        input_file = BufferedInputFile(content, filename=filename)
+        if mime.startswith("image/"):
+            msg = await bot.send_photo(chat_id=admin_id, photo=input_file)
+            file_id = msg.photo[-1].file_id
+            tg_type = "photo"
+        elif mime.startswith("video/"):
+            msg = await bot.send_video(chat_id=admin_id, video=input_file)
+            file_id = msg.video.file_id
+            tg_type = "video"
+        elif mime.startswith("audio/") or mime == "audio/mpeg":
+            msg = await bot.send_audio(chat_id=admin_id, audio=input_file)
+            file_id = msg.audio.file_id
+            tg_type = "audio"
+        elif mime == "audio/ogg":
+            msg = await bot.send_voice(chat_id=admin_id, voice=input_file)
+            file_id = msg.voice.file_id
+            tg_type = "voice"
+        else:
+            msg = await bot.send_document(chat_id=admin_id, document=input_file)
+            file_id = msg.document.file_id
+            tg_type = "document"
+    finally:
+        await bot.session.close()
+
+    return {"file_id": file_id, "content_type": tg_type}
