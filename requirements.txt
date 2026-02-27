@@ -4,6 +4,7 @@ aiogram==3.13.1
 # API
 fastapi==0.115.6
 uvicorn[standard]==0.34.0
+python-multipart>=0.0.9  # Required for UploadFile / file upload endpoints
 
 # Database
 asyncpg==0.30.0
