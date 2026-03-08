@@ -10,3 +10,15 @@ yasha-insights/dist/
 .DS_Store
 ngrok.log
 tunnel.log
+.venv/
+.python-version
+.railway/
+.cargo/
+.idea/
+.vscode/
+build/
+dist/
+venv/
+env/
+*.env
+!*.env.example
