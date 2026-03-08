@@ -6,6 +6,3 @@ cmds = ["python3.11 -m pip install -r requirements.txt", "cd miniapp/admin-dashb
 
 [phases.build]
 cmds = ["cd miniapp/admin-dashboard && npm run build", "mkdir -p api/static/admin", "cp -r miniapp/admin-dashboard/dist/* api/static/admin/"]
-
-[start]
-cmd = "alembic upgrade head; python -m uvicorn api.main:app --host 0.0.0.0 --port ${PORT:-8000}"
