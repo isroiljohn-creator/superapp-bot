@@ -1,8 +1,0 @@
-{
-    "name": "yashabot-root",
-    "version": "1.0.0",
-    "private": true,
-    "scripts": {
-        "build:admin": "cd miniapp/admin-dashboard && npm install && npm run build"
-    }
-}

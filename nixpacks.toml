@@ -1,0 +1,18 @@
+[phases.setup]
+nixPkgs = ["python312", "nodejs_20"]
+
+[phases.install]
+cmds = [
+  "pip install -r requirements.txt",
+  "cd miniapp/admin-dashboard && npm install"
+]
+
+[phases.build]
+cmds = [
+  "cd miniapp/admin-dashboard && npm run build",
+  "mkdir -p api/static/admin",
+  "cp -r miniapp/admin-dashboard/dist/* api/static/admin/"
+]
+
+[start]
+cmd = "alembic upgrade head; uvicorn api.main:app --host 0.0.0.0 --port $PORT"
