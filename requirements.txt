@@ -12,5 +12,4 @@ python-jose[cryptography]==3.3.0
 redis==5.0.1
 aioredis==2.0.1
 psycopg2-binary==2.9.9
-asynccontextmanager
 jinja2
