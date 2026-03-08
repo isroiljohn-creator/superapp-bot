@@ -19,24 +19,28 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    # 1. Composite Index for Daily Logs (Most frequent query: get usage for user X on day Y)
-    # Checks if index exists first to be idempotent
-    # Note: postgres filter for user_id AND date
-    try:
-        op.create_index('idx_daily_logs_user_date', 'daily_logs', ['user_id', 'date'], unique=False)
-    except Exception:
-        pass # Already exists
-
-    # 2. Index for recent activity (Optimizes leaderboard)
-    try:
+    conn = op.get_bind()
+    from sqlalchemy.engine.reflection import Inspector
+    inspector = Inspector.from_engine(conn)
+    cols = [c['name'] for c in inspector.get_columns('users')]
+    
+    idx1 = conn.execute(sa.text("SELECT 1 FROM pg_indexes WHERE indexname = 'idx_daily_logs_user_date'")).scalar()
+    if not idx1:
+        try:
+            op.create_index('idx_daily_logs_user_date', 'daily_logs', ['user_id', 'date'], unique=False)
+        except Exception:
+            pass
+            
+    idx2 = conn.execute(sa.text("SELECT 1 FROM pg_indexes WHERE indexname = 'idx_users_active_points'")).scalar()
+    if not idx2 and 'active' in cols and 'points' in cols:
         op.create_index('idx_users_active_points', 'users', ['active', 'points'], unique=False)
-    except Exception:
-        pass
-
 
 def downgrade() -> None:
-    try:
+    conn = op.get_bind()
+    idx1 = conn.execute(sa.text("SELECT 1 FROM pg_indexes WHERE indexname = 'idx_daily_logs_user_date'")).scalar()
+    if idx1:
         op.drop_index('idx_daily_logs_user_date', table_name='daily_logs')
+        
+    idx2 = conn.execute(sa.text("SELECT 1 FROM pg_indexes WHERE indexname = 'idx_users_active_points'")).scalar()
+    if idx2:
         op.drop_index('idx_users_active_points', table_name='users')
-    except Exception:
-        pass
