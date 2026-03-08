@@ -41,12 +41,4 @@ async def process_level(callback: CallbackQuery, state: FSMContext):
     await state.update_data(level=level)
     await callback.message.edit_text(uz.SEGMENTATION_COMPLETE)
     await state.clear()
-
-    # Trigger lead magnet delivery
-    data = await state.get_data()
-    # Lead magnet will be sent via the lead_magnet handler
-    # We import and trigger it here
-    from bot.handlers.lead_magnet import deliver_lead_magnet
-    await deliver_lead_magnet(callback.message, callback.from_user.id)
-
     await callback.answer()

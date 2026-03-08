@@ -187,6 +187,10 @@ async def process_phone(message: Message, state: FSMContext):
         reply_markup=main_menu_keyboard(),
     )
 
+    # Deliver lead magnet immediately after registration
+    from bot.handlers.lead_magnet import deliver_lead_magnet
+    await deliver_lead_magnet(message, message.from_user.id)
+
     # Start segmentation
     await message.answer(uz.ASK_GOAL, reply_markup=goal_keyboard())
     await state.set_state(SegmentationFSM.waiting_goal)
