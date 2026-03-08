@@ -108,8 +108,14 @@ async def click_webhook(request: Request):
 
                 # Notify bot
                 from bot.handlers.subscription import handle_payment_failed
-                from aiogram import Bot
-                bot = Bot(token=settings.BOT_TOKEN)
+                from api.main import bot as global_bot
+                
+                if not global_bot:
+                    from aiogram import Bot
+                    bot_instance = Bot(token=settings.BOT_TOKEN)
+                else:
+                    bot_instance = global_bot
+                
                 try:
                     from db.models import User
                     from sqlalchemy import select
@@ -118,9 +124,10 @@ async def click_webhook(request: Request):
                     )
                     user = user_result.scalar_one_or_none()
                     if user:
-                        await handle_payment_failed(bot, user.telegram_id)
+                        await handle_payment_failed(bot_instance, user.telegram_id)
                 finally:
-                    await bot.session.close()
+                    if not global_bot:
+                        await bot_instance.session.close()
 
                 return {"error": error, "error_note": "Payment failed"}
 
@@ -148,7 +155,7 @@ async def click_webhook(request: Request):
                 )
                 user = user_result.scalar_one_or_none()
                 if user:
-                    await handle_payment_success(bot_instance, user.telegram_id)
+                    await handle_payment_success(bot_instance, user.telegram_id, payment_id=payment.id)
             finally:
                 if not global_bot:
                     await bot_instance.session.close()
@@ -231,18 +238,25 @@ async def payme_webhook(request: Request):
 
             # Activate subscription
             from bot.handlers.subscription import handle_payment_success
-            from aiogram import Bot
+            from api.main import bot as global_bot
             from db.models import User
-            bot = Bot(token=settings.BOT_TOKEN)
+            
+            if not global_bot:
+                from aiogram import Bot
+                bot_instance = Bot(token=settings.BOT_TOKEN)
+            else:
+                bot_instance = global_bot
+            
             try:
                 user_result = await session.execute(
                     select(User).where(User.id == payment.user_id)
                 )
                 user = user_result.scalar_one_or_none()
                 if user:
-                    await handle_payment_success(bot, user.telegram_id)
+                    await handle_payment_success(bot_instance, user.telegram_id, payment_id=payment.id)
             finally:
-                await bot.session.close()
+                if not global_bot:
+                    await bot_instance.session.close()
 
             return {
                 "result": {

@@ -83,6 +83,7 @@ class SubscriptionService:
             expires = sub.expires_at.replace(tzinfo=None)
             if expires < datetime.now(timezone.utc).replace(tzinfo=None):
                 await self.expire(user_id)
+                await self.session.commit()
                 return False
         return True
 

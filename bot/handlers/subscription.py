@@ -13,7 +13,7 @@ from services.analytics import AnalyticsService, EVT_PAYMENT_SUCCESS, EVT_PAYMEN
 router = Router(name="subscription")
 
 
-async def handle_payment_success(bot: Bot, telegram_id: int, card_token: str = None):
+async def handle_payment_success(bot: Bot, telegram_id: int, card_token: str = None, payment_id: int = None):
     """
     Called when payment webhook confirms success.
     Activates subscription, generates invite link, notifies user.
@@ -29,9 +29,17 @@ async def handle_payment_success(bot: Bot, telegram_id: int, card_token: str = N
         await sub_service.activate(user.id, card_token=card_token)
 
         # Apply referral balance if used
-        price_info = await sub_service.calculate_price_with_referral(user.id)
-        if price_info["discount"] > 0:
-            await sub_service.apply_referral_balance(user.id, price_info["discount"])
+        discount_to_apply = 0
+        if payment_id:
+            from db.models import Payment
+            from sqlalchemy import select
+            payment_res = await session.execute(select(Payment).where(Payment.id == payment_id))
+            payment_obj = payment_res.scalar_one_or_none()
+            if payment_obj and payment_obj.referral_discount:
+                discount_to_apply = payment_obj.referral_discount
+
+        if discount_to_apply > 0:
+            await sub_service.apply_referral_balance(user.id, discount_to_apply)
 
         # Process paid referral for referer
         ref_service = ReferralService(session)
