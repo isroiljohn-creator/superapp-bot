@@ -46,7 +46,7 @@ export default function DashboardHome() {
       sub: totalUsers > 0 ? `${Math.round(activeUsers / totalUsers * 100)}%` : "0%",
     },
     {
-      label: "Nosaktiv",
+      label: "Noaktiv",
       value: isLoading ? "..." : inactiveUsers.toLocaleString(),
       icon: UserX,
       color: "text-destructive",

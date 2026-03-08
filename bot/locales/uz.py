@@ -57,7 +57,7 @@ SEGMENTATION_COMPLETE = (
 # ──────────────────────────────────────────────
 # Lead magnet
 # ──────────────────────────────────────────────
-LEAD_MAGNET_INTRO = ""
+LEAD_MAGNET_INTRO = "🎁 Siz so'ragan maxsus material:"
 
 LEAD_MAGNET_OPENED = "✅ Material ochildi! Yaxshilab ko'rib chiqing."
 

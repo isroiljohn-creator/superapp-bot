@@ -32,24 +32,24 @@ async def deliver_lead_magnet(message: Message, telegram_id: int):
         if lead_magnet:
             # Deliver based on content type
             if lead_magnet.content_type == "video" and lead_magnet.file_id:
-                await message.answer(uz.LEAD_MAGNET_INTRO)
+                if uz.LEAD_MAGNET_INTRO: await message.answer(uz.LEAD_MAGNET_INTRO)
                 await message.answer_video(lead_magnet.file_id)
             elif lead_magnet.content_type == "pdf" and lead_magnet.file_id:
-                await message.answer(uz.LEAD_MAGNET_INTRO)
+                if uz.LEAD_MAGNET_INTRO: await message.answer(uz.LEAD_MAGNET_INTRO)
                 await message.answer_document(lead_magnet.file_id)
                 if lead_magnet.description:
                     await message.answer(lead_magnet.description)
             elif lead_magnet.content_type == "vsl" and lead_magnet.file_id:
-                await message.answer(uz.LEAD_MAGNET_INTRO)
+                if uz.LEAD_MAGNET_INTRO: await message.answer(uz.LEAD_MAGNET_INTRO)
                 await message.answer_video(lead_magnet.file_id)
             else:
                 # Fallback: send description as text
-                await message.answer(
-                    uz.LEAD_MAGNET_INTRO + "\n\n" + (lead_magnet.description or "")
-                )
+                text = (uz.LEAD_MAGNET_INTRO + "\n\n" if uz.LEAD_MAGNET_INTRO else "") + (lead_magnet.description or "")
+                if text.strip():
+                    await message.answer(text)
         else:
             # No lead magnet configured for this campaign
-            await message.answer(uz.LEAD_MAGNET_INTRO)
+            if uz.LEAD_MAGNET_INTRO: await message.answer(uz.LEAD_MAGNET_INTRO)
 
         # Mark as opened
         await crm.mark_lead_magnet_opened(telegram_id)

@@ -799,7 +799,7 @@ async def get_settings(admin_id: int = Depends(check_admin), db: AsyncSession = 
     # Check if reward_amount exists, if not seed it
     reward_exists = any(s.key == "reward_amount" for s in settings)
     if not reward_exists:
-        new_s = AdminSetting(key="reward_amount", value="20000")
+        new_s = AdminSetting(key="reward_amount", value="500")
         db.add(new_s)
         await db.commit()
         await db.refresh(new_s)
