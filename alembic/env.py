@@ -16,10 +16,10 @@ if config.config_file_name is not None:
 
 # add your model's MetaData object here
 # for 'autogenerate' support
-from backend.models import Base
-from core.config import DATABASE_URL
-from backend.database import SYNC_DB_URL
+from db.models import Base
+from bot.config import settings
 
+SYNC_DB_URL = settings.DATABASE_URL.replace("+asyncpg", "")
 target_metadata = Base.metadata
 
 def run_migrations_offline() -> None:
