@@ -1,3 +1,2 @@
-# Railway uses this file to determine how to run your app
-web: echo 'Building main frontend...' && (cd frontend && npm install && npm run build) && echo 'Building admin insights...' && (cd yasha-insights && npm install && npm run build) && alembic upgrade head && .venv/bin/uvicorn backend.main:app --host 0.0.0.0 --port $PORT
-worker: .venv/bin/python bot_runner.py
+web: echo 'Building Admin Panel...' && (cd miniapp/admin-dashboard && npm install && npm run build) && mkdir -p api/static/admin && cp -r miniapp/admin-dashboard/dist/* api/static/admin/ && alembic upgrade head && uvicorn api.main:app --host 0.0.0.0 --port $PORT
+worker: python -m bot.main
