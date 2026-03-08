@@ -148,7 +148,7 @@ async def menu_referral(message: Message):
             reward_formatted = f"{reward:,}".replace(",", " ")
             await session.commit()
     except Exception:
-        reward_formatted = "20 000"  # fallback
+        reward_formatted = "500"  # fallback
 
     await message.answer(
         uz.REFERRAL_MENU_TEXT.format(
