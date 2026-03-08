@@ -1,8 +1,8 @@
 [phases.setup]
-nixPkgs = ["python312", "pip", "nodejs_20"]
+nixPkgs = ["python311", "gcc", "postgresql", "pip", "nodejs_20"]
 
 [phases.install]
-cmds = ["pip install -r requirements.txt", "cd miniapp/admin-dashboard && npm install"]
+cmds = ["python3.11 -m pip install -r requirements.txt", "cd miniapp/admin-dashboard && npm install"]
 
 [phases.build]
 cmds = ["cd miniapp/admin-dashboard && npm run build", "mkdir -p api/static/admin", "cp -r miniapp/admin-dashboard/dist/* api/static/admin/"]
