@@ -121,56 +121,46 @@ async def cmd_start(message: Message, state: FSMContext):
 @router.message(RegistrationFSM.waiting_name)
 async def process_name(message: Message, state: FSMContext):
     """Save name, ask for age."""
-    try:
-        if not message.text:
-            await message.answer(uz.ASK_NAME)
-            return
-            
-        name = message.text.strip()
-        if not name or len(name) < 2:
-            await message.answer(uz.ASK_NAME)
-            return
+    if not message.text:
+        await message.answer(uz.ASK_NAME)
+        return
+        
+    name = message.text.strip()
+    if not name or len(name) < 2:
+        await message.answer(uz.ASK_NAME)
+        return
 
-        await state.update_data(name=name)
-        async with async_session() as session:
-            crm = CRMService(session)
-            await crm.set_name(message.from_user.id, name)
-            await session.commit()
+    await state.update_data(name=name)
+    async with async_session() as session:
+        crm = CRMService(session)
+        await crm.set_name(message.from_user.id, name)
+        await session.commit()
 
-        await message.answer(uz.ASK_AGE)
-        await state.set_state(RegistrationFSM.waiting_age)
-    except Exception as e:
-        import traceback
-        err = traceback.format_exc()
-        await message.answer(f"❌ Xatolik yuz berdi (process_name): {e}\n\n{err[:500]}")
+    await message.answer(uz.ASK_AGE)
+    await state.set_state(RegistrationFSM.waiting_age)
 
 
 @router.message(RegistrationFSM.waiting_age)
 async def process_age(message: Message, state: FSMContext):
     """Save age, request phone."""
     try:
-        try:
-            if not message.text:
-                raise ValueError
-            age = int(message.text.strip())
-            if age < 10 or age > 100:
-                raise ValueError
-        except (ValueError, TypeError):
-            await message.answer(uz.INVALID_AGE)
-            return
+        if not message.text:
+            raise ValueError
+        age = int(message.text.strip())
+        if age < 10 or age > 100:
+            raise ValueError
+    except (ValueError, TypeError):
+        await message.answer(uz.INVALID_AGE)
+        return
 
-        await state.update_data(age=age)
-        async with async_session() as session:
-            crm = CRMService(session)
-            await crm.set_age(message.from_user.id, age)
-            await session.commit()
+    await state.update_data(age=age)
+    async with async_session() as session:
+        crm = CRMService(session)
+        await crm.set_age(message.from_user.id, age)
+        await session.commit()
 
-        await message.answer(uz.ASK_PHONE, reply_markup=phone_keyboard())
-        await state.set_state(RegistrationFSM.waiting_phone)
-    except Exception as e:
-        import traceback
-        err = traceback.format_exc()
-        await message.answer(f"❌ Xatolik yuz berdi (process_age): {e}\n\n{err[:500]}")
+    await message.answer(uz.ASK_PHONE, reply_markup=phone_keyboard())
+    await state.set_state(RegistrationFSM.waiting_phone)
 
 
 @router.message(RegistrationFSM.waiting_phone, F.contact)
@@ -202,10 +192,6 @@ async def process_phone(message: Message, state: FSMContext):
         uz.REGISTRATION_COMPLETE.format(name=name),
         reply_markup=main_menu_keyboard(),
     )
-
-    # Deliver lead magnet immediately after registration
-    from bot.handlers.lead_magnet import deliver_lead_magnet
-    await deliver_lead_magnet(message, message.from_user.id)
 
     # Start segmentation
     await message.answer(uz.ASK_GOAL, reply_markup=goal_keyboard())
