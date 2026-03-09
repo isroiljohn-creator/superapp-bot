@@ -7,9 +7,9 @@ Markazlashtirilgan lokalizatsiya fayli.
 # Registration FSM
 # ──────────────────────────────────────────────
 WELCOME = (
-    "👋 Assalomu alaykum!\n\n"
-    "Men sizga AI yordamida pul topish, mijozlar olish va biznesni "
-    "avtomatlashtirishda yordam beraman.\n\n"
+    "👋 Assalomu alaykum! (v1.1)\n\n"
+    "Men sizga AI ya'ni Sun'iy intellektni tez o'rganishingizga va "
+    "AI yordamida pul topish, mijozlar olish va biznesni avtomatlashtirishda yordam beraman.\n\n"
     "Keling, avval tanishib olaylik!"
 )
 
