@@ -25,9 +25,8 @@ ASK_PHONE = (
 SHARE_PHONE_BUTTON = "📱 Raqamni yuborish"
 
 REGISTRATION_COMPLETE = (
-    "✅ Ro'yxatdan muvaffaqiyatli o'tdingiz, {name}!\n\n"
-    "Endi sizga mos kontent tayyorlayman. "
-    "Bir nechta savolga javob bering 👇"
+    "✅ {name} ro'yxatdan muvaffaqiyatli o'tdingiz!\n\n"
+    "Sizga va’da qilingan “PROMT” va “QO’LLANMALAR”ni 📖Qo’llanmalar bo’limidan topasiz 👇"
 )
 
 INVALID_AGE = "❌ Iltimos, yoshingizni raqam bilan kiriting (masalan: 25)"
