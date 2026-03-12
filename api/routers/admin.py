@@ -212,24 +212,8 @@ async def get_users_list(
     else:  # date_desc (default)
         query = query.order_by(User.created_at.desc())
 
-    result = await db.execute(query)
+    result = await db.execute(query.limit(200))
     rows = result.all()
-
-    # Event labels mapping
-    event_labels = {
-        "lead": "Bot ishga tushirildi",
-        "registration_complete": "Ro'yxatdan o'tdi",
-        "menu_lessons_click": "Darslarni ochdi",
-        "menu_referral_click": "Referalni ochdi",
-        "menu_guides_click": "Qo'llanmalarni ochdi",
-        "lead_magnet_open": "Material ochdi",
-        "vsl_view": "Video ko'rdi",
-        "vsl_50": "Video 50%",
-        "vsl_90": "Video 90%",
-        "offer_click": "Taklifni bosdi",
-        "payment_open": "To'lovga o'tdi",
-        "payment_success": "To'lov qildi",
-    }
 
     res = []
     for user, sub in rows:
@@ -246,22 +230,6 @@ async def get_users_list(
         elif user.lead_score >= 30:
             score_val = "nurture"
 
-        # Load events for this user (last 10)
-        events_q = await db.execute(
-            select(Event).where(Event.user_id == user.id)
-            .order_by(Event.created_at.asc())
-            .limit(10)
-        )
-        user_events = events_q.scalars().all()
-
-        events_list = []
-        for ev in user_events:
-            label = event_labels.get(ev.event_type, ev.event_type.replace("_", " ").title())
-            events_list.append({
-                "action": label,
-                "time": _format_time(ev.created_at),
-            })
-
         res.append({
             "id": user.telegram_id,
             "name": user.name or "Noma'lum",
@@ -276,7 +244,7 @@ async def get_users_list(
             "leadScore": user.lead_score or 0,
             "registeredAt": user.registered_at.strftime("%d.%m.%Y") if user.registered_at else "—",
             "createdAt": user.created_at.strftime("%d.%m.%Y %H:%M") if user.created_at else "—",
-            "events": events_list
+            "events": []
         })
     return res
 

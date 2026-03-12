@@ -79,6 +79,13 @@ export default function UsersCRM() {
     refetchInterval: 30_000,
   });
 
+  // Lazy load events when user is selected
+  const { data: userEvents } = useQuery<{ action: string; time: string }[]>({
+    queryKey: ["user_events", selectedUser?.id],
+    queryFn: () => fetchApi(`/api/admin/users/${selectedUser!.id}/events`),
+    enabled: !!selectedUser,
+  });
+
   const users = usersData || [];
 
   const filtered = users.filter((u) => {
@@ -285,30 +292,31 @@ export default function UsersCRM() {
               </div>
 
               {/* User Journey Timeline */}
-              <h4 className="text-sm font-semibold mb-2">📍 Bosib o'tgan yo'li</h4>
-              {selectedUser.events.length > 0 ? (
-                <div className="relative pl-4 border-l-2 border-primary/30 space-y-3 mb-4">
-                  {selectedUser.events.map((ev, i) => {
-                    const isLast = i === selectedUser.events.length - 1;
+              <h4 className="text-[11px] font-semibold mb-1.5">Bosib o'tgan yo'li</h4>
+              {!userEvents ? (
+                <div className="text-[10px] text-muted-foreground text-center py-3 mb-3">Yuklanmoqda…</div>
+              ) : userEvents.length > 0 ? (
+                <div className="relative pl-3 border-l-2 border-primary/30 space-y-2 mb-3">
+                  {userEvents.map((ev, i) => {
+                    const isLast = i === userEvents.length - 1;
                     return (
                       <div key={i} className="relative">
-                        <div className={`absolute -left-[calc(1rem+5px)] top-1 w-2.5 h-2.5 rounded-full ${isLast ? "bg-primary ring-2 ring-primary/30" : "bg-primary/60"}`} />
-                        <p className={`text-xs ${isLast ? "font-bold text-foreground" : "font-medium text-foreground/80"}`}>
+                        <div className={`absolute -left-[calc(0.75rem+4px)] top-0.5 w-2 h-2 rounded-full ${isLast ? "bg-primary ring-2 ring-primary/30" : "bg-primary/60"}`} />
+                        <p className={`text-[11px] ${isLast ? "font-bold" : "font-medium text-foreground/80"}`}>
                           {ev.action}
                         </p>
-                        <p className="text-[10px] text-muted-foreground">{ev.time}</p>
+                        <p className="text-[9px] text-muted-foreground">{ev.time}</p>
                       </div>
                     );
                   })}
-                  {/* Current stop indicator */}
                   <div className="relative">
-                    <div className="absolute -left-[calc(1rem+5px)] top-1 w-2.5 h-2.5 rounded-full bg-red-400 ring-2 ring-red-400/30 animate-pulse" />
-                    <p className="text-xs font-bold text-destructive">⏸ Shu yerda to'xtagan</p>
+                    <div className="absolute -left-[calc(0.75rem+4px)] top-0.5 w-2 h-2 rounded-full bg-red-400 ring-2 ring-red-400/30 animate-pulse" />
+                    <p className="text-[10px] font-bold text-destructive">Shu yerda to'xtagan</p>
                   </div>
                 </div>
               ) : (
-                <div className="text-xs text-muted-foreground text-center py-4 mb-4 border border-dashed border-border rounded-lg">
-                  Hozircha faollik qayd etilmagan
+                <div className="text-[10px] text-muted-foreground text-center py-3 mb-3 border border-dashed border-border rounded-md">
+                  Hozircha faollik yo'q
                 </div>
               )}
             </motion.div>

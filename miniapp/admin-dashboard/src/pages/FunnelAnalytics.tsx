@@ -1,7 +1,6 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { useQuery } from "@tanstack/react-query";
 import { fetchApi } from "@/lib/api";
-import { motion } from "framer-motion";
 
 interface FunnelStep {
   label: string;
@@ -10,13 +9,8 @@ interface FunnelStep {
 }
 
 const stepColors = [
-  "hsl(199, 85%, 55%)",
-  "hsl(199, 75%, 50%)",
-  "hsl(180, 60%, 45%)",
-  "hsl(142, 60%, 45%)",
-  "hsl(38, 80%, 50%)",
-  "hsl(25, 85%, 55%)",
-  "hsl(0, 72%, 55%)",
+  "#38bdf8", "#22b8cf", "#20c997", "#51cf66",
+  "#fcc419", "#ff922b", "#ff6b6b",
 ];
 
 export default function FunnelAnalytics() {
@@ -25,105 +19,88 @@ export default function FunnelAnalytics() {
     queryFn: () => fetchApi("/api/admin/funnel"),
   });
 
-  const funnelSteps = funnelData || [];
-  const maxUsers = funnelSteps.length > 0 ? funnelSteps[0].users : 1;
+  const steps = funnelData || [];
+  const maxUsers = steps.length > 0 ? steps[0].users : 1;
 
-  const totalConversion = funnelSteps.length >= 2
-    ? ((funnelSteps[funnelSteps.length - 1].users / funnelSteps[0].users) * 100).toFixed(1)
+  const totalConv = steps.length >= 2
+    ? ((steps[steps.length - 1].users / steps[0].users) * 100).toFixed(1)
     : "0";
 
-  let biggestDropLabel = "—";
-  let biggestDrop = 0;
-  for (let i = 1; i < funnelSteps.length; i++) {
-    const drop = funnelSteps[i - 1].users - funnelSteps[i].users;
-    if (drop > biggestDrop) {
-      biggestDrop = drop;
-      biggestDropLabel = `${funnelSteps[i - 1].label} → ${funnelSteps[i].label}`;
-    }
-  }
+  let worstDrop = { label: "—", count: 0, pct: "0" };
+  let bestStep = { label: "—", pct: 0 };
 
-  let bestStepLabel = "—";
-  let bestRate = 0;
-  for (let i = 1; i < funnelSteps.length; i++) {
-    const rate = funnelSteps[i - 1].users > 0
-      ? (funnelSteps[i].users / funnelSteps[i - 1].users) * 100
-      : 0;
-    if (rate > bestRate) {
-      bestRate = rate;
-      bestStepLabel = `${funnelSteps[i - 1].label} → ${funnelSteps[i].label}`;
+  for (let i = 1; i < steps.length; i++) {
+    const drop = steps[i - 1].users - steps[i].users;
+    const dropPct = steps[i - 1].users > 0 ? (drop / steps[i - 1].users * 100) : 0;
+    if (drop > worstDrop.count) {
+      worstDrop = { label: `${steps[i - 1].label} → ${steps[i].label}`, count: drop, pct: dropPct.toFixed(0) };
+    }
+    const rate = steps[i - 1].users > 0 ? (steps[i].users / steps[i - 1].users * 100) : 0;
+    if (rate > bestStep.pct) {
+      bestStep = { label: `${steps[i - 1].label} → ${steps[i].label}`, pct: rate };
     }
   }
 
   return (
-    <div className="space-y-3">
-      <h2 className="text-sm font-bold">Voronka analitikasi</h2>
-
+    <div className="space-y-2.5">
       {/* Funnel bars */}
       <Card className="glass-card border-border/30">
-        <CardContent className="p-3 space-y-0.5">
+        <CardContent className="p-2.5">
           {isLoading ? (
             <div className="text-[11px] text-muted-foreground text-center py-6">Yuklanmoqda…</div>
-          ) : funnelSteps.length === 0 ? (
+          ) : steps.length === 0 ? (
             <div className="text-[11px] text-muted-foreground text-center py-6">Ma'lumot topilmadi</div>
           ) : (
-            funnelSteps.map((step, i) => {
-              const widthPct = Math.max((step.users / maxUsers) * 100, 10);
-              const dropoff = i > 0
-                ? (((funnelSteps[i - 1].users - step.users) / funnelSteps[i - 1].users) * 100).toFixed(0)
-                : null;
-              const color = stepColors[i % stepColors.length];
+            <div className="space-y-1">
+              {steps.map((step, i) => {
+                const pct = Math.max((step.users / maxUsers) * 100, 6);
+                const color = stepColors[i % stepColors.length];
+                const drop = i > 0 ? (((steps[i - 1].users - step.users) / steps[i - 1].users) * 100).toFixed(0) : null;
 
-              return (
-                <div key={step.label}>
-                  {dropoff && Number(dropoff) > 0 && (
-                    <div className="text-center py-px">
-                      <span className="text-[9px] text-destructive/60">↓ −{dropoff}%</span>
-                    </div>
-                  )}
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-[10px] font-medium w-20 md:w-32 flex-shrink-0 truncate text-right">{step.label}</span>
-                    <div className="flex-1 relative">
-                      <motion.div
-                        className="h-7 rounded-md flex items-center"
-                        initial={{ width: 0 }}
-                        animate={{ width: `${widthPct}%` }}
-                        transition={{ duration: 0.6, delay: i * 0.1, ease: "easeOut" }}
-                        style={{ background: color, minWidth: "40px" }}
+                return (
+                  <div key={step.label} className="flex items-center gap-1.5" style={{ height: '28px' }}>
+                    <span className="text-[9px] text-muted-foreground w-[72px] md:w-28 text-right truncate flex-shrink-0">
+                      {step.label}
+                    </span>
+                    <div className="flex-1 h-full relative">
+                      <div
+                        className="h-full rounded-sm flex items-center transition-all duration-500"
+                        style={{ width: `${pct}%`, backgroundColor: color, minWidth: '32px' }}
                       >
-                        <span className="absolute right-1.5 text-[10px] font-bold text-white drop-shadow">
+                        <span className="text-[9px] font-bold text-white px-1 drop-shadow whitespace-nowrap">
                           {step.users.toLocaleString()}
                         </span>
-                      </motion.div>
+                      </div>
                     </div>
-                    {i > 0 && (
-                      <span className="text-[10px] font-semibold w-8 text-right flex-shrink-0" style={{ color }}>{step.rate}%</span>
-                    )}
+                    <span className="text-[9px] w-8 text-right flex-shrink-0" style={{ color: drop && Number(drop) > 0 ? '#ff6b6b' : 'transparent' }}>
+                      {drop && Number(drop) > 0 ? `−${drop}%` : ""}
+                    </span>
                   </div>
-                </div>
-              );
-            })
+                );
+              })}
+            </div>
           )}
         </CardContent>
       </Card>
 
-      {/* Summary cards */}
-      <div className="grid grid-cols-3 gap-2">
+      {/* Summary row */}
+      <div className="grid grid-cols-3 gap-1.5">
         <Card className="glass-card border-border/30">
           <CardContent className="p-2 text-center">
-            <p className="text-lg md:text-2xl font-bold text-primary">{totalConversion}%</p>
-            <p className="text-[9px] text-muted-foreground">Konversiya</p>
+            <p className="text-lg font-bold text-primary leading-none">{totalConv}%</p>
+            <p className="text-[8px] text-muted-foreground mt-0.5">Konversiya</p>
           </CardContent>
         </Card>
         <Card className="glass-card border-border/30">
           <CardContent className="p-2 text-center">
-            <p className="text-[11px] font-bold text-destructive truncate">{biggestDropLabel}</p>
-            <p className="text-[9px] text-muted-foreground mt-0.5">Eng katta yo'qotish</p>
+            <p className="text-[10px] font-bold text-destructive leading-tight truncate">{worstDrop.label}</p>
+            <p className="text-[8px] text-muted-foreground mt-0.5">Katta yo'qotish</p>
           </CardContent>
         </Card>
         <Card className="glass-card border-border/30">
           <CardContent className="p-2 text-center">
-            <p className="text-[11px] font-bold text-success truncate">{bestStepLabel}</p>
-            <p className="text-[9px] text-muted-foreground mt-0.5">Eng yaxshi</p>
+            <p className="text-[10px] font-bold text-success leading-tight truncate">{bestStep.label}</p>
+            <p className="text-[8px] text-muted-foreground mt-0.5">Yaxshi bosqich</p>
           </CardContent>
         </Card>
       </div>
