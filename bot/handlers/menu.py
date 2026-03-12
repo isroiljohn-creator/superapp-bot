@@ -304,7 +304,6 @@ async def lesson_db_callback(callback_query):
                     from_chat_id=channel_id,
                     message_id=message_id,
                 )
-                await callback_query.message.answer(caption, parse_mode="HTML")
                 delivered = True
             except Exception as e:
                 await callback_query.message.answer(
@@ -322,7 +321,6 @@ async def lesson_db_callback(callback_query):
                     from_chat_id=content_channel,
                     message_id=lesson.channel_message_id,
                 )
-                await callback_query.message.answer(caption, parse_mode="HTML")
                 delivered = True
             except Exception:
                 pass

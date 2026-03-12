@@ -49,7 +49,7 @@ const statusLabel: Record<UserStatusLabel, string> = {
 const TABS: { id: ActiveTab; label: string; icon: React.ElementType }[] = [
   { id: "all", label: "Barchasi", icon: Search },
   { id: "active", label: "Aktiv", icon: UserCheck },
-  { id: "inactive", label: "Nosaktiv", icon: UserX },
+  { id: "inactive", label: "Noaktiv", icon: UserX },
 ];
 
 export default function UsersCRM() {
@@ -86,8 +86,8 @@ export default function UsersCRM() {
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
             className={`flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg text-[11px] font-medium transition-all ${activeTab === tab.id
-                ? "bg-card shadow text-foreground"
-                : "text-muted-foreground"
+              ? "bg-card shadow text-foreground"
+              : "text-muted-foreground"
               }`}
           >
             <tab.icon className="h-3 w-3" />
@@ -142,8 +142,8 @@ export default function UsersCRM() {
             key={s}
             onClick={() => setFilterScore(s)}
             className={`px-2.5 py-1 text-[11px] font-medium rounded-md transition-colors ${filterScore === s
-                ? "bg-primary text-primary-foreground"
-                : "bg-secondary text-secondary-foreground"
+              ? "bg-primary text-primary-foreground"
+              : "bg-secondary text-secondary-foreground"
               }`}
           >
             {s === "all" ? "Barchasi" : scoreLabel[s]}
@@ -158,7 +158,7 @@ export default function UsersCRM() {
         ) : filtered.length === 0 ? (
           <div className="text-xs text-muted-foreground text-center p-6">
             {activeTab === "active" ? "Aktiv foydalanuvchilar topilmadi" :
-              activeTab === "inactive" ? "Nosaktiv foydalanuvchilar topilmadi" :
+              activeTab === "inactive" ? "Noaktiv foydalanuvchilar topilmadi" :
                 "Foydalanuvchilar topilmadi"}
           </div>
         ) : (
@@ -231,7 +231,7 @@ export default function UsersCRM() {
                 <Badge className={scoreColors[selectedUser.score]}>{scoreLabel[selectedUser.score]}</Badge>
                 <Badge className={statusColors[selectedUser.status]}>{statusLabel[selectedUser.status]}</Badge>
                 <Badge className={selectedUser.isActive ? "bg-success/10 text-success" : "bg-destructive/10 text-destructive"}>
-                  {selectedUser.isActive ? "Aktiv" : "Nosaktiv"}
+                  {selectedUser.isActive ? "Aktiv" : "Noaktiv"}
                 </Badge>
               </div>
 

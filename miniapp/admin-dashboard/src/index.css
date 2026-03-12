@@ -111,7 +111,8 @@
     @apply border-border;
   }
 
-  body, html {
+  body,
+  html {
     @apply bg-background text-foreground font-sans antialiased;
     font-family: 'Inter', sans-serif;
     overflow-x: hidden;
@@ -125,6 +126,7 @@
     backdrop-filter: blur(var(--glass-blur));
     -webkit-backdrop-filter: blur(var(--glass-blur));
     border: 1px solid hsl(var(--glass-border));
+    overflow: hidden;
   }
 
   .text-gradient {

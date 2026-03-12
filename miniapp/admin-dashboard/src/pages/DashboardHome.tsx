@@ -98,12 +98,12 @@ export default function DashboardHome() {
         ))}
       </div>
 
-      {/* Aktiv vs Nosaktiv progress bar */}
+      {/* Aktiv vs Noaktiv progress bar */}
       {!isLoading && totalUsers > 0 && (
         <Card className="glass-card border-border/30">
           <CardContent className="p-3">
             <div className="flex items-center justify-between mb-2">
-              <h3 className="text-sm font-semibold">Aktiv / Nosaktiv nisbati</h3>
+              <h3 className="text-sm font-semibold">Aktiv / Noaktiv nisbati</h3>
               <span className="text-[11px] text-muted-foreground">{totalUsers.toLocaleString()} jami</span>
             </div>
             <div className="h-3 w-full rounded-full bg-secondary overflow-hidden flex">
@@ -123,7 +123,7 @@ export default function DashboardHome() {
               </div>
               <div className="flex items-center gap-1.5">
                 <div className="w-2.5 h-2.5 rounded-full bg-red-400/60" />
-                <span className="text-[11px] text-muted-foreground">Nosaktiv: {inactiveUsers.toLocaleString()}</span>
+                <span className="text-[11px] text-muted-foreground">Noaktiv: {inactiveUsers.toLocaleString()}</span>
               </div>
             </div>
           </CardContent>
