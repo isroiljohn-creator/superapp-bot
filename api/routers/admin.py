@@ -128,6 +128,31 @@ async def get_dashboard_stats(admin_id: int = Depends(check_admin), db: AsyncSes
             "time": _format_time(ev.created_at),
         })
 
+    # Daily new users chart — last 14 days
+    users_chart_14d = []
+    for i in range(13, -1, -1):
+        day = today - timedelta(days=i)
+        day_start = datetime(day.year, day.month, day.day, tzinfo=timezone.utc)
+        day_end = day_start + timedelta(days=1)
+        day_q = await db.execute(
+            select(func.count(User.id)).where(
+                User.created_at >= day_start,
+                User.created_at < day_end,
+            )
+        )
+        day_count = day_q.scalar() or 0
+        users_chart_14d.append({
+            "day": day.strftime("%d.%m"),
+            "users": day_count,
+        })
+
+    # Registration status counts
+    registered_q = await db.execute(
+        select(func.count(User.id)).where(User.user_status == "registered")
+    )
+    registered_count = registered_q.scalar() or 0
+    started_count = total_users - registered_count
+
     return {
         "kpis": {
             "totalUsers": total_users,
@@ -135,9 +160,12 @@ async def get_dashboard_stats(admin_id: int = Depends(check_admin), db: AsyncSes
             "inactiveUsers": inactive_users,
             "activeSubs": active_subs,
             "totalRevenue": int(total_revenue),
-            "conversion": conversion
+            "conversion": conversion,
+            "registeredUsers": registered_count,
+            "startedUsers": started_count,
         },
         "revenueChart7d": revenue_chart,
+        "usersChart14d": users_chart_14d,
         "recentActivity": recent_activity
     }
 
@@ -1014,3 +1042,53 @@ async def delete_course(course_id: int, admin_id: int = Depends(check_admin), db
     await db.delete(mod)
     await db.commit()
     return {"status": "deleted"}
+
+
+# ── CSV Export ──────────────────────────────────
+from fastapi.responses import StreamingResponse
+import io, csv
+
+@router.get("/users/export")
+async def export_users_csv(admin_id: int = Depends(check_admin), db: AsyncSession = Depends(get_db)):
+    """Export all users as CSV for download."""
+    query = select(User, Subscription).outerjoin(Subscription, Subscription.user_id == User.id)
+    result = await db.execute(query.order_by(User.created_at.desc()))
+    rows = result.all()
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow([
+        "ID", "Telegram ID", "Ism", "Username", "Telefon",
+        "Status", "Manba", "Kampaniya", "Lead Score",
+        "Aktiv", "Ro'yxatdan o'tgan sana", "Qo'shilgan sana"
+    ])
+
+    for user, sub in rows:
+        if sub and sub.status == "active":
+            status = "To'lagan"
+        elif user.user_status == "registered":
+            status = "Ro'yxatdan o'tgan"
+        else:
+            status = "Ro'yxatdan o'tmagan"
+
+        writer.writerow([
+            user.id,
+            user.telegram_id,
+            user.name or "",
+            user.username or "",
+            user.phone or "",
+            status,
+            user.source or "organik",
+            user.campaign or "",
+            user.lead_score or 0,
+            "Ha" if user.is_active else "Yo'q",
+            user.registered_at.strftime("%d.%m.%Y %H:%M") if user.registered_at else "",
+            user.created_at.strftime("%d.%m.%Y %H:%M") if user.created_at else "",
+        ])
+
+    output.seek(0)
+    return StreamingResponse(
+        iter([output.getvalue()]),
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=users_export.csv"}
+    )

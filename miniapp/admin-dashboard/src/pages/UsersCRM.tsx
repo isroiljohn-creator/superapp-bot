@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Search, X, UserCheck, UserX, ArrowUpDown } from "lucide-react";
+import { Search, X, UserCheck, UserX, ArrowUpDown, Download } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import { fetchApi } from "@/lib/api";
@@ -91,9 +91,35 @@ export default function UsersCRM() {
     return matchSearch && matchScore;
   });
 
+  const handleExportCSV = async () => {
+    try {
+      const initData = (window as any).Telegram?.WebApp?.initData || "";
+      const baseUrl = import.meta.env.VITE_API_URL || "";
+      const res = await fetch(`${baseUrl}/api/admin/users/export?initData=${encodeURIComponent(initData)}`);
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "users_export.csv";
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      console.error("CSV export error:", e);
+    }
+  };
+
   return (
     <div className="space-y-3">
-      <h2 className="text-base font-bold">Foydalanuvchilar (CRM)</h2>
+      <div className="flex items-center justify-between">
+        <h2 className="text-base font-bold">Foydalanuvchilar (CRM)</h2>
+        <button
+          onClick={handleExportCSV}
+          className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-medium bg-primary/10 text-primary rounded-lg hover:bg-primary/20 transition-colors"
+        >
+          <Download className="h-3.5 w-3.5" />
+          CSV
+        </button>
+      </div>
 
       {/* Active / Inactive Tabs */}
       <div className="flex gap-1.5 p-1 bg-secondary rounded-xl">

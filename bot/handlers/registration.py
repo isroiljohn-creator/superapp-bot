@@ -188,6 +188,29 @@ async def process_phone(message: Message, state: FSMContext):
 
         await session.commit()
 
+    # Notify admins about new registration
+    try:
+        from bot.config import settings
+        admin_ids = [int(i.strip()) for i in settings.ADMIN_IDS_STR.split(",") if i.strip()]
+        for aid in admin_ids:
+            try:
+                await message.bot.send_message(
+                    chat_id=aid,
+                    text=(
+                        f"🔔 <b>Yangi ro'yxat!</b>\n\n"
+                        f"👤 {name or '—'}\n"
+                        f"📱 {phone}\n"
+                        f"🔗 @{message.from_user.username or '—'}\n"
+                        f"📍 Manba: {user.source or 'organik'}\n"
+                        f"📋 Kampaniya: {user.campaign or '—'}"
+                    ),
+                    parse_mode="HTML",
+                )
+            except Exception:
+                pass
+    except Exception:
+        pass
+
     # Start segmentation (success message will be sent after full completion)
     await message.answer(uz.ASK_GOAL, reply_markup=goal_keyboard())
     await state.set_state(SegmentationFSM.waiting_goal)
