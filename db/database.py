@@ -60,7 +60,7 @@ async def _auto_migrate(engine):
         # (table, column, type)
         ("course_modules", "channel_message_id", "INTEGER"),
         ("users", "tokens", "INTEGER DEFAULT 10"),
-        ("users", "last_daily_claim", "DATE"),
+        ("users", "last_daily_claim", "TIMESTAMP"),
     ]
     async with engine.begin() as conn:
         for table, column, col_type in migrations:

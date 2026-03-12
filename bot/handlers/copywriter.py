@@ -10,9 +10,10 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 
 from bot.locales import uz
-from bot.keyboards.buttons import main_menu_keyboard
+from bot.keyboards.buttons import main_menu_keyboard, ai_workers_reply_keyboard
 from bot.config import settings
-from services.token_service import spend_tokens, get_tokens, COPY_COST
+from db.database import async_session
+from services.token_service import spend_tokens_async, get_tokens_async, add_tokens_async, COPY_COST
 
 router = Router(name="copywriter")
 logger = logging.getLogger("copywriter")
@@ -104,9 +105,8 @@ async def handle_copy_prompt(message: Message, state: FSMContext):
 
     # Skip menu buttons
     menu_buttons = [
-        uz.MENU_BTN_AI_WORKERS, uz.MENU_BTN_CLUB, uz.MENU_BTN_COURSE,
-        uz.MENU_BTN_LESSONS, uz.MENU_BTN_REFERRAL, uz.MENU_BTN_GUIDES,
-        uz.MENU_BTN_HELP,
+        uz.MENU_BTN_AI_WORKERS, uz.MENU_BTN_FREE_LESSONS, uz.MENU_BTN_CLUB,
+        uz.MENU_BTN_COURSE, uz.MENU_BTN_PROFILE,
     ]
     if prompt in menu_buttons:
         await state.clear()
@@ -117,15 +117,17 @@ async def handle_copy_prompt(message: Message, state: FSMContext):
     copy_desc = data.get("copy_desc", "matn")
 
     # Spend tokens
-    if not spend_tokens(message.from_user.id, COPY_COST):
-        tokens = get_tokens(message.from_user.id)
-        await state.clear()
-        await message.answer(
-            uz.AI_WORKERS_NO_TOKENS.format(needed=COPY_COST, have=tokens),
-            parse_mode="HTML",
-            reply_markup=main_menu_keyboard(user_id=message.from_user.id),
-        )
-        return
+    async with async_session() as session:
+        if not await spend_tokens_async(session, message.from_user.id, COPY_COST):
+            tokens = await get_tokens_async(session, message.from_user.id)
+            await state.clear()
+            await message.answer(
+                uz.AI_WORKERS_NO_TOKENS.format(needed=COPY_COST, have=tokens),
+                parse_mode="HTML",
+                reply_markup=main_menu_keyboard(user_id=message.from_user.id),
+            )
+            return
+        await session.commit()
 
     status_msg = await message.answer(uz.COPYWRITER_GENERATING, parse_mode="HTML")
 
@@ -147,7 +149,8 @@ async def handle_copy_prompt(message: Message, state: FSMContext):
         result = await asyncio.to_thread(_call_gemini, gemini_prompt)
         logger.info(f"Gemini response: {len(result)} chars")
 
-        tokens = get_tokens(message.from_user.id)
+        async with async_session() as session:
+            tokens = await get_tokens_async(session, message.from_user.id)
         await status_msg.edit_text(
             uz.COPYWRITER_SUCCESS.format(text=result[:3500], tokens=tokens),
             parse_mode="HTML",
@@ -156,10 +159,9 @@ async def handle_copy_prompt(message: Message, state: FSMContext):
         await state.clear()
 
         # Ask for another
-        from bot.handlers.ai_workers import ai_workers_keyboard
         await message.answer(
             "Yana xizmat kerakmi? 👇",
-            reply_markup=ai_workers_keyboard(message.from_user.id),
+            reply_markup=ai_workers_reply_keyboard(),
         )
 
         # Analytics
@@ -179,8 +181,9 @@ async def handle_copy_prompt(message: Message, state: FSMContext):
 
     except Exception as e:
         # Refund tokens on error
-        from services.token_service import add_tokens
-        add_tokens(message.from_user.id, COPY_COST)
+        async with async_session() as session:
+            await add_tokens_async(session, message.from_user.id, COPY_COST)
+            await session.commit()
 
         error_name = type(e).__name__
         error_msg = str(e)[:200]

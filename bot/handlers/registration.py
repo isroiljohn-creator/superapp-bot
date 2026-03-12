@@ -72,17 +72,7 @@ async def cmd_start(message: Message, state: FSMContext):
                     await deliver_lead_magnet(message, user.telegram_id)
                     return
 
-            # Fetch balance and subscription for the profile
-            ref_service = ReferralService(session)
-            stats = await ref_service.get_stats(user.id)
-            balance = stats.get("balance", 0)
-            referrals = stats.get("total_referrals", 0)
-
-            from services.subscription import SubscriptionService
-            sub_service = SubscriptionService(session)
-            is_subscribed = await sub_service.is_active(user.id)
-
-            # Already registered — show main menu (not profile)
+            # Already registered — show main menu
             await message.answer(
                 uz.MENU_TEXT,
                 parse_mode="HTML",
@@ -182,7 +172,7 @@ async def process_phone(message: Message, state: FSMContext):
     # Notify admins about new registration
     try:
         from bot.config import settings
-        admin_ids = [int(i.strip()) for i in settings.ADMIN_IDS_STR.split(",") if i.strip()]
+        admin_ids = settings.ADMIN_IDS
         for aid in admin_ids:
             try:
                 await message.bot.send_message(

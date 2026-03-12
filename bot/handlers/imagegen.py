@@ -11,8 +11,9 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 
 from bot.locales import uz
-from bot.keyboards.buttons import main_menu_keyboard
-from services.token_service import spend_tokens, get_tokens, add_tokens, IMAGE_COST
+from bot.keyboards.buttons import main_menu_keyboard, ai_workers_reply_keyboard
+from db.database import async_session
+from services.token_service import spend_tokens_async, get_tokens_async, add_tokens_async, IMAGE_COST
 
 router = Router(name="imagegen")
 logger = logging.getLogger("imagegen")
@@ -66,24 +67,25 @@ async def handle_imagegen_prompt(message: Message, state: FSMContext):
 
     # Skip menu buttons
     menu_buttons = [
-        uz.MENU_BTN_AI_WORKERS, uz.MENU_BTN_CLUB, uz.MENU_BTN_COURSE,
-        uz.MENU_BTN_LESSONS, uz.MENU_BTN_REFERRAL, uz.MENU_BTN_GUIDES,
-        uz.MENU_BTN_HELP,
+        uz.MENU_BTN_AI_WORKERS, uz.MENU_BTN_FREE_LESSONS, uz.MENU_BTN_CLUB,
+        uz.MENU_BTN_COURSE, uz.MENU_BTN_PROFILE,
     ]
     if prompt in menu_buttons:
         await state.clear()
         return
 
     # Spend tokens
-    if not spend_tokens(message.from_user.id, IMAGE_COST):
-        tokens = get_tokens(message.from_user.id)
-        await state.clear()
-        await message.answer(
-            uz.AI_WORKERS_NO_TOKENS.format(needed=IMAGE_COST, have=tokens),
-            parse_mode="HTML",
-            reply_markup=main_menu_keyboard(user_id=message.from_user.id),
-        )
-        return
+    async with async_session() as session:
+        if not await spend_tokens_async(session, message.from_user.id, IMAGE_COST):
+            tokens = await get_tokens_async(session, message.from_user.id)
+            await state.clear()
+            await message.answer(
+                uz.AI_WORKERS_NO_TOKENS.format(needed=IMAGE_COST, have=tokens),
+                parse_mode="HTML",
+                reply_markup=main_menu_keyboard(user_id=message.from_user.id),
+            )
+            return
+        await session.commit()
 
     status_msg = await message.answer(
         "🎨 Surat tayyorlanmoqda... ⏳\nBu 20-60 soniya vaqt olishi mumkin.",
@@ -112,7 +114,8 @@ async def handle_imagegen_prompt(message: Message, state: FSMContext):
                     image_data = await asyncio.to_thread(_download_url, img_url)
 
                     photo = BufferedInputFile(image_data, filename="image.jpg")
-                    tokens = get_tokens(message.from_user.id)
+                    async with async_session() as session:
+                        tokens = await get_tokens_async(session, message.from_user.id)
                     await message.answer_photo(
                         photo=photo,
                         caption=uz.IMAGEGEN_SUCCESS.format(
@@ -129,10 +132,9 @@ async def handle_imagegen_prompt(message: Message, state: FSMContext):
                     await state.clear()
 
                     # Ask for more
-                    from bot.handlers.ai_workers import ai_workers_keyboard
                     await message.answer(
                         "Yana xizmat kerakmi? 👇",
-                        reply_markup=ai_workers_keyboard(message.from_user.id),
+                        reply_markup=ai_workers_reply_keyboard(),
                     )
 
                     # Analytics
@@ -166,7 +168,9 @@ async def handle_imagegen_prompt(message: Message, state: FSMContext):
                     pass
 
         # Timeout — refund
-        add_tokens(message.from_user.id, IMAGE_COST)
+        async with async_session() as session:
+            await add_tokens_async(session, message.from_user.id, IMAGE_COST)
+            await session.commit()
         try:
             await status_msg.edit_text("⏰ Vaqt tugadi. Token qaytarildi. Qayta urinib ko'ring.")
         except Exception:
@@ -174,7 +178,9 @@ async def handle_imagegen_prompt(message: Message, state: FSMContext):
 
     except Exception as e:
         # Refund tokens on error
-        add_tokens(message.from_user.id, IMAGE_COST)
+        async with async_session() as session:
+            await add_tokens_async(session, message.from_user.id, IMAGE_COST)
+            await session.commit()
         error_name = type(e).__name__
         error_msg = str(e)[:200]
         logger.error(f"imagegen failed: {error_name}: {error_msg}")

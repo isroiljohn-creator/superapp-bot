@@ -41,7 +41,6 @@ async def process_level(callback: CallbackQuery, state: FSMContext):
         # Mark as fully registered
         if user:
             user.user_status = "registered"
-            user.is_onboarded = True
         await session.commit()
 
     await state.update_data(level=level)

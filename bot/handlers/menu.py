@@ -257,9 +257,13 @@ async def pedit_age(callback_query: CallbackQuery, state: FSMContext):
 
 @router.callback_query(F.data == "pedit:goal")
 async def pedit_goal(callback_query: CallbackQuery):
-    """Show goal selection."""
-    from bot.keyboards.buttons import goal_keyboard
-    await callback_query.message.answer(uz.PROFILE_ASK_GOAL, parse_mode="HTML", reply_markup=goal_keyboard())
+    """Show goal selection for profile editing."""
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text=uz.GOAL_MAKE_MONEY, callback_data="pedit_goal:make_money")],
+        [InlineKeyboardButton(text=uz.GOAL_GET_CLIENTS, callback_data="pedit_goal:get_clients")],
+        [InlineKeyboardButton(text=uz.GOAL_AUTOMATE, callback_data="pedit_goal:automate_business")],
+    ])
+    await callback_query.message.answer(uz.PROFILE_ASK_GOAL, parse_mode="HTML", reply_markup=kb)
     await callback_query.answer()
 
 
@@ -311,8 +315,8 @@ async def process_age_edit(message: Message, state: FSMContext):
     await message.answer(uz.PROFILE_UPDATED, parse_mode="HTML", reply_markup=main_menu_keyboard(user_id=message.from_user.id))
 
 
-# Goal change via segmentation callback (reuse existing)
-@router.callback_query(F.data.startswith("goal:"))
+# Goal change from PROFILE (not registration)
+@router.callback_query(F.data.startswith("pedit_goal:"))
 async def profile_goal_change(callback_query: CallbackQuery):
     """Update user goal from profile settings."""
     from db.database import async_session

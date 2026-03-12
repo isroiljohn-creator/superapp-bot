@@ -14,7 +14,7 @@ from fastapi import FastAPI, Request, HTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
-import os
+
 
 from aiogram import Bot, Dispatcher, types
 from aiogram.client.default import DefaultBotProperties
@@ -23,11 +23,13 @@ from bot.config import settings
 
 from api.routers import user, payment, referral, course, admin
 
+from typing import Optional
+
 logger = logging.getLogger(__name__)
 
 # Global bot and dispatcher
-bot: Bot = None
-dp: Dispatcher = None
+bot: Optional[Bot] = None
+dp: Optional[Dispatcher] = None
 
 async def make_storage():
     """Create Redis FSM storage with fallback to MemoryStorage."""
