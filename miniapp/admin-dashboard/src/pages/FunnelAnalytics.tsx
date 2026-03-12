@@ -21,16 +21,34 @@ export default function FunnelAnalytics() {
     ? ((steps[steps.length - 1].users / steps[0].users) * 100).toFixed(1)
     : "0";
 
+  // Find worst drop-off
+  let worstFrom = "—";
+  let worstTo = "—";
+  let worstCount = 0;
+  for (let i = 1; i < steps.length; i++) {
+    const drop = steps[i - 1].users - steps[i].users;
+    if (drop > worstCount) {
+      worstCount = drop;
+      worstFrom = steps[i - 1].label;
+      worstTo = steps[i].label;
+    }
+  }
+
+  // Find best retention step
+  let bestFrom = "—";
+  let bestTo = "—";
+  let bestRate = 0;
+  for (let i = 1; i < steps.length; i++) {
+    const rate = steps[i - 1].users > 0 ? (steps[i].users / steps[i - 1].users * 100) : 0;
+    if (rate > bestRate) {
+      bestRate = rate;
+      bestFrom = steps[i - 1].label;
+      bestTo = steps[i].label;
+    }
+  }
+
   return (
     <div className="space-y-3">
-      {/* Conversion % header */}
-      {!isLoading && steps.length >= 2 && (
-        <div className="flex items-center gap-2">
-          <span className="text-2xl font-bold text-primary">{totalConv}%</span>
-          <span className="text-xs text-muted-foreground">umumiy konversiya</span>
-        </div>
-      )}
-
       {/* Funnel bars */}
       <Card className="glass-card border-border/30">
         <CardContent className="p-3">
@@ -73,6 +91,39 @@ export default function FunnelAnalytics() {
           )}
         </CardContent>
       </Card>
+
+      {/* Summary cards */}
+      {!isLoading && steps.length >= 2 && (
+        <div className="grid grid-cols-3 gap-2">
+          {/* Konversiya */}
+          <Card className="glass-card border-border/30">
+            <CardContent className="p-2.5 text-center">
+              <p className="text-xl font-bold text-primary leading-none">{totalConv}%</p>
+              <p className="text-[10px] text-muted-foreground mt-1">Konversiya</p>
+            </CardContent>
+          </Card>
+
+          {/* Eng katta yo'qotish */}
+          <Card className="glass-card border-border/30">
+            <CardContent className="p-2.5 text-center">
+              <p className="text-xs font-bold text-destructive leading-tight truncate">{worstFrom}</p>
+              <p className="text-[10px] text-destructive/60">↓</p>
+              <p className="text-xs font-bold text-destructive leading-tight truncate">{worstTo}</p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">Yo'qotish</p>
+            </CardContent>
+          </Card>
+
+          {/* Eng yaxshi bosqich */}
+          <Card className="glass-card border-border/30">
+            <CardContent className="p-2.5 text-center">
+              <p className="text-xs font-bold text-success leading-tight truncate">{bestFrom}</p>
+              <p className="text-[10px] text-success/60">↓</p>
+              <p className="text-xs font-bold text-success leading-tight truncate">{bestTo}</p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">Yaxshi</p>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }
