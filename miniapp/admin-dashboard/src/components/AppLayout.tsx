@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Home, GitBranch, MousePointerClick, Users, Megaphone } from "lucide-react";
 import { ThemeToggle } from "./ThemeToggle";
 import DashboardHome from "@/pages/DashboardHome";
 import FunnelAnalytics from "@/pages/FunnelAnalytics";
@@ -13,14 +12,14 @@ import GuidesManager from "@/pages/GuidesManager";
 import LeadMagnetManager from "@/pages/LeadMagnetManager";
 
 const tabs = [
-  { id: "home", label: "Asosiy", icon: Home },
-  { id: "funnel", label: "Voronka", icon: GitBranch },
-  { id: "events", label: "Voqealar", icon: MousePointerClick },
-  { id: "users", label: "Userlar", icon: Users },
-  { id: "broadcast", label: "Xabarlar", icon: Megaphone },
-  { id: "courses", label: "Darslar", icon: BookOpen },
-  { id: "guides", label: "Qo'llanmalar", icon: BookOpen },
-  { id: "magnets", label: "Promolar", icon: Gift },
+  { id: "home", label: "Asosiy", icon: "⌂" },
+  { id: "funnel", label: "Voronka", icon: "◇" },
+  { id: "events", label: "Voqealar", icon: "◎" },
+  { id: "users", label: "Userlar", icon: "⊕" },
+  { id: "broadcast", label: "Xabarlar", icon: "✦" },
+  { id: "courses", label: "Darslar", icon: "▶" },
+  { id: "guides", label: "Qo'llanma", icon: "≡" },
+  { id: "magnets", label: "Havola", icon: "⊘" },
 ] as const;
 
 type TabId = (typeof tabs)[number]["id"];
@@ -42,55 +41,69 @@ export default function AppLayout() {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-background">
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100dvh', overflow: 'hidden' }}>
       {/* Header */}
-      <header className="flex items-center justify-between px-4 py-3 border-b border-border/50">
-        <h1 className="text-lg font-bold text-gradient">Admin Boshqaruvi</h1>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderBottom: '1px solid rgba(255,255,255,0.08)', flexShrink: 0 }}>
+        <span style={{ fontSize: '18px', fontWeight: 700, color: 'hsl(199 85% 55%)' }}>Admin</span>
         <ThemeToggle />
-      </header>
+      </div>
 
       {/* Content */}
-      <main className="flex-1 overflow-y-auto">
+      <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', minHeight: 0 }}>
         <AnimatePresence mode="wait">
           <motion.div
             key={activeTab}
             initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -6 }}
-            transition={{ duration: 0.2 }}
-            className="p-4 pb-24"
+            transition={{ duration: 0.15 }}
+            style={{ padding: '12px' }}
           >
             {renderScreen()}
           </motion.div>
         </AnimatePresence>
-      </main>
+      </div>
 
-      {/* Bottom Tab Bar */}
-      <nav className="fixed bottom-0 left-0 right-0 glass-card border-t border-border/30 px-2 pb-[env(safe-area-inset-bottom)]">
-        <div className="flex items-center justify-around">
-          {tabs.map((tab) => {
-            const isActive = activeTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`flex flex-col items-center gap-0.5 py-2 px-3 transition-colors relative ${isActive ? "text-primary" : "text-muted-foreground"
-                  }`}
-              >
-                {isActive && (
-                  <motion.div
-                    layoutId="tab-indicator"
-                    className="absolute -top-px left-2 right-2 h-0.5 bg-primary rounded-full"
-                    transition={{ type: "spring", stiffness: 400, damping: 30 }}
-                  />
-                )}
-                <tab.icon className="h-5 w-5" />
-                <span className="text-[10px] font-medium">{tab.label}</span>
-              </button>
-            );
-          })}
-        </div>
-      </nav>
+      {/* Tab Bar — all inline styles, no external deps */}
+      <div style={{
+        flexShrink: 0,
+        borderTop: '1px solid rgba(255,255,255,0.08)',
+        display: 'flex',
+        overflowX: 'auto',
+        background: 'hsl(220 20% 7%)',
+        paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+      }}>
+        {tabs.map((tab) => {
+          const isActive = activeTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '2px',
+                padding: '10px 4px 8px',
+                flex: 1,
+                minWidth: '44px',
+                border: 'none',
+                background: isActive ? 'rgba(56,189,248,0.08)' : 'transparent',
+                color: isActive ? 'hsl(199 85% 55%)' : 'hsl(210 10% 50%)',
+                cursor: 'pointer',
+                borderTop: isActive ? '2px solid hsl(199 85% 55%)' : '2px solid transparent',
+                WebkitTapHighlightColor: 'transparent',
+                transition: 'color 0.15s',
+                fontSize: '14px',
+              }}
+            >
+              <span style={{ fontSize: '18px', lineHeight: 1 }}>{tab.icon}</span>
+              <span style={{ fontSize: '9px', fontWeight: 500, whiteSpace: 'nowrap', lineHeight: 1 }}>{tab.label}</span>
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }

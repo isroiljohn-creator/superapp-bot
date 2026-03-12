@@ -182,6 +182,7 @@ class CourseModule(Base):
     description = Column(Text, nullable=True)
     video_url = Column(Text, nullable=True)
     video_file_id = Column(String(255), nullable=True)
+    channel_message_id = Column(Integer, nullable=True)  # Message ID in private content channel
     order = Column(Integer, nullable=False, default=0)
     unlock_condition = Column(String(100), nullable=True)  # e.g. "module_1_complete", "vsl_watched"
     is_active = Column(Boolean, default=True)

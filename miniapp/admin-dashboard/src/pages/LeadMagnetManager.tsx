@@ -43,7 +43,7 @@ export default function LeadMagnetManager() {
 
     const { data: magnets = [], isLoading } = useQuery<LeadMagnet[]>({
         queryKey: ["admin-lead-magnets"],
-        queryFn: () => fetchApi("/admin/lead-magnets"),
+        queryFn: () => fetchApi("/api/admin/lead-magnets"),
     });
 
     const saveMutation = useMutation({
@@ -55,19 +55,19 @@ export default function LeadMagnetManager() {
             };
 
             if (editingMagnet) {
-                return fetchApi(`/admin/lead-magnets/${editingMagnet.id}`, {
+                return fetchApi(`/api/admin/lead-magnets/${editingMagnet.id}`, {
                     method: "PUT",
                     body: JSON.stringify(cleanData),
                 });
             }
-            return fetchApi("/admin/lead-magnets", {
+            return fetchApi("/api/admin/lead-magnets", {
                 method: "POST",
                 body: JSON.stringify(cleanData),
             });
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["admin-lead-magnets"] });
-            toast.success(editingMagnet ? "Lid magnit yangilandi" : "Lid magnit qo'shildi");
+            toast.success(editingMagnet ? "Havola yangilandi" : "Havola qo'shildi");
             setIsDialogOpen(false);
             resetForm();
         },
@@ -75,10 +75,10 @@ export default function LeadMagnetManager() {
     });
 
     const deleteMutation = useMutation({
-        mutationFn: (id: number) => fetchApi(`/admin/lead-magnets/${id}`, { method: "DELETE" }),
+        mutationFn: (id: number) => fetchApi(`/api/admin/lead-magnets/${id}`, { method: "DELETE" }),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["admin-lead-magnets"] });
-            toast.success("Lid magnit o'chirildi");
+            toast.success("Havola o'chirildi");
         },
         onError: (error) => toast.error(error.message),
     });
@@ -134,7 +134,7 @@ export default function LeadMagnetManager() {
     return (
         <div className="space-y-4">
             <div className="flex items-center justify-between">
-                <h2 className="text-xl font-bold">🎁 Lid Magnitlar (Start Linklar)</h2>
+                <h2 className="text-xl font-bold">🔗 Havolalar</h2>
 
                 <Dialog open={isDialogOpen} onOpenChange={(open) => {
                     setIsDialogOpen(open);
@@ -147,15 +147,15 @@ export default function LeadMagnetManager() {
                     </DialogTrigger>
                     <DialogContent className="sm:max-w-[425px]">
                         <DialogHeader>
-                            <DialogTitle>{editingMagnet ? "Tahrirlash" : "Yangi lid magnit (Promokod)"}</DialogTitle>
+                            <DialogTitle>{editingMagnet ? "Tahrirlash" : "Yangi havola"}</DialogTitle>
                         </DialogHeader>
                         <form onSubmit={handleSubmit} className="space-y-4 pt-4">
                             <div className="space-y-2">
-                                <label className="text-sm font-medium">Kampaniya / Promokod (inglizcha, probelsiz)</label>
+                                <label className="text-sm font-medium">Havola nomi (inglizcha, probelsiz)</label>
                                 <Input
                                     value={formData.campaign}
                                     onChange={(e) => setFormData({ ...formData, campaign: e.target.value.replace(/\s+/g, '_').toLowerCase() })}
-                                    placeholder="masalan: promt, video_darslik"
+                                    placeholder="masalan: dars1, bonus_video"
                                 />
                                 <p className="text-xs text-muted-foreground">Bot linki shunday bo'ladi: t.me/Isroil_AIBot?start=<b>{formData.campaign || 'kampaniya'}</b></p>
                             </div>
@@ -225,7 +225,7 @@ export default function LeadMagnetManager() {
             <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3 text-sm flex gap-3 text-blue-200">
                 <LinkIcon className="h-5 w-5 shrink-0 text-blue-400" />
                 <p>
-                    Ushbu sahifada siz maxsus <b>/start</b> linklarini yaratishingiz mumkin. Bu link (masalan, <code>?start=promt</code>) orqali kiritilgan foydalanuvchilarga avtomat tarzda kerakli resurs beriladi va ro'yxatdan o'tkaziladi.
+                    Ushbu sahifada siz maxsus <b>/start</b> linklarini yaratishingiz mumkin. Bu havola orqali kiritilgan foydalanuvchilarga avtomat tarzda kerakli resurs (video, dokument) beriladi va ular ro'yxatdan o'tkaziladi.
                 </p>
             </div>
 
@@ -236,7 +236,7 @@ export default function LeadMagnetManager() {
             ) : magnets.length === 0 ? (
                 <div className="text-center p-8 border rounded-lg border-dashed text-muted-foreground">
                     <FileText className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                    <p>Hozircha lid magnitlar yo'q.</p>
+                    <p>Hozircha havolalar yo'q.</p>
                 </div>
             ) : (
                 <div className="grid gap-3">

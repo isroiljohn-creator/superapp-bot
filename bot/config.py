@@ -16,6 +16,9 @@ class Settings(BaseSettings):
     WEBHOOK_PATH: str = "/webhook/tg"
     WEBHOOK_SECRET: str = "my-secret-token"
 
+    # ── Gemini AI ─────────────────────────────────────
+    GEMINI_API_KEY: str = ""
+
     @property
     def get_webhook_url(self) -> str:
         """Returns WEBHOOK_URL if set, else constructs from RAILWAY_PUBLIC_DOMAIN."""
@@ -59,6 +62,7 @@ class Settings(BaseSettings):
     ADMIN_IDS_STR: str = ""
     ADMIN_API_KEY: str = ""   # Optional extra API key for admin endpoints
     PRIVATE_GROUP_ID: int = 0
+    CONTENT_CHANNEL_ID: int = 0  # Private channel for large video storage
     CLUB_PRICE: int = 97_000  # UZS
 
     @property

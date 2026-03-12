@@ -45,18 +45,18 @@ export default function GuidesManager() {
 
     const { data: guides = [], isLoading } = useQuery<Guide[]>({
         queryKey: ["admin-guides"],
-        queryFn: () => fetchApi("/admin/guides"),
+        queryFn: () => fetchApi("/api/admin/guides"),
     });
 
     const saveMutation = useMutation({
         mutationFn: (data: any) => {
             if (editingGuide) {
-                return fetchApi(`/admin/guides/${editingGuide.id}`, {
+                return fetchApi(`/api/admin/guides/${editingGuide.id}`, {
                     method: "PUT",
                     body: JSON.stringify(data),
                 });
             }
-            return fetchApi("/admin/guides", {
+            return fetchApi("/api/admin/guides", {
                 method: "POST",
                 body: JSON.stringify(data),
             });
@@ -71,7 +71,7 @@ export default function GuidesManager() {
     });
 
     const deleteMutation = useMutation({
-        mutationFn: (id: number) => fetchApi(`/admin/guides/${id}`, { method: "DELETE" }),
+        mutationFn: (id: number) => fetchApi(`/api/admin/guides/${id}`, { method: "DELETE" }),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["admin-guides"] });
             toast.success("Qo'llanma o'chirildi");

@@ -1,4 +1,12 @@
 # Deploy Trigger: 2026-03-09T01:08:00
+import os
+import sys
+
+# Ensure project root is in Python path (Railway deploys to /app)
+_project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _project_root not in sys.path:
+    sys.path.insert(0, _project_root)
+
 import logging
 import time
 from contextlib import asynccontextmanager
@@ -46,7 +54,7 @@ async def lifespan(app: FastAPI):
     dp = Dispatcher(storage=storage)
 
     # Register bot routers
-    from bot.handlers import registration, segmentation, lead_magnet, funnel, subscription, referral as bot_referral, admin as bot_admin, menu
+    from bot.handlers import registration, segmentation, lead_magnet, funnel, subscription, referral as bot_referral, admin as bot_admin, ai_workers, imagegen, copywriter, menu
     dp.include_routers(
         registration.router,
         segmentation.router,
@@ -55,6 +63,9 @@ async def lifespan(app: FastAPI):
         subscription.router,
         bot_referral.router,
         bot_admin.router,
+        ai_workers.router,
+        imagegen.router,
+        copywriter.router,
         menu.router,
     )
     logger.info("✅ Barcha bot handlerlar ro'yxatdan o'tkazildi")
@@ -142,6 +153,19 @@ admin_dist = os.path.join(os.path.dirname(__file__), "static", "admin")
 if os.path.exists(admin_dist):
     app.mount("/admin", StaticFiles(directory=admin_dist, html=True), name="admin_dashboard")
     app.mount("/panel", StaticFiles(directory=admin_dist, html=True), name="admin_dashboard_new")
+
+# No-cache middleware for admin HTML — defeats Telegram WebView caching
+@app.middleware("http")
+async def add_no_cache_headers(request, call_next):
+    response = await call_next(request)
+    path = request.url.path
+    if path.startswith("/admin") or path.startswith("/panel"):
+        # JS/CSS are hash-named (cache-safe), but HTML must never be cached
+        if not path.endswith(".js") and not path.endswith(".css"):
+            response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+            response.headers["Pragma"] = "no-cache"
+            response.headers["Expires"] = "0"
+    return response
     
 # Fallback for React Router (if a user refreshes a subpath)
 @app.exception_handler(404)

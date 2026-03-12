@@ -13,10 +13,11 @@ from pydantic import BaseModel
 from typing import Optional
 
 class CourseModuleCreate(BaseModel):
-    title: str
+    title: Optional[str] = ""
     description: Optional[str] = None
     video_url: Optional[str] = None
     video_file_id: Optional[str] = None
+    channel_message_id: Optional[int] = None
     order: int
     is_active: bool = True
     unlock_condition: Optional[str] = None
@@ -26,6 +27,7 @@ class CourseModuleUpdate(BaseModel):
     description: Optional[str] = None
     video_url: Optional[str] = None
     video_file_id: Optional[str] = None
+    channel_message_id: Optional[int] = None
     order: Optional[int] = None
     is_active: Optional[bool] = None
     unlock_condition: Optional[str] = None
@@ -874,3 +876,95 @@ async def get_user_activity(user_id: int, admin_id: int = Depends(check_admin), 
             "time": _format_time(ev.created_at)
         } for ev in events
     ]
+
+
+# ── Courses (Darslar) CRUD ──────────────────────────────────
+@router.get("/courses")
+async def get_courses(admin_id: int = Depends(check_admin), db: AsyncSession = Depends(get_db)):
+    """List all course modules."""
+    res = await db.execute(select(CourseModule).order_by(CourseModule.order))
+    modules = res.scalars().all()
+    return [
+        {
+            "id": m.id,
+            "title": m.title,
+            "description": m.description,
+            "video_url": m.video_url,
+            "video_file_id": m.video_file_id,
+            "channel_message_id": m.channel_message_id,
+            "order": m.order,
+            "is_active": m.is_active,
+            "unlock_condition": m.unlock_condition,
+        } for m in modules
+    ]
+
+@router.post("/courses")
+async def create_course(data: CourseModuleCreate, admin_id: int = Depends(check_admin), db: AsyncSession = Depends(get_db)):
+    """Create a new course module."""
+    new_mod = CourseModule(
+        title=data.title,
+        description=data.description,
+        video_url=data.video_url,
+        video_file_id=data.video_file_id,
+        channel_message_id=data.channel_message_id,
+        order=data.order,
+        is_active=data.is_active,
+        unlock_condition=data.unlock_condition,
+    )
+    db.add(new_mod)
+    await db.commit()
+    await db.refresh(new_mod)
+    return {
+        "id": new_mod.id,
+        "title": new_mod.title,
+        "description": new_mod.description,
+        "video_url": new_mod.video_url,
+        "video_file_id": new_mod.video_file_id,
+        "channel_message_id": new_mod.channel_message_id,
+        "order": new_mod.order,
+        "is_active": new_mod.is_active,
+        "unlock_condition": new_mod.unlock_condition,
+    }
+
+@router.put("/courses/{course_id}")
+async def update_course(course_id: int, data: CourseModuleUpdate, admin_id: int = Depends(check_admin), db: AsyncSession = Depends(get_db)):
+    """Update a course module."""
+    res = await db.execute(select(CourseModule).where(CourseModule.id == course_id))
+    mod = res.scalar_one_or_none()
+    if not mod:
+        raise HTTPException(status_code=404, detail="Dars topilmadi")
+
+    if data.title is not None: mod.title = data.title
+    if data.description is not None: mod.description = data.description
+    if data.video_url is not None: mod.video_url = data.video_url
+    if data.video_file_id is not None: mod.video_file_id = data.video_file_id
+    if data.channel_message_id is not None: mod.channel_message_id = data.channel_message_id
+    if data.order is not None: mod.order = data.order
+    if data.is_active is not None: mod.is_active = data.is_active
+    if data.unlock_condition is not None: mod.unlock_condition = data.unlock_condition
+
+    await db.commit()
+    await db.refresh(mod)
+    return {
+        "id": mod.id,
+        "title": mod.title,
+        "description": mod.description,
+        "video_url": mod.video_url,
+        "video_file_id": mod.video_file_id,
+        "channel_message_id": mod.channel_message_id,
+        "order": mod.order,
+        "is_active": mod.is_active,
+        "unlock_condition": mod.unlock_condition,
+    }
+
+@router.delete("/courses/{course_id}")
+async def delete_course(course_id: int, admin_id: int = Depends(check_admin), db: AsyncSession = Depends(get_db)):
+    """Delete a course module."""
+    res = await db.execute(select(CourseModule).where(CourseModule.id == course_id))
+    mod = res.scalar_one_or_none()
+    if not mod:
+        raise HTTPException(status_code=404, detail="Dars topilmadi")
+
+    await db.delete(mod)
+    await db.commit()
+    return {"status": "deleted"}

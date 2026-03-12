@@ -1,7 +1,15 @@
 """Bot entry point — aiogram 3 with Redis FSM storage."""
+import os
+import sys
+
+# Ensure project root is in Python path (Railway deploys to /app)
+_project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _project_root not in sys.path:
+    sys.path.insert(0, _project_root)
+
 import asyncio
 import logging
-import sys
+
 
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
@@ -67,7 +75,7 @@ async def main():
     dp = Dispatcher(storage=storage)
 
     # Register routers
-    from bot.handlers import registration, segmentation, lead_magnet, funnel, subscription, referral, admin, menu
+    from bot.handlers import registration, segmentation, lead_magnet, funnel, subscription, referral, admin, ai_workers, imagegen, copywriter, menu
     dp.include_routers(
         registration.router,
         segmentation.router,
@@ -76,7 +84,10 @@ async def main():
         subscription.router,
         referral.router,
         admin.router,
-        menu.router,  # Must be last — catches menu button text
+        ai_workers.router,   # AI workers hub — before imagegen
+        imagegen.router,     # Image generation (FSM)
+        copywriter.router,   # Copywriter (FSM)
+        menu.router,         # Must be last — catches menu button text
     )
     logger.info("✅ Barcha handlerlar ro'yxatdan o'tkazildi")
 

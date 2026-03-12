@@ -288,18 +288,64 @@ async def lesson_db_callback(callback_query):
         await callback_query.answer("Dars topilmadi", show_alert=True)
         return
 
-    if lesson.video_file_id:
+    import re
+    caption = f"\U0001f4f9 <b>{lesson.title}</b>\n\n{lesson.description or ''}"
+    delivered = False
+
+    # 1) Check video_url for t.me/c/ private channel link → copy_message
+    if lesson.video_url and "t.me/c/" in lesson.video_url:
+        match = re.search(r't\.me/c/(\d+)/(\d+)', lesson.video_url)
+        if match:
+            channel_id = int(f"-100{match.group(1)}")
+            message_id = int(match.group(2))
+            try:
+                await callback_query.message.bot.copy_message(
+                    chat_id=callback_query.from_user.id,
+                    from_chat_id=channel_id,
+                    message_id=message_id,
+                )
+                await callback_query.message.answer(caption, parse_mode="HTML")
+                delivered = True
+            except Exception as e:
+                await callback_query.message.answer(
+                    f"❌ Xatolik: {str(e)}\n\n📋 Channel: {channel_id}\n📋 Message: {message_id}",
+                )
+                delivered = True
+
+    # 2) channel_message_id + CONTENT_CHANNEL_ID (legacy)
+    if not delivered and lesson.channel_message_id:
+        content_channel = getattr(settings, 'CONTENT_CHANNEL_ID', 0)
+        if content_channel:
+            try:
+                await callback_query.message.bot.copy_message(
+                    chat_id=callback_query.from_user.id,
+                    from_chat_id=content_channel,
+                    message_id=lesson.channel_message_id,
+                )
+                await callback_query.message.answer(caption, parse_mode="HTML")
+                delivered = True
+            except Exception:
+                pass
+
+    # 3) file_id
+    if not delivered and lesson.video_file_id:
         await callback_query.message.answer_video(
             lesson.video_file_id,
-            caption=f"\U0001f4f9 <b>{lesson.title}</b>\n\n{lesson.description or ''}",
+            caption=caption,
             parse_mode="HTML",
         )
-    elif lesson.video_url:
+        delivered = True
+
+    # 4) Plain URL
+    if not delivered and lesson.video_url:
         await callback_query.message.answer(
-            f"\U0001f4f9 <b>{lesson.title}</b>\n\n{lesson.description or ''}\n\n\U0001f517 {lesson.video_url}",
+            f"{caption}\n\n\U0001f517 {lesson.video_url}",
             parse_mode="HTML",
         )
-    else:
+        delivered = True
+
+    # 5) No video
+    if not delivered:
         await callback_query.answer(
             f"\U0001f4f9 {lesson.title} — tez orada qo'shiladi!",
             show_alert=True,

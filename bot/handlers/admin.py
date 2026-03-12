@@ -27,6 +27,7 @@ def admin_menu_keyboard() -> InlineKeyboardMarkup:
     """Inline keyboard for the admin dashboard."""
     # Extract scheme+host only — ignore any path in WEBAPP_URL env var
     from urllib.parse import urlparse
+    import time
     raw = settings.WEBAPP_URL or ""
     if raw:
         parsed = urlparse(raw)
@@ -34,8 +35,10 @@ def admin_menu_keyboard() -> InlineKeyboardMarkup:
     else:
         base_url = ""
 
+    # Add timestamp to bust Telegram WebView cache
+    cache_buster = int(time.time())
     buttons = [
-        [InlineKeyboardButton(text="📱 Admin Dashboard (Web)", web_app=WebAppInfo(url=f"{base_url}/panel/"))] if base_url else [],
+        [InlineKeyboardButton(text="📱 Admin Dashboard (Web)", web_app=WebAppInfo(url=f"{base_url}/panel/?v={cache_buster}"))] if base_url else [],
         [InlineKeyboardButton(text="📊 Statistika", callback_data="admin_action:stats")],
         [InlineKeyboardButton(text="📤 Xabar yuborish (Broadcast)", callback_data="admin_action:broadcast")],
         [InlineKeyboardButton(text="⚙️ Taklif sozlamalari", callback_data="admin_action:settings")],

@@ -188,12 +188,7 @@ async def process_phone(message: Message, state: FSMContext):
 
         await session.commit()
 
-    await message.answer(
-        uz.REGISTRATION_COMPLETE.format(name=name),
-        reply_markup=main_menu_keyboard(),
-    )
-
-    # Start segmentation
+    # Start segmentation (success message will be sent after full completion)
     await message.answer(uz.ASK_GOAL, reply_markup=goal_keyboard())
     await state.set_state(SegmentationFSM.waiting_goal)
 

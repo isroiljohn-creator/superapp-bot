@@ -229,6 +229,7 @@ COURSE_ALL_COMPLETE = "🎉 Tabriklaymiz! Barcha modullarni tugatdingiz."
 # ──────────────────────────────────────────────
 # Main menu
 # ──────────────────────────────────────────────
+MENU_BTN_AI_WORKERS = "🤖 AI hodimlar"
 MENU_BTN_CLUB = "🔐 Yopiq klub"
 MENU_BTN_COURSE = "📚 Nuvi kursi"
 MENU_BTN_LESSONS = "🎓 Darslar"
@@ -236,6 +237,87 @@ MENU_BTN_REFERRAL = "🔗 Referal"
 MENU_BTN_GUIDES = "📖 Qo'llanmalar"
 MENU_BTN_HELP = "ℹ️ Yordam"
 MENU_BTN_ADMIN = "👨‍💻 Admin"
+
+# AI Workers
+AI_WORKERS_INTRO = (
+    "🤖 <b>AI hodimlar</b>\n\n"
+    "Sun'iy intellekt yordamchilari sizning xizmatingizda!\n"
+    "Quyidagi xizmatlardan birini tanlang 👇\n\n"
+    "💰 Tokenlaringiz: <b>{tokens} 🪙</b>"
+)
+
+AI_WORKERS_BTN_IMAGE = "🎨 Surat tayyorlash (2 🪙)"
+AI_WORKERS_BTN_COPY = "📝 Kopirayter (1 🪙)"
+AI_WORKERS_BTN_DAILY = "🎁 Kunlik bonus olish (+5 🪙)"
+AI_WORKERS_BTN_BACK = "🔙 Orqaga"
+
+AI_WORKERS_DAILY_CLAIMED = "✅ Kunlik bonus olindi! +5 🪙\n\n💰 Tokenlaringiz: <b>{tokens} 🪙</b>"
+AI_WORKERS_DAILY_ALREADY = "⏰ Bugungi bonus allaqachon olingan!\n\nErtaga qayta oling. 💰 Tokenlaringiz: <b>{tokens} 🪙</b>"
+AI_WORKERS_NO_TOKENS = (
+    "❌ <b>Tokenlar yetarli emas!</b>\n\n"
+    "Kerakli: {needed} 🪙 | Mavjud: {have} 🪙\n\n"
+    "💡 Token olish usullari:\n"
+    "🎁 Kunlik bonus: +5 🪙\n"
+    "🔗 Referal: +3 🪙 har bir do'st"
+)
+
+# Image generation
+IMAGEGEN_INTRO = (
+    "🎨 <b>Surat tayyorlash</b>\n\n"
+    "Menga surat ta'rifini yozing, men sizga AI orqali surat yaratib beraman!\n\n"
+    "📝 <b>Misol:</b> <i>Kosmosda samolyot</i>\n\n"
+    "✏️ Quyida surat ta'rifini yozing 👇"
+)
+
+IMAGEGEN_GENERATING = "🎨 Surat tayyorlanmoqda... ⏳\nBu 20-60 soniya vaqt olishi mumkin."
+
+IMAGEGEN_SUCCESS = (
+    "✅ Surat tayyor!\n\n"
+    "📝 <b>Ta'rif:</b> <i>{prompt}</i>\n\n"
+    "💰 Qolgan tokenlar: {tokens} 🪙"
+)
+
+IMAGEGEN_ERROR = "❌ Surat tayyorlashda xatolik yuz berdi. Qayta urinib ko'ring."
+
+IMAGEGEN_PREMIUM_COMING = (
+    "💎 <b>Premium rejim tez orada!</b>\n\n"
+    "Premium rejimda:\n"
+    "✅ Cheksiz surat generatsiya\n"
+    "✅ Yuqori sifatli (4K) suratlar\n"
+    "✅ Tezroq javob vaqti\n\n"
+    "Tez orada e'lon qilamiz! 🔔"
+)
+
+# Copywriter
+COPYWRITER_INTRO = (
+    "📝 <b>AI Kopirayter</b>\n\n"
+    "Quyidagi kontent turlaridan birini tanlang 👇"
+)
+
+COPYWRITER_TYPES_POST = "📱 Post yozish"
+COPYWRITER_TYPES_AD = "📢 Reklama matni"
+COPYWRITER_TYPES_EMAIL = "📧 Email shablon"
+COPYWRITER_TYPES_DESC = "📋 Mahsulot tavsifi"
+
+COPYWRITER_ASK_PROMPT = (
+    "📝 <b>{copy_type}</b>\n\n"
+    "Nimani yozishim kerak?\n"
+    "Mavzu, mahsulot yoki xizmat haqida qisqacha yozing 👇\n\n"
+    "📝 <b>Misol:</b> <i>Online ingliz tili kurslari uchun reklama</i>"
+)
+
+COPYWRITER_GENERATING = "📝 Matn tayyorlanmoqda... ⏳"
+
+COPYWRITER_SUCCESS = (
+    "✅ <b>Matn tayyor!</b>\n\n"
+    "{text}\n\n"
+    "💰 Qolgan tokenlar: {tokens} 🪙"
+)
+
+COPYWRITER_ERROR = "❌ Matn tayyorlashda xatolik. Qayta urinib ko'ring."
+
+# Token
+TOKEN_WELCOME = "🎁 Xush kelibsiz! Sizga <b>10 🪙</b> bepul token berildi."
 
 MENU_TEXT = (
     "🏠 <b>Asosiy menyu</b>\n\n"

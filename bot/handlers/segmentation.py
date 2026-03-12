@@ -4,7 +4,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery
 
 from bot.fsm.states import SegmentationFSM
-from bot.keyboards.buttons import level_keyboard
+from bot.keyboards.buttons import level_keyboard, main_menu_keyboard
 from bot.locales import uz
 from db.database import async_session
 from services.crm import CRMService
@@ -30,15 +30,28 @@ async def process_goal(callback: CallbackQuery, state: FSMContext):
 
 @router.callback_query(SegmentationFSM.waiting_level, F.data.startswith("level:"))
 async def process_level(callback: CallbackQuery, state: FSMContext):
-    """Save level, complete segmentation, deliver lead magnet."""
+    """Save level, complete segmentation, send registration success."""
     level = callback.data.split(":")[1]
 
     async with async_session() as session:
         crm = CRMService(session)
         await crm.set_level(callback.from_user.id, level)
+        user = await crm.get_user(callback.from_user.id)
+        user_name = user.name if user else ""
+        # Mark as fully registered
+        if user:
+            user.user_status = "registered"
+            user.is_onboarded = True
         await session.commit()
 
     await state.update_data(level=level)
     await callback.message.edit_text(uz.SEGMENTATION_COMPLETE)
+
+    # Send registration success message with main menu
+    await callback.message.answer(
+        uz.REGISTRATION_COMPLETE.format(name=user_name),
+        reply_markup=main_menu_keyboard(),
+    )
+
     await state.clear()
     await callback.answer()
