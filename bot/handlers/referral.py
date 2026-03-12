@@ -30,7 +30,6 @@ async def cmd_referral(message: Message):
         link = ref_service.generate_link(bot_info.username, telegram_id)
 
         stats = await ref_service.get_stats(telegram_id)
-        stats = await ref_service.get_stats(telegram_id)
         reward = await ref_service._get_reward_amount()
         reward_formatted = f"{reward:,}".replace(",", " ")
 

@@ -49,7 +49,7 @@ async def process_level(callback: CallbackQuery, state: FSMContext):
     # Send registration success message with main menu
     await callback.message.answer(
         uz.REGISTRATION_COMPLETE.format(name=user_name),
-        reply_markup=main_menu_keyboard(),
+        reply_markup=main_menu_keyboard(user_id=callback.from_user.id),
     )
 
     await state.clear()

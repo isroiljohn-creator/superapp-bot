@@ -8,7 +8,7 @@ from aiogram.types import (
     LabeledPrice,
     PreCheckoutQuery,
 )
-from aiogram.filters import Command
+from aiogram.filters import Command  # used by cmd_menu
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
 
@@ -175,8 +175,8 @@ async def menu_profile(message: Message):
                 name = user.name or name
                 age = str(user.age) if user.age else "—"
                 phone = user.phone or "—"
-                goal = uz.GOAL_NAMES.get(user.goal, user.goal or "—")
-                level = uz.LEVEL_NAMES.get(user.level, user.level or "—")
+                goal = uz.GOAL_NAMES.get(user.goal_tag, user.goal_tag or "—")
+                level = uz.LEVEL_NAMES.get(user.level_tag, user.level_tag or "—")
 
                 # Check subscription
                 from sqlalchemy import select
@@ -280,6 +280,9 @@ async def pedit_cancel(callback_query: CallbackQuery, state: FSMContext):
 async def process_name_edit(message: Message, state: FSMContext):
     """Save new name."""
     from db.database import async_session
+    if not message.text:
+        await message.answer("Iltimos, ism kiriting (matn yuboring)")
+        return
     new_name = message.text.strip()
     if not new_name or len(new_name) > 100:
         await message.answer("Iltimos, to'g'ri ism kiriting (1-100 belgi)")
@@ -422,10 +425,11 @@ async def menu_referral(message: Message):
     try:
         async with async_session() as session:
             analytics = AnalyticsService(session)
-            ref_service = ReferralService(session)
-            user = await ref_service.get_user(message.from_user.id)
+            crm = CRMService(session)
+            user = await crm.get_user(message.from_user.id)
             if user:
                 await analytics.track(user_id=user.id, event_type="menu_referral_click")
+            ref_service = ReferralService(session)
             stats = await ref_service.get_stats(message.from_user.id)
             referral_count = stats.get("total_referrals", 0)
             balance = stats.get("balance", 0)

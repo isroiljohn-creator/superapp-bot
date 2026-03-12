@@ -41,8 +41,7 @@ async def get_db():
 def check_admin(user_data: dict = Depends(validate_init_data)):
     """Check if the requesting Telegram user is an admin."""
     user_id = user_data["id"]
-    admin_ids = [int(i.strip()) for i in settings.ADMIN_IDS_STR.split(",") if i.strip()]
-    if user_id not in admin_ids:
+    if user_id not in settings.ADMIN_IDS:
         raise HTTPException(status_code=403, detail="Not authorized (Admins only)")
     return user_id
 

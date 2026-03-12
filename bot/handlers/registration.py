@@ -1,5 +1,4 @@
 """Registration handler — FSM-based user onboarding."""
-import re
 from aiogram import Router, F
 from aiogram.filters import CommandStart
 from aiogram.fsm.context import FSMContext
