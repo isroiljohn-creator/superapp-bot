@@ -13,22 +13,41 @@ from bot.locales import uz
 # Main menu
 # ──────────────────────────────────────────────
 def main_menu_keyboard(user_id: int = None) -> ReplyKeyboardMarkup:
-    """Main menu with 6 buttons in 3 rows + optional Admin button."""
+    """Main menu — restructured layout."""
     from bot.config import settings
     
     buttons = [
         [KeyboardButton(text=uz.MENU_BTN_AI_WORKERS)],
-        [KeyboardButton(text=uz.MENU_BTN_CLUB), KeyboardButton(text=uz.MENU_BTN_COURSE)],
-        [KeyboardButton(text=uz.MENU_BTN_LESSONS), KeyboardButton(text=uz.MENU_BTN_REFERRAL)],
-        [KeyboardButton(text=uz.MENU_BTN_GUIDES), KeyboardButton(text=uz.MENU_BTN_HELP)],
+        [KeyboardButton(text=uz.MENU_BTN_FREE_LESSONS), KeyboardButton(text=uz.MENU_BTN_CLUB)],
+        [KeyboardButton(text=uz.MENU_BTN_PROFILE), KeyboardButton(text=uz.MENU_BTN_HELP)],
     ]
     
-    # Add Admin button if user is in ADMIN_IDS
     if user_id and user_id in settings.ADMIN_IDS:
         buttons.append([KeyboardButton(text=uz.MENU_BTN_ADMIN)])
         
+    return ReplyKeyboardMarkup(keyboard=buttons, resize_keyboard=True)
+
+
+def free_lessons_keyboard() -> ReplyKeyboardMarkup:
+    """Free lessons sub-menu: Videodarslar, Qo'llanmalar, Promtlar, AI ro'yxati."""
     return ReplyKeyboardMarkup(
-        keyboard=buttons,
+        keyboard=[
+            [KeyboardButton(text=uz.FREE_LESSONS_BTN_VIDEO), KeyboardButton(text=uz.FREE_LESSONS_BTN_GUIDES)],
+            [KeyboardButton(text=uz.FREE_LESSONS_BTN_PROMPTS), KeyboardButton(text=uz.FREE_LESSONS_BTN_AI_LIST)],
+            [KeyboardButton(text=uz.MENU_BTN_BACK)],
+        ],
+        resize_keyboard=True,
+    )
+
+
+def ai_workers_reply_keyboard() -> ReplyKeyboardMarkup:
+    """AI Workers sub-menu as reply keyboard (not inline)."""
+    return ReplyKeyboardMarkup(
+        keyboard=[
+            [KeyboardButton(text=uz.AI_WORKERS_KB_IMAGE), KeyboardButton(text=uz.AI_WORKERS_KB_COPY)],
+            [KeyboardButton(text=uz.AI_WORKERS_KB_DAILY)],
+            [KeyboardButton(text=uz.MENU_BTN_BACK)],
+        ],
         resize_keyboard=True,
     )
 

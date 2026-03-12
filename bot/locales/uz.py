@@ -238,6 +238,53 @@ MENU_BTN_GUIDES = "📖 Qo'llanmalar"
 MENU_BTN_HELP = "ℹ️ Yordam"
 MENU_BTN_ADMIN = "👨‍💻 Admin"
 
+# New menu structure
+MENU_BTN_FREE_LESSONS = "📚 Bepul darslar"
+MENU_BTN_PROFILE = "👤 Mening profilim"
+MENU_BTN_BACK = "🔙 Orqaga"
+
+# Bepul darslar sub-menu
+FREE_LESSONS_BTN_VIDEO = "🎬 Videodarslar"
+FREE_LESSONS_BTN_GUIDES = "📖 Qo'llanmalar"
+FREE_LESSONS_BTN_PROMPTS = "💡 Promtlar"
+FREE_LESSONS_BTN_AI_LIST = "🤖 AI ro'yxati"
+
+FREE_LESSONS_MENU_TEXT = (
+    "📚 <b>Bepul darslar</b>\n\n"
+    "Quyidagi bo'limlardan kerakli materialni tanlang 👇"
+)
+
+PROMPTS_TEXT = (
+    "💡 <b>Promtlar</b>\n\n"
+    "AI bilan samarali ishlash uchun tayyor promtlar tez orada qo'shiladi!\n"
+    "Kuzatib boring 🔔"
+)
+
+AI_LIST_TEXT = (
+    "🤖 <b>AI ro'yxati</b>\n\n"
+    "Eng foydali AI vositalar ro'yxati tez orada qo'shiladi!\n"
+    "Kuzatib boring 🔔"
+)
+
+# AI Workers keyboard buttons
+AI_WORKERS_KB_IMAGE = "🎨 Surat tayyorlash"
+AI_WORKERS_KB_COPY = "📝 Kopirayter"
+AI_WORKERS_KB_DAILY = "🎁 Kunlik bonus"
+AI_WORKERS_KB_BACK = "🔙 Orqaga"
+
+# Mening profilim
+PROFILE_MENU_TEXT = (
+    "👤 <b>Mening profilim</b>\n\n"
+    "📛 Ism: <b>{name}</b>\n"
+    "📅 Yosh: <b>{age}</b>\n"
+    "📱 Telefon: <b>{phone}</b>\n"
+    "🎯 Maqsad: <b>{goal}</b>\n"
+    "📊 Daraja: <b>{level}</b>\n"
+    "💎 Obuna: <b>{subscription}</b>\n"
+    "💰 Balans: <b>{balance} so'm</b>\n"
+    "👥 Referallar: <b>{referrals}</b>"
+)
+
 # AI Workers
 AI_WORKERS_INTRO = (
     "🤖 <b>AI hodimlar</b>\n\n"
