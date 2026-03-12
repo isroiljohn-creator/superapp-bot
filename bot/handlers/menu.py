@@ -301,6 +301,9 @@ async def process_name_edit(message: Message, state: FSMContext):
 async def process_age_edit(message: Message, state: FSMContext):
     """Save new age."""
     from db.database import async_session
+    if not message.text:
+        await message.answer(uz.INVALID_AGE, parse_mode="HTML")
+        return
     try:
         new_age = int(message.text.strip())
         if new_age < 10 or new_age > 99:

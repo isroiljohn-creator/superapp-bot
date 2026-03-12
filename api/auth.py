@@ -33,7 +33,7 @@ def validate_init_data(
     dev_bypass = os.environ.get("ADMIN_DEV_BYPASS", "")
     if dev_bypass and raw == dev_bypass:
         # Return a fake admin user for testing
-        admin_ids = [int(i.strip()) for i in settings.ADMIN_IDS_STR.split(",") if i.strip()]
+        admin_ids = settings.ADMIN_IDS
         return {"id": admin_ids[0] if admin_ids else 0, "first_name": "Admin"}
 
     parsed_data = _validate(raw)
