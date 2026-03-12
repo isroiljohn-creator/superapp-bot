@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { Home, Users, BarChart3, Send, FolderOpen } from "lucide-react";
 import { ThemeToggle } from "./ThemeToggle";
 import DashboardHome from "@/pages/DashboardHome";
 import FunnelAnalytics from "@/pages/FunnelAnalytics";
@@ -11,11 +12,11 @@ import GuidesManager from "@/pages/GuidesManager";
 import LeadMagnetManager from "@/pages/LeadMagnetManager";
 
 const tabs = [
-  { id: "home", label: "Asosiy", icon: "⌂" },
-  { id: "users", label: "Userlar", icon: "⊕" },
-  { id: "analytics", label: "Tahlil", icon: "◇" },
-  { id: "broadcast", label: "Xabarlar", icon: "✦" },
-  { id: "material", label: "Material", icon: "▶" },
+  { id: "home", label: "Asosiy", icon: Home },
+  { id: "users", label: "Userlar", icon: Users },
+  { id: "analytics", label: "Tahlil", icon: BarChart3 },
+  { id: "broadcast", label: "Xabarlar", icon: Send },
+  { id: "material", label: "Material", icon: FolderOpen },
 ] as const;
 
 type TabId = (typeof tabs)[number]["id"];
@@ -72,16 +73,17 @@ export default function AppLayout() {
         <nav className="flex-1 overflow-y-auto py-1">
           {tabs.map((tab) => {
             const isActive = activeTab === tab.id;
+            const Icon = tab.icon;
             return (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`w-full flex items-center gap-2 px-3 py-2 text-xs font-medium transition-all ${isActive
+                className={`w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium transition-all ${isActive
                     ? "bg-primary/10 text-primary border-r-2 border-primary"
                     : "text-muted-foreground hover:bg-secondary"
                   }`}
               >
-                <span className="text-sm">{tab.icon}</span>
+                <Icon className="h-4 w-4" />
                 {tab.label}
               </button>
             );
@@ -113,26 +115,24 @@ export default function AppLayout() {
           </AnimatePresence>
         </div>
 
-        {/* Mobile Tab Bar — BIGGER, more comfortable */}
-        <div className="md:hidden flex-shrink-0 flex border-t border-border/20" style={{
-          background: 'hsl(220 20% 7%)',
-          paddingBottom: 'env(safe-area-inset-bottom, 0px)',
-        }}>
+        {/* Mobile Tab Bar */}
+        <div className="md:hidden flex-shrink-0 flex border-t border-border/20 bg-card">
           {tabs.map((tab) => {
             const isActive = activeTab === tab.id;
+            const Icon = tab.icon;
             return (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className="flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 transition-colors border-t-2"
+                className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 transition-colors ${isActive ? "text-primary" : "text-muted-foreground"
+                  }`}
                 style={{
-                  borderTopColor: isActive ? 'hsl(199 85% 55%)' : 'transparent',
-                  background: isActive ? 'rgba(56,189,248,0.08)' : 'transparent',
-                  color: isActive ? 'hsl(199 85% 55%)' : 'hsl(210 10% 50%)',
+                  borderTop: isActive ? '2px solid hsl(199 85% 55%)' : '2px solid transparent',
+                  background: isActive ? 'rgba(56,189,248,0.06)' : 'transparent',
                   WebkitTapHighlightColor: 'transparent',
                 }}
               >
-                <span className="text-lg leading-none">{tab.icon}</span>
+                <Icon className="h-5 w-5" strokeWidth={isActive ? 2.2 : 1.5} />
                 <span className="text-[10px] font-medium leading-none">{tab.label}</span>
               </button>
             );
