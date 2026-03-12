@@ -212,7 +212,7 @@ async def get_users_list(
     else:  # date_desc (default)
         query = query.order_by(User.created_at.desc())
 
-    result = await db.execute(query.limit(200))
+    result = await db.execute(query)
     rows = result.all()
 
     res = []

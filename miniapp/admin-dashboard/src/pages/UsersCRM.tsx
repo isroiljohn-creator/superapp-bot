@@ -116,14 +116,14 @@ export default function UsersCRM() {
   };
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-2.5">
       <div className="flex items-center justify-between">
         <h2 className="text-sm font-bold">Userlar (CRM)</h2>
         <button
           onClick={handleExportCSV}
-          className="flex items-center gap-1 px-2 py-1 text-[10px] font-medium bg-primary/10 text-primary rounded-md hover:bg-primary/20 transition-colors"
+          className="flex items-center gap-1 px-2.5 py-1 text-xs font-medium bg-primary/10 text-primary rounded-md hover:bg-primary/20 transition-colors"
         >
-          <Download className="h-3 w-3" />
+          <Download className="h-3.5 w-3.5" />
           CSV
         </button>
       </div>
@@ -134,12 +134,12 @@ export default function UsersCRM() {
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`flex-1 flex items-center justify-center gap-0.5 py-1 rounded-md text-[10px] font-medium transition-all ${activeTab === tab.id
+            className={`flex-1 flex items-center justify-center gap-1 py-1.5 rounded-md text-xs font-medium transition-all ${activeTab === tab.id
               ? "bg-card shadow text-foreground"
               : "text-muted-foreground"
               }`}
           >
-            <tab.icon className="h-2.5 w-2.5" />
+            <tab.icon className="h-3.5 w-3.5" />
             {tab.label}
           </button>
         ))}
@@ -148,29 +148,29 @@ export default function UsersCRM() {
       {/* Stats bar */}
       {!isLoading && (
         <div className="flex gap-1.5">
-          <div className="flex-1 bg-secondary/50 rounded-md px-2 py-1 text-center">
+          <div className="flex-1 bg-secondary/50 rounded-md px-2 py-1.5 text-center">
             <p className="text-sm font-bold">{filtered.length}</p>
-            <p className="text-[9px] text-muted-foreground">Natija</p>
+            <p className="text-[10px] text-muted-foreground">Natija</p>
           </div>
-          <div className="flex-1 bg-secondary/50 rounded-md px-2 py-1 text-center">
+          <div className="flex-1 bg-secondary/50 rounded-md px-2 py-1.5 text-center">
             <p className="text-sm font-bold text-success">{filtered.filter(u => u.status === "registered").length}</p>
-            <p className="text-[9px] text-muted-foreground">Ro'yxatli</p>
+            <p className="text-[10px] text-muted-foreground">Ro'yxatli</p>
           </div>
-          <div className="flex-1 bg-secondary/50 rounded-md px-2 py-1 text-center">
+          <div className="flex-1 bg-secondary/50 rounded-md px-2 py-1.5 text-center">
             <p className="text-sm font-bold text-warning">{filtered.filter(u => u.status === "started").length}</p>
-            <p className="text-[9px] text-muted-foreground">Kutilmoqda</p>
+            <p className="text-[10px] text-muted-foreground">Kutilmoqda</p>
           </div>
         </div>
       )}
 
       {/* Search */}
       <div className="relative">
-        <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
+        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
         <Input
           placeholder="Ism, ID, @username..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="pl-7 h-7 text-[11px] bg-secondary border-border/30"
+          className="pl-8 h-8 text-xs bg-secondary border-border/30"
         />
       </div>
 
@@ -179,7 +179,7 @@ export default function UsersCRM() {
         <select
           value={sortKey}
           onChange={(e) => setSortKey(e.target.value as SortKey)}
-          className="bg-secondary text-foreground text-[10px] rounded-md px-1.5 py-1 border border-border/30 w-24"
+          className="bg-secondary text-foreground text-xs rounded-md px-2 py-1.5 border border-border/30 w-28"
         >
           {sortOptions.map((opt) => (
             <option key={opt.id} value={opt.id}>{opt.label}</option>
@@ -190,7 +190,7 @@ export default function UsersCRM() {
             <button
               key={s}
               onClick={() => setFilterScore(s)}
-              className={`px-1.5 py-0.5 text-[9px] font-medium rounded transition-colors whitespace-nowrap ${filterScore === s
+              className={`px-2 py-1 text-[10px] font-medium rounded transition-colors whitespace-nowrap ${filterScore === s
                 ? "bg-primary text-primary-foreground"
                 : "bg-secondary text-secondary-foreground"
                 }`}
