@@ -175,10 +175,15 @@ async def get_users_list(
     status: str = "all",  # all | active | inactive
     q: str = "",         # Search query (name, phone, id)
     sort: str = "date_desc",  # date_desc | date_asc | score_desc | source
+    page: int = 1,
+    limit: int = 50,
     admin_id: int = Depends(check_admin),
     db: AsyncSession = Depends(get_db)
 ):
-    """Get CRM users list. Filter by status, search, and sort."""
+    """Get CRM users list with pagination."""
+    limit = min(limit, 100)
+    offset = (max(page, 1) - 1) * limit
+
     query = select(User, Subscription).outerjoin(Subscription, Subscription.user_id == User.id)
 
     # Filter by status (is_active definition)
@@ -212,7 +217,12 @@ async def get_users_list(
     else:  # date_desc (default)
         query = query.order_by(User.created_at.desc())
 
-    result = await db.execute(query)
+    # Count total
+    from sqlalchemy import func as sa_func
+    count_q = select(sa_func.count()).select_from(query.subquery())
+    total = (await db.execute(count_q)).scalar() or 0
+
+    result = await db.execute(query.offset(offset).limit(limit))
     rows = result.all()
 
     res = []
@@ -246,7 +256,7 @@ async def get_users_list(
             "createdAt": user.created_at.strftime("%d.%m.%Y %H:%M") if user.created_at else "—",
             "events": []
         })
-    return res
+    return {"users": res, "total": total, "page": page, "hasMore": (offset + limit) < total}
 
 
 @router.get("/funnel")

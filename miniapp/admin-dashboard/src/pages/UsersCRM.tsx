@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -68,16 +68,43 @@ const TABS: { id: ActiveTab; label: string; icon: React.ElementType }[] = [
 
 export default function UsersCRM() {
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [activeTab, setActiveTab] = useState<ActiveTab>("all");
   const [filterScore, setFilterScore] = useState<LeadScore | "all">("all");
   const [sortKey, setSortKey] = useState<SortKey>("date_desc");
   const [selectedUser, setSelectedUser] = useState<CRMUser | null>(null);
+  const [page, setPage] = useState(1);
+  const [allUsers, setAllUsers] = useState<CRMUser[]>([]);
 
-  const { data: usersData, isLoading } = useQuery<CRMUser[]>({
-    queryKey: ["admin_users", activeTab, sortKey],
-    queryFn: () => fetchApi(`/api/admin/users?status=${activeTab}&sort=${sortKey}`),
-    refetchInterval: 30_000,
+  // Debounce search
+  const searchTimer = useRef<ReturnType<typeof setTimeout>>();
+  useEffect(() => {
+    searchTimer.current = setTimeout(() => setDebouncedSearch(search), 400);
+    return () => clearTimeout(searchTimer.current);
+  }, [search]);
+
+  // Reset page on filter change
+  useEffect(() => {
+    setPage(1);
+    setAllUsers([]);
+  }, [activeTab, sortKey, debouncedSearch]);
+
+  const { data: pageData, isLoading, isFetching } = useQuery<{ users: CRMUser[]; total: number; hasMore: boolean }>({
+    queryKey: ["admin_users", activeTab, sortKey, debouncedSearch, page],
+    queryFn: () => fetchApi(`/api/admin/users?status=${activeTab}&sort=${sortKey}&q=${encodeURIComponent(debouncedSearch)}&page=${page}&limit=50`),
+    refetchInterval: page === 1 ? 60_000 : false,
   });
+
+  // Accumulate users across pages
+  useEffect(() => {
+    if (pageData?.users) {
+      if (page === 1) {
+        setAllUsers(pageData.users);
+      } else {
+        setAllUsers(prev => [...prev, ...pageData.users]);
+      }
+    }
+  }, [pageData, page]);
 
   // Lazy load events when user is selected
   const { data: userEvents } = useQuery<{ action: string; time: string }[]>({
@@ -86,16 +113,12 @@ export default function UsersCRM() {
     enabled: !!selectedUser,
   });
 
-  const users = usersData || [];
+  const totalCount = pageData?.total || 0;
+  const hasMore = pageData?.hasMore || false;
 
-  const filtered = users.filter((u) => {
-    const matchSearch =
-      u.name.toLowerCase().includes(search.toLowerCase()) ||
-      u.id.toString().includes(search) ||
-      u.phone.includes(search) ||
-      (u.username && u.username.toLowerCase().includes(search.toLowerCase()));
+  const filtered = allUsers.filter((u) => {
     const matchScore = filterScore === "all" || u.score === filterScore;
-    return matchSearch && matchScore;
+    return matchScore;
   });
 
   const handleExportCSV = async () => {
@@ -149,12 +172,12 @@ export default function UsersCRM() {
       {!isLoading && (
         <div className="flex gap-1.5">
           <div className="flex-1 bg-secondary/50 rounded-md px-2 py-1.5 text-center">
-            <p className="text-sm font-bold">{filtered.length}</p>
-            <p className="text-[10px] text-muted-foreground">Natija</p>
+            <p className="text-sm font-bold">{totalCount}</p>
+            <p className="text-[10px] text-muted-foreground">Jami</p>
           </div>
           <div className="flex-1 bg-secondary/50 rounded-md px-2 py-1.5 text-center">
-            <p className="text-sm font-bold text-success">{filtered.filter(u => u.status === "registered").length}</p>
-            <p className="text-[10px] text-muted-foreground">Ro'yxatli</p>
+            <p className="text-sm font-bold">{filtered.length}</p>
+            <p className="text-[10px] text-muted-foreground">Yuklangan</p>
           </div>
           <div className="flex-1 bg-secondary/50 rounded-md px-2 py-1.5 text-center">
             <p className="text-sm font-bold text-warning">{filtered.filter(u => u.status === "started").length}</p>
@@ -242,6 +265,17 @@ export default function UsersCRM() {
           ))
         )}
       </div>
+
+      {/* Load More */}
+      {hasMore && !isLoading && (
+        <button
+          onClick={() => setPage(p => p + 1)}
+          disabled={isFetching}
+          className="w-full py-2.5 rounded-lg bg-primary/10 text-primary text-xs font-medium hover:bg-primary/20 transition-colors disabled:opacity-50"
+        >
+          {isFetching ? "Yuklanmoqda..." : `Yana yuklash (${filtered.length}/${totalCount})`}
+        </button>
+      )}
 
       {/* User Profile Modal */}
       <AnimatePresence>
