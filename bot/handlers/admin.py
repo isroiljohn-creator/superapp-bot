@@ -120,39 +120,31 @@ async def cmd_stats(message: Message, user_id_override: int = None):
         total_revenue = rev_result.scalar() or 0
 
     revenue_formatted = f"{total_revenue:,}".replace(",", " ")
-    await message.answer(
-        uz.STATS_HEADER.format(
-            total_users=total,
-            registered=registered,
-            active_subs=active_subs,
-            total_referrals=total_referrals,
-            total_revenue=revenue_formatted,
-        ),
-        parse_mode="HTML",
-    )
 
     # Funnel stats
     async with async_session() as session:
         analytics = AnalyticsService(session)
         funnel = await analytics.get_funnel_stats()
 
-    funnel_text = "📊 <b>Funnel statistikasi:</b>\n\n"
-    labels = {
-        "lead": "👤 Lead",
-        "registration_complete": "✅ Ro'yxatdan o'tgan",
-        "lead_magnet_open": "🎁 Lead magnet ochgan",
-        "vsl_view": "🎬 VSL ko'rgan",
-        "vsl_50": "▶️ VSL 50%",
-        "vsl_90": "⏩ VSL 90%",
-        "offer_click": "🔗 Taklif bosgan",
-        "payment_open": "💳 To'lov ochgan",
-        "payment_success": "✅ To'lov qilgan",
-    }
-    for event, label in labels.items():
-        count = funnel.get(event, 0)
-        funnel_text += f"{label}: {count}\n"
+    # Build single combined message
+    lead_count = funnel.get("lead", 0)
+    reg_count = funnel.get("registration_complete", 0)
+    lm_count = funnel.get("lead_magnet_open", 0)
 
-    await message.answer(funnel_text, parse_mode="HTML")
+    text = (
+        f"📊 <b>Statistika</b>\n\n"
+        f"👥 Jami foydalanuvchilar: {total}\n"
+        f"✅ Ro'yxatdan o'tganlar: {registered}\n"
+        f"💎 Aktiv obunalar: {active_subs}\n"
+        f"🔗 Jami takliflar: {total_referrals}\n"
+        f"💰 Jami daromad: {revenue_formatted} so'm\n\n"
+        f"📊 <b>Voronka:</b>\n"
+        f"👤 Lead: {lead_count}\n"
+        f"✅ Ro'yxatdan o'tgan: {reg_count}\n"
+        f"🎁 Lead magnet ochgan: {lm_count}"
+    )
+
+    await message.answer(text, parse_mode="HTML")
 
 
 # ── /broadcast — Mass messaging ──────────

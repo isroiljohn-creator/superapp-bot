@@ -368,8 +368,23 @@ TOKEN_WELCOME = "🎁 Xush kelibsiz! Sizga <b>10 🪙</b> bepul token berildi."
 
 MENU_TEXT = (
     "🏠 <b>Asosiy menyu</b>\n\n"
-    "Kerakli bo'limni tanlang 👇"
+    "Siz asosiy menyudasiz.\n"
+    "Keyingi qadamni tanlang 👇"
 )
+
+# Profile settings FSM
+PROFILE_SETTINGS_TEXT = (
+    "⚙️ <b>Profilni sozlash</b>\n\n"
+    "Nimani o'zgartirmoqchisiz?"
+)
+PROFILE_ASK_NAME = "✍️ Yangi ismingizni kiriting:"
+PROFILE_ASK_AGE = "📅 Yangi yoshingizni kiriting:"
+PROFILE_ASK_GOAL = "🎯 Maqsadingizni tanlang:"
+PROFILE_UPDATED = "✅ Profil muvaffaqiyatli yangilandi!"
+PROFILE_BTN_NAME = "✍️ Ismni o'zgartirish"
+PROFILE_BTN_AGE = "📅 Yoshni o'zgartirish"
+PROFILE_BTN_GOAL = "🎯 Maqsadni o'zgartirish"
+PROFILE_BTN_CANCEL = "❌ Bekor qilish"
 
 CLUB_TEXT = (
     "🔐 <b>Yopiq klub</b>\n\n"

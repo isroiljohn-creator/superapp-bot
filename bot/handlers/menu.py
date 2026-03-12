@@ -2,12 +2,15 @@
 from aiogram import Router, F
 from aiogram.types import (
     Message,
+    CallbackQuery,
     InlineKeyboardButton,
     InlineKeyboardMarkup,
     LabeledPrice,
     PreCheckoutQuery,
 )
 from aiogram.filters import Command
+from aiogram.fsm.context import FSMContext
+from aiogram.fsm.state import StatesGroup, State
 
 from bot.keyboards.buttons import main_menu_keyboard, free_lessons_keyboard
 from bot.locales import uz
@@ -16,6 +19,12 @@ from services.analytics import AnalyticsService
 from services.crm import CRMService
 
 router = Router(name="menu")
+
+
+# ── Profile Settings FSM ─────────────────────
+class ProfileEdit(StatesGroup):
+    waiting_name = State()
+    waiting_age = State()
 
 
 @router.message(Command("menu"))
@@ -210,11 +219,112 @@ async def menu_profile(message: Message):
     await message.answer(text, parse_mode="HTML", reply_markup=keyboard)
 
 
-# Profile inline callbacks
+# Profile inline callbacks — Settings
+def profile_settings_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text=uz.PROFILE_BTN_NAME, callback_data="pedit:name"),
+         InlineKeyboardButton(text=uz.PROFILE_BTN_AGE, callback_data="pedit:age")],
+        [InlineKeyboardButton(text=uz.PROFILE_BTN_GOAL, callback_data="pedit:goal")],
+        [InlineKeyboardButton(text=uz.PROFILE_BTN_CANCEL, callback_data="pedit:cancel")],
+    ])
+
+
 @router.callback_query(F.data == "profile:settings")
-async def profile_settings(callback_query):
-    """Profile settings — placeholder."""
-    await callback_query.answer("Profil sozlamalari tez orada qo'shiladi!", show_alert=True)
+async def profile_settings(callback_query: CallbackQuery):
+    """Show profile settings options."""
+    await callback_query.message.answer(
+        uz.PROFILE_SETTINGS_TEXT, parse_mode="HTML",
+        reply_markup=profile_settings_keyboard(),
+    )
+    await callback_query.answer()
+
+
+@router.callback_query(F.data == "pedit:name")
+async def pedit_name(callback_query: CallbackQuery, state: FSMContext):
+    """Start name edit."""
+    await state.set_state(ProfileEdit.waiting_name)
+    await callback_query.message.answer(uz.PROFILE_ASK_NAME, parse_mode="HTML")
+    await callback_query.answer()
+
+
+@router.callback_query(F.data == "pedit:age")
+async def pedit_age(callback_query: CallbackQuery, state: FSMContext):
+    """Start age edit."""
+    await state.set_state(ProfileEdit.waiting_age)
+    await callback_query.message.answer(uz.PROFILE_ASK_AGE, parse_mode="HTML")
+    await callback_query.answer()
+
+
+@router.callback_query(F.data == "pedit:goal")
+async def pedit_goal(callback_query: CallbackQuery):
+    """Show goal selection."""
+    from bot.keyboards.buttons import goal_keyboard
+    await callback_query.message.answer(uz.PROFILE_ASK_GOAL, parse_mode="HTML", reply_markup=goal_keyboard())
+    await callback_query.answer()
+
+
+@router.callback_query(F.data == "pedit:cancel")
+async def pedit_cancel(callback_query: CallbackQuery, state: FSMContext):
+    """Cancel profile editing."""
+    await state.clear()
+    await callback_query.message.delete()
+    await callback_query.answer("Bekor qilindi")
+
+
+# FSM handlers for profile editing
+@router.message(ProfileEdit.waiting_name)
+async def process_name_edit(message: Message, state: FSMContext):
+    """Save new name."""
+    from db.database import async_session
+    new_name = message.text.strip()
+    if not new_name or len(new_name) > 100:
+        await message.answer("Iltimos, to'g'ri ism kiriting (1-100 belgi)")
+        return
+    async with async_session() as session:
+        crm = CRMService(session)
+        user = await crm.get_user(message.from_user.id)
+        if user:
+            user.name = new_name
+            await session.commit()
+    await state.clear()
+    await message.answer(uz.PROFILE_UPDATED, parse_mode="HTML", reply_markup=main_menu_keyboard(user_id=message.from_user.id))
+
+
+@router.message(ProfileEdit.waiting_age)
+async def process_age_edit(message: Message, state: FSMContext):
+    """Save new age."""
+    from db.database import async_session
+    try:
+        new_age = int(message.text.strip())
+        if new_age < 10 or new_age > 99:
+            raise ValueError
+    except ValueError:
+        await message.answer(uz.INVALID_AGE, parse_mode="HTML")
+        return
+    async with async_session() as session:
+        crm = CRMService(session)
+        user = await crm.get_user(message.from_user.id)
+        if user:
+            user.age = new_age
+            await session.commit()
+    await state.clear()
+    await message.answer(uz.PROFILE_UPDATED, parse_mode="HTML", reply_markup=main_menu_keyboard(user_id=message.from_user.id))
+
+
+# Goal change via segmentation callback (reuse existing)
+@router.callback_query(F.data.startswith("goal:"))
+async def profile_goal_change(callback_query: CallbackQuery):
+    """Update user goal from profile settings."""
+    from db.database import async_session
+    goal_tag = callback_query.data.split(":")[1]
+    async with async_session() as session:
+        crm = CRMService(session)
+        user = await crm.get_user(callback_query.from_user.id)
+        if user:
+            user.goal_tag = goal_tag
+            await session.commit()
+    await callback_query.message.edit_text(uz.PROFILE_UPDATED, parse_mode="HTML")
+    await callback_query.answer()
 
 
 @router.callback_query(F.data == "profile:subscribe")

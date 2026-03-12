@@ -82,20 +82,11 @@ async def cmd_start(message: Message, state: FSMContext):
             sub_service = SubscriptionService(session)
             is_subscribed = await sub_service.is_active(user.id)
 
-            # Already registered (Show Profile)
+            # Already registered — show main menu (not profile)
             await message.answer(
-                uz.PROFILE_TEXT.format(
-                    name=user.name or "—",
-                    age=user.age or "—",
-                    phone=user.phone or "—",
-                    goal=uz.GOAL_NAMES.get(user.goal_tag, user.goal_tag) or "—",
-                    level=uz.LEVEL_NAMES.get(user.level_tag, user.level_tag) or "—",
-                    subscription="faol" if is_subscribed else "yo'q",
-                    balance=f"{balance:,}",
-                    referrals=referrals,
-                ),
+                uz.MENU_TEXT,
                 parse_mode="HTML",
-                reply_markup=main_menu_keyboard(),
+                reply_markup=main_menu_keyboard(user_id=message.from_user.id),
             )
             return
 
