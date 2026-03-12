@@ -17,8 +17,8 @@ def main_menu_keyboard(user_id: int = None) -> ReplyKeyboardMarkup:
     from bot.config import settings
     
     buttons = [
-        [KeyboardButton(text=uz.MENU_BTN_AI_WORKERS)],
-        [KeyboardButton(text=uz.MENU_BTN_FREE_LESSONS), KeyboardButton(text=uz.MENU_BTN_CLUB)],
+        [KeyboardButton(text=uz.MENU_BTN_AI_WORKERS), KeyboardButton(text=uz.MENU_BTN_FREE_LESSONS)],
+        [KeyboardButton(text=uz.MENU_BTN_CLUB), KeyboardButton(text=uz.MENU_BTN_COURSE)],
         [KeyboardButton(text=uz.MENU_BTN_PROFILE)],
     ]
     
