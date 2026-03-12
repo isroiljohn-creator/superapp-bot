@@ -146,10 +146,11 @@ async def get_dashboard_stats(admin_id: int = Depends(check_admin), db: AsyncSes
 async def get_users_list(
     status: str = "all",  # all | active | inactive
     q: str = "",         # Search query (name, phone, id)
+    sort: str = "date_desc",  # date_desc | date_asc | score_desc | source
     admin_id: int = Depends(check_admin),
     db: AsyncSession = Depends(get_db)
 ):
-    """Get CRM users list. Filter by status and search query."""
+    """Get CRM users list. Filter by status, search, and sort."""
     query = select(User, Subscription).outerjoin(Subscription, Subscription.user_id == User.id)
 
     # Filter by status (is_active definition)
@@ -164,27 +165,52 @@ async def get_users_list(
     if q:
         q_clean = q.strip()
         if q_clean.isdigit():
-            # Search by exact Telegram ID or partial phone
             query = query.where(
                 (User.telegram_id == int(q_clean)) | 
                 (User.phone.contains(q_clean))
             )
+        elif q_clean.startswith("@"):
+            query = query.where(User.username.ilike(f"%{q_clean[1:]}%"))
         else:
-            # Case-insensitive search by name
             query = query.where(User.name.ilike(f"%{q_clean}%"))
 
-    # No limit - show all active/registered users after cleanup (~3k)
-    result = await db.execute(query.order_by(User.created_at.desc()))
+    # Sorting
+    if sort == "date_asc":
+        query = query.order_by(User.created_at.asc())
+    elif sort == "score_desc":
+        query = query.order_by(User.lead_score.desc())
+    elif sort == "source":
+        query = query.order_by(User.source.asc().nullslast(), User.created_at.desc())
+    else:  # date_desc (default)
+        query = query.order_by(User.created_at.desc())
+
+    result = await db.execute(query)
     rows = result.all()
+
+    # Event labels mapping
+    event_labels = {
+        "lead": "Bot ishga tushirildi",
+        "registration_complete": "Ro'yxatdan o'tdi",
+        "menu_lessons_click": "Darslarni ochdi",
+        "menu_referral_click": "Referalni ochdi",
+        "menu_guides_click": "Qo'llanmalarni ochdi",
+        "lead_magnet_open": "Material ochdi",
+        "vsl_view": "Video ko'rdi",
+        "vsl_50": "Video 50%",
+        "vsl_90": "Video 90%",
+        "offer_click": "Taklifni bosdi",
+        "payment_open": "To'lovga o'tdi",
+        "payment_success": "To'lov qildi",
+    }
 
     res = []
     for user, sub in rows:
         if sub and sub.status == "active":
             user_status_label = "paid"
         elif user.user_status == "registered":
-            user_status_label = "free"
+            user_status_label = "registered"
         else:
-            user_status_label = "dropped"
+            user_status_label = "started"
 
         score_val = "cold"
         if user.lead_score >= 60:
@@ -192,17 +218,37 @@ async def get_users_list(
         elif user.lead_score >= 30:
             score_val = "nurture"
 
+        # Load events for this user (last 10)
+        events_q = await db.execute(
+            select(Event).where(Event.user_id == user.id)
+            .order_by(Event.created_at.asc())
+            .limit(10)
+        )
+        user_events = events_q.scalars().all()
+
+        events_list = []
+        for ev in user_events:
+            label = event_labels.get(ev.event_type, ev.event_type.replace("_", " ").title())
+            events_list.append({
+                "action": label,
+                "time": _format_time(ev.created_at),
+            })
+
         res.append({
             "id": user.telegram_id,
             "name": user.name or "Noma'lum",
-            "username": user.username,
+            "username": user.username or "",
             "phone": user.phone or "—",
             "score": score_val,
             "status": user_status_label,
+            "userStatus": user.user_status or "started",
             "isActive": user.is_active,
             "source": user.source or "organik",
+            "campaign": user.campaign or "",
+            "leadScore": user.lead_score or 0,
             "registeredAt": user.registered_at.strftime("%d.%m.%Y") if user.registered_at else "—",
-            "events": []
+            "createdAt": user.created_at.strftime("%d.%m.%Y %H:%M") if user.created_at else "—",
+            "events": events_list
         })
     return res
 

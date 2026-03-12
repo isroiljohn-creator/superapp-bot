@@ -2,24 +2,30 @@ import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Search, X, UserCheck, UserX } from "lucide-react";
+import { Search, X, UserCheck, UserX, ArrowUpDown } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import { fetchApi } from "@/lib/api";
 
 type LeadScore = "hot" | "nurture" | "cold";
-type UserStatusLabel = "paid" | "free" | "dropped";
+type UserStatusLabel = "paid" | "registered" | "started";
 type ActiveTab = "all" | "active" | "inactive";
+type SortKey = "date_desc" | "date_asc" | "score_desc" | "source";
 
 interface CRMUser {
   id: number;
   name: string;
+  username: string;
   phone: string;
   score: LeadScore;
   status: UserStatusLabel;
+  userStatus: string;
   isActive: boolean;
   source: string;
+  campaign: string;
+  leadScore: number;
   registeredAt: string;
+  createdAt: string;
   events: { action: string; time: string }[];
 }
 
@@ -31,20 +37,28 @@ const scoreColors: Record<LeadScore, string> = {
 
 const statusColors: Record<UserStatusLabel, string> = {
   paid: "bg-success/10 text-success",
-  free: "bg-primary/10 text-primary",
-  dropped: "bg-destructive/10 text-destructive",
+  registered: "bg-primary/10 text-primary",
+  started: "bg-warning/10 text-warning",
 };
 
 const scoreLabel: Record<LeadScore, string> = {
-  hot: "Issiq",
-  nurture: "Iliq",
-  cold: "Sovuq",
+  hot: "🔥 Issiq",
+  nurture: "🌤 Iliq",
+  cold: "❄️ Sovuq",
 };
+
 const statusLabel: Record<UserStatusLabel, string> = {
-  paid: "To'lagan",
-  free: "Bepul",
-  dropped: "Ketgan",
+  paid: "✅ To'lagan",
+  registered: "📋 Ro'yxatdan o'tgan",
+  started: "⏳ Ro'yxatdan o'tmagan",
 };
+
+const sortOptions: { id: SortKey; label: string }[] = [
+  { id: "date_desc", label: "Yangi → Eski" },
+  { id: "date_asc", label: "Eski → Yangi" },
+  { id: "score_desc", label: "Ball bo'yicha" },
+  { id: "source", label: "Manba bo'yicha" },
+];
 
 const TABS: { id: ActiveTab; label: string; icon: React.ElementType }[] = [
   { id: "all", label: "Barchasi", icon: Search },
@@ -56,12 +70,13 @@ export default function UsersCRM() {
   const [search, setSearch] = useState("");
   const [activeTab, setActiveTab] = useState<ActiveTab>("all");
   const [filterScore, setFilterScore] = useState<LeadScore | "all">("all");
+  const [sortKey, setSortKey] = useState<SortKey>("date_desc");
   const [selectedUser, setSelectedUser] = useState<CRMUser | null>(null);
 
   const { data: usersData, isLoading } = useQuery<CRMUser[]>({
-    queryKey: ["admin_users", activeTab],
-    queryFn: () => fetchApi(`/api/admin/users?status=${activeTab}`),
-    refetchInterval: 30_000, // sinxron — har 30 soniyada yangilanadi
+    queryKey: ["admin_users", activeTab, sortKey],
+    queryFn: () => fetchApi(`/api/admin/users?status=${activeTab}&sort=${sortKey}`),
+    refetchInterval: 30_000,
   });
 
   const users = usersData || [];
@@ -70,13 +85,14 @@ export default function UsersCRM() {
     const matchSearch =
       u.name.toLowerCase().includes(search.toLowerCase()) ||
       u.id.toString().includes(search) ||
-      u.phone.includes(search);
+      u.phone.includes(search) ||
+      (u.username && u.username.toLowerCase().includes(search.toLowerCase()));
     const matchScore = filterScore === "all" || u.score === filterScore;
     return matchSearch && matchScore;
   });
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       <h2 className="text-base font-bold">Foydalanuvchilar (CRM)</h2>
 
       {/* Active / Inactive Tabs */}
@@ -108,17 +124,17 @@ export default function UsersCRM() {
           <Card className="flex-1 glass-card border-border/30">
             <CardContent className="p-2 text-center">
               <p className="text-base font-bold text-success">
-                {filtered.filter(u => u.status === "paid").length}
+                {filtered.filter(u => u.status === "registered").length}
               </p>
-              <p className="text-[10px] text-muted-foreground">To'lagan</p>
+              <p className="text-[10px] text-muted-foreground">Ro'yxatdan o'tgan</p>
             </CardContent>
           </Card>
           <Card className="flex-1 glass-card border-border/30">
             <CardContent className="p-2 text-center">
-              <p className="text-base font-bold text-primary">
-                {filtered.filter(u => u.score === "hot").length}
+              <p className="text-base font-bold text-warning">
+                {filtered.filter(u => u.status === "started").length}
               </p>
-              <p className="text-[10px] text-muted-foreground">Issiq lid</p>
+              <p className="text-[10px] text-muted-foreground">O'tmagan</p>
             </CardContent>
           </Card>
         </div>
@@ -128,27 +144,41 @@ export default function UsersCRM() {
       <div className="relative">
         <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
         <Input
-          placeholder="Ism, ID yoki telefon..."
+          placeholder="Ism, ID, @username yoki telefon..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="pl-8 h-9 text-xs bg-secondary border-border/30"
         />
       </div>
 
-      {/* Score filters */}
-      <div className="flex gap-1.5">
-        {(["all", "hot", "nurture", "cold"] as const).map((s) => (
-          <button
-            key={s}
-            onClick={() => setFilterScore(s)}
-            className={`px-2.5 py-1 text-[11px] font-medium rounded-md transition-colors ${filterScore === s
-              ? "bg-primary text-primary-foreground"
-              : "bg-secondary text-secondary-foreground"
-              }`}
-          >
-            {s === "all" ? "Barchasi" : scoreLabel[s]}
-          </button>
-        ))}
+      {/* Sort + Score filters in one row */}
+      <div className="flex gap-2 items-center overflow-x-auto">
+        {/* Sort dropdown */}
+        <select
+          value={sortKey}
+          onChange={(e) => setSortKey(e.target.value as SortKey)}
+          className="bg-secondary text-foreground text-[11px] rounded-md px-2 py-1.5 border border-border/30 min-w-[100px]"
+        >
+          {sortOptions.map((opt) => (
+            <option key={opt.id} value={opt.id}>{opt.label}</option>
+          ))}
+        </select>
+
+        {/* Score filters */}
+        <div className="flex gap-1">
+          {(["all", "hot", "nurture", "cold"] as const).map((s) => (
+            <button
+              key={s}
+              onClick={() => setFilterScore(s)}
+              className={`px-2 py-1 text-[10px] font-medium rounded-md transition-colors whitespace-nowrap ${filterScore === s
+                ? "bg-primary text-primary-foreground"
+                : "bg-secondary text-secondary-foreground"
+                }`}
+            >
+              {s === "all" ? "Barchasi" : scoreLabel[s]}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* User List */}
@@ -157,9 +187,7 @@ export default function UsersCRM() {
           <div className="text-xs text-muted-foreground text-center p-6">Yuklanmoqda...</div>
         ) : filtered.length === 0 ? (
           <div className="text-xs text-muted-foreground text-center p-6">
-            {activeTab === "active" ? "Aktiv foydalanuvchilar topilmadi" :
-              activeTab === "inactive" ? "Noaktiv foydalanuvchilar topilmadi" :
-                "Foydalanuvchilar topilmadi"}
+            Foydalanuvchilar topilmadi
           </div>
         ) : (
           filtered.map((user) => (
@@ -174,17 +202,18 @@ export default function UsersCRM() {
                     <div className="flex items-center gap-1.5">
                       <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${user.isActive ? "bg-green-500" : "bg-red-400"}`} />
                       <p className="text-sm font-semibold truncate">{user.name}</p>
+                      {user.username && (
+                        <span className="text-[10px] text-primary/70 truncate">@{user.username}</span>
+                      )}
                     </div>
-                    <p className="text-[10px] text-muted-foreground ml-3">
-                      #{user.id} · {user.source} · {user.registeredAt}
+                    <p className="text-[10px] text-muted-foreground ml-3 truncate">
+                      {user.source} · {user.createdAt}
+                      {user.campaign && ` · ${user.campaign}`}
                     </p>
                   </div>
-                  <div className="flex gap-1.5 ml-2">
-                    <Badge variant="secondary" className={`text-[10px] px-1.5 py-0 ${scoreColors[user.score]}`}>
-                      {scoreLabel[user.score]}
-                    </Badge>
-                    <Badge variant="secondary" className={`text-[10px] px-1.5 py-0 ${statusColors[user.status]}`}>
-                      {statusLabel[user.status]}
+                  <div className="flex gap-1 ml-2 flex-shrink-0">
+                    <Badge variant="secondary" className={`text-[9px] px-1.5 py-0 ${statusColors[user.status]}`}>
+                      {user.status === "paid" ? "To'lagan" : user.status === "registered" ? "Ro'yxatdan ✓" : "O'tmagan"}
                     </Badge>
                   </div>
                 </div>
@@ -209,47 +238,65 @@ export default function UsersCRM() {
               animate={{ y: 0 }}
               exit={{ y: "100%" }}
               transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="w-full max-h-[80vh] bg-card border-t border-border rounded-t-2xl p-4 overflow-y-auto"
+              className="w-full max-h-[85vh] bg-card border-t border-border rounded-t-2xl p-4 overflow-y-auto"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="flex items-center justify-between mb-4">
-                <div>
+              {/* Header */}
+              <div className="flex items-center justify-between mb-3">
+                <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
-                    <div className={`w-2 h-2 rounded-full ${selectedUser.isActive ? "bg-green-500" : "bg-red-400"}`} />
-                    <h3 className="text-base font-bold">{selectedUser.name}</h3>
+                    <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${selectedUser.isActive ? "bg-green-500" : "bg-red-400"}`} />
+                    <h3 className="text-base font-bold truncate">{selectedUser.name}</h3>
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    {selectedUser.phone} · {selectedUser.source} · {selectedUser.registeredAt}
-                  </p>
+                  <div className="text-xs text-muted-foreground ml-5 space-y-0.5">
+                    {selectedUser.username && <p>@{selectedUser.username}</p>}
+                    <p>{selectedUser.phone} · {selectedUser.source} · {selectedUser.createdAt}</p>
+                    {selectedUser.campaign && <p>Kampaniya: {selectedUser.campaign}</p>}
+                  </div>
                 </div>
-                <button onClick={() => setSelectedUser(null)} className="p-1 rounded-full hover:bg-secondary">
+                <button onClick={() => setSelectedUser(null)} className="p-1 rounded-full hover:bg-secondary flex-shrink-0">
                   <X className="h-5 w-5" />
                 </button>
               </div>
 
-              <div className="flex gap-2 mb-4">
+              {/* Badges */}
+              <div className="flex flex-wrap gap-1.5 mb-4">
                 <Badge className={scoreColors[selectedUser.score]}>{scoreLabel[selectedUser.score]}</Badge>
                 <Badge className={statusColors[selectedUser.status]}>{statusLabel[selectedUser.status]}</Badge>
                 <Badge className={selectedUser.isActive ? "bg-success/10 text-success" : "bg-destructive/10 text-destructive"}>
                   {selectedUser.isActive ? "Aktiv" : "Noaktiv"}
                 </Badge>
+                <Badge className="bg-muted text-muted-foreground">
+                  Ball: {selectedUser.leadScore}
+                </Badge>
               </div>
 
+              {/* User Journey Timeline */}
+              <h4 className="text-sm font-semibold mb-2">📍 Bosib o'tgan yo'li</h4>
               {selectedUser.events.length > 0 ? (
-                <>
-                  <h4 className="text-sm font-semibold mb-2">Bosib o'tgan yo'li</h4>
-                  <div className="relative pl-4 border-l-2 border-primary/30 space-y-3">
-                    {selectedUser.events.map((ev, i) => (
+                <div className="relative pl-4 border-l-2 border-primary/30 space-y-3 mb-4">
+                  {selectedUser.events.map((ev, i) => {
+                    const isLast = i === selectedUser.events.length - 1;
+                    return (
                       <div key={i} className="relative">
-                        <div className="absolute -left-[calc(1rem+5px)] top-1 w-2 h-2 rounded-full bg-primary" />
-                        <p className="text-xs font-medium">{ev.action}</p>
+                        <div className={`absolute -left-[calc(1rem+5px)] top-1 w-2.5 h-2.5 rounded-full ${isLast ? "bg-primary ring-2 ring-primary/30" : "bg-primary/60"}`} />
+                        <p className={`text-xs ${isLast ? "font-bold text-foreground" : "font-medium text-foreground/80"}`}>
+                          {ev.action}
+                        </p>
                         <p className="text-[10px] text-muted-foreground">{ev.time}</p>
                       </div>
-                    ))}
+                    );
+                  })}
+                  {/* Current stop indicator */}
+                  <div className="relative">
+                    <div className="absolute -left-[calc(1rem+5px)] top-1 w-2.5 h-2.5 rounded-full bg-red-400 ring-2 ring-red-400/30 animate-pulse" />
+                    <p className="text-xs font-bold text-destructive">⏸ Shu yerda to'xtagan</p>
                   </div>
-                </>
+                </div>
               ) : (
-                <p className="text-xs text-muted-foreground text-center py-4">Hozircha faollik yo'q</p>
+                <div className="text-xs text-muted-foreground text-center py-4 mb-4 border border-dashed border-border rounded-lg">
+                  Hozircha faollik qayd etilmagan
+                </div>
               )}
             </motion.div>
           </motion.div>
