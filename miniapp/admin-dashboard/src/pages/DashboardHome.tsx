@@ -2,7 +2,7 @@ import { Users, UserCheck, UserX, CreditCard, AlertCircle, ClipboardList, UserPl
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
-  AreaChart, Area, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar,
+  AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from "recharts";
 import { useQuery } from "@tanstack/react-query";
 import { fetchApi } from "@/lib/api";
@@ -32,53 +32,12 @@ export default function DashboardHome() {
   const startedUsers = statsData?.kpis?.startedUsers ?? 0;
 
   const kpis = [
-    {
-      label: "Jami foydalanuvchilar",
-      value: isLoading ? "..." : totalUsers.toLocaleString(),
-      icon: Users,
-      color: "text-primary",
-      bg: "bg-primary/10",
-    },
-    {
-      label: "Aktiv",
-      value: isLoading ? "..." : activeUsers.toLocaleString(),
-      icon: UserCheck,
-      color: "text-success",
-      bg: "bg-success/10",
-      sub: totalUsers > 0 ? `${Math.round(activeUsers / totalUsers * 100)}%` : "0%",
-    },
-    {
-      label: "Ro'yxatdan o'tgan",
-      value: isLoading ? "..." : registeredUsers.toLocaleString(),
-      icon: ClipboardList,
-      color: "text-primary",
-      bg: "bg-primary/10",
-      sub: totalUsers > 0 ? `${Math.round(registeredUsers / totalUsers * 100)}%` : "0%",
-    },
-    {
-      label: "Ro'yxatdan o'tmagan",
-      value: isLoading ? "..." : startedUsers.toLocaleString(),
-      icon: UserPlus,
-      color: "text-warning",
-      bg: "bg-warning/10",
-      sub: totalUsers > 0 ? `${Math.round(startedUsers / totalUsers * 100)}%` : "0%",
-    },
-    {
-      label: "Noaktiv",
-      value: isLoading ? "..." : inactiveUsers.toLocaleString(),
-      icon: UserX,
-      color: "text-destructive",
-      bg: "bg-destructive/10",
-      sub: totalUsers > 0 ? `${Math.round(inactiveUsers / totalUsers * 100)}%` : "0%",
-    },
-    {
-      label: "Yopiq Klub",
-      value: isLoading ? "..." : activeSubs.toLocaleString(),
-      icon: CreditCard,
-      color: "text-warning",
-      bg: "bg-warning/10",
-      sub: `${conversion}% konv`,
-    },
+    { label: "Jami", value: isLoading ? "…" : totalUsers.toLocaleString(), icon: Users, color: "text-primary", bg: "bg-primary/10" },
+    { label: "Aktiv", value: isLoading ? "…" : activeUsers.toLocaleString(), icon: UserCheck, color: "text-success", bg: "bg-success/10", sub: totalUsers > 0 ? `${Math.round(activeUsers / totalUsers * 100)}%` : "" },
+    { label: "Noaktiv", value: isLoading ? "…" : inactiveUsers.toLocaleString(), icon: UserX, color: "text-destructive", bg: "bg-destructive/10", sub: totalUsers > 0 ? `${Math.round(inactiveUsers / totalUsers * 100)}%` : "" },
+    { label: "Ro'yxatli", value: isLoading ? "…" : registeredUsers.toLocaleString(), icon: ClipboardList, color: "text-primary", bg: "bg-primary/10", sub: totalUsers > 0 ? `${Math.round(registeredUsers / totalUsers * 100)}%` : "" },
+    { label: "Kutilmoqda", value: isLoading ? "…" : startedUsers.toLocaleString(), icon: UserPlus, color: "text-warning", bg: "bg-warning/10", sub: totalUsers > 0 ? `${Math.round(startedUsers / totalUsers * 100)}%` : "" },
+    { label: "Klub", value: isLoading ? "…" : activeSubs.toLocaleString(), icon: CreditCard, color: "text-warning", bg: "bg-warning/10", sub: `${conversion}%` },
   ];
 
   const chartData = statsData?.revenueChart7d || [];
@@ -86,51 +45,76 @@ export default function DashboardHome() {
   const displayActivities: any[] = statsData?.recentActivity || [];
 
   return (
-    <div className="space-y-4">
-      {/* Error Banner */}
+    <div className="space-y-3">
       {isError && (
         <Card className="border-destructive/30 bg-destructive/5">
-          <CardContent className="p-3 flex items-center gap-2">
-            <AlertCircle className="h-4 w-4 text-destructive flex-shrink-0" />
-            <p className="text-xs text-destructive">
-              API xatolik: {(error as Error)?.message || "Ma'lumot yuklanmadi"}
+          <CardContent className="p-2 flex items-center gap-2">
+            <AlertCircle className="h-3.5 w-3.5 text-destructive flex-shrink-0" />
+            <p className="text-[11px] text-destructive truncate">
+              {(error as Error)?.message || "Ma'lumot yuklanmadi"}
             </p>
           </CardContent>
         </Card>
       )}
 
-      {/* KPI Cards — responsive grid */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+      {/* KPI Cards — 3 columns on mobile, 6 on desktop */}
+      <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
         {kpis.map((kpi) => (
           <Card key={kpi.label} className="glass-card border-border/30">
-            <CardContent className="p-3">
-              <div className={`inline-flex items-center justify-center w-7 h-7 rounded-lg mb-2 ${kpi.bg}`}>
-                <kpi.icon className={`h-4 w-4 ${kpi.color}`} />
+            <CardContent className="p-2">
+              <div className={`inline-flex items-center justify-center w-6 h-6 rounded-md mb-1 ${kpi.bg}`}>
+                <kpi.icon className={`h-3 w-3 ${kpi.color}`} />
               </div>
-              <p className="text-lg font-bold leading-none">{kpi.value}</p>
-              <p className="text-[11px] text-muted-foreground mt-1">{kpi.label}</p>
+              <p className="text-base font-bold leading-none">{kpi.value}</p>
+              <p className="text-[10px] text-muted-foreground mt-0.5 truncate">{kpi.label}</p>
               {kpi.sub && (
-                <p className={`text-[10px] font-medium mt-0.5 ${kpi.color}`}>{kpi.sub}</p>
+                <p className={`text-[9px] font-medium ${kpi.color}`}>{kpi.sub}</p>
               )}
             </CardContent>
           </Card>
         ))}
       </div>
 
-      {/* Charts row — responsive: stack on mobile, side by side on desktop */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Daily New Users Chart (14 days) */}
+      {/* Aktiv vs Noaktiv progress bar */}
+      {!isLoading && totalUsers > 0 && (
         <Card className="glass-card border-border/30">
-          <CardContent className="p-3">
-            <h3 className="text-sm font-semibold mb-3">📈 Yangi foydalanuvchilar (14 kun)</h3>
+          <CardContent className="p-2.5">
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-[11px] font-semibold">Aktiv / Noaktiv</span>
+              <span className="text-[10px] text-muted-foreground">{totalUsers.toLocaleString()} jami</span>
+            </div>
+            <div className="h-2.5 w-full rounded-full bg-secondary overflow-hidden flex">
+              <div className="h-full bg-green-500 transition-all duration-500" style={{ width: `${Math.round(activeUsers / totalUsers * 100)}%` }} />
+              <div className="h-full bg-red-400/60 transition-all duration-500" style={{ width: `${Math.round(inactiveUsers / totalUsers * 100)}%` }} />
+            </div>
+            <div className="flex items-center gap-3 mt-1.5">
+              <div className="flex items-center gap-1">
+                <div className="w-2 h-2 rounded-full bg-green-500" />
+                <span className="text-[10px] text-muted-foreground">{activeUsers.toLocaleString()}</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <div className="w-2 h-2 rounded-full bg-red-400/60" />
+                <span className="text-[10px] text-muted-foreground">{inactiveUsers.toLocaleString()}</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Charts — stack mobile, side by side desktop */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        {/* Daily New Users */}
+        <Card className="glass-card border-border/30">
+          <CardContent className="p-2.5">
+            <h3 className="text-[12px] font-semibold mb-2">Yangi foydalanuvchilar (14 kun)</h3>
             {isLoading ? (
-              <div className="h-40 flex items-center justify-center text-xs text-muted-foreground">Yuklanmoqda...</div>
+              <div className="h-32 flex items-center justify-center text-[11px] text-muted-foreground">Yuklanmoqda…</div>
             ) : usersChartData.length === 0 ? (
-              <div className="h-40 flex items-center justify-center text-xs text-muted-foreground">Ma'lumot yo'q</div>
+              <div className="h-32 flex items-center justify-center text-[11px] text-muted-foreground">Ma'lumot yo'q</div>
             ) : (
-              <div className="h-44">
+              <div className="h-36">
                 <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={usersChartData}>
+                  <AreaChart data={usersChartData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
                     <defs>
                       <linearGradient id="userGrad" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="5%" stopColor="hsl(199, 85%, 55%)" stopOpacity={0.3} />
@@ -138,13 +122,10 @@ export default function DashboardHome() {
                       </linearGradient>
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                    <XAxis dataKey="day" tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" />
-                    <YAxis tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" />
-                    <Tooltip
-                      contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px", fontSize: 12 }}
-                      formatter={(value: number) => [`${value} ta`, "Yangi"]}
-                    />
-                    <Area type="monotone" dataKey="users" stroke="hsl(199, 85%, 55%)" strokeWidth={2} fillOpacity={1} fill="url(#userGrad)" />
+                    <XAxis dataKey="day" tick={{ fontSize: 9 }} stroke="hsl(var(--muted-foreground))" interval="preserveStartEnd" />
+                    <YAxis tick={{ fontSize: 9 }} stroke="hsl(var(--muted-foreground))" width={30} />
+                    <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "6px", fontSize: 11 }} formatter={(v: number) => [`${v}`, "Yangi"]} />
+                    <Area type="monotone" dataKey="users" stroke="hsl(199, 85%, 55%)" strokeWidth={2} fill="url(#userGrad)" />
                   </AreaChart>
                 </ResponsiveContainer>
               </div>
@@ -152,26 +133,23 @@ export default function DashboardHome() {
           </CardContent>
         </Card>
 
-        {/* Revenue Chart */}
+        {/* Revenue */}
         <Card className="glass-card border-border/30">
-          <CardContent className="p-3">
-            <h3 className="text-sm font-semibold mb-3">💰 Tushum (7 kun)</h3>
+          <CardContent className="p-2.5">
+            <h3 className="text-[12px] font-semibold mb-2">Tushum (7 kun)</h3>
             {isLoading ? (
-              <div className="h-40 flex items-center justify-center text-xs text-muted-foreground">Yuklanmoqda...</div>
+              <div className="h-32 flex items-center justify-center text-[11px] text-muted-foreground">Yuklanmoqda…</div>
             ) : chartData.length === 0 ? (
-              <div className="h-40 flex items-center justify-center text-xs text-muted-foreground">Hozircha daromad yo'q</div>
+              <div className="h-32 flex items-center justify-center text-[11px] text-muted-foreground">Hozircha daromad yo'q</div>
             ) : (
-              <div className="h-44">
+              <div className="h-36">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={chartData}>
+                  <BarChart data={chartData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                    <XAxis dataKey="day" tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" />
-                    <YAxis tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" tickFormatter={(v) => `${(v / 1000000).toFixed(0)}M`} />
-                    <Tooltip
-                      contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px", fontSize: 12 }}
-                      formatter={(value: number) => [`${(value / 1000000).toFixed(1)}M so'm`, "Tushum"]}
-                    />
-                    <Bar dataKey="revenue" fill="hsl(142, 60%, 45%)" radius={[4, 4, 0, 0]} />
+                    <XAxis dataKey="day" tick={{ fontSize: 9 }} stroke="hsl(var(--muted-foreground))" />
+                    <YAxis tick={{ fontSize: 9 }} stroke="hsl(var(--muted-foreground))" width={30} tickFormatter={(v) => v >= 1000000 ? `${(v / 1000000).toFixed(0)}M` : v >= 1000 ? `${(v / 1000).toFixed(0)}K` : v} />
+                    <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "6px", fontSize: 11 }} formatter={(v: number) => [v >= 1000000 ? `${(v / 1000000).toFixed(1)}M` : v.toLocaleString(), "so'm"]} />
+                    <Bar dataKey="revenue" fill="hsl(142, 60%, 45%)" radius={[3, 3, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
@@ -180,57 +158,25 @@ export default function DashboardHome() {
         </Card>
       </div>
 
-      {/* Aktiv vs Noaktiv progress bar */}
-      {!isLoading && totalUsers > 0 && (
-        <Card className="glass-card border-border/30">
-          <CardContent className="p-3">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-sm font-semibold">Aktiv / Noaktiv nisbati</h3>
-              <span className="text-[11px] text-muted-foreground">{totalUsers.toLocaleString()} jami</span>
-            </div>
-            <div className="h-3 w-full rounded-full bg-secondary overflow-hidden flex">
-              <div
-                className="h-full bg-green-500 transition-all duration-500"
-                style={{ width: `${Math.round(activeUsers / totalUsers * 100)}%` }}
-              />
-              <div
-                className="h-full bg-red-400/60 transition-all duration-500"
-                style={{ width: `${Math.round(inactiveUsers / totalUsers * 100)}%` }}
-              />
-            </div>
-            <div className="flex items-center gap-4 mt-2">
-              <div className="flex items-center gap-1.5">
-                <div className="w-2.5 h-2.5 rounded-full bg-green-500" />
-                <span className="text-[11px] text-muted-foreground">Aktiv: {activeUsers.toLocaleString()}</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <div className="w-2.5 h-2.5 rounded-full bg-red-400/60" />
-                <span className="text-[11px] text-muted-foreground">Noaktiv: {inactiveUsers.toLocaleString()}</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
       {/* Recent Activity */}
       <Card className="glass-card border-border/30">
-        <CardContent className="p-3">
-          <h3 className="text-sm font-semibold mb-3">🕒 So'nggi faollik</h3>
+        <CardContent className="p-2.5">
+          <h3 className="text-[12px] font-semibold mb-2">So'nggi faollik</h3>
           {isLoading ? (
-            <div className="text-xs text-muted-foreground p-4 text-center">Yuklanmoqda...</div>
+            <div className="text-[11px] text-muted-foreground p-3 text-center">Yuklanmoqda…</div>
           ) : displayActivities.length === 0 ? (
-            <div className="text-xs text-muted-foreground text-center py-4">Hozircha faollik yo'q</div>
+            <div className="text-[11px] text-muted-foreground text-center py-3">Hozircha faollik yo'q</div>
           ) : (
-            <div className="space-y-2.5">
+            <div className="space-y-2">
               {displayActivities.map((a: any) => (
-                <div key={a.id} className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <Badge variant="secondary" className={`text-[10px] px-1.5 py-0.5 flex-shrink-0 ${typeColors[a.type] || "bg-secondary text-secondary-foreground"}`}>
-                      {a.type}
+                <div key={a.id} className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                    <Badge variant="secondary" className={`text-[9px] px-1 py-0 flex-shrink-0 ${typeColors[a.type] || "bg-secondary text-secondary-foreground"}`}>
+                      {a.type?.replace(/_/g, " ").slice(0, 12)}
                     </Badge>
-                    <span className="text-xs truncate">{a.text}</span>
+                    <span className="text-[11px] truncate">{a.text}</span>
                   </div>
-                  <span className="text-[10px] text-muted-foreground whitespace-nowrap ml-2">{a.time}</span>
+                  <span className="text-[9px] text-muted-foreground whitespace-nowrap">{a.time}</span>
                 </div>
               ))}
             </div>

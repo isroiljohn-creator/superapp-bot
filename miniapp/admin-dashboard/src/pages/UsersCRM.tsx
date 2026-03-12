@@ -42,15 +42,15 @@ const statusColors: Record<UserStatusLabel, string> = {
 };
 
 const scoreLabel: Record<LeadScore, string> = {
-  hot: "🔥 Issiq",
-  nurture: "🌤 Iliq",
-  cold: "❄️ Sovuq",
+  hot: "Issiq",
+  nurture: "Iliq",
+  cold: "Sovuq",
 };
 
 const statusLabel: Record<UserStatusLabel, string> = {
-  paid: "✅ To'lagan",
-  registered: "📋 Ro'yxatdan o'tgan",
-  started: "⏳ Ro'yxatdan o'tmagan",
+  paid: "To'lagan",
+  registered: "Ro'yxatli",
+  started: "Kutilmoqda",
 };
 
 const sortOptions: { id: SortKey; label: string }[] = [
@@ -109,30 +109,30 @@ export default function UsersCRM() {
   };
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
       <div className="flex items-center justify-between">
-        <h2 className="text-base font-bold">Foydalanuvchilar (CRM)</h2>
+        <h2 className="text-sm font-bold">Userlar (CRM)</h2>
         <button
           onClick={handleExportCSV}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-medium bg-primary/10 text-primary rounded-lg hover:bg-primary/20 transition-colors"
+          className="flex items-center gap-1 px-2 py-1 text-[10px] font-medium bg-primary/10 text-primary rounded-md hover:bg-primary/20 transition-colors"
         >
-          <Download className="h-3.5 w-3.5" />
+          <Download className="h-3 w-3" />
           CSV
         </button>
       </div>
 
       {/* Active / Inactive Tabs */}
-      <div className="flex gap-1.5 p-1 bg-secondary rounded-xl">
+      <div className="flex gap-1 p-0.5 bg-secondary rounded-lg">
         {TABS.map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg text-[11px] font-medium transition-all ${activeTab === tab.id
+            className={`flex-1 flex items-center justify-center gap-0.5 py-1 rounded-md text-[10px] font-medium transition-all ${activeTab === tab.id
               ? "bg-card shadow text-foreground"
               : "text-muted-foreground"
               }`}
           >
-            <tab.icon className="h-3 w-3" />
+            <tab.icon className="h-2.5 w-2.5" />
             {tab.label}
           </button>
         ))}
@@ -140,68 +140,55 @@ export default function UsersCRM() {
 
       {/* Stats bar */}
       {!isLoading && (
-        <div className="flex gap-2">
-          <Card className="flex-1 glass-card border-border/30">
-            <CardContent className="p-2 text-center">
-              <p className="text-base font-bold text-foreground">{filtered.length}</p>
-              <p className="text-[10px] text-muted-foreground">Natija</p>
-            </CardContent>
-          </Card>
-          <Card className="flex-1 glass-card border-border/30">
-            <CardContent className="p-2 text-center">
-              <p className="text-base font-bold text-success">
-                {filtered.filter(u => u.status === "registered").length}
-              </p>
-              <p className="text-[10px] text-muted-foreground">Ro'yxatdan o'tgan</p>
-            </CardContent>
-          </Card>
-          <Card className="flex-1 glass-card border-border/30">
-            <CardContent className="p-2 text-center">
-              <p className="text-base font-bold text-warning">
-                {filtered.filter(u => u.status === "started").length}
-              </p>
-              <p className="text-[10px] text-muted-foreground">O'tmagan</p>
-            </CardContent>
-          </Card>
+        <div className="flex gap-1.5">
+          <div className="flex-1 bg-secondary/50 rounded-md px-2 py-1 text-center">
+            <p className="text-sm font-bold">{filtered.length}</p>
+            <p className="text-[9px] text-muted-foreground">Natija</p>
+          </div>
+          <div className="flex-1 bg-secondary/50 rounded-md px-2 py-1 text-center">
+            <p className="text-sm font-bold text-success">{filtered.filter(u => u.status === "registered").length}</p>
+            <p className="text-[9px] text-muted-foreground">Ro'yxatli</p>
+          </div>
+          <div className="flex-1 bg-secondary/50 rounded-md px-2 py-1 text-center">
+            <p className="text-sm font-bold text-warning">{filtered.filter(u => u.status === "started").length}</p>
+            <p className="text-[9px] text-muted-foreground">Kutilmoqda</p>
+          </div>
         </div>
       )}
 
       {/* Search */}
       <div className="relative">
-        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+        <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
         <Input
-          placeholder="Ism, ID, @username yoki telefon..."
+          placeholder="Ism, ID, @username..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="pl-8 h-9 text-xs bg-secondary border-border/30"
+          className="pl-7 h-7 text-[11px] bg-secondary border-border/30"
         />
       </div>
 
       {/* Sort + Score filters in one row */}
-      <div className="flex gap-2 items-center overflow-x-auto">
-        {/* Sort dropdown */}
+      <div className="flex gap-1.5 items-center">
         <select
           value={sortKey}
           onChange={(e) => setSortKey(e.target.value as SortKey)}
-          className="bg-secondary text-foreground text-[11px] rounded-md px-2 py-1.5 border border-border/30 min-w-[100px]"
+          className="bg-secondary text-foreground text-[10px] rounded-md px-1.5 py-1 border border-border/30 w-24"
         >
           {sortOptions.map((opt) => (
             <option key={opt.id} value={opt.id}>{opt.label}</option>
           ))}
         </select>
-
-        {/* Score filters */}
-        <div className="flex gap-1">
+        <div className="flex gap-0.5 flex-1">
           {(["all", "hot", "nurture", "cold"] as const).map((s) => (
             <button
               key={s}
               onClick={() => setFilterScore(s)}
-              className={`px-2 py-1 text-[10px] font-medium rounded-md transition-colors whitespace-nowrap ${filterScore === s
+              className={`px-1.5 py-0.5 text-[9px] font-medium rounded transition-colors whitespace-nowrap ${filterScore === s
                 ? "bg-primary text-primary-foreground"
                 : "bg-secondary text-secondary-foreground"
                 }`}
             >
-              {s === "all" ? "Barchasi" : scoreLabel[s]}
+              {s === "all" ? "Barcha" : scoreLabel[s]}
             </button>
           ))}
         </div>

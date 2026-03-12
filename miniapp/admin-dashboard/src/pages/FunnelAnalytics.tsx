@@ -55,63 +55,50 @@ export default function FunnelAnalytics() {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h2 className="text-base font-bold">🔻 Voronka analitikasi</h2>
-      </div>
+    <div className="space-y-3">
+      <h2 className="text-sm font-bold">Voronka analitikasi</h2>
 
-      {/* Funnel Visualization */}
+      {/* Funnel bars */}
       <Card className="glass-card border-border/30">
-        <CardContent className="p-4 md:p-6 space-y-1">
+        <CardContent className="p-3 space-y-0.5">
           {isLoading ? (
-            <div className="text-xs text-muted-foreground text-center py-8">Yuklanmoqda...</div>
+            <div className="text-[11px] text-muted-foreground text-center py-6">Yuklanmoqda…</div>
           ) : funnelSteps.length === 0 ? (
-            <div className="text-xs text-muted-foreground text-center py-8">Ma'lumot topilmadi</div>
+            <div className="text-[11px] text-muted-foreground text-center py-6">Ma'lumot topilmadi</div>
           ) : (
             funnelSteps.map((step, i) => {
-              const widthPct = Math.max((step.users / maxUsers) * 100, 8);
+              const widthPct = Math.max((step.users / maxUsers) * 100, 10);
               const dropoff = i > 0
                 ? (((funnelSteps[i - 1].users - step.users) / funnelSteps[i - 1].users) * 100).toFixed(0)
                 : null;
               const color = stepColors[i % stepColors.length];
 
               return (
-                <div key={step.label} className="group">
-                  {/* Drop-off indicator between steps */}
+                <div key={step.label}>
                   {dropoff && Number(dropoff) > 0 && (
-                    <div className="flex items-center justify-center py-0.5">
-                      <span className="text-[10px] text-destructive/70 font-medium">
-                        ↓ −{dropoff}% yo'qolgan ({funnelSteps[i - 1].users - step.users} ta)
-                      </span>
+                    <div className="text-center py-px">
+                      <span className="text-[9px] text-destructive/60">↓ −{dropoff}%</span>
                     </div>
                   )}
-                  <motion.div
-                    initial={{ width: 0, opacity: 0 }}
-                    animate={{ width: "100%", opacity: 1 }}
-                    transition={{ duration: 0.5, delay: i * 0.1 }}
-                  >
-                    <div className="flex items-center gap-3">
-                      <span className="text-xs font-medium w-32 md:w-40 flex-shrink-0 truncate">{step.label}</span>
-                      <div className="flex-1 relative">
-                        <motion.div
-                          className="h-9 md:h-10 rounded-lg flex items-center relative"
-                          initial={{ width: 0 }}
-                          animate={{ width: `${widthPct}%` }}
-                          transition={{ duration: 0.8, delay: i * 0.12, ease: "easeOut" }}
-                          style={{ background: color, minWidth: "60px" }}
-                        >
-                          <span className="absolute right-2 text-[11px] font-bold text-white drop-shadow">
-                            {step.users.toLocaleString()}
-                          </span>
-                        </motion.div>
-                      </div>
-                      {i > 0 && (
-                        <span className="text-[11px] font-semibold w-10 text-right flex-shrink-0" style={{ color }}>
-                          {step.rate}%
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[10px] font-medium w-20 md:w-32 flex-shrink-0 truncate text-right">{step.label}</span>
+                    <div className="flex-1 relative">
+                      <motion.div
+                        className="h-7 rounded-md flex items-center"
+                        initial={{ width: 0 }}
+                        animate={{ width: `${widthPct}%` }}
+                        transition={{ duration: 0.6, delay: i * 0.1, ease: "easeOut" }}
+                        style={{ background: color, minWidth: "40px" }}
+                      >
+                        <span className="absolute right-1.5 text-[10px] font-bold text-white drop-shadow">
+                          {step.users.toLocaleString()}
                         </span>
-                      )}
+                      </motion.div>
                     </div>
-                  </motion.div>
+                    {i > 0 && (
+                      <span className="text-[10px] font-semibold w-8 text-right flex-shrink-0" style={{ color }}>{step.rate}%</span>
+                    )}
+                  </div>
                 </div>
               );
             })
@@ -119,33 +106,24 @@ export default function FunnelAnalytics() {
         </CardContent>
       </Card>
 
-      {/* Summary — responsive grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+      {/* Summary cards */}
+      <div className="grid grid-cols-3 gap-2">
         <Card className="glass-card border-border/30">
-          <CardContent className="p-3 md:p-4">
-            <p className="text-[10px] text-muted-foreground mb-1">Umumiy konversiya</p>
-            <p className="text-2xl font-bold text-primary">{totalConversion}%</p>
-            <p className="text-[10px] text-muted-foreground mt-0.5">
-              /start → To'lov
-            </p>
+          <CardContent className="p-2 text-center">
+            <p className="text-lg md:text-2xl font-bold text-primary">{totalConversion}%</p>
+            <p className="text-[9px] text-muted-foreground">Konversiya</p>
           </CardContent>
         </Card>
-        <Card className="glass-card border-border/30 border-destructive/20">
-          <CardContent className="p-3 md:p-4">
-            <p className="text-[10px] text-muted-foreground mb-1">🔴 Eng katta yo'qotish</p>
-            <p className="text-sm font-bold text-destructive truncate">{biggestDropLabel}</p>
-            <p className="text-[10px] text-muted-foreground mt-0.5">
-              {biggestDrop.toLocaleString()} ta foydalanuvchi
-            </p>
+        <Card className="glass-card border-border/30">
+          <CardContent className="p-2 text-center">
+            <p className="text-[11px] font-bold text-destructive truncate">{biggestDropLabel}</p>
+            <p className="text-[9px] text-muted-foreground mt-0.5">Eng katta yo'qotish</p>
           </CardContent>
         </Card>
-        <Card className="glass-card border-border/30 border-success/20">
-          <CardContent className="p-3 md:p-4">
-            <p className="text-[10px] text-muted-foreground mb-1">🟢 Eng yaxshi bosqich</p>
-            <p className="text-sm font-bold text-success truncate">{bestStepLabel}</p>
-            <p className="text-[10px] text-muted-foreground mt-0.5">
-              {bestRate.toFixed(0)}% konversiya
-            </p>
+        <Card className="glass-card border-border/30">
+          <CardContent className="p-2 text-center">
+            <p className="text-[11px] font-bold text-success truncate">{bestStepLabel}</p>
+            <p className="text-[9px] text-muted-foreground mt-0.5">Eng yaxshi</p>
           </CardContent>
         </Card>
       </div>
