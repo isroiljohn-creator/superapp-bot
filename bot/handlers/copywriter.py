@@ -189,7 +189,6 @@ async def handle_copy_prompt(message: Message, state: FSMContext):
 
         # Analytics
         try:
-            from db.database import async_session
             from services.analytics import AnalyticsService
             from services.crm import CRMService
             async with async_session() as db:

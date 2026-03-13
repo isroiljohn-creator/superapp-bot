@@ -17,6 +17,7 @@ if config.config_file_name is not None:
 # add your model's MetaData object here
 # for 'autogenerate' support
 from db.models import Base
+from bot.config import settings
 import os
 
 # Resolve DATABASE_URL — handle Railway template strings like ${{...}}
