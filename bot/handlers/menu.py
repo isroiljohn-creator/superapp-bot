@@ -646,9 +646,21 @@ async def process_pre_checkout_query(pre_checkout_query: PreCheckoutQuery):
 @router.message(F.successful_payment)
 async def process_successful_payment(message: Message):
     payment_info = message.successful_payment
-    from bot.handlers.subscription import handle_payment_success
-    await handle_payment_success(
-        bot=message.bot,
-        telegram_id=message.from_user.id,
-        card_token=payment_info.provider_payment_charge_id,
-    )
+    payload = payment_info.invoice_payload
+
+    if payload == "club_subscription_stars":
+        # Stars payment — handle directly
+        from bot.handlers.subscription import handle_payment_success
+        await handle_payment_success(
+            bot=message.bot,
+            telegram_id=message.from_user.id,
+            card_token=payment_info.telegram_payment_charge_id,
+        )
+    else:
+        # Traditional payment (Click/Payme)
+        from bot.handlers.subscription import handle_payment_success
+        await handle_payment_success(
+            bot=message.bot,
+            telegram_id=message.from_user.id,
+            card_token=payment_info.provider_payment_charge_id,
+        )

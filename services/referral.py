@@ -207,6 +207,7 @@ class ReferralService:
     # ── Leaderboard ──────────────────────────
     async def get_leaderboard(self, limit: int = 10) -> list[dict]:
         """Get top referrers sorted by total referral count."""
+        import html as html_mod
         result = await self.session.execute(
             select(
                 Referral.referer_id,
@@ -225,10 +226,10 @@ class ReferralService:
                 select(User).where(User.telegram_id == referer_id)
             )
             user = user_q.scalar_one_or_none()
-            name = user.name if user else f"ID:{referer_id}"
+            raw_name = user.name if user else f"ID:{referer_id}"
             leaderboard.append({
                 "rank": len(leaderboard) + 1,
-                "name": name,
+                "name": html_mod.escape(raw_name),
                 "telegram_id": referer_id,
                 "referrals": count,
             })

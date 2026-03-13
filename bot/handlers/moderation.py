@@ -2,9 +2,8 @@
 import logging
 from collections import defaultdict
 
-from aiogram import Router, F, Bot
-from aiogram.types import Message, ChatMemberUpdated
-from aiogram.filters import ChatMemberUpdatedFilter, KICKED, LEFT, MEMBER
+from aiogram import Router, F
+from aiogram.types import Message
 
 from bot.config import settings
 from bot.locales import uz
@@ -69,6 +68,9 @@ async def moderate_group_message(message: Message):
             await message.delete()
         except Exception:
             pass
+
+        if not message.from_user:
+            return  # Can't warn anonymous senders
 
         user_id = message.from_user.id
         _warnings[user_id] += 1
