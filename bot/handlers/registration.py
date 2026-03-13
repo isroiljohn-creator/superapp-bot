@@ -60,20 +60,15 @@ async def cmd_start(message: Message, state: FSMContext):
             # Check if this start command was meant to trigger a specific lead magnet
             campaign_to_check = campaign or source
             if campaign_to_check:
-                from services.funnel import FunnelService
                 from bot.handlers.lead_magnet import deliver_lead_magnet
-                funnel = FunnelService(session)
-                lm = await funnel.get_lead_magnet(campaign_to_check)
-                if lm:
-                    # Update user's campaign to this new one so deliver_lead_magnet sends the right one
-                    user.campaign = campaign_to_check
-                    await session.commit()
-                    await deliver_lead_magnet(message, user.telegram_id)
-                    return
+                # Try to deliver lead magnet (will skip silently if already opened or no content)
+                user.campaign = campaign_to_check
+                await session.commit()
+                await deliver_lead_magnet(message, user.telegram_id)
 
-            # Already registered — show main menu
+            # Always show welcome-back + main menu
             await message.answer(
-                uz.MENU_TEXT,
+                f"👋 Xush kelibsiz, {user.name or ''}!\n\n{uz.MENU_TEXT}",
                 parse_mode="HTML",
                 reply_markup=main_menu_keyboard(user_id=message.from_user.id),
             )
