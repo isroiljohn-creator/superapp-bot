@@ -49,6 +49,8 @@ def _call_gemini(prompt: str) -> str:
     """Call Gemini API for presentation content."""
     import urllib.request
     api_key = settings.GEMINI_API_KEY
+    if not api_key:
+        raise ValueError("GEMINI_API_KEY sozlanmagan")
     url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={api_key}"
 
     body = json.dumps({
@@ -61,7 +63,10 @@ def _call_gemini(prompt: str) -> str:
     with urllib.request.urlopen(req, timeout=60) as resp:
         data = json.loads(resp.read())
 
-    return data["candidates"][0]["content"]["parts"][0]["text"]
+    candidates = data.get("candidates", [])
+    if candidates and candidates[0].get("content", {}).get("parts"):
+        return candidates[0]["content"]["parts"][0]["text"]
+    raise ValueError("Gemini javob bermadi")
 
 
 def _build_pptx(slide_data: dict) -> str:
@@ -169,6 +174,14 @@ def _build_pptx(slide_data: dict) -> str:
 @router.message(F.text == uz.AI_WORKERS_KB_PRES)
 async def start_presentation(message: Message, state: FSMContext):
     """Start presentation generation flow."""
+    if not settings.GEMINI_API_KEY:
+        await message.answer(
+            "⚠️ AI xizmatlari hozircha sozlanmagan.\n"
+            "Admin GEMINI_API_KEY ni sozlashi kerak.",
+            reply_markup=ai_workers_reply_keyboard(),
+        )
+        return
+
     async with async_session() as session:
         if not await has_enough_async(session, message.from_user.id, PRES_COST):
             tokens = await get_tokens_async(session, message.from_user.id)
