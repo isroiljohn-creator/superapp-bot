@@ -95,7 +95,7 @@ async def get_dashboard_stats(admin_id: int = Depends(check_admin), db: AsyncSes
 
     # Revenue chart for last 7 days
     today = datetime.now(timezone.utc).date()
-    day_labels = ["Yak", "Dush", "Sesh", "Chor", "Pay", "Jum", "Shan"]
+    day_labels = ["Dush", "Sesh", "Chor", "Pay", "Jum", "Shan", "Yak"]
     revenue_chart = []
     for i in range(6, -1, -1):
         day = today - timedelta(days=i)
@@ -150,7 +150,11 @@ async def get_dashboard_stats(admin_id: int = Depends(check_admin), db: AsyncSes
         select(func.count(User.id)).where(User.user_status == "registered")
     )
     registered_count = registered_q.scalar() or 0
-    started_count = total_users - registered_count
+
+    started_q = await db.execute(
+        select(func.count(User.id)).where(User.user_status == "started")
+    )
+    started_count = started_q.scalar() or 0
 
     return {
         "kpis": {
@@ -204,7 +208,8 @@ async def get_users_list(
         elif q_clean.startswith("@"):
             query = query.where(User.username.ilike(f"%{q_clean[1:]}%"))
         else:
-            query = query.where(User.name.ilike(f"%{q_clean}%"))
+            q_clean_escaped = q_clean.replace("%", "\\%").replace("_", "\\_")
+            query = query.where(User.name.ilike(f"%{q_clean_escaped}%"))
 
     # Sorting
     if sort == "date_asc":
@@ -216,9 +221,7 @@ async def get_users_list(
     else:  # date_desc (default)
         query = query.order_by(User.created_at.desc())
 
-    # Count total
-    from sqlalchemy import func as sa_func
-    count_q = select(sa_func.count()).select_from(query.subquery())
+    count_q = select(func.count()).select_from(query.subquery())
     total = (await db.execute(count_q)).scalar() or 0
 
     result = await db.execute(query.offset(offset).limit(limit))

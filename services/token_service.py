@@ -48,7 +48,7 @@ async def get_tokens_async(session: AsyncSession, telegram_id: int) -> int:
     user = await _get_user(session, telegram_id)
     if not user:
         return 0
-    return user.tokens or INITIAL_TOKENS
+    return user.tokens if user.tokens is not None else INITIAL_TOKENS
 
 
 async def spend_tokens_async(session: AsyncSession, telegram_id: int, amount: int) -> bool:

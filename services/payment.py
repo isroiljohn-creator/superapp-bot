@@ -74,18 +74,24 @@ class PaymentService:
             sign_time=data.get("sign_time", ""),
         )
         expected_sign = hashlib.md5(sign_string.encode()).hexdigest()
-        return data.get("sign_string", "") == expected_sign
+        return data.get("sign_string", data.get("sign", "")) == expected_sign
 
     # ── Payme webhook verification ───────────
     @staticmethod
     def verify_payme_token(auth_header: str) -> bool:
         """Verify Payme Basic auth header."""
         import base64
+        import logging
+        logger = logging.getLogger("payment")
         try:
             decoded = base64.b64decode(auth_header.split(" ")[1]).decode()
             _, key = decoded.split(":")
-            return key == settings.PAYME_SECRET_KEY
-        except Exception:
+            result = key == settings.PAYME_SECRET_KEY
+            if not result:
+                logger.warning(f"Payme auth failed: wrong key")
+            return result
+        except Exception as e:
+            logger.warning(f"Payme auth error: {type(e).__name__}: {e}")
             return False
 
     # ── Payment URL generation ───────────────

@@ -80,6 +80,8 @@ async def cmd_profile(message: Message):
         stats = await ref_service.get_stats(message.from_user.id)
         balance = stats.get("balance", 0)
 
+        await session.commit()  # persist any expire() from is_active
+
     await message.answer(
         uz.PROFILE_TEXT.format(
             name=user.name or "—",

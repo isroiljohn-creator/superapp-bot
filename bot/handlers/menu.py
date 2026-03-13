@@ -57,12 +57,9 @@ async def menu_video_lessons(message: Message):
     async with async_session() as session:
         analytics = AnalyticsService(session)
         crm = CRMService(session)
-        user, _ = await crm.get_or_create_user(
-            telegram_id=message.from_user.id,
-            name=message.from_user.full_name,
-            username=message.from_user.username,
-        )
-        await analytics.track(user_id=user.id, event_type="menu_lessons_click")
+        user = await crm.get_user(message.from_user.id)
+        if user:
+            await analytics.track(user_id=user.id, event_type="menu_lessons_click")
 
         result = await session.execute(
             select(CourseModule)
@@ -71,7 +68,8 @@ async def menu_video_lessons(message: Message):
             .limit(20)
         )
         lessons = result.scalars().all()
-        await session.commit()
+        if user:
+            await session.commit()
 
     if not lessons:
         await message.answer(uz.NO_LESSONS_TEXT, parse_mode="HTML", reply_markup=free_lessons_keyboard())
@@ -194,8 +192,9 @@ async def menu_profile(message: Message):
                 stats = await ref_service.get_stats(message.from_user.id)
                 referrals = stats.get("total_referrals", 0)
                 balance = stats.get("balance", 0)
-    except Exception:
-        pass
+    except Exception as exc:
+        import logging
+        logging.getLogger("menu").warning(f"Profil yuklanmadi: {exc}")
 
     text = uz.PROFILE_MENU_TEXT.format(
         name=name, age=age, phone=phone, goal=goal,
@@ -368,9 +367,9 @@ async def profile_referral(callback_query):
             balance = stats.get("balance", 0)
             reward = await ref_service._get_reward_amount()
             reward_formatted = f"{reward:,}".replace(",", " ")
-            await session.commit()
-    except Exception:
-        pass
+    except Exception as exc:
+        import logging
+        logging.getLogger("menu").warning(f"Referral stats yuklanmadi: {exc}")
 
     await callback_query.message.answer(
         uz.REFERRAL_MENU_TEXT.format(link=ref_link, count=referral_count, balance=f"{balance:,}".replace(",", " "), reward=reward_formatted),
@@ -492,7 +491,11 @@ async def lesson_db_callback(callback_query):
     from sqlalchemy import select
     from db.models import CourseModule
 
-    lesson_id = int(callback_query.data.split(":")[1])
+    try:
+        lesson_id = int(callback_query.data.split(":")[1])
+    except (ValueError, IndexError):
+        await callback_query.answer("Noto'g'ri dars", show_alert=True)
+        return
 
     async with async_session() as session:
         result = await session.execute(select(CourseModule).where(CourseModule.id == lesson_id))
@@ -541,6 +544,7 @@ async def lesson_db_callback(callback_query):
 
     if not delivered:
         await callback_query.answer(f"\U0001f4f9 {lesson.title} — tez orada qo'shiladi!", show_alert=True)
+        return
     await callback_query.answer()
 
 

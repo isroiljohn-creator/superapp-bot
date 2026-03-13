@@ -53,6 +53,8 @@ async def handle_payment_success(bot: Bot, telegram_id: int, card_token: str = N
 
     # Generate invite link for private group
     try:
+        if not settings.PRIVATE_GROUP_ID:
+            raise ValueError("PRIVATE_GROUP_ID not configured")
         invite_link = await bot.create_chat_invite_link(
             chat_id=settings.PRIVATE_GROUP_ID,
             member_limit=1,

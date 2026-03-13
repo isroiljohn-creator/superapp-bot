@@ -188,6 +188,7 @@ async def handle_copy_prompt(message: Message, state: FSMContext):
         error_name = type(e).__name__
         error_msg = str(e)[:200]
         logger.error(f"Copywriter failed: {error_name}: {error_msg}")
+        await state.clear()
         try:
             await status_msg.edit_text(
                 f"❌ Xatolik: {error_name}: {error_msg}\n\n"

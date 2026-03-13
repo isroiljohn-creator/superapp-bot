@@ -25,6 +25,7 @@ async def get_profile(x_telegram_init_data: str = Header(...)):
 
         sub_service = SubscriptionService(session)
         is_active = await sub_service.is_active(user.id)
+        await session.commit()  # persist any expire() side-effects from is_active
 
     return UserProfile(
         telegram_id=user.telegram_id,

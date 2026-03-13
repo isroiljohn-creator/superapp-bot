@@ -21,16 +21,14 @@ class LeadScoringService:
     def __init__(self, session: AsyncSession):
         self.session = session
         self.crm = CRMService(session)
-        self.analytics = AnalyticsService(session)
 
     async def process_event(self, telegram_id: int, user_id: int, event_type: str):
-        """Process an event and update lead score if applicable."""
+        """Process an event and update lead score if applicable.
+        Note: Caller is responsible for tracking the event via AnalyticsService.
+        """
         points = SCORE_MAP.get(event_type, 0)
         if points > 0:
             await self.crm.add_score(telegram_id, points)
-
-        # Track the event
-        await self.analytics.track(user_id=user_id, event_type=event_type)
 
     async def get_segment(self, telegram_id: int) -> str:
         """Get current lead segment."""
