@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Home, Users, BarChart3, Send, FolderOpen } from "lucide-react";
+import { Home, Users, BarChart3, Send, FolderOpen, Settings as SettingsIcon } from "lucide-react";
 import { ThemeToggle } from "./ThemeToggle";
 import DashboardHome from "@/pages/DashboardHome";
 import FunnelAnalytics from "@/pages/FunnelAnalytics";
@@ -10,6 +10,8 @@ import Broadcast from "@/pages/Broadcast";
 import CourseManager from "@/pages/CourseManager";
 import GuidesManager from "@/pages/GuidesManager";
 import LeadMagnetManager from "@/pages/LeadMagnetManager";
+import Settings from "@/pages/Settings";
+import ABTests from "@/pages/ABTests";
 
 const tabs = [
   { id: "home", label: "Asosiy", icon: Home },
@@ -17,6 +19,7 @@ const tabs = [
   { id: "analytics", label: "Tahlil", icon: BarChart3 },
   { id: "broadcast", label: "Xabarlar", icon: Send },
   { id: "material", label: "Material", icon: FolderOpen },
+  { id: "settings", label: "Sozlama", icon: SettingsIcon },
 ] as const;
 
 type TabId = (typeof tabs)[number]["id"];
@@ -24,6 +27,7 @@ type TabId = (typeof tabs)[number]["id"];
 const analyticsSubTabs = [
   { id: "funnel", label: "Voronka" },
   { id: "events", label: "Voqealar" },
+  { id: "abtests", label: "A/B Test" },
 ] as const;
 type AnalyticsSubTab = (typeof analyticsSubTabs)[number]["id"];
 
@@ -47,7 +51,8 @@ export default function AppLayout() {
         return (
           <div className="space-y-3">
             <SubTabBar tabs={analyticsSubTabs} active={analyticsTab} onChange={(id) => setAnalyticsTab(id as AnalyticsSubTab)} />
-            {analyticsTab === "funnel" ? <FunnelAnalytics /> : <EventTracking />}
+            {analyticsTab === "funnel" ? <FunnelAnalytics /> :
+              analyticsTab === "events" ? <EventTracking /> : <ABTests />}
           </div>
         );
       case "broadcast": return <Broadcast />;
@@ -59,6 +64,7 @@ export default function AppLayout() {
               materialTab === "guides" ? <GuidesManager /> : <LeadMagnetManager />}
           </div>
         );
+      case "settings": return <Settings />;
     }
   };
 
@@ -79,8 +85,8 @@ export default function AppLayout() {
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 className={`w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium transition-all ${isActive
-                    ? "bg-primary/10 text-primary border-r-2 border-primary"
-                    : "text-muted-foreground hover:bg-secondary"
+                  ? "bg-primary/10 text-primary border-r-2 border-primary"
+                  : "text-muted-foreground hover:bg-secondary"
                   }`}
               >
                 <Icon className="h-4 w-4" />
@@ -155,8 +161,8 @@ function SubTabBar({ tabs, active, onChange }: {
           key={tab.id}
           onClick={() => onChange(tab.id)}
           className={`flex-1 py-2 rounded-md text-xs font-medium text-center transition-all ${active === tab.id
-              ? "bg-card shadow-sm text-foreground"
-              : "text-muted-foreground hover:text-foreground"
+            ? "bg-card shadow-sm text-foreground"
+            : "text-muted-foreground hover:text-foreground"
             }`}
         >
           {tab.label}

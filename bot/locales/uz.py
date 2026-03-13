@@ -269,7 +269,9 @@ AI_LIST_TEXT = (
 # AI Workers keyboard buttons
 AI_WORKERS_KB_IMAGE = "🎨 Surat tayyorlash"
 AI_WORKERS_KB_COPY = "📝 Kopirayter"
+AI_WORKERS_KB_CHAT = "💬 AI Chat"
 AI_WORKERS_KB_DAILY = "🎁 Kunlik bonus"
+AI_WORKERS_KB_TOPUP = "💰 Balans to'ldirish"
 AI_WORKERS_KB_BACK = "🔙 Orqaga"
 
 # Mening profilim

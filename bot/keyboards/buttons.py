@@ -45,7 +45,8 @@ def ai_workers_reply_keyboard() -> ReplyKeyboardMarkup:
     return ReplyKeyboardMarkup(
         keyboard=[
             [KeyboardButton(text=uz.AI_WORKERS_KB_IMAGE), KeyboardButton(text=uz.AI_WORKERS_KB_COPY)],
-            [KeyboardButton(text=uz.AI_WORKERS_KB_DAILY)],
+            [KeyboardButton(text=uz.AI_WORKERS_KB_CHAT), KeyboardButton(text=uz.AI_WORKERS_KB_DAILY)],
+            [KeyboardButton(text=uz.AI_WORKERS_KB_TOPUP)],
             [KeyboardButton(text=uz.MENU_BTN_BACK)],
         ],
         resize_keyboard=True,

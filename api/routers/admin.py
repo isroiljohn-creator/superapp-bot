@@ -1072,3 +1072,100 @@ async def export_users_csv(admin_id: int = Depends(check_admin), db: AsyncSessio
         media_type="text/csv",
         headers={"Content-Disposition": "attachment; filename=users_export.csv"}
     )
+
+
+# ── Admin Settings CRUD ──────────────────────
+class SettingUpdate(BaseModel):
+    key: str
+    value: str
+
+@router.get("/settings")
+async def get_settings(admin_id: int = Depends(check_admin), db: AsyncSession = Depends(get_db)):
+    """Get all admin settings."""
+    from db.models import AdminSetting
+    result = await db.execute(select(AdminSetting))
+    settings_list = result.scalars().all()
+    return {s.key: s.value for s in settings_list}
+
+
+@router.post("/settings")
+async def update_setting(data: SettingUpdate, admin_id: int = Depends(check_admin), db: AsyncSession = Depends(get_db)):
+    """Create or update an admin setting."""
+    from db.models import AdminSetting
+    result = await db.execute(select(AdminSetting).where(AdminSetting.key == data.key))
+    existing = result.scalar_one_or_none()
+    if existing:
+        existing.value = data.value
+    else:
+        db.add(AdminSetting(key=data.key, value=data.value))
+    await db.commit()
+    return {"status": "ok", "key": data.key, "value": data.value}
+
+
+# ── A/B Tests ─────────────────────────────────
+class ABTestCreate(BaseModel):
+    name: str
+    description: str = ""
+    variant_a_name: str = "A"
+    variant_b_name: str = "B"
+    variant_a_value: str = ""
+    variant_b_value: str = ""
+
+@router.get("/ab-tests")
+async def get_ab_tests(admin_id: int = Depends(check_admin), db: AsyncSession = Depends(get_db)):
+    """Get all A/B tests."""
+    from services.ab_test import ABTestService
+    service = ABTestService(db)
+    tests = await service.get_all()
+    return [{
+        "id": t.id,
+        "name": t.name,
+        "description": t.description,
+        "variant_a_name": t.variant_a_name,
+        "variant_b_name": t.variant_b_name,
+        "variant_a_value": t.variant_a_value,
+        "variant_b_value": t.variant_b_value,
+        "is_active": t.is_active,
+        "created_at": t.created_at.strftime("%d.%m.%Y %H:%M") if t.created_at else "",
+    } for t in tests]
+
+
+@router.post("/ab-tests")
+async def create_ab_test(data: ABTestCreate, admin_id: int = Depends(check_admin), db: AsyncSession = Depends(get_db)):
+    """Create a new A/B test."""
+    from services.ab_test import ABTestService
+    service = ABTestService(db)
+    test = await service.create_test(
+        name=data.name,
+        description=data.description,
+        variant_a=data.variant_a_value,
+        variant_b=data.variant_b_value,
+        a_name=data.variant_a_name,
+        b_name=data.variant_b_name,
+    )
+    await db.commit()
+    return {"id": test.id, "name": test.name}
+
+
+@router.post("/ab-tests/{test_id}/toggle")
+async def toggle_ab_test(test_id: int, admin_id: int = Depends(check_admin), db: AsyncSession = Depends(get_db)):
+    """Toggle A/B test active/inactive."""
+    from services.ab_test import ABTestService
+    service = ABTestService(db)
+    test = await service.toggle_test(test_id)
+    if not test:
+        raise HTTPException(status_code=404, detail="Test topilmadi")
+    await db.commit()
+    return {"id": test.id, "is_active": test.is_active}
+
+
+@router.get("/ab-tests/{test_id}/stats")
+async def get_ab_test_stats(test_id: int, admin_id: int = Depends(check_admin), db: AsyncSession = Depends(get_db)):
+    """Get A/B test statistics."""
+    from services.ab_test import ABTestService
+    service = ABTestService(db)
+    stats = await service.get_stats(test_id)
+    if not stats:
+        raise HTTPException(status_code=404, detail="Test topilmadi")
+    return stats
+

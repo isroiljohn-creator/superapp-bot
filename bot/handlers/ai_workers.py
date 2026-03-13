@@ -1,20 +1,26 @@
-"""AI Workers hub — sub-menu for Surat tayyorlash and Kopirayter.
+"""AI Workers hub — sub-menu for Surat tayyorlash, Kopirayter, AI Chat, and Balance top-up.
 Uses reply keyboard (not inline) for main navigation."""
 import logging
 from aiogram import Router, F
 from aiogram.types import Message, CallbackQuery
 from aiogram.fsm.context import FSMContext
+from aiogram.fsm.state import State, StatesGroup
 
 from bot.locales import uz
 from bot.keyboards.buttons import main_menu_keyboard, ai_workers_reply_keyboard
 from db.database import async_session
 from services.token_service import (
     get_tokens_async, has_enough_async, claim_daily_async,
+    add_tokens_async,
     IMAGE_COST, COPY_COST,
 )
 
 router = Router(name="ai_workers")
 logger = logging.getLogger("ai_workers")
+
+
+class TopupStates(StatesGroup):
+    waiting_amount = State()
 
 
 # ── Menu button handler ───────────────────────
@@ -69,6 +75,32 @@ async def start_copywriter_kb(message: Message, state: FSMContext):
         uz.COPYWRITER_INTRO,
         parse_mode="HTML",
         reply_markup=copy_type_keyboard(),
+    )
+
+
+# ── AI Chat (keyboard button) ────────────────
+@router.message(F.text == uz.AI_WORKERS_KB_CHAT)
+async def start_chat_kb(message: Message, state: FSMContext):
+    """Start AI Chat from keyboard button."""
+    from bot.handlers.chatbot import CHAT_COST
+    async with async_session() as session:
+        if not await has_enough_async(session, message.from_user.id, CHAT_COST):
+            tokens = await get_tokens_async(session, message.from_user.id)
+            await message.answer(
+                uz.AI_WORKERS_NO_TOKENS.format(needed=CHAT_COST, have=tokens),
+                parse_mode="HTML",
+                reply_markup=ai_workers_reply_keyboard(),
+            )
+            return
+
+    from bot.handlers.chatbot import ChatbotStates
+    await state.set_state(ChatbotStates.chatting)
+    await message.answer(
+        "💬 <b>AI Chat</b>\n\n"
+        "Menga istalgan savolni yozing — javob beraman!\n"
+        "Har bir savol: 500 so'm\n\n"
+        "✏️ Savolingizni yozing 👇",
+        parse_mode="HTML",
     )
 
 
@@ -152,3 +184,65 @@ async def back_to_menu_inline(callback_query: CallbackQuery, state: FSMContext):
         reply_markup=main_menu_keyboard(user_id=callback_query.from_user.id),
     )
     await callback_query.answer()
+
+
+# ── Balance top-up (keyboard button) ─────────
+@router.message(F.text == uz.AI_WORKERS_KB_TOPUP)
+async def start_topup(message: Message, state: FSMContext):
+    """Start balance top-up flow."""
+    async with async_session() as session:
+        tokens = await get_tokens_async(session, message.from_user.id)
+    await state.set_state(TopupStates.waiting_amount)
+    await message.answer(
+        f"💰 <b>Balans to'ldirish</b>\n\n"
+        f"Hozirgi balans: <b>{tokens:,} so'm</b>\n\n"
+        f"Qancha to'ldirmoqchisiz? Summani so'mda yozing.\n"
+        f"Minimal: 1,000 so'm\n\n"
+        f"✏️ Summani yozing (masalan: 5000) 👇",
+        parse_mode="HTML",
+    )
+
+
+@router.message(TopupStates.waiting_amount, F.text)
+async def process_topup_amount(message: Message, state: FSMContext):
+    """Process top-up amount."""
+    text = message.text.strip().replace(" ", "").replace(",", "")
+
+    # Exit on menu buttons
+    if text in [uz.MENU_BTN_BACK, uz.AI_WORKERS_KB_BACK]:
+        await state.clear()
+        async with async_session() as session:
+            tokens = await get_tokens_async(session, message.from_user.id)
+        await message.answer(
+            uz.AI_WORKERS_INTRO.format(tokens=tokens),
+            parse_mode="HTML",
+            reply_markup=ai_workers_reply_keyboard(),
+        )
+        return
+
+    try:
+        amount = int(text)
+        if amount < 1000:
+            raise ValueError
+    except (ValueError, TypeError):
+        await message.answer(
+            "❌ Noto'g'ri summa. Minimal: 1,000 so'm\n"
+            "Qayta yozing yoki 🔙 Orqaga bosing.",
+        )
+        return
+
+    # For now: directly add balance (when payment system is enabled,
+    # this will generate a Click/Payme payment link instead)
+    async with async_session() as session:
+        new_balance = await add_tokens_async(session, message.from_user.id, amount)
+        await session.commit()
+
+    await state.clear()
+    await message.answer(
+        f"✅ <b>Balans to'ldirildi!</b>\n\n"
+        f"➕ Qo'shildi: {amount:,} so'm\n"
+        f"💰 Yangi balans: {new_balance:,} so'm",
+        parse_mode="HTML",
+        reply_markup=ai_workers_reply_keyboard(),
+    )
+

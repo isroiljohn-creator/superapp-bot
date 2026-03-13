@@ -75,7 +75,7 @@ async def main():
     dp = Dispatcher(storage=storage)
 
     # Register routers
-    from bot.handlers import registration, segmentation, lead_magnet, funnel, subscription, referral, admin, ai_workers, imagegen, copywriter, menu
+    from bot.handlers import registration, segmentation, lead_magnet, funnel, subscription, referral, admin, ai_workers, imagegen, copywriter, chatbot, menu
     dp.include_routers(
         registration.router,
         segmentation.router,
@@ -87,6 +87,7 @@ async def main():
         ai_workers.router,   # AI workers hub — before imagegen
         imagegen.router,     # Image generation (FSM)
         copywriter.router,   # Copywriter (FSM)
+        chatbot.router,      # AI Chat (FSM)
         menu.router,         # Must be last — catches menu button text
     )
     logger.info("✅ Barcha handlerlar ro'yxatdan o'tkazildi")
