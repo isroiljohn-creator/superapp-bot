@@ -1074,34 +1074,6 @@ async def export_users_csv(admin_id: int = Depends(check_admin), db: AsyncSessio
     )
 
 
-# ── Admin Settings CRUD ──────────────────────
-class SettingUpdate(BaseModel):
-    key: str
-    value: str
-
-@router.get("/settings")
-async def get_settings(admin_id: int = Depends(check_admin), db: AsyncSession = Depends(get_db)):
-    """Get all admin settings."""
-    from db.models import AdminSetting
-    result = await db.execute(select(AdminSetting))
-    settings_list = result.scalars().all()
-    return {s.key: s.value for s in settings_list}
-
-
-@router.post("/settings")
-async def update_setting(data: SettingUpdate, admin_id: int = Depends(check_admin), db: AsyncSession = Depends(get_db)):
-    """Create or update an admin setting."""
-    from db.models import AdminSetting
-    result = await db.execute(select(AdminSetting).where(AdminSetting.key == data.key))
-    existing = result.scalar_one_or_none()
-    if existing:
-        existing.value = data.value
-    else:
-        db.add(AdminSetting(key=data.key, value=data.value))
-    await db.commit()
-    return {"status": "ok", "key": data.key, "value": data.value}
-
-
 # ── A/B Tests ─────────────────────────────────
 class ABTestCreate(BaseModel):
     name: str

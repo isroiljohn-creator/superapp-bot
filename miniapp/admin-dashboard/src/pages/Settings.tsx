@@ -31,7 +31,16 @@ export default function Settings() {
             const res = await fetch(`${API_BASE}/api/admin/settings`, {
                 headers: { "X-Telegram-Init-Data": getInitData() },
             });
-            if (res.ok) setSettings(await res.json());
+            if (res.ok) {
+                const data = await res.json();
+                const map: Record<string, string> = {};
+                if (Array.isArray(data)) {
+                    data.forEach((s: any) => { map[s.key] = s.value; });
+                } else {
+                    Object.assign(map, data);
+                }
+                setSettings(map);
+            }
         } catch (e) { console.error(e); }
         setLoading(false);
     };
@@ -39,13 +48,13 @@ export default function Settings() {
     const saveSetting = async (key: string) => {
         setSaving(key);
         try {
-            const res = await fetch(`${API_BASE}/api/admin/settings`, {
-                method: "POST",
+            const res = await fetch(`${API_BASE}/api/admin/settings/${key}`, {
+                method: "PUT",
                 headers: {
                     "Content-Type": "application/json",
                     "X-Telegram-Init-Data": getInitData(),
                 },
-                body: JSON.stringify({ key, value: settings[key] || "" }),
+                body: JSON.stringify({ value: settings[key] || "" }),
             });
             if (res.ok) {
                 toast({ title: "✅ Saqlandi", description: `${key} yangilandi` });

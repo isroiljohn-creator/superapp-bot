@@ -5,7 +5,6 @@ Tasks run in the same process as the bot — no separate worker needed.
 """
 import logging
 import asyncio
-from typing import Optional
 
 logger = logging.getLogger("taskqueue")
 

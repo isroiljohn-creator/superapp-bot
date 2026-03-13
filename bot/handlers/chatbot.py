@@ -86,6 +86,7 @@ async def handle_chat_message(message: Message, state: FSMContext):
         uz.MENU_BTN_AI_WORKERS, uz.MENU_BTN_FREE_LESSONS, uz.MENU_BTN_CLUB,
         uz.MENU_BTN_COURSE, uz.MENU_BTN_PROFILE, uz.MENU_BTN_BACK,
         uz.AI_WORKERS_KB_IMAGE, uz.AI_WORKERS_KB_COPY, uz.AI_WORKERS_KB_DAILY,
+        uz.AI_WORKERS_KB_CHAT, uz.AI_WORKERS_KB_TOPUP, uz.AI_WORKERS_KB_BACK,
     ]
     if text in menu_buttons:
         await state.clear()
@@ -128,8 +129,12 @@ async def handle_chat_message(message: Message, state: FSMContext):
         except Exception:
             pass
 
+        # HTML-escape Gemini response to prevent injection
+        import html as html_mod
+        safe_response = html_mod.escape(response)
+
         await message.answer(
-            f"{response}\n\n💰 <i>Qolgan balans: {tokens:,} so'm</i>",
+            f"{safe_response}\n\n💰 <i>Qolgan balans: {tokens:,} so'm</i>",
             parse_mode="HTML",
         )
 

@@ -206,10 +206,16 @@ async def start_topup(message: Message, state: FSMContext):
 @router.message(TopupStates.waiting_amount, F.text)
 async def process_topup_amount(message: Message, state: FSMContext):
     """Process top-up amount."""
-    text = message.text.strip().replace(" ", "").replace(",", "")
+    raw_text = message.text.strip()
 
-    # Exit on menu buttons
-    if text in [uz.MENU_BTN_BACK, uz.AI_WORKERS_KB_BACK]:
+    # Exit on menu/back buttons (check BEFORE number parsing)
+    exit_buttons = [
+        uz.MENU_BTN_BACK, uz.AI_WORKERS_KB_BACK,
+        uz.AI_WORKERS_KB_IMAGE, uz.AI_WORKERS_KB_COPY,
+        uz.AI_WORKERS_KB_CHAT, uz.AI_WORKERS_KB_DAILY,
+        uz.MENU_BTN_AI_WORKERS,
+    ]
+    if raw_text in exit_buttons:
         await state.clear()
         async with async_session() as session:
             tokens = await get_tokens_async(session, message.from_user.id)
@@ -219,6 +225,8 @@ async def process_topup_amount(message: Message, state: FSMContext):
             reply_markup=ai_workers_reply_keyboard(),
         )
         return
+
+    text = raw_text.replace(" ", "").replace(",", "")
 
     try:
         amount = int(text)
