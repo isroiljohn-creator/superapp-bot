@@ -90,6 +90,7 @@ async def handle_chat_message(message: Message, state: FSMContext):
         uz.MENU_BTN_COURSE, uz.MENU_BTN_PROFILE, uz.MENU_BTN_BACK,
         uz.AI_WORKERS_KB_IMAGE, uz.AI_WORKERS_KB_COPY, uz.AI_WORKERS_KB_DAILY,
         uz.AI_WORKERS_KB_CHAT, uz.AI_WORKERS_KB_TOPUP, uz.AI_WORKERS_KB_BACK,
+        uz.AI_WORKERS_KB_PRES, uz.AI_WORKERS_KB_LYRICS,
     ]
     if text in menu_buttons:
         await state.clear()
