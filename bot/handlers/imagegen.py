@@ -184,7 +184,10 @@ async def handle_imagegen_prompt(message: Message, state: FSMContext):
         except Exception:
             pass
 
-        final_prompt = prompt_template.format(prompt=prompt)
+        try:
+            final_prompt = prompt_template.format(prompt=prompt)
+        except (KeyError, IndexError):
+            final_prompt = f"{prompt}, high quality, detailed"
 
         image_data = None
         used_api = None

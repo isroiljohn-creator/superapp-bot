@@ -157,9 +157,13 @@ async def handle_copy_prompt(message: Message, state: FSMContext):
         except Exception:
             pass
 
-        gemini_prompt = default_template.format(
-            copy_desc=copy_desc, prompt=prompt, copy_type=copy_type
-        )
+        try:
+            gemini_prompt = default_template.format(
+                copy_desc=copy_desc, prompt=prompt, copy_type=copy_type
+            )
+        except (KeyError, IndexError):
+            # Custom prompt has wrong placeholders — fallback to safe version
+            gemini_prompt = f"O'zbek tilida {copy_desc} yoz. Mavzu: {prompt}. Format: {copy_type}"
 
         logger.info(f"Calling Gemini for: {copy_type} - {prompt[:50]}")
         result = await asyncio.to_thread(_call_gemini, gemini_prompt)

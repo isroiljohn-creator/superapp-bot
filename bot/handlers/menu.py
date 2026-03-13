@@ -113,9 +113,9 @@ async def menu_guides(message: Message):
     text = "📖 <b>Qo'llanmalar</b>\n\nQuyidan o'zingizga kerakli qo'llanmani tanlang:\n\n"
     buttons = []
     for i, guide in enumerate(guides, 1):
+        import html
         content_snippet = ""
         if guide.content:
-            import html
             snippet = html.escape(guide.content[:60]) + ("..." if len(guide.content) > 60 else "")
             content_snippet = f"\n   └ <i>{snippet}</i>\n"
         text += f"<b>{i}. {html.escape(guide.title)}</b>{content_snippet}\n"
