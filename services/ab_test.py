@@ -2,27 +2,12 @@
 import logging
 from typing import Optional
 
-from sqlalchemy import select, Column, Integer, String, Boolean, DateTime, func
+from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from db.models import Base, User
+from db.models import ABTest, User
 
 logger = logging.getLogger("ab_test")
-
-
-class ABTest(Base):
-    """A/B test experiment definition."""
-    __tablename__ = "ab_tests"
-
-    id = Column(Integer, primary_key=True)
-    name = Column(String, nullable=False, unique=True)
-    description = Column(String, default="")
-    variant_a_name = Column(String, default="A")
-    variant_b_name = Column(String, default="B")
-    variant_a_value = Column(String, default="")  # e.g. message text, image URL
-    variant_b_value = Column(String, default="")
-    is_active = Column(Boolean, default=True)
-    created_at = Column(DateTime, server_default=func.now())
 
 
 class ABTestService:

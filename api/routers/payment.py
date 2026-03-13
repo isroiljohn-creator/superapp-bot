@@ -170,8 +170,6 @@ async def click_webhook(request: Request):
         else:
             return {"error": -3, "error_note": "Unknown action"}
 
-    return {"error": -1, "error_note": "Unknown action"}
-
 
 @router.post("/webhook/payme")
 async def payme_webhook(request: Request):

@@ -254,23 +254,6 @@ class BroadcastMessage(Base):
     completed_at = Column(DateTime, nullable=True)
 
 
-# ──────────────────────────────────────────────
-# Funnel triggers (no-code rules)
-# ──────────────────────────────────────────────
-class FunnelTrigger(Base):
-    __tablename__ = "funnel_triggers"
-
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    name = Column(String(100), nullable=False)
-    event = Column(String(50), nullable=False)           # event_type that triggers this
-    condition = Column(JSON, nullable=True)               # additional conditions
-    action = Column(String(30), nullable=False)           # send_message | send_video | delay_send
-    message_template = Column(Text, nullable=True)
-    file_id = Column(String(255), nullable=True)
-    delay_seconds = Column(Integer, default=0)
-    is_active = Column(Boolean, default=True)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-
 
 # ──────────────────────────────────────────────
 # Admin settings
@@ -319,3 +302,19 @@ class ScheduledMessage(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     sent_at = Column(DateTime, nullable=True)
 
+
+# ──────────────────────────────────────────────
+# A/B Tests
+# ──────────────────────────────────────────────
+class ABTest(Base):
+    __tablename__ = "ab_tests"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    name = Column(String(100), nullable=False, unique=True)
+    description = Column(String(500), default="")
+    variant_a_name = Column(String(50), default="A")
+    variant_b_name = Column(String(50), default="B")
+    variant_a_value = Column(Text, default="")
+    variant_b_value = Column(Text, default="")
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())

@@ -25,21 +25,20 @@ async def _get_user(session: AsyncSession, telegram_id: int) -> Optional[User]:
     return result.scalar_one_or_none()
 
 
-# ── Sync wrappers (for backward compat with handlers) ──
+# ── DEPRECATED sync wrappers — DO NOT USE ──────
+# All handlers have been migrated to async. These remain only
+# to catch accidental imports and will raise immediately.
+
 def get_tokens(telegram_id: int) -> int:
-    """Sync wrapper — use get_tokens_async in new code."""
-    # Fallback: return default. Handlers should migrate to async.
-    return INITIAL_TOKENS
+    raise NotImplementedError("Use get_tokens_async() instead")
 
 
 def has_enough(telegram_id: int, amount: int) -> bool:
-    """Sync wrapper — use has_enough_async in new code."""
-    return True  # Permissive fallback; handlers should use async
+    raise NotImplementedError("Use has_enough_async() instead")
 
 
 def claim_daily(telegram_id: int) -> tuple[bool, int]:
-    """Sync wrapper — use claim_daily_async in new code."""
-    return True, INITIAL_TOKENS
+    raise NotImplementedError("Use claim_daily_async() instead")
 
 
 # ── Async DB-backed functions ─────────────────

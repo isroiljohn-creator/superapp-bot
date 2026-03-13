@@ -4,11 +4,11 @@ from typing import Optional
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from db.models import LeadMagnet, VSLContent, FunnelTrigger
+from db.models import LeadMagnet, VSLContent
 
 
 class FunnelService:
-    """Manages lead magnets, VSL content, and funnel triggers."""
+    """Manages lead magnets and VSL content."""
 
     def __init__(self, session: AsyncSession):
         self.session = session
@@ -52,36 +52,3 @@ class FunnelService:
             q = q.where(VSLContent.goal_tag == goal_tag)
         result = await self.session.execute(q)
         return result.scalar_one_or_none()
-
-    # ── Funnel triggers ──────────────────────
-    async def get_triggers_for_event(self, event_type: str) -> list[FunnelTrigger]:
-        result = await self.session.execute(
-            select(FunnelTrigger).where(
-                FunnelTrigger.event == event_type,
-                FunnelTrigger.is_active.is_(True),
-            )
-        )
-        return result.scalars().all()
-
-    async def create_trigger(
-        self,
-        name: str,
-        event: str,
-        action: str,
-        message_template: str = None,
-        file_id: str = None,
-        delay_seconds: int = 0,
-        condition: dict = None,
-    ) -> FunnelTrigger:
-        trigger = FunnelTrigger(
-            name=name,
-            event=event,
-            action=action,
-            message_template=message_template,
-            file_id=file_id,
-            delay_seconds=delay_seconds,
-            condition=condition,
-        )
-        self.session.add(trigger)
-        await self.session.flush()
-        return trigger
