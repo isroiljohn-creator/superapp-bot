@@ -7,6 +7,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 
 from bot.locales import uz
+from bot.config import settings
 from bot.keyboards.buttons import main_menu_keyboard, ai_workers_reply_keyboard
 from db.database import async_session
 from services.token_service import (
@@ -28,6 +29,16 @@ class TopupStates(StatesGroup):
 async def menu_ai_workers(message: Message, state: FSMContext):
     """Show AI Workers sub-menu with reply keyboard."""
     await state.clear()
+
+    # Pre-flight: check if Gemini API key is configured
+    if not settings.GEMINI_API_KEY:
+        await message.answer(
+            "⚠️ AI xizmatlari hozircha sozlanmagan.\n"
+            "Admin GEMINI_API_KEY ni sozlashi kerak.",
+            reply_markup=main_menu_keyboard(message.from_user.id),
+        )
+        return
+
     async with async_session() as session:
         tokens = await get_tokens_async(session, message.from_user.id)
     await message.answer(

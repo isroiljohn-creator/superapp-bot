@@ -57,7 +57,7 @@ def _ask_gemini(prompt: str, history: list[dict] = None, system_prompt: str = No
 
     payload = json.dumps({
         "contents": contents,
-        "systemInstruction": {
+        "system_instruction": {
             "parts": [{"text": system_text}]
         },
         "generationConfig": {
