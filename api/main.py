@@ -137,9 +137,24 @@ async def health():
 
 @app.get("/")
 async def root():
-    """Redirect root to admin panel (also helps GA4 verification)."""
-    from fastapi.responses import RedirectResponse
-    return RedirectResponse(url="/admin/", status_code=302)
+    """Serve GA4 tag at root for Google verification, then redirect to admin."""
+    from fastapi.responses import HTMLResponse
+    return HTMLResponse("""<!doctype html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8"/>
+<title>Nuvi Admin Dashboard</title>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-0DYEXR1BR0"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-0DYEXR1BR0');
+</script>
+<meta http-equiv="refresh" content="1;url=/admin/">
+</head>
+<body><p>Redirecting to <a href="/admin/">Admin Dashboard</a>...</p></body>
+</html>""")
 
 @app.post(settings.WEBHOOK_PATH)
 async def bot_webhook(request: Request):
