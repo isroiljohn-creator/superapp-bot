@@ -138,6 +138,16 @@ class ReferralService:
         )
         referer = referer_user.scalar_one_or_none()
         if referer:
+            # Ensure ReferralBalance exists (for users created before this feature)
+            existing_balance = await self.session.execute(
+                select(ReferralBalance).where(ReferralBalance.user_id == referer.id)
+            )
+            if not existing_balance.scalar_one_or_none():
+                self.session.add(ReferralBalance(
+                    user_id=referer.id, balance=0, total_earned=0, total_used=0
+                ))
+                await self.session.flush()
+
             await self.session.execute(
                 update(ReferralBalance)
                 .where(ReferralBalance.user_id == referer.id)

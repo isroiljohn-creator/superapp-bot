@@ -103,7 +103,6 @@ class CRMService:
             .values(
                 phone=phone,
                 phone_hash=phone_hash,
-                user_status="registered",
                 registered_at=datetime.now(timezone.utc).replace(tzinfo=None),
             )
         )

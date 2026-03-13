@@ -99,6 +99,7 @@ async def click_webhook(request: Request):
             }
         elif action == 1:
             # Complete
+            from bot.handlers.subscription import handle_payment_success
             error = int(data_dict.get("error", 0))
             if error < 0:
                 await payment_service.update_status(
@@ -166,6 +167,8 @@ async def click_webhook(request: Request):
                 "merchant_trans_id": merchant_trans_id,
                 "merchant_confirm_id": payment.id,
             }
+        else:
+            return {"error": -3, "error_note": "Unknown action"}
 
     return {"error": -1, "error_note": "Unknown action"}
 

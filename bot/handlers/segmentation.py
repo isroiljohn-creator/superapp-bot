@@ -54,3 +54,10 @@ async def process_level(callback: CallbackQuery, state: FSMContext):
 
     await state.clear()
     await callback.answer()
+
+    # Deliver lead magnet after full registration + segmentation
+    try:
+        from bot.handlers.lead_magnet import deliver_lead_magnet
+        await deliver_lead_magnet(callback.message, callback.from_user.id)
+    except Exception:
+        pass
