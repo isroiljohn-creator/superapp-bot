@@ -150,8 +150,8 @@ async def start_scheduled_message_checker():
                         users = await session.execute(select(User.telegram_id))
                         user_ids = [row[0] for row in users.all()]
 
-                        bot = Bot(token=settings.BOT_TOKEN)
                         sent, failed = 0, 0
+                        bot = Bot(token=settings.BOT_TOKEN)
                         try:
                             for uid in user_ids:
                                 try:

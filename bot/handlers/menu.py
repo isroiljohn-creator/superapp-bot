@@ -115,9 +115,10 @@ async def menu_guides(message: Message):
     for i, guide in enumerate(guides, 1):
         content_snippet = ""
         if guide.content:
-            snippet = guide.content[:60] + "..." if len(guide.content) > 60 else guide.content
+            import html
+            snippet = html.escape(guide.content[:60]) + ("..." if len(guide.content) > 60 else "")
             content_snippet = f"\n   └ <i>{snippet}</i>\n"
-        text += f"<b>{i}. {guide.title}</b>{content_snippet}\n"
+        text += f"<b>{i}. {html.escape(guide.title)}</b>{content_snippet}\n"
         buttons.append([InlineKeyboardButton(text=f"📂 {i}. {guide.title}", callback_data=f"guide_db:{guide.id}")])
 
     keyboard = InlineKeyboardMarkup(inline_keyboard=buttons)

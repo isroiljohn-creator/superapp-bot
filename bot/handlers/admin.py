@@ -181,7 +181,7 @@ async def process_broadcast_segment(callback: CallbackQuery, state: FSMContext):
     elif segment == "hot":
         filters = {"lead_segment": "hot"}
     elif segment == "paid":
-        filters = {"user_status": "paid"}
+        filters = {"paid": True}
     elif segment == "all":
         filters = {}
 

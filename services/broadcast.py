@@ -94,3 +94,49 @@ class BroadcastService:
             .where(BroadcastMessage.id == broadcast_id)
             .values(status="completed", completed_at=datetime.now(timezone.utc).replace(tzinfo=None))
         )
+
+
+async def send_broadcast(broadcast_id: int):
+    """Standalone function for taskqueue — sends a broadcast by ID."""
+    from db.database import async_session
+    from bot.config import settings
+    from aiogram import Bot
+
+    async with async_session() as session:
+        service = BroadcastService(session)
+        broadcast = await service.get_broadcast(broadcast_id)
+        if not broadcast:
+            return
+
+        recipients = await service.get_recipients(broadcast)
+        await service.mark_sending(broadcast_id, len(recipients))
+        await session.commit()
+
+    bot = Bot(token=settings.BOT_TOKEN)
+    sent, failed = 0, 0
+    try:
+        async with async_session() as session:
+            service = BroadcastService(session)
+            for user in recipients:
+                try:
+                    if broadcast.content_type == "photo" and broadcast.file_id:
+                        await bot.send_photo(chat_id=user.telegram_id, photo=broadcast.file_id, caption=broadcast.content, parse_mode="HTML")
+                    elif broadcast.content_type == "video" and broadcast.file_id:
+                        await bot.send_video(chat_id=user.telegram_id, video=broadcast.file_id, caption=broadcast.content, parse_mode="HTML")
+                    else:
+                        await bot.send_message(chat_id=user.telegram_id, text=broadcast.content, parse_mode="HTML")
+                    sent += 1
+                except Exception:
+                    failed += 1
+
+                if sent % 25 == 0:
+                    await service.update_progress(broadcast_id, sent, failed)
+                    await session.commit()
+                    await asyncio.sleep(1)  # Rate limit
+
+            await service.update_progress(broadcast_id, sent, failed)
+            await service.mark_completed(broadcast_id)
+            await session.commit()
+    finally:
+        await bot.session.close()
+

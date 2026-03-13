@@ -239,17 +239,12 @@ async def process_topup_amount(message: Message, state: FSMContext):
         )
         return
 
-    # For now: directly add balance (when payment system is enabled,
-    # this will generate a Click/Payme payment link instead)
-    async with async_session() as session:
-        new_balance = await add_tokens_async(session, message.from_user.id, amount)
-        await session.commit()
-
+    # Payment system is not yet enabled — inform the user
     await state.clear()
     await message.answer(
-        f"✅ <b>Balans to'ldirildi!</b>\n\n"
-        f"➕ Qo'shildi: {amount:,} so'm\n"
-        f"💰 Yangi balans: {new_balance:,} so'm",
+        "⚠️ <b>To'lov tizimi hali ulanmagan</b>\n\n"
+        "Tez orada Click/Payme orqali to'ldirish imkoniyati qo'shiladi.\n"
+        "Hozircha kunlik bonus orqali token oling! 🎁",
         parse_mode="HTML",
         reply_markup=ai_workers_reply_keyboard(),
     )
