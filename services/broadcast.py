@@ -71,6 +71,13 @@ class BroadcastService:
             q = q.where(User.user_status == filters["user_status"])
         if filters.get("lead_segment"):
             q = q.where(User.lead_segment == filters["lead_segment"])
+        if filters.get("paid"):
+            active_sub_sq = (
+                select(Subscription.user_id)
+                .where(Subscription.status == "active")
+                .scalar_subquery()
+            )
+            q = q.where(User.id.in_(active_sub_sq))
         result = await self.session.execute(q)
         return result.scalar() or 0
 

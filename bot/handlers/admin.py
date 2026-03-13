@@ -306,19 +306,19 @@ async def _direct_broadcast(bot, users, data):
             cap = data.get("content", "")
 
             if c_type == "photo" and f_id:
-                await bot.send_photo(chat_id=user.telegram_id, photo=f_id, caption=cap)
+                await bot.send_photo(chat_id=user.telegram_id, photo=f_id, caption=cap, parse_mode="HTML")
             elif c_type == "video" and f_id:
-                await bot.send_video(chat_id=user.telegram_id, video=f_id, caption=cap)
+                await bot.send_video(chat_id=user.telegram_id, video=f_id, caption=cap, parse_mode="HTML")
             elif c_type == "document" and f_id:
-                await bot.send_document(chat_id=user.telegram_id, document=f_id, caption=cap)
+                await bot.send_document(chat_id=user.telegram_id, document=f_id, caption=cap, parse_mode="HTML")
             elif c_type == "audio" and f_id:
-                await bot.send_audio(chat_id=user.telegram_id, audio=f_id, caption=cap)
+                await bot.send_audio(chat_id=user.telegram_id, audio=f_id, caption=cap, parse_mode="HTML")
             elif c_type == "voice" and f_id:
-                await bot.send_voice(chat_id=user.telegram_id, voice=f_id, caption=cap)
+                await bot.send_voice(chat_id=user.telegram_id, voice=f_id, caption=cap, parse_mode="HTML")
             elif c_type == "video_note" and f_id:
                 await bot.send_video_note(chat_id=user.telegram_id, video_note=f_id)
             else:
-                await bot.send_message(chat_id=user.telegram_id, text=cap)
+                await bot.send_message(chat_id=user.telegram_id, text=cap, parse_mode="HTML")
             sent += 1
         except Exception:
             failed += 1
