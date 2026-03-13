@@ -16,6 +16,8 @@ DAILY_BONUS = 1_000        # Kunlik bonus: 1,000 so'm
 REFERRAL_BONUS = 500       # Har bir referal: 500 so'm
 IMAGE_COST = 2_000         # Surat tayyorlash: 2,000 so'm
 COPY_COST = 1_000          # Kopirayter: 1,000 so'm
+PRES_COST = 3_000          # Prezentatsiya: 3,000 so'm
+LYRICS_COST = 1_000        # Qo'shiq matni: 1,000 so'm
 
 
 async def _get_user(session: AsyncSession, telegram_id: int) -> Optional[User]:

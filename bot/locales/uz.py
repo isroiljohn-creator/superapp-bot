@@ -270,6 +270,8 @@ AI_LIST_TEXT = (
 AI_WORKERS_KB_IMAGE = "🎨 Surat tayyorlash"
 AI_WORKERS_KB_COPY = "📝 Kopirayter"
 AI_WORKERS_KB_CHAT = "💬 AI Chat"
+AI_WORKERS_KB_PRES = "📊 Prezentatsiya"
+AI_WORKERS_KB_LYRICS = "🎵 Qo'shiq matni"
 AI_WORKERS_KB_DAILY = "🎁 Kunlik bonus"
 AI_WORKERS_KB_TOPUP = "💰 Balans to'ldirish"
 AI_WORKERS_KB_BACK = "🔙 Orqaga"
@@ -364,6 +366,36 @@ COPYWRITER_SUCCESS = (
 )
 
 COPYWRITER_ERROR = "❌ Matn tayyorlashda xatolik. Qayta urinib ko'ring."
+
+# Presentation
+PRES_INTRO = (
+    "📊 <b>Prezentatsiya yaratish</b>\n\n"
+    "Prezentatsiya mavzusini yozing, men sizga professional PPTX fayl yaratib beraman!\n\n"
+    "📝 <b>Misol:</b> <i>AI haqida 10 daqiqalik taqdimot</i>\n\n"
+    "✏️ Mavzuni yozing 👇"
+)
+
+PRES_GENERATING = "📊 Prezentatsiya tayyorlanmoqda... ⏳\nBu 20-40 soniya vaqt olishi mumkin."
+
+PRES_ERROR = "❌ Prezentatsiya tayyorlashda xatolik. Qayta urinib ko'ring."
+
+# Lyrics
+LYRICS_INTRO = (
+    "🎵 <b>Qo'shiq matni yaratish</b>\n\n"
+    "Qanday turdagi qo'shiq yozish kerak?\n"
+    "Quyidan turini tanlang 👇"
+)
+
+LYRICS_ASK_PROMPT = (
+    "🎵 <b>{lyrics_type}</b>\n\n"
+    "Qo'shiq mavzusini yozing!\n"
+    "Mavzu, his-tuyg'u yoki voqea haqida qisqacha yozing 👇\n\n"
+    "📝 <b>Misol:</b> <i>Ona haqida, sog'inch, bahor</i>"
+)
+
+LYRICS_GENERATING = "🎵 Qo'shiq matni yozilmoqda... ⏳"
+
+LYRICS_ERROR = "❌ Qo'shiq matni yozishda xatolik. Qayta urinib ko'ring."
 
 # Token
 TOKEN_WELCOME = "🎁 Xush kelibsiz! Sizga <b>2,000 so'm</b> bepul balans berildi."

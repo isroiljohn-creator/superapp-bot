@@ -56,7 +56,7 @@ async def lifespan(app: FastAPI):
     dp = Dispatcher(storage=storage)
 
     # Register bot routers
-    from bot.handlers import registration, segmentation, lead_magnet, funnel, subscription, referral as bot_referral, admin as bot_admin, ai_workers, imagegen, copywriter, chatbot, moderation, menu
+    from bot.handlers import registration, segmentation, lead_magnet, funnel, subscription, referral as bot_referral, admin as bot_admin, ai_workers, imagegen, copywriter, chatbot, moderation, menu, presentation, lyrics
     dp.include_routers(
         registration.router,
         segmentation.router,
@@ -69,6 +69,8 @@ async def lifespan(app: FastAPI):
         imagegen.router,
         copywriter.router,
         chatbot.router,
+        presentation.router,
+        lyrics.router,
         moderation.router,
         menu.router,
     )
