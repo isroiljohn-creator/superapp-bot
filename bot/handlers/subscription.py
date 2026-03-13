@@ -51,24 +51,36 @@ async def handle_payment_success(bot: Bot, telegram_id: int, card_token: str = N
 
         await session.commit()
 
-    # Generate invite link for private group
-    try:
-        if not settings.PRIVATE_GROUP_ID:
-            raise ValueError("PRIVATE_GROUP_ID not configured")
-        invite_link = await bot.create_chat_invite_link(
-            chat_id=settings.PRIVATE_GROUP_ID,
-            member_limit=1,
-            name=f"user_{telegram_id}",
-        )
+    # Generate invite link for private group (with retry)
+    import logging as _log
+    _sub_logger = _log.getLogger("subscription")
+    invite_sent = False
+    for attempt in range(3):
+        try:
+            if not settings.PRIVATE_GROUP_ID:
+                raise ValueError("PRIVATE_GROUP_ID not configured")
+            invite_link = await bot.create_chat_invite_link(
+                chat_id=settings.PRIVATE_GROUP_ID,
+                member_limit=1,
+                name=f"user_{telegram_id}",
+            )
+            await bot.send_message(
+                chat_id=telegram_id,
+                text=uz.PAYMENT_SUCCESS.format(invite_link=invite_link.invite_link),
+                parse_mode="HTML",
+            )
+            invite_sent = True
+            break
+        except Exception as e:
+            _sub_logger.warning(f"Invite link attempt {attempt+1}/3 failed: {e}")
+            if attempt < 2:
+                import asyncio
+                await asyncio.sleep(1)
+    if not invite_sent:
+        _sub_logger.error(f"All invite link attempts failed for user {telegram_id}")
         await bot.send_message(
             chat_id=telegram_id,
-            text=uz.PAYMENT_SUCCESS.format(invite_link=invite_link.invite_link),
-            parse_mode="HTML",
-        )
-    except Exception:
-        await bot.send_message(
-            chat_id=telegram_id,
-            text=uz.PAYMENT_SUCCESS.format(invite_link="[Link yaratilmoqda...]"),
+            text=uz.PAYMENT_SUCCESS.format(invite_link="[Link yaratilmoqda... Admin bilan bog'laning]"),
             parse_mode="HTML",
         )
 

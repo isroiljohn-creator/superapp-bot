@@ -11,8 +11,51 @@ from bot.locales import uz
 router = Router(name="moderation")
 logger = logging.getLogger("moderation")
 
-# In-memory warning counter (resets on restart, which is fine for light moderation)
-_warnings: dict[int, int] = defaultdict(int)
+# Redis-backed warning counter (survives restarts)
+_warnings_fallback: dict[int, int] = defaultdict(int)
+_redis = None
+
+
+async def _get_warnings(user_id: int) -> int:
+    """Get warning count — Redis if available, else in-memory."""
+    global _redis
+    if _redis is None:
+        try:
+            import redis.asyncio as aioredis
+            _redis = aioredis.from_url(settings.get_redis_url, decode_responses=True)
+            await _redis.ping()
+        except Exception:
+            _redis = False  # Mark as unavailable
+    if _redis:
+        try:
+            val = await _redis.get(f"mod:warn:{user_id}")
+            return int(val) if val else 0
+        except Exception:
+            pass
+    return _warnings_fallback[user_id]
+
+
+async def _incr_warnings(user_id: int) -> int:
+    """Increment and return new warning count."""
+    if _redis:
+        try:
+            count = await _redis.incr(f"mod:warn:{user_id}")
+            await _redis.expire(f"mod:warn:{user_id}", 86400)  # 24h TTL
+            return count
+        except Exception:
+            pass
+    _warnings_fallback[user_id] += 1
+    return _warnings_fallback[user_id]
+
+
+async def _reset_warnings(user_id: int):
+    """Reset warning count."""
+    if _redis:
+        try:
+            await _redis.delete(f"mod:warn:{user_id}")
+        except Exception:
+            pass
+    _warnings_fallback.pop(user_id, None)
 
 # Spam patterns (Cyrillic + Latin)
 SPAM_PATTERNS = [
@@ -73,8 +116,7 @@ async def moderate_group_message(message: Message):
             return  # Can't warn anonymous senders
 
         user_id = message.from_user.id
-        _warnings[user_id] += 1
-        count = _warnings[user_id]
+        count = await _incr_warnings(user_id)
         name = message.from_user.full_name or "Foydalanuvchi"
 
         if count >= 3:
@@ -86,7 +128,7 @@ async def moderate_group_message(message: Message):
                     uz.MOD_BANNED.format(name=name),
                     parse_mode="HTML",
                 )
-                del _warnings[user_id]
+                await _reset_warnings(user_id)
                 logger.info(f"Auto-kicked {name} ({user_id}) after 3 warnings")
             except Exception as e:
                 logger.warning(f"Failed to kick {user_id}: {e}")

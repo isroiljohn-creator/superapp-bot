@@ -17,9 +17,15 @@ if config.config_file_name is not None:
 # add your model's MetaData object here
 # for 'autogenerate' support
 from db.models import Base
-from bot.config import settings
+import os
 
-SYNC_DB_URL = settings.DATABASE_URL.replace("+asyncpg", "")
+# Resolve DATABASE_URL — handle Railway template strings like ${{...}}
+_raw_db_url = settings.DATABASE_URL
+if not _raw_db_url or "${{" in _raw_db_url:
+    # Fallback: try env var directly (Railway resolves at runtime)
+    _raw_db_url = os.getenv("DATABASE_URL", "") or os.getenv("DATABASE_PRIVATE_URL", "")
+
+SYNC_DB_URL = _raw_db_url.replace("+asyncpg", "") if _raw_db_url else ""
 target_metadata = Base.metadata
 
 def run_migrations_offline() -> None:

@@ -1198,7 +1198,7 @@ from db.models import ScheduledMessage
 class ScheduledMsgCreate(BaseModel):
     content: str
     content_type: str = "text"
-    file_id: str | None = None
+    file_id: Optional[str] = None
     send_at: str  # ISO datetime string
 
 @router.get("/scheduled-messages")
