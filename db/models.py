@@ -46,8 +46,8 @@ class User(Base):
     lead_magnet_opened = Column(Boolean, default=False)
     is_active = Column(Boolean, default=True, nullable=False)
 
-    # AI tokens
-    tokens = Column(Integer, default=10, nullable=False, server_default="10")
+    # AI balance (so'm)
+    tokens = Column(Integer, default=2000, nullable=False, server_default="2000")
     last_daily_claim = Column(DateTime, nullable=True)
 
     # Timestamps

@@ -10,12 +10,12 @@ from db.models import User
 
 logger = logging.getLogger("token_service")
 
-# ── Config ────────────────────────────────────
-INITIAL_TOKENS = 10       # New user starts with
-DAILY_BONUS = 5           # Daily login bonus
-REFERRAL_BONUS = 3        # Per referral
-IMAGE_COST = 2            # Surat tayyorlash
-COPY_COST = 1             # Kopirayter
+# ── Config (values in so'm = UZS) ─────────────
+INITIAL_TOKENS = 2_000     # Boshlang'ich balans: 2,000 so'm
+DAILY_BONUS = 1_000        # Kunlik bonus: 1,000 so'm
+REFERRAL_BONUS = 500       # Har bir referal: 500 so'm
+IMAGE_COST = 2_000         # Surat tayyorlash: 2,000 so'm
+COPY_COST = 1_000          # Kopirayter: 1,000 so'm
 
 
 async def _get_user(session: AsyncSession, telegram_id: int) -> Optional[User]:

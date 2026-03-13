@@ -290,22 +290,22 @@ AI_WORKERS_INTRO = (
     "🤖 <b>AI hodimlar</b>\n\n"
     "Sun'iy intellekt yordamchilari sizning xizmatingizda!\n"
     "Quyidagi xizmatlardan birini tanlang 👇\n\n"
-    "💰 Tokenlaringiz: <b>{tokens} 🪙</b>"
+    "💰 Balansingiz: <b>{tokens:,} so'm</b>"
 )
 
-AI_WORKERS_BTN_IMAGE = "🎨 Surat tayyorlash (2 🪙)"
-AI_WORKERS_BTN_COPY = "📝 Kopirayter (1 🪙)"
-AI_WORKERS_BTN_DAILY = "🎁 Kunlik bonus olish (+5 🪙)"
+AI_WORKERS_BTN_IMAGE = "🎨 Surat tayyorlash (2,000 so'm)"
+AI_WORKERS_BTN_COPY = "📝 Kopirayter (1,000 so'm)"
+AI_WORKERS_BTN_DAILY = "🎁 Kunlik bonus olish (+1,000 so'm)"
 AI_WORKERS_BTN_BACK = "🔙 Orqaga"
 
-AI_WORKERS_DAILY_CLAIMED = "✅ Kunlik bonus olindi! +5 🪙\n\n💰 Tokenlaringiz: <b>{tokens} 🪙</b>"
-AI_WORKERS_DAILY_ALREADY = "⏰ Bugungi bonus allaqachon olingan!\n\nErtaga qayta oling. 💰 Tokenlaringiz: <b>{tokens} 🪙</b>"
+AI_WORKERS_DAILY_CLAIMED = "✅ Kunlik bonus olindi! +1,000 so'm\n\n💰 Balansingiz: <b>{tokens:,} so'm</b>"
+AI_WORKERS_DAILY_ALREADY = "⏰ Bugungi bonus allaqachon olingan!\n\nErtaga qayta oling. 💰 Balansingiz: <b>{tokens:,} so'm</b>"
 AI_WORKERS_NO_TOKENS = (
-    "❌ <b>Tokenlar yetarli emas!</b>\n\n"
-    "Kerakli: {needed} 🪙 | Mavjud: {have} 🪙\n\n"
-    "💡 Token olish usullari:\n"
-    "🎁 Kunlik bonus: +5 🪙\n"
-    "🔗 Referal: +3 🪙 har bir do'st"
+    "❌ <b>Balans yetarli emas!</b>\n\n"
+    "Kerakli: {needed:,} so'm | Mavjud: {have:,} so'm\n\n"
+    "💡 Balans to'ldirish usullari:\n"
+    "🎁 Kunlik bonus: +1,000 so'm\n"
+    "🔗 Referal: +500 so'm har bir do'st"
 )
 
 # Image generation
@@ -321,7 +321,7 @@ IMAGEGEN_GENERATING = "🎨 Surat tayyorlanmoqda... ⏳\nBu 20-60 soniya vaqt ol
 IMAGEGEN_SUCCESS = (
     "✅ Surat tayyor!\n\n"
     "📝 <b>Ta'rif:</b> <i>{prompt}</i>\n\n"
-    "💰 Qolgan tokenlar: {tokens} 🪙"
+    "💰 Qolgan balans: {tokens:,} so'm"
 )
 
 IMAGEGEN_ERROR = "❌ Surat tayyorlashda xatolik yuz berdi. Qayta urinib ko'ring."
@@ -358,13 +358,13 @@ COPYWRITER_GENERATING = "📝 Matn tayyorlanmoqda... ⏳"
 COPYWRITER_SUCCESS = (
     "✅ <b>Matn tayyor!</b>\n\n"
     "{text}\n\n"
-    "💰 Qolgan tokenlar: {tokens} 🪙"
+    "💰 Qolgan balans: {tokens:,} so'm"
 )
 
 COPYWRITER_ERROR = "❌ Matn tayyorlashda xatolik. Qayta urinib ko'ring."
 
 # Token
-TOKEN_WELCOME = "🎁 Xush kelibsiz! Sizga <b>10 🪙</b> bepul token berildi."
+TOKEN_WELCOME = "🎁 Xush kelibsiz! Sizga <b>2,000 so'm</b> bepul balans berildi."
 
 MENU_TEXT = (
     "🏠 <b>Asosiy menyu</b>\n\n"

@@ -146,7 +146,30 @@ async def process_age(message: Message, state: FSMContext):
 @router.message(RegistrationFSM.waiting_phone, F.contact)
 async def process_phone(message: Message, state: FSMContext):
     """Save phone, complete registration, start segmentation."""
+    # Anti-fraud: ensure user is sharing their OWN contact, not someone else's
+    if message.contact.user_id != message.from_user.id:
+        await message.answer(
+            "❌ Iltimos, o'zingizning telefon raqamingizni yuboring.\n"
+            "Boshqa odamning kontaktini yubormang!",
+            reply_markup=phone_keyboard(),
+        )
+        return
+
     phone = message.contact.phone_number
+
+    # Normalize: ensure it starts with +
+    if not phone.startswith("+"):
+        phone = "+" + phone
+
+    # Validate: only Uzbek numbers (+998)
+    if not phone.startswith("+998") or len(phone) != 13:
+        await message.answer(
+            "❌ Faqat O'zbek telefon raqamlari qabul qilinadi (+998).\n"
+            "Iltimos, O'zbek raqamingizni yuboring.",
+            reply_markup=phone_keyboard(),
+        )
+        return
+
     data = await state.get_data()
     name = data.get("name", "")
 

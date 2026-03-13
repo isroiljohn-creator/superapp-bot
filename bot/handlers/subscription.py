@@ -102,8 +102,10 @@ async def handle_churn(bot: Bot, telegram_id: int, day: int):
     """
     Churn prevention flow.
     Day 1 → reminder, Day 3 → value video, Day 5 → discount, Day 7 → remove.
+    Messages are loaded from AdminSetting table (editable via admin panel),
+    falling back to uz.py defaults.
     """
-    # Fetch user data
+    # Fetch user data + custom churn messages
     async with async_session() as session:
         crm = CRMService(session)
         user = await crm.get_user(telegram_id)
@@ -112,42 +114,44 @@ async def handle_churn(bot: Bot, telegram_id: int, day: int):
         name = user.name or ""
         user_id = user.id
 
-    # Send appropriate message (outside session — no DB needed)
+        # Load custom churn text from AdminSetting (if set by admin)
+        from db.models import AdminSetting
+        from sqlalchemy import select
+        setting_key = f"churn_day_{day}"
+        result = await session.execute(
+            select(AdminSetting.value).where(AdminSetting.key == setting_key)
+        )
+        custom_text = result.scalar_one_or_none()
+
+    # Send appropriate message (outside session)
     if day == 1:
-        await bot.send_message(
-            chat_id=telegram_id,
-            text=uz.CHURN_DAY_1.format(name=name),
-        )
+        text = custom_text or uz.CHURN_DAY_1
+        await bot.send_message(chat_id=telegram_id, text=text.format(name=name))
     elif day == 3:
-        await bot.send_message(
-            chat_id=telegram_id,
-            text=uz.CHURN_DAY_3.format(name=name),
-        )
+        text = custom_text or uz.CHURN_DAY_3
+        await bot.send_message(chat_id=telegram_id, text=text.format(name=name))
     elif day == 5:
         discounted = int(settings.CLUB_PRICE * 0.7)
         price_formatted = f"{discounted:,}".replace(",", " ")
+        text = custom_text or uz.CHURN_DAY_5
         await bot.send_message(
             chat_id=telegram_id,
-            text=uz.CHURN_DAY_5.format(
-                name=name,
-                discounted_price=price_formatted,
-            ),
+            text=text.format(name=name, discounted_price=price_formatted),
         )
     elif day == 7:
-        await bot.send_message(
-            chat_id=telegram_id,
-            text=uz.CHURN_DAY_7.format(name=name),
-        )
+        text = custom_text or uz.CHURN_DAY_7
+        await bot.send_message(chat_id=telegram_id, text=text.format(name=name))
         # Remove from group
         try:
-            await bot.ban_chat_member(
-                chat_id=settings.PRIVATE_GROUP_ID,
-                user_id=telegram_id,
-            )
-            await bot.unban_chat_member(
-                chat_id=settings.PRIVATE_GROUP_ID,
-                user_id=telegram_id,
-            )
+            if settings.PRIVATE_GROUP_ID:
+                await bot.ban_chat_member(
+                    chat_id=settings.PRIVATE_GROUP_ID,
+                    user_id=telegram_id,
+                )
+                await bot.unban_chat_member(
+                    chat_id=settings.PRIVATE_GROUP_ID,
+                    user_id=telegram_id,
+                )
         except Exception:
             pass
 
