@@ -2,10 +2,10 @@ import { useState, useRef, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Search, X, UserCheck, UserX, ArrowUpDown, Download } from "lucide-react";
+import { Search, X, UserCheck, UserX, Download, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
-import { fetchApi } from "@/lib/api";
+import { fetchApi, API_URL, getInitData } from "@/lib/api";
 
 type LeadScore = "hot" | "nurture" | "cold";
 type UserStatusLabel = "paid" | "registered" | "started";
@@ -66,6 +66,8 @@ const TABS: { id: ActiveTab; label: string; icon: React.ElementType }[] = [
   { id: "inactive", label: "Noaktiv", icon: UserX },
 ];
 
+const ITEMS_PER_PAGE = 50;
+
 export default function UsersCRM() {
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -74,7 +76,6 @@ export default function UsersCRM() {
   const [sortKey, setSortKey] = useState<SortKey>("date_desc");
   const [selectedUser, setSelectedUser] = useState<CRMUser | null>(null);
   const [page, setPage] = useState(1);
-  const [allUsers, setAllUsers] = useState<CRMUser[]>([]);
 
   // Debounce search
   const searchTimer = useRef<ReturnType<typeof setTimeout>>();
@@ -86,25 +87,13 @@ export default function UsersCRM() {
   // Reset page on filter change
   useEffect(() => {
     setPage(1);
-    setAllUsers([]);
-  }, [activeTab, sortKey, debouncedSearch]);
+  }, [activeTab, sortKey, debouncedSearch, filterScore]);
 
-  const { data: pageData, isLoading, isFetching } = useQuery<{ users: CRMUser[]; total: number; hasMore: boolean }>({
+  const { data: pageData, isLoading, isFetching } = useQuery<{ users: CRMUser[]; total: number; hasMore: boolean; page: number }>({
     queryKey: ["admin_users", activeTab, sortKey, debouncedSearch, page],
-    queryFn: () => fetchApi(`/api/admin/users?status=${activeTab}&sort=${sortKey}&q=${encodeURIComponent(debouncedSearch)}&page=${page}&limit=50`),
-    refetchInterval: page === 1 ? 60_000 : false,
+    queryFn: () => fetchApi(`/api/admin/users?status=${activeTab}&sort=${sortKey}&q=${encodeURIComponent(debouncedSearch)}&page=${page}&limit=${ITEMS_PER_PAGE}`),
+    refetchInterval: 60_000,
   });
-
-  // Accumulate users across pages
-  useEffect(() => {
-    if (pageData?.users) {
-      if (page === 1) {
-        setAllUsers(pageData.users);
-      } else {
-        setAllUsers(prev => [...prev, ...pageData.users]);
-      }
-    }
-  }, [pageData, page]);
 
   // Lazy load events when user is selected
   const { data: userEvents } = useQuery<{ action: string; time: string }[]>({
@@ -113,26 +102,53 @@ export default function UsersCRM() {
     enabled: !!selectedUser,
   });
 
+  const users = pageData?.users || [];
   const totalCount = pageData?.total || 0;
-  const hasMore = pageData?.hasMore || false;
+  const totalPages = Math.max(1, Math.ceil(totalCount / ITEMS_PER_PAGE));
 
-  const filtered = allUsers.filter((u) => {
-    const matchScore = filterScore === "all" || u.score === filterScore;
-    return matchScore;
+  const filtered = users.filter((u) => {
+    return filterScore === "all" || u.score === filterScore;
   });
+
+  // Generate page numbers for pagination
+  const getPageNumbers = (): (number | "...")[] => {
+    const pages: (number | "...")[] = [];
+    if (totalPages <= 7) {
+      for (let i = 1; i <= totalPages; i++) pages.push(i);
+    } else {
+      pages.push(1);
+      if (page > 3) pages.push("...");
+      for (let i = Math.max(2, page - 1); i <= Math.min(totalPages - 1, page + 1); i++) {
+        pages.push(i);
+      }
+      if (page < totalPages - 2) pages.push("...");
+      pages.push(totalPages);
+    }
+    return pages;
+  };
 
   const handleExportCSV = async () => {
     try {
-      const initData = (window as any).Telegram?.WebApp?.initData || "";
-      const baseUrl = import.meta.env.VITE_API_URL || "";
-      const res = await fetch(`${baseUrl}/api/admin/users/export?initData=${encodeURIComponent(initData)}`);
+      const initData = getInitData();
+      const url = `${API_URL}/api/admin/users/export`;
+      const res = await fetch(url, {
+        headers: {
+          "Authorization": `tma ${initData}`,
+        },
+      });
+      if (!res.ok) {
+        console.error("CSV export failed:", res.status);
+        return;
+      }
       const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
+      const blobUrl = URL.createObjectURL(blob);
       const a = document.createElement("a");
-      a.href = url;
+      a.href = blobUrl;
       a.download = "users_export.csv";
+      document.body.appendChild(a);
       a.click();
-      URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      URL.revokeObjectURL(blobUrl);
     } catch (e) {
       console.error("CSV export error:", e);
     }
@@ -176,8 +192,8 @@ export default function UsersCRM() {
             <p className="text-[10px] text-muted-foreground">Jami</p>
           </div>
           <div className="flex-1 bg-secondary/50 rounded-md px-2 py-1.5 text-center">
-            <p className="text-sm font-bold">{filtered.length}</p>
-            <p className="text-[10px] text-muted-foreground">Yuklangan</p>
+            <p className="text-sm font-bold">{page}/{totalPages}</p>
+            <p className="text-[10px] text-muted-foreground">Sahifa</p>
           </div>
           <div className="flex-1 bg-secondary/50 rounded-md px-2 py-1.5 text-center">
             <p className="text-sm font-bold text-warning">{filtered.filter(u => u.status === "started").length}</p>
@@ -266,15 +282,77 @@ export default function UsersCRM() {
         )}
       </div>
 
-      {/* Load More */}
-      {hasMore && !isLoading && (
-        <button
-          onClick={() => setPage(p => p + 1)}
-          disabled={isFetching}
-          className="w-full py-2.5 rounded-lg bg-primary/10 text-primary text-xs font-medium hover:bg-primary/20 transition-colors disabled:opacity-50"
-        >
-          {isFetching ? "Yuklanmoqda..." : `Yana yuklash (${filtered.length}/${totalCount})`}
-        </button>
+      {/* ─── Pagination Controls ─── */}
+      {totalPages > 1 && !isLoading && (
+        <div className="flex items-center justify-center gap-1 pt-1 pb-2">
+          {/* First Page */}
+          <button
+            onClick={() => setPage(1)}
+            disabled={page === 1 || isFetching}
+            className="p-1.5 rounded-md bg-secondary hover:bg-secondary/80 disabled:opacity-30 disabled:pointer-events-none transition-colors"
+            title="Birinchi sahifa"
+          >
+            <ChevronsLeft className="h-3.5 w-3.5" />
+          </button>
+
+          {/* Previous Page */}
+          <button
+            onClick={() => setPage(p => Math.max(1, p - 1))}
+            disabled={page === 1 || isFetching}
+            className="p-1.5 rounded-md bg-secondary hover:bg-secondary/80 disabled:opacity-30 disabled:pointer-events-none transition-colors"
+            title="Oldingi"
+          >
+            <ChevronLeft className="h-3.5 w-3.5" />
+          </button>
+
+          {/* Page Numbers */}
+          <div className="flex gap-0.5">
+            {getPageNumbers().map((p, i) =>
+              p === "..." ? (
+                <span key={`dots-${i}`} className="px-1.5 py-1 text-[10px] text-muted-foreground">…</span>
+              ) : (
+                <button
+                  key={p}
+                  onClick={() => setPage(p)}
+                  disabled={isFetching}
+                  className={`min-w-[28px] px-1.5 py-1 text-xs font-medium rounded-md transition-all ${page === p
+                      ? "bg-primary text-primary-foreground shadow-sm"
+                      : "bg-secondary hover:bg-secondary/80 text-foreground"
+                    } disabled:opacity-50`}
+                >
+                  {p}
+                </button>
+              )
+            )}
+          </div>
+
+          {/* Next Page */}
+          <button
+            onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+            disabled={page === totalPages || isFetching}
+            className="p-1.5 rounded-md bg-secondary hover:bg-secondary/80 disabled:opacity-30 disabled:pointer-events-none transition-colors"
+            title="Keyingi"
+          >
+            <ChevronRight className="h-3.5 w-3.5" />
+          </button>
+
+          {/* Last Page */}
+          <button
+            onClick={() => setPage(totalPages)}
+            disabled={page === totalPages || isFetching}
+            className="p-1.5 rounded-md bg-secondary hover:bg-secondary/80 disabled:opacity-30 disabled:pointer-events-none transition-colors"
+            title="Oxirgi sahifa"
+          >
+            <ChevronsRight className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      )}
+
+      {/* Loading indicator during page change */}
+      {isFetching && !isLoading && (
+        <div className="text-center text-[10px] text-muted-foreground animate-pulse">
+          Sahifa yuklanmoqda...
+        </div>
       )}
 
       {/* User Profile Modal */}
