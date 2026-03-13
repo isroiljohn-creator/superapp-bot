@@ -79,7 +79,7 @@ def _call_gemini(prompt: str) -> str:
 
 
 # ── Copy type selection ──────────────────────
-@router.callback_query(F.data.startswith("copy:"))
+@router.callback_query(F.data.in_({"copy:post", "copy:ad", "copy:email", "copy:desc"}))
 async def select_copy_type(callback_query: CallbackQuery, state: FSMContext):
     """User selected a copy type."""
     copy_type_id = callback_query.data

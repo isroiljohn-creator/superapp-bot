@@ -145,8 +145,10 @@ async def back_to_menu_inline(callback_query: CallbackQuery, state: FSMContext):
     """Legacy: Return to main menu via inline."""
     await state.clear()
     await callback_query.message.delete()
-    await callback_query.message.answer(
-        uz.MENU_TEXT, parse_mode="HTML",
+    await callback_query.bot.send_message(
+        chat_id=callback_query.from_user.id,
+        text=uz.MENU_TEXT,
+        parse_mode="HTML",
         reply_markup=main_menu_keyboard(user_id=callback_query.from_user.id),
     )
     await callback_query.answer()

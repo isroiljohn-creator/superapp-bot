@@ -1,13 +1,16 @@
 """Broadcast service — filtered mass messaging with rate limiting."""
 import asyncio
 from datetime import datetime, timezone
-from typing import Optional
+from typing import Optional, AsyncGenerator
 
-from sqlalchemy import select, update
+from sqlalchemy import select, update, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from db.models import BroadcastMessage, User
+from db.models import BroadcastMessage, User, Subscription
 from services.crm import CRMService
+
+
+BROADCAST_BATCH_SIZE = 500  # Load 500 users at a time
 
 
 class BroadcastService:
@@ -42,9 +45,34 @@ class BroadcastService:
         return result.scalar_one_or_none()
 
     async def get_recipients(self, broadcast: BroadcastMessage) -> list[User]:
-        """Get filtered list of recipients."""
+        """Get filtered list of recipients (batched to avoid OOM)."""
         filters = broadcast.filters or {}
-        return await self.crm.get_users_filtered(filters, limit=50_000)
+        all_users = []
+        offset = 0
+        while True:
+            batch = await self.crm.get_users_filtered(
+                filters, limit=BROADCAST_BATCH_SIZE, offset=offset
+            )
+            if not batch:
+                break
+            all_users.extend(batch)
+            offset += BROADCAST_BATCH_SIZE
+            if len(batch) < BROADCAST_BATCH_SIZE:
+                break
+        return all_users
+
+    async def count_recipients(self, broadcast: BroadcastMessage) -> int:
+        """Count recipients without loading them into memory."""
+        filters = broadcast.filters or {}
+        q = select(func.count()).select_from(User)
+        if filters.get("source"):
+            q = q.where(User.source == filters["source"])
+        if filters.get("user_status"):
+            q = q.where(User.user_status == filters["user_status"])
+        if filters.get("lead_segment"):
+            q = q.where(User.lead_segment == filters["lead_segment"])
+        result = await self.session.execute(q)
+        return result.scalar() or 0
 
     async def mark_sending(self, broadcast_id: int, total: int):
         await self.session.execute(
