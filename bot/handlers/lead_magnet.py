@@ -70,7 +70,7 @@ async def deliver_lead_magnet(message: Message, telegram_id: int):
 async def _schedule_delayed_video(telegram_id: int):
     """Schedule a delayed video message via Redis queue."""
     try:
-        from taskqueue.tasks import schedule_delayed_video
+        from taskqueue import schedule_delayed_video
         await schedule_delayed_video(telegram_id, delay_seconds=1800)  # 30 min
     except Exception:
         # Queue not available, skip

@@ -92,7 +92,7 @@ async def handle_payment_failed(bot: Bot, telegram_id: int):
 
     # Schedule smart reminders
     try:
-        from taskqueue.tasks import schedule_payment_reminders
+        from taskqueue import schedule_payment_reminders
         await schedule_payment_reminders(telegram_id)
     except Exception:
         pass

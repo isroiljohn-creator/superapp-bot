@@ -193,19 +193,25 @@ async def process_phone(message: Message, state: FSMContext):
 
     # Notify admins about new registration
     try:
+        import html as html_mod
         from bot.config import settings
         admin_ids = settings.ADMIN_IDS
+        safe_name = html_mod.escape(name) if name else "—"
+        safe_username = html_mod.escape(message.from_user.username) if message.from_user.username else "—"
+        safe_phone = html_mod.escape(phone)
+        safe_source = html_mod.escape(user.source or "organik")
+        safe_campaign = html_mod.escape(user.campaign or "—")
         for aid in admin_ids:
             try:
                 await message.bot.send_message(
                     chat_id=aid,
                     text=(
                         f"🔔 <b>Yangi ro'yxat!</b>\n\n"
-                        f"👤 {name or '—'}\n"
-                        f"📱 {phone}\n"
-                        f"🔗 @{message.from_user.username or '—'}\n"
-                        f"📍 Manba: {user.source or 'organik'}\n"
-                        f"📋 Kampaniya: {user.campaign or '—'}"
+                        f"👤 {safe_name}\n"
+                        f"📱 {safe_phone}\n"
+                        f"🔗 @{safe_username}\n"
+                        f"📍 Manba: {safe_source}\n"
+                        f"📋 Kampaniya: {safe_campaign}"
                     ),
                     parse_mode="HTML",
                 )

@@ -453,8 +453,8 @@ async def send_broadcast(payload: dict, admin_id: int = Depends(check_admin), db
     # Try ARQ queue first
     queue_ok = False
     try:
-        from taskqueue.tasks import schedule_broadcast
-        await schedule_broadcast(broadcast_id=broadcast.id, run_at=run_at)
+        from taskqueue import schedule_broadcast
+        await schedule_broadcast(broadcast_id=broadcast.id)
         queue_ok = True
     except Exception as e:
         print(f"[broadcast] ARQ queue unavailable, falling back to direct send: {e}")

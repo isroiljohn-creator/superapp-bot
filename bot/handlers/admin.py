@@ -274,7 +274,7 @@ async def confirm_broadcast(callback: CallbackQuery, state: FSMContext):
 
     # Schedule batch sending via queue
     try:
-        from taskqueue.tasks import schedule_broadcast
+        from taskqueue import schedule_broadcast
         await schedule_broadcast(broadcast.id)
     except Exception:
         await callback.message.answer("⚠️ Queue mavjud emas. Xabarlar to'g'ridan-to'g'ri yuboriladi.")
