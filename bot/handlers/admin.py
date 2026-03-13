@@ -292,9 +292,13 @@ async def cancel_broadcast(callback: CallbackQuery, state: FSMContext):
 
 
 async def _direct_broadcast(bot, users, data):
-    """Fallback: direct send with rate limiting."""
+    """Fallback: direct send with rate limiting (Telegram limit: 30 msg/sec)."""
     import asyncio
-    sent, failed = 0, 0
+    import logging
+    _log = logging.getLogger("broadcast")
+    sent, failed, total = 0, 0, len(users)
+    _log.info(f"Broadcast starting: {total} recipients")
+
     for user in users:
         try:
             c_type = data.get("content_type")
@@ -319,9 +323,15 @@ async def _direct_broadcast(bot, users, data):
         except Exception:
             failed += 1
 
-        # Rate limiting: 30 messages per second
-        if sent % 30 == 0:
+        # Rate limiting: 25 messages per second (safe margin under Telegram's 30/sec limit)
+        processed = sent + failed
+        if processed % 25 == 0:
             await asyncio.sleep(1)
+        # Log progress every 500 messages
+        if processed % 500 == 0:
+            _log.info(f"Broadcast progress: {processed}/{total} (sent={sent}, failed={failed})")
+
+    _log.info(f"Broadcast complete: sent={sent}, failed={failed}, total={total}")
 
 
 # ── /referral_settings — Admin config ────

@@ -38,6 +38,7 @@ class CRMService:
             source=source,
             campaign=campaign,
             user_status="started",
+            tokens=10,
         )
         self.session.add(user)
         await self.session.flush()
@@ -71,6 +72,7 @@ class CRMService:
             campaign=campaign,
             referer_id=referer_id,
             user_status="started",
+            tokens=10,
         )
         self.session.add(user)
         await self.session.flush()

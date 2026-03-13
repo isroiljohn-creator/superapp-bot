@@ -107,10 +107,17 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# CORS for Mini App
+# CORS for Mini App — restrict to configured origin
+_cors_origins = ["*"]
+if settings.WEBAPP_URL:
+    from urllib.parse import urlparse
+    _parsed = urlparse(settings.WEBAPP_URL)
+    _origin = f"{_parsed.scheme}://{_parsed.netloc}"
+    _cors_origins = [_origin, settings.WEBAPP_URL]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=_cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
