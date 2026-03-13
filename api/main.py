@@ -144,12 +144,12 @@ async def root():
 <head>
 <meta charset="UTF-8"/>
 <title>Nuvi Admin Dashboard</title>
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-0DYEXR1BR0"></script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-ESZBV5JJCS"></script>
 <script>
   window.dataLayer = window.dataLayer || [];
   function gtag(){dataLayer.push(arguments);}
   gtag('js', new Date());
-  gtag('config', 'G-0DYEXR1BR0');
+  gtag('config', 'G-ESZBV5JJCS');
 </script>
 <meta http-equiv="refresh" content="1;url=/admin/">
 </head>
