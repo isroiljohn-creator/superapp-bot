@@ -135,6 +135,12 @@ app.include_router(admin.router)
 async def health():
     return {"status": "ok"}
 
+@app.get("/")
+async def root():
+    """Redirect root to admin panel (also helps GA4 verification)."""
+    from fastapi.responses import RedirectResponse
+    return RedirectResponse(url="/admin/", status_code=302)
+
 @app.post(settings.WEBHOOK_PATH)
 async def bot_webhook(request: Request):
     """Telegram webhook endpoint."""

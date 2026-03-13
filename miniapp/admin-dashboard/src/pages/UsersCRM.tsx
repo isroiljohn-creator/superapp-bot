@@ -133,7 +133,7 @@ export default function UsersCRM() {
       const url = `${API_URL}/api/admin/users/export`;
       const res = await fetch(url, {
         headers: {
-          "Authorization": `tma ${initData}`,
+          "X-Telegram-Init-Data": initData,
         },
       });
       if (!res.ok) {
@@ -316,8 +316,8 @@ export default function UsersCRM() {
                   onClick={() => setPage(p)}
                   disabled={isFetching}
                   className={`min-w-[28px] px-1.5 py-1 text-xs font-medium rounded-md transition-all ${page === p
-                      ? "bg-primary text-primary-foreground shadow-sm"
-                      : "bg-secondary hover:bg-secondary/80 text-foreground"
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "bg-secondary hover:bg-secondary/80 text-foreground"
                     } disabled:opacity-50`}
                 >
                   {p}
