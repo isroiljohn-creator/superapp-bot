@@ -1,4 +1,4 @@
-"""Image generation handler — GeminiGen AI (primary) with AI Horde fallback."""
+"""Image generation handler — Gemini 2.0 Flash (primary) with AI Horde fallback."""
 import logging
 import asyncio
 import json
@@ -19,83 +19,49 @@ from services.token_service import spend_tokens_async, get_tokens_async, add_tok
 router = Router(name="imagegen")
 logger = logging.getLogger("imagegen")
 
-# ── GeminiGen API Config ──────────────────────
-GEMINIGEN_API = "https://api.geminigen.ai/uapi/v1/generate_image"
-GEMINIGEN_MODEL = "nano-banana-pro"
-
 # ── AI Horde Fallback Config ──────────────────
 HORDE_API = "https://stablehorde.net/api/v2"
 HORDE_KEY = "0000000000"  # Anonymous key
 
 
-# ── GeminiGen API (Primary) ──────────────────
-def _generate_geminigen(prompt_text: str) -> bytes:
-    """Generate image via GeminiGen API. Returns image bytes."""
-    api_key = settings.GEMINIGEN_API_KEY
+# ── Gemini 2.0 Flash Image Generation ────────
+def _generate_gemini_image(prompt_text: str) -> bytes:
+    """Generate image via Gemini 2.0 Flash with native image generation.
+    Uses the Imagen model through Gemini API. Returns image bytes (PNG).
+    """
+    api_key = settings.GEMINI_API_KEY
     if not api_key:
-        raise ValueError("GEMINIGEN_API_KEY not configured")
+        raise ValueError("GEMINI_API_KEY not configured")
 
-    # Build multipart form data
-    import io
-    boundary = "----FormBoundary7MA4YWxkTrZu0gW"
-    
-    body_parts = []
-    # prompt field
-    body_parts.append(f"--{boundary}")
-    body_parts.append('Content-Disposition: form-data; name="prompt"')
-    body_parts.append("")
-    body_parts.append(prompt_text)
-    # model field
-    body_parts.append(f"--{boundary}")
-    body_parts.append('Content-Disposition: form-data; name="model"')
-    body_parts.append("")
-    body_parts.append(GEMINIGEN_MODEL)
-    # aspect_ratio field
-    body_parts.append(f"--{boundary}")
-    body_parts.append('Content-Disposition: form-data; name="aspect_ratio"')
-    body_parts.append("")
-    body_parts.append("1:1")
-    # style field
-    body_parts.append(f"--{boundary}")
-    body_parts.append('Content-Disposition: form-data; name="style"')
-    body_parts.append("")
-    body_parts.append("photorealistic")
-    # end boundary
-    body_parts.append(f"--{boundary}--")
-    body_parts.append("")
-    
-    body = "\r\n".join(body_parts).encode("utf-8")
-    
-    req = urllib.request.Request(GEMINIGEN_API, data=body, headers={
-        "Content-Type": f"multipart/form-data; boundary={boundary}",
-        "x-api-key": api_key,
-        "Accept": "application/json",
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp-image-generation:generateContent?key={api_key}"
+
+    payload = json.dumps({
+        "contents": [{
+            "parts": [{"text": f"Generate an image: {prompt_text}"}]
+        }],
+        "generationConfig": {
+            "responseModalities": ["TEXT", "IMAGE"],
+        }
+    }).encode("utf-8")
+
+    req = urllib.request.Request(url, data=payload, headers={
+        "Content-Type": "application/json",
     })
-    
+
     with urllib.request.urlopen(req, timeout=60) as resp:
         data = json.loads(resp.read())
-    
-    # Try to get image from response
-    # Option 1: base64_images field (demo format)
-    if "base64_images" in data:
-        b64 = data["base64_images"]
-        if isinstance(b64, list):
-            b64 = b64[0]
-        # Strip data URI prefix if present
-        if "," in b64:
-            b64 = b64.split(",", 1)[1]
-        return base64.b64decode(b64)
-    
-    # Option 2: generate_result field (URL format)
-    if "generate_result" in data:
-        img_url = data["generate_result"]
-        return _download_url(img_url)
-    
-    # Option 3: image_url field
-    if "image_url" in data:
-        return _download_url(data["image_url"])
-    
-    raise ValueError(f"Unexpected API response: {list(data.keys())}")
+
+    # Extract image from response
+    candidates = data.get("candidates", [])
+    if candidates:
+        parts = candidates[0].get("content", {}).get("parts", [])
+        for part in parts:
+            if "inlineData" in part:
+                img_data = part["inlineData"]
+                if img_data.get("data"):
+                    return base64.b64decode(img_data["data"])
+
+    raise ValueError("Gemini rasm generatsiya qilmadi")
 
 
 # ── AI Horde Fallback ─────────────────────────
@@ -193,15 +159,15 @@ async def handle_imagegen_prompt(message: Message, state: FSMContext):
         image_data = None
         used_api = None
 
-        # Try GeminiGen first (primary)
-        if settings.GEMINIGEN_API_KEY:
+        # Try Gemini 2.0 Flash first (primary — uses existing GEMINI_API_KEY)
+        if settings.GEMINI_API_KEY:
             try:
-                logger.info(f"GeminiGen: generating '{final_prompt[:50]}...'")
-                image_data = await asyncio.to_thread(_generate_geminigen, final_prompt)
-                used_api = "GeminiGen"
-                logger.info(f"GeminiGen: success, {len(image_data)} bytes")
+                logger.info(f"Gemini Image: generating '{final_prompt[:50]}...'")
+                image_data = await asyncio.to_thread(_generate_gemini_image, final_prompt)
+                used_api = "Gemini"
+                logger.info(f"Gemini Image: success, {len(image_data)} bytes")
             except Exception as e:
-                logger.warning(f"GeminiGen failed: {e}, falling back to AI Horde")
+                logger.warning(f"Gemini Image failed: {e}, falling back to AI Horde")
 
         # Fallback to AI Horde
         if not image_data:
@@ -247,7 +213,7 @@ async def handle_imagegen_prompt(message: Message, state: FSMContext):
             return
 
         # Success! Send the image
-        photo = BufferedInputFile(image_data, filename="image.jpg")
+        photo = BufferedInputFile(image_data, filename="image.png")
         async with async_session() as session:
             tokens = await get_tokens_async(session, message.from_user.id)
         await message.answer_photo(
