@@ -12,6 +12,8 @@ import GuidesManager from "@/pages/GuidesManager";
 import LeadMagnetManager from "@/pages/LeadMagnetManager";
 import Settings from "@/pages/Settings";
 import ABTests from "@/pages/ABTests";
+import ScheduledMessages from "@/pages/ScheduledMessages";
+import AnalyticsCharts from "@/pages/AnalyticsCharts";
 
 const tabs = [
   { id: "home", label: "Asosiy", icon: Home },
@@ -28,6 +30,7 @@ const analyticsSubTabs = [
   { id: "funnel", label: "Voronka" },
   { id: "events", label: "Voqealar" },
   { id: "abtests", label: "A/B Test" },
+  { id: "charts", label: "Grafik" },
 ] as const;
 type AnalyticsSubTab = (typeof analyticsSubTabs)[number]["id"];
 
@@ -42,6 +45,7 @@ export default function AppLayout() {
   const [activeTab, setActiveTab] = useState<TabId>("home");
   const [analyticsTab, setAnalyticsTab] = useState<AnalyticsSubTab>("funnel");
   const [materialTab, setMaterialTab] = useState<MaterialSubTab>("courses");
+  const [broadcastTab, setBroadcastTab] = useState<"broadcast" | "scheduled">("broadcast");
 
   const renderScreen = () => {
     switch (activeTab) {
@@ -52,10 +56,17 @@ export default function AppLayout() {
           <div className="space-y-3">
             <SubTabBar tabs={analyticsSubTabs} active={analyticsTab} onChange={(id) => setAnalyticsTab(id as AnalyticsSubTab)} />
             {analyticsTab === "funnel" ? <FunnelAnalytics /> :
-              analyticsTab === "events" ? <EventTracking /> : <ABTests />}
+              analyticsTab === "events" ? <EventTracking /> :
+                analyticsTab === "charts" ? <AnalyticsCharts /> : <ABTests />}
           </div>
         );
-      case "broadcast": return <Broadcast />;
+      case "broadcast":
+        return (
+          <div className="space-y-3">
+            <SubTabBar tabs={[{ id: "broadcast", label: "Xabar" }, { id: "scheduled", label: "Rejali" }] as const} active={broadcastTab} onChange={(id) => setBroadcastTab(id as any)} />
+            {broadcastTab === "broadcast" ? <Broadcast /> : <ScheduledMessages />}
+          </div>
+        );
       case "material":
         return (
           <div className="space-y-3">

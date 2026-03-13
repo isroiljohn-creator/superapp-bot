@@ -1141,3 +1141,116 @@ async def get_ab_test_stats(test_id: int, admin_id: int = Depends(check_admin), 
         raise HTTPException(status_code=404, detail="Test topilmadi")
     return stats
 
+
+# ── Referral Leaderboard ─────────────────────
+@router.get("/referral-leaderboard")
+async def get_referral_leaderboard(admin_id: int = Depends(check_admin), db: AsyncSession = Depends(get_db)):
+    """Get top 10 referrers."""
+    from services.referral import ReferralService
+    service = ReferralService(db)
+    return await service.get_leaderboard(limit=10)
+
+
+# ── Scheduled Messages ───────────────────────
+from db.models import ScheduledMessage
+
+class ScheduledMsgCreate(BaseModel):
+    content: str
+    content_type: str = "text"
+    file_id: str | None = None
+    send_at: str  # ISO datetime string
+
+@router.get("/scheduled-messages")
+async def get_scheduled_messages(admin_id: int = Depends(check_admin), db: AsyncSession = Depends(get_db)):
+    """List all scheduled messages."""
+    result = await db.execute(
+        select(ScheduledMessage).order_by(ScheduledMessage.send_at.desc()).limit(50)
+    )
+    msgs = result.scalars().all()
+    return [{
+        "id": m.id,
+        "content": m.content[:100],
+        "content_type": m.content_type,
+        "send_at": m.send_at.isoformat() if m.send_at else "",
+        "status": m.status,
+        "sent_count": m.sent_count,
+        "created_at": m.created_at.isoformat() if m.created_at else "",
+    } for m in msgs]
+
+
+@router.post("/scheduled-messages")
+async def create_scheduled_message(data: ScheduledMsgCreate, admin_id: int = Depends(check_admin), db: AsyncSession = Depends(get_db)):
+    """Create a new scheduled message."""
+    from datetime import datetime
+    try:
+        send_at = datetime.fromisoformat(data.send_at.replace("Z", "+00:00")).replace(tzinfo=None)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Noto'g'ri sana formati")
+
+    msg = ScheduledMessage(
+        content=data.content,
+        content_type=data.content_type,
+        file_id=data.file_id,
+        send_at=send_at,
+        status="pending",
+    )
+    db.add(msg)
+    await db.commit()
+    await db.refresh(msg)
+    return {"id": msg.id, "send_at": msg.send_at.isoformat(), "status": "pending"}
+
+
+@router.delete("/scheduled-messages/{msg_id}")
+async def cancel_scheduled_message(msg_id: int, admin_id: int = Depends(check_admin), db: AsyncSession = Depends(get_db)):
+    """Cancel a pending scheduled message."""
+    result = await db.execute(select(ScheduledMessage).where(ScheduledMessage.id == msg_id))
+    msg = result.scalar_one_or_none()
+    if not msg:
+        raise HTTPException(status_code=404, detail="Xabar topilmadi")
+    if msg.status != "pending":
+        raise HTTPException(status_code=400, detail="Faqat kutilayotgan xabarlarni bekor qilish mumkin")
+    msg.status = "cancelled"
+    await db.commit()
+    return {"status": "cancelled"}
+
+
+# ── Analytics (Charts) ───────────────────────
+@router.get("/analytics/daily-growth")
+async def get_daily_growth(admin_id: int = Depends(check_admin), db: AsyncSession = Depends(get_db)):
+    """Get user growth over last 30 days."""
+    from datetime import datetime, timedelta, timezone
+    from sqlalchemy import cast, Date
+
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
+    since = now - timedelta(days=30)
+
+    result = await db.execute(
+        select(
+            cast(User.created_at, Date).label("day"),
+            func.count(User.id).label("count"),
+        )
+        .where(User.created_at >= since)
+        .group_by(cast(User.created_at, Date))
+        .order_by(cast(User.created_at, Date))
+    )
+    rows = result.all()
+    return [{"date": str(row.day), "users": row.count} for row in rows]
+
+
+@router.get("/analytics/funnel-data")
+async def get_funnel_data(admin_id: int = Depends(check_admin), db: AsyncSession = Depends(get_db)):
+    """Get funnel conversion data."""
+    total = await db.execute(select(func.count()).select_from(User))
+    registered = await db.execute(
+        select(func.count()).select_from(User).where(User.user_status == "registered")
+    )
+    active_subs = await db.execute(
+        select(func.count()).select_from(Subscription).where(Subscription.status == "active")
+    )
+    return {
+        "stages": [
+            {"name": "Boshlagan", "count": total.scalar() or 0},
+            {"name": "Ro'yxatdan o'tgan", "count": registered.scalar() or 0},
+            {"name": "To'lagan", "count": active_subs.scalar() or 0},
+        ]
+    }

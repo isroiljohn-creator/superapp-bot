@@ -374,7 +374,42 @@ async def profile_referral(callback_query):
     await callback_query.message.answer(
         uz.REFERRAL_MENU_TEXT.format(link=ref_link, count=referral_count, balance=f"{balance:,}".replace(",", " "), reward=reward_formatted),
         parse_mode="HTML",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="🏆 Top referalchilar", callback_data="referral:leaderboard")],
+        ]),
     )
+    await callback_query.answer()
+
+
+@router.callback_query(F.data == "referral:leaderboard")
+async def referral_leaderboard(callback_query):
+    """Show top 10 referral leaderboard."""
+    from db.database import async_session
+    from services.referral import ReferralService
+
+    try:
+        async with async_session() as session:
+            ref_service = ReferralService(session)
+            board = await ref_service.get_leaderboard(limit=10)
+    except Exception:
+        board = []
+
+    if not board:
+        await callback_query.message.answer(uz.LEADERBOARD_EMPTY, parse_mode="HTML")
+        await callback_query.answer()
+        return
+
+    text = uz.LEADERBOARD_TITLE
+    for entry in board:
+        medal = uz.LEADERBOARD_MEDALS[entry["rank"] - 1] if entry["rank"] <= 10 else f"{entry['rank']}."
+        text += uz.LEADERBOARD_ROW.format(
+            medal=medal,
+            rank=entry["rank"],
+            name=entry["name"],
+            count=entry["referrals"],
+        )
+
+    await callback_query.message.answer(text, parse_mode="HTML")
     await callback_query.answer()
 
 
@@ -462,25 +497,36 @@ async def menu_help(message: Message):
 # ──────────────────────────────────────────────
 @router.callback_query(F.data == "club:subscribe")
 async def club_subscribe_callback(callback_query):
-    """Handle club subscribe button press — Send Telegram Invoice."""
-    price_in_tiyin = settings.CLUB_PRICE * 100
-    prices = [LabeledPrice(label="Yopiq Klub Obunasi (1 oy)", amount=price_in_tiyin)]
-    
+    """Handle club subscribe button press — Send Telegram Invoice (Stars or provider)."""
     provider_token = settings.PAYMENT_PROVIDER_TOKEN
-    if not provider_token:
-        await callback_query.answer("⚠️ To'lov tizimi sozlanmagan!", show_alert=True)
-        return
 
-    await callback_query.message.answer_invoice(
-        title="Yopiq Klub",
-        description="AI va marketing bo'yicha ekskluziv hamjamiyatga 1 oylik obuna",
-        payload="club_subscription_1_month",
-        provider_token=provider_token,
-        currency="UZS",
-        prices=prices,
-        start_parameter="club-subscription",
-        protect_content=True,
-    )
+    if provider_token:
+        # Traditional payment via Click/Payme
+        price_in_tiyin = settings.CLUB_PRICE * 100
+        prices = [LabeledPrice(label="Yopiq Klub Obunasi (1 oy)", amount=price_in_tiyin)]
+        await callback_query.message.answer_invoice(
+            title="Yopiq Klub",
+            description="AI va marketing bo'yicha ekskluziv hamjamiyatga 1 oylik obuna",
+            payload="club_subscription_1_month",
+            provider_token=provider_token,
+            currency="UZS",
+            prices=prices,
+            start_parameter="club-subscription",
+            protect_content=True,
+        )
+    else:
+        # Telegram Stars payment (provider_token="" for Stars)
+        star_price = max(1, settings.CLUB_PRICE // 50)  # Convert UZS to Stars (~50 UZS per star)
+        prices = [LabeledPrice(label="⭐ Yopiq Klub (1 oy)", amount=star_price)]
+        await callback_query.message.answer_invoice(
+            title="⭐ Yopiq Klub",
+            description=f"AI va marketing ekskluziv hamjamiyat — {star_price} Stars",
+            payload="club_subscription_stars",
+            provider_token="",
+            currency="XTR",
+            prices=prices,
+            start_parameter="club-stars",
+        )
     await callback_query.answer()
 
 

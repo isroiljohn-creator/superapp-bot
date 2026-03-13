@@ -492,3 +492,32 @@ LEVEL_DESCRIPTIONS = {
     "freelancer": "frilanserlar",
     "business": "biznes egalari",
 }
+
+# ──────────────────────────────────────────────
+# Referral Leaderboard
+# ──────────────────────────────────────────────
+LEADERBOARD_TITLE = "🏆 <b>Top Referalchilar</b>\n\n"
+LEADERBOARD_EMPTY = "🏆 Hali referalchilar yo'q. Birinchi bo'ling! 🚀"
+LEADERBOARD_ROW = "{medal} <b>{rank}.</b> {name} — <b>{count}</b> ta referal\n"
+LEADERBOARD_MEDALS = ["🥇", "🥈", "🥉", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣", "🔟"]
+
+# ──────────────────────────────────────────────
+# Telegram Stars
+# ──────────────────────────────────────────────
+STARS_TOPUP_TEXT = (
+    "⭐ <b>Telegram Stars bilan to'ldirish</b>\n\n"
+    "Quyidagi paketni tanlang:\n"
+)
+STARS_TOPUP_SUCCESS = "✅ Balansingiz to'ldirildi! Yangi balans: {tokens:,} so'm"
+
+# ──────────────────────────────────────────────
+# Scheduled Messages
+# ──────────────────────────────────────────────
+SCHEDULED_MSG_CREATED = "✅ Xabar rejalashtirildi! {send_at} da yuboriladi."
+
+# ──────────────────────────────────────────────
+# Auto-moderation
+# ──────────────────────────────────────────────
+MOD_WARNING = "⚠️ {name}, guruh qoidalarini buzganingiz uchun ogohlantirish! ({count}/3)"
+MOD_BANNED = "🚫 {name} guruhdan chiqarildi (3 ta ogohlantirish)."
+MOD_LINK_DELETED = "🔗 Havolalar faqat adminlar tomonidan yuborilishi mumkin."

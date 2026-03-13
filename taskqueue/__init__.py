@@ -115,3 +115,68 @@ async def schedule_churn_check(telegram_id: int):
 
     _fire_and_forget(_churn_flow())
     logger.info(f"Churn check scheduled for {telegram_id}")
+
+
+async def start_scheduled_message_checker():
+    """Background loop: checks for pending scheduled messages every 60s."""
+
+    async def _checker_loop():
+        from bot.config import settings
+        from aiogram import Bot
+        from db.database import async_session
+        from db.models import ScheduledMessage, User
+        from sqlalchemy import select, update
+        from datetime import datetime, timezone
+
+        while True:
+            try:
+                now = datetime.now(timezone.utc).replace(tzinfo=None)
+                async with async_session() as session:
+                    # Find messages due to send
+                    result = await session.execute(
+                        select(ScheduledMessage).where(
+                            ScheduledMessage.status == "pending",
+                            ScheduledMessage.send_at <= now,
+                        )
+                    )
+                    messages = result.scalars().all()
+
+                    for msg in messages:
+                        # Mark as sending
+                        msg.status = "sending"
+                        await session.commit()
+
+                        # Get all users
+                        users = await session.execute(select(User.telegram_id))
+                        user_ids = [row[0] for row in users.all()]
+
+                        bot = Bot(token=settings.BOT_TOKEN)
+                        sent, failed = 0, 0
+                        try:
+                            for uid in user_ids:
+                                try:
+                                    await bot.send_message(chat_id=uid, text=msg.content, parse_mode="HTML")
+                                    sent += 1
+                                except Exception:
+                                    failed += 1
+                                if sent % 25 == 0:
+                                    await asyncio.sleep(1)  # Rate limit
+                        finally:
+                            await bot.session.close()
+
+                        # Update status
+                        msg.status = "sent"
+                        msg.sent_count = sent
+                        msg.failed_count = failed
+                        msg.sent_at = now
+                        await session.commit()
+
+                        logger.info(f"Scheduled msg {msg.id} sent: {sent} ok, {failed} failed")
+
+            except Exception as e:
+                logger.error(f"Scheduled message checker error: {e}")
+
+            await asyncio.sleep(60)  # Check every minute
+
+    _fire_and_forget(_checker_loop())
+    logger.info("📅 Scheduled message checker started")

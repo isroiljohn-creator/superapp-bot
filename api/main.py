@@ -135,6 +135,17 @@ app.include_router(admin.router)
 async def health():
     return {"status": "ok"}
 
+
+@app.on_event("startup")
+async def startup_event():
+    """Start background services on API startup."""
+    try:
+        from taskqueue import start_scheduled_message_checker
+        await start_scheduled_message_checker()
+    except Exception as e:
+        import logging
+        logging.getLogger("api").warning(f"Scheduled message checker start failed: {e}")
+
 @app.get("/")
 async def root():
     """Serve GA4 tag at root for Google verification, then redirect to admin."""

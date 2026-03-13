@@ -203,3 +203,34 @@ class ReferralService:
             "paid_referrals": paid.scalar() or 0,
             "balance": balance,
         }
+
+    # ── Leaderboard ──────────────────────────
+    async def get_leaderboard(self, limit: int = 10) -> list[dict]:
+        """Get top referrers sorted by total referral count."""
+        result = await self.session.execute(
+            select(
+                Referral.referer_id,
+                func.count(Referral.id).label("count"),
+            )
+            .where(Referral.status.in_(["valid", "paid"]))
+            .group_by(Referral.referer_id)
+            .order_by(func.count(Referral.id).desc())
+            .limit(limit)
+        )
+        rows = result.all()
+
+        leaderboard = []
+        for referer_id, count in rows:
+            user_q = await self.session.execute(
+                select(User).where(User.telegram_id == referer_id)
+            )
+            user = user_q.scalar_one_or_none()
+            name = user.name if user else f"ID:{referer_id}"
+            leaderboard.append({
+                "rank": len(leaderboard) + 1,
+                "name": name,
+                "telegram_id": referer_id,
+                "referrals": count,
+            })
+
+        return leaderboard

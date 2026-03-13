@@ -300,3 +300,22 @@ class Guide(Base):
     order = Column(Integer, default=0)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
+
+# ──────────────────────────────────────────────
+# Scheduled Messages
+# ──────────────────────────────────────────────
+class ScheduledMessage(Base):
+    __tablename__ = "scheduled_messages"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    content = Column(Text, nullable=False)
+    content_type = Column(String(20), default="text")  # text | photo | video
+    file_id = Column(String(255), nullable=True)
+    filters = Column(JSON, nullable=True)               # audience filters
+    send_at = Column(DateTime, nullable=False)           # when to send (UTC)
+    status = Column(String(20), default="pending")       # pending | sent | cancelled
+    sent_count = Column(Integer, default=0)
+    failed_count = Column(Integer, default=0)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    sent_at = Column(DateTime, nullable=True)
+
