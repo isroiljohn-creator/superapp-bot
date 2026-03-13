@@ -133,7 +133,7 @@ export default function UsersCRM() {
       const url = `${API_URL}/api/admin/users/export`;
       const res = await fetch(url, {
         headers: {
-          "X-Telegram-Init-Data": initData,
+          "Authorization": `tma ${initData}`,
         },
       });
       if (!res.ok) {

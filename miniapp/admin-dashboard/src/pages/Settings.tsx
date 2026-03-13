@@ -3,10 +3,9 @@ import { useToast } from "@/hooks/use-toast";
 
 const API_BASE = import.meta.env.VITE_API_URL || "";
 
-function getInitData(): string {
-    try {
-        return (window as any).Telegram?.WebApp?.initData || "";
-    } catch { return ""; }
+function getAuthHeaders(): Record<string, string> {
+    const initData = (window as any).Telegram?.WebApp?.initData || "";
+    return initData ? { "Authorization": `tma ${initData}` } : {};
 }
 
 const SETTING_KEYS = [
@@ -29,7 +28,7 @@ export default function Settings() {
     const fetchSettings = async () => {
         try {
             const res = await fetch(`${API_BASE}/api/admin/settings`, {
-                headers: { "X-Telegram-Init-Data": getInitData() },
+                headers: getAuthHeaders(),
             });
             if (res.ok) {
                 const data = await res.json();
@@ -52,7 +51,7 @@ export default function Settings() {
                 method: "PUT",
                 headers: {
                     "Content-Type": "application/json",
-                    "X-Telegram-Init-Data": getInitData(),
+                    ...getAuthHeaders(),
                 },
                 body: JSON.stringify({ value: settings[key] || "" }),
             });

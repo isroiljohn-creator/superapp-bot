@@ -3,10 +3,9 @@ import { useToast } from "@/hooks/use-toast";
 
 const API_BASE = import.meta.env.VITE_API_URL || "";
 
-function getInitData(): string {
-    try {
-        return (window as any).Telegram?.WebApp?.initData || "";
-    } catch { return ""; }
+function getAuthHeaders(): Record<string, string> {
+    const initData = (window as any).Telegram?.WebApp?.initData || "";
+    return initData ? { "Authorization": `tma ${initData}` } : {};
 }
 
 interface ABTest {
@@ -37,7 +36,7 @@ export default function ABTests() {
     const fetchTests = async () => {
         try {
             const res = await fetch(`${API_BASE}/api/admin/ab-tests`, {
-                headers: { "X-Telegram-Init-Data": getInitData() },
+                headers: getAuthHeaders(),
             });
             if (res.ok) setTests(await res.json());
         } catch (e) { console.error(e); }
@@ -51,7 +50,7 @@ export default function ABTests() {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
-                    "X-Telegram-Init-Data": getInitData(),
+                    ...getAuthHeaders(),
                 },
                 body: JSON.stringify(form),
             });
@@ -68,7 +67,7 @@ export default function ABTests() {
         try {
             const res = await fetch(`${API_BASE}/api/admin/ab-tests/${id}/toggle`, {
                 method: "POST",
-                headers: { "X-Telegram-Init-Data": getInitData() },
+                headers: getAuthHeaders(),
             });
             if (res.ok) fetchTests();
         } catch (e) { console.error(e); }
