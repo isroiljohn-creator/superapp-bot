@@ -3,7 +3,6 @@ import logging
 import asyncio
 import json
 import base64
-import urllib.parse
 import urllib.request
 
 from aiogram import Router, F
