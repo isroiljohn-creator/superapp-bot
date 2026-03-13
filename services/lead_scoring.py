@@ -8,6 +8,7 @@ from services.analytics import AnalyticsService
 # Score mapping
 SCORE_MAP = {
     "lead_magnet_open": 5,
+    "vsl_view": 5,
     "vsl_50": 10,
     "vsl_90": 20,
     "offer_click": 25,

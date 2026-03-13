@@ -166,4 +166,10 @@ async def handle_churn(bot: Bot, telegram_id: int, day: int):
         async with async_session() as session:
             sub_service = SubscriptionService(session)
             await sub_service.expire(user_id)
+
+            # Track churn event
+            from services.analytics import AnalyticsService, EVT_CHURN
+            analytics = AnalyticsService(session)
+            await analytics.track(user_id=user_id, event_type=EVT_CHURN)
+
             await session.commit()

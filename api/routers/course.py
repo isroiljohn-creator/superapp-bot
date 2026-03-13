@@ -110,11 +110,13 @@ async def update_progress(
         progress = result.scalar_one_or_none()
 
         if progress:
+            prev_pct = progress.completion_pct
             progress.watch_time = max(progress.watch_time, body.watch_time)
             progress.completion_pct = max(progress.completion_pct, body.completion_pct)
             if body.completion_pct >= 95 and not progress.completed_at:
                 progress.completed_at = datetime.now(timezone.utc).replace(tzinfo=None)
         else:
+            prev_pct = 0
             progress = UserProgress(
                 user_id=user.id,
                 module_id=body.module_id,
@@ -123,6 +125,19 @@ async def update_progress(
                 completed_at=datetime.now(timezone.utc).replace(tzinfo=None) if body.completion_pct >= 95 else None,
             )
             session.add(progress)
+
+        # Track vsl_50 / vsl_90 events (fire once per module)
+        from services.analytics import AnalyticsService, EVT_VSL_50, EVT_VSL_90
+        from services.lead_scoring import LeadScoringService
+        analytics = AnalyticsService(session)
+        scoring = LeadScoringService(session)
+
+        if prev_pct < 50 <= body.completion_pct:
+            await analytics.track(user_id=user.id, event_type=EVT_VSL_50)
+            await scoring.process_event(telegram_id, user.id, EVT_VSL_50)
+        if prev_pct < 90 <= body.completion_pct:
+            await analytics.track(user_id=user.id, event_type=EVT_VSL_90)
+            await scoring.process_event(telegram_id, user.id, EVT_VSL_90)
 
         await session.commit()
 

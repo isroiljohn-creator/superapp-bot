@@ -91,6 +91,17 @@ class ReferralService:
                 validated_at=datetime.now(timezone.utc).replace(tzinfo=None),
             )
         )
+
+        # Track event
+        from services.analytics import AnalyticsService, EVT_REFERRAL_VALID
+        user = await self.session.execute(
+            select(User).where(User.telegram_id == referred_telegram_id)
+        )
+        user_obj = user.scalar_one_or_none()
+        if user_obj:
+            analytics = AnalyticsService(self.session)
+            await analytics.track(user_id=user_obj.id, event_type=EVT_REFERRAL_VALID)
+
         return True
 
     async def _count_recent_referrals(self, referer_id: int, hours: int = 1) -> int:
@@ -131,6 +142,16 @@ class ReferralService:
                 paid_at=datetime.now(timezone.utc).replace(tzinfo=None),
             )
         )
+
+        # Track event
+        from services.analytics import AnalyticsService, EVT_REFERRAL_PAID
+        user = await self.session.execute(
+            select(User).where(User.telegram_id == referred_telegram_id)
+        )
+        user_obj = user.scalar_one_or_none()
+        if user_obj:
+            analytics = AnalyticsService(self.session)
+            await analytics.track(user_id=user_obj.id, event_type=EVT_REFERRAL_PAID)
 
         # Credit referer's balance
         referer_user = await self.session.execute(

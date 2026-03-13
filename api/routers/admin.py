@@ -1237,23 +1237,7 @@ async def get_daily_growth(admin_id: int = Depends(check_admin), db: AsyncSessio
     return [{"date": str(row.day), "users": row.count} for row in rows]
 
 
-@router.get("/analytics/funnel-data")
-async def get_funnel_data(admin_id: int = Depends(check_admin), db: AsyncSession = Depends(get_db)):
-    """Get funnel conversion data."""
-    total = await db.execute(select(func.count()).select_from(User))
-    registered = await db.execute(
-        select(func.count()).select_from(User).where(User.user_status == "registered")
-    )
-    active_subs = await db.execute(
-        select(func.count()).select_from(Subscription).where(Subscription.status == "active")
-    )
-    return {
-        "stages": [
-            {"name": "Boshlagan", "count": total.scalar() or 0},
-            {"name": "Ro'yxatdan o'tgan", "count": registered.scalar() or 0},
-            {"name": "To'lagan", "count": active_subs.scalar() or 0},
-        ]
-    }
+
 
 
 # ── Prompt Management ────────────────────────
