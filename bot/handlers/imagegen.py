@@ -144,7 +144,9 @@ async def handle_imagegen_prompt(message: Message, state: FSMContext):
     # Skip menu buttons
     menu_buttons = [
         uz.MENU_BTN_AI_WORKERS, uz.MENU_BTN_FREE_LESSONS, uz.MENU_BTN_CLUB,
-        uz.MENU_BTN_COURSE, uz.MENU_BTN_PROFILE,
+        uz.MENU_BTN_COURSE, uz.MENU_BTN_PROFILE, uz.MENU_BTN_BACK,
+        uz.AI_WORKERS_KB_IMAGE, uz.AI_WORKERS_KB_COPY, uz.AI_WORKERS_KB_DAILY,
+        uz.AI_WORKERS_KB_CHAT, uz.AI_WORKERS_KB_TOPUP, uz.AI_WORKERS_KB_BACK,
     ]
     if prompt in menu_buttons:
         await state.clear()

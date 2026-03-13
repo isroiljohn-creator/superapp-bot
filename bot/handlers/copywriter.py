@@ -106,7 +106,9 @@ async def handle_copy_prompt(message: Message, state: FSMContext):
     # Skip menu buttons
     menu_buttons = [
         uz.MENU_BTN_AI_WORKERS, uz.MENU_BTN_FREE_LESSONS, uz.MENU_BTN_CLUB,
-        uz.MENU_BTN_COURSE, uz.MENU_BTN_PROFILE,
+        uz.MENU_BTN_COURSE, uz.MENU_BTN_PROFILE, uz.MENU_BTN_BACK,
+        uz.AI_WORKERS_KB_IMAGE, uz.AI_WORKERS_KB_COPY, uz.AI_WORKERS_KB_DAILY,
+        uz.AI_WORKERS_KB_CHAT, uz.AI_WORKERS_KB_TOPUP, uz.AI_WORKERS_KB_BACK,
     ]
     if prompt in menu_buttons:
         await state.clear()
@@ -151,8 +153,10 @@ async def handle_copy_prompt(message: Message, state: FSMContext):
 
         async with async_session() as session:
             tokens = await get_tokens_async(session, message.from_user.id)
+        import html as html_mod
+        safe_result = html_mod.escape(result[:3500])
         await status_msg.edit_text(
-            uz.COPYWRITER_SUCCESS.format(text=result[:3500], tokens=tokens),
+            uz.COPYWRITER_SUCCESS.format(text=safe_result, tokens=tokens),
             parse_mode="HTML",
         )
 

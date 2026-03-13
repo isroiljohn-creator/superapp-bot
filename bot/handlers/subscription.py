@@ -124,23 +124,30 @@ async def handle_churn(bot: Bot, telegram_id: int, day: int):
         custom_text = result.scalar_one_or_none()
 
     # Send appropriate message (outside session)
+    def _safe_format(tmpl: str, **kwargs) -> str:
+        """Format template safely — missing keys stay as-is."""
+        try:
+            return tmpl.format(**kwargs)
+        except (KeyError, IndexError):
+            return tmpl
+
     if day == 1:
         text = custom_text or uz.CHURN_DAY_1
-        await bot.send_message(chat_id=telegram_id, text=text.format(name=name))
+        await bot.send_message(chat_id=telegram_id, text=_safe_format(text, name=name))
     elif day == 3:
         text = custom_text or uz.CHURN_DAY_3
-        await bot.send_message(chat_id=telegram_id, text=text.format(name=name))
+        await bot.send_message(chat_id=telegram_id, text=_safe_format(text, name=name))
     elif day == 5:
         discounted = int(settings.CLUB_PRICE * 0.7)
         price_formatted = f"{discounted:,}".replace(",", " ")
         text = custom_text or uz.CHURN_DAY_5
         await bot.send_message(
             chat_id=telegram_id,
-            text=text.format(name=name, discounted_price=price_formatted),
+            text=_safe_format(text, name=name, discounted_price=price_formatted),
         )
     elif day == 7:
         text = custom_text or uz.CHURN_DAY_7
-        await bot.send_message(chat_id=telegram_id, text=text.format(name=name))
+        await bot.send_message(chat_id=telegram_id, text=_safe_format(text, name=name))
         # Remove from group
         try:
             if settings.PRIVATE_GROUP_ID:

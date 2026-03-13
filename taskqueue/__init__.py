@@ -100,8 +100,11 @@ async def schedule_churn_check(telegram_id: int):
 
         bot = Bot(token=settings.BOT_TOKEN)
         try:
-            for day, delay in [(1, 86400), (3, 259200), (5, 432000), (7, 604800)]:
-                await asyncio.sleep(delay)
+            # Delays are ABSOLUTE from task start (not cumulative)
+            prev_delay = 0
+            for day, abs_delay in [(1, 86400), (3, 259200), (5, 432000), (7, 604800)]:
+                await asyncio.sleep(abs_delay - prev_delay)
+                prev_delay = abs_delay
                 try:
                     await handle_churn(bot, telegram_id, day)
                     logger.info(f"Churn day {day} sent to {telegram_id}")
