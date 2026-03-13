@@ -2,9 +2,9 @@ import { useState, useRef, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Search, X, UserCheck, UserX, Download, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react";
+import { Search, X, UserCheck, UserX, Download, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Wallet, Plus, Minus } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { fetchApi, API_URL, getInitData } from "@/lib/api";
 
 type LeadScore = "hot" | "nurture" | "cold";
@@ -24,6 +24,7 @@ interface CRMUser {
   source: string;
   campaign: string;
   leadScore: number;
+  tokens: number;
   registeredAt: string;
   createdAt: string;
   events: { action: string; time: string }[];
@@ -76,6 +77,10 @@ export default function UsersCRM() {
   const [sortKey, setSortKey] = useState<SortKey>("date_desc");
   const [selectedUser, setSelectedUser] = useState<CRMUser | null>(null);
   const [page, setPage] = useState(1);
+  const [balanceAmount, setBalanceAmount] = useState("");
+  const [balanceLoading, setBalanceLoading] = useState(false);
+  const [balanceMsg, setBalanceMsg] = useState("");
+  const queryClient = useQueryClient();
 
   // Debounce search
   const searchTimer = useRef<ReturnType<typeof setTimeout>>();
@@ -401,6 +406,103 @@ export default function UsersCRM() {
                 <Badge className="bg-muted text-muted-foreground">
                   Ball: {selectedUser.leadScore}
                 </Badge>
+                <Badge className="bg-primary/10 text-primary">
+                  <Wallet className="h-3 w-3 mr-1" />
+                  {selectedUser.tokens.toLocaleString()} so'm
+                </Badge>
+              </div>
+
+              {/* Balance Management */}
+              <div className="mb-4 p-3 bg-secondary/50 rounded-lg border border-border/30">
+                <h4 className="text-[11px] font-semibold mb-2 flex items-center gap-1">
+                  <Wallet className="h-3.5 w-3.5" /> Balansni boshqarish
+                </h4>
+                <div className="flex gap-1.5 items-center">
+                  <div className="flex gap-1">
+                    {[1000, 5000, 10000].map((amt) => (
+                      <button
+                        key={amt}
+                        disabled={balanceLoading}
+                        onClick={async () => {
+                          setBalanceLoading(true);
+                          setBalanceMsg("");
+                          try {
+                            const res = await fetchApi(`/api/admin/users/${selectedUser.id}/balance`, {
+                              method: "PUT",
+                              body: JSON.stringify({ amount: amt, reason: "Admin qo'shdi" }),
+                            });
+                            setSelectedUser({ ...selectedUser, tokens: res.new_balance });
+                            setBalanceMsg(`✅ +${amt.toLocaleString()}`);
+                            queryClient.invalidateQueries({ queryKey: ["admin_users"] });
+                          } catch { setBalanceMsg("❌ Xatolik"); }
+                          setBalanceLoading(false);
+                        }}
+                        className="px-2 py-1 text-[10px] font-medium bg-green-500/10 text-green-500 rounded hover:bg-green-500/20 transition-colors disabled:opacity-50"
+                      >
+                        <Plus className="h-2.5 w-2.5 inline" />{(amt / 1000)}K
+                      </button>
+                    ))}
+                  </div>
+                  <div className="flex gap-1">
+                    {[1000, 5000].map((amt) => (
+                      <button
+                        key={amt}
+                        disabled={balanceLoading}
+                        onClick={async () => {
+                          setBalanceLoading(true);
+                          setBalanceMsg("");
+                          try {
+                            const res = await fetchApi(`/api/admin/users/${selectedUser.id}/balance`, {
+                              method: "PUT",
+                              body: JSON.stringify({ amount: -amt, reason: "Admin olib tashladi" }),
+                            });
+                            setSelectedUser({ ...selectedUser, tokens: res.new_balance });
+                            setBalanceMsg(`✅ -${amt.toLocaleString()}`);
+                            queryClient.invalidateQueries({ queryKey: ["admin_users"] });
+                          } catch { setBalanceMsg("❌ Xatolik"); }
+                          setBalanceLoading(false);
+                        }}
+                        className="px-2 py-1 text-[10px] font-medium bg-red-500/10 text-red-500 rounded hover:bg-red-500/20 transition-colors disabled:opacity-50"
+                      >
+                        <Minus className="h-2.5 w-2.5 inline" />{(amt / 1000)}K
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                {/* Custom amount */}
+                <div className="flex gap-1.5 mt-2">
+                  <Input
+                    type="number"
+                    value={balanceAmount}
+                    onChange={(e) => setBalanceAmount(e.target.value)}
+                    placeholder="Boshqa miqdor..."
+                    className="h-7 text-xs bg-background flex-1"
+                  />
+                  <button
+                    disabled={!balanceAmount || balanceLoading}
+                    onClick={async () => {
+                      const amt = parseInt(balanceAmount);
+                      if (!amt || isNaN(amt)) return;
+                      setBalanceLoading(true);
+                      setBalanceMsg("");
+                      try {
+                        const res = await fetchApi(`/api/admin/users/${selectedUser.id}/balance`, {
+                          method: "PUT",
+                          body: JSON.stringify({ amount: amt, reason: `Admin: ${amt > 0 ? 'qo\'shdi' : 'olib tashladi'}` }),
+                        });
+                        setSelectedUser({ ...selectedUser, tokens: res.new_balance });
+                        setBalanceMsg(`✅ ${amt > 0 ? '+' : ''}${amt.toLocaleString()}`);
+                        setBalanceAmount("");
+                        queryClient.invalidateQueries({ queryKey: ["admin_users"] });
+                      } catch { setBalanceMsg("❌ Xatolik"); }
+                      setBalanceLoading(false);
+                    }}
+                    className="px-3 py-1 text-xs font-medium bg-primary text-primary-foreground rounded hover:bg-primary/90 transition-colors disabled:opacity-50"
+                  >
+                    Qo'llash
+                  </button>
+                </div>
+                {balanceMsg && <p className="text-[10px] mt-1 font-medium">{balanceMsg}</p>}
               </div>
 
               {/* User Journey Timeline */}

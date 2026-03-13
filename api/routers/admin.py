@@ -254,11 +254,52 @@ async def get_users_list(
             "source": user.source or "organik",
             "campaign": user.campaign or "",
             "leadScore": user.lead_score or 0,
+            "tokens": user.tokens or 0,
             "registeredAt": user.registered_at.strftime("%d.%m.%Y") if user.registered_at else "—",
             "createdAt": user.created_at.strftime("%d.%m.%Y %H:%M") if user.created_at else "—",
             "events": []
         })
     return {"users": res, "total": total, "page": page, "hasMore": (offset + limit) < total}
+
+
+class BalanceAdjustment(BaseModel):
+    amount: int  # positive = add, negative = subtract
+    reason: str = ""
+
+
+@router.put("/users/{telegram_id}/balance")
+async def adjust_user_balance(
+    telegram_id: int,
+    body: BalanceAdjustment,
+    admin_id: int = Depends(check_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Admin: adjust user token balance (add or subtract)."""
+    if body.amount == 0:
+        raise HTTPException(status_code=400, detail="Miqdor 0 bo'lishi mumkin emas")
+
+    result = await db.execute(select(User).where(User.telegram_id == telegram_id))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=404, detail="Foydalanuvchi topilmadi")
+
+    new_balance = user.tokens + body.amount
+    if new_balance < 0:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Balans manfiy bo'lishi mumkin emas. Hozirgi: {user.tokens:,}, o'zgarish: {body.amount:,}"
+        )
+
+    user.tokens = new_balance
+    await db.commit()
+
+    return {
+        "telegram_id": telegram_id,
+        "previous_balance": user.tokens - body.amount,
+        "adjustment": body.amount,
+        "new_balance": new_balance,
+        "reason": body.reason,
+    }
 
 
 @router.get("/funnel")
