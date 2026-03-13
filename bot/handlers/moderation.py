@@ -17,7 +17,7 @@ _warnings: dict[int, int] = defaultdict(int)
 
 # Spam patterns (Cyrillic + Latin)
 SPAM_PATTERNS = [
-    "t.me/", "http://", "https://", "bit.ly/", "@",
+    "t.me/", "http://", "https://", "bit.ly/",
     "казино", "casino", "бесплатно", "free money",
     "заработок", "click here",
 ]
@@ -48,7 +48,15 @@ async def moderate_group_message(message: Message):
         return
 
     # Admins can send anything
-    if _is_admin(message.from_user.id):
+    if message.from_user and _is_admin(message.from_user.id):
+        return
+
+    # Skip forwarded messages (from users, channels, etc.)
+    if message.forward_from or message.forward_from_chat or message.forward_date:
+        return
+
+    # Skip messages from linked channel (channel posts auto-forwarded to group)
+    if message.sender_chat:
         return
 
     text = message.text or message.caption or ""
