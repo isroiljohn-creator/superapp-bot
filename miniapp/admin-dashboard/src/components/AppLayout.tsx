@@ -14,6 +14,7 @@ import Settings from "@/pages/Settings";
 import ABTests from "@/pages/ABTests";
 import ScheduledMessages from "@/pages/ScheduledMessages";
 import AnalyticsCharts from "@/pages/AnalyticsCharts";
+import PromptManager from "@/pages/PromptManager";
 
 const tabs = [
   { id: "home", label: "Asosiy", icon: Home },
@@ -46,6 +47,7 @@ export default function AppLayout() {
   const [analyticsTab, setAnalyticsTab] = useState<AnalyticsSubTab>("funnel");
   const [materialTab, setMaterialTab] = useState<MaterialSubTab>("courses");
   const [broadcastTab, setBroadcastTab] = useState<"broadcast" | "scheduled">("broadcast");
+  const [settingsTab, setSettingsTab] = useState<"settings" | "prompts">("settings");
 
   const renderScreen = () => {
     switch (activeTab) {
@@ -75,7 +77,13 @@ export default function AppLayout() {
               materialTab === "guides" ? <GuidesManager /> : <LeadMagnetManager />}
           </div>
         );
-      case "settings": return <Settings />;
+      case "settings":
+        return (
+          <div className="space-y-3">
+            <SubTabBar tabs={[{ id: "settings", label: "Sozlama" }, { id: "prompts", label: "Promtlar" }] as const} active={settingsTab} onChange={(id) => setSettingsTab(id as any)} />
+            {settingsTab === "settings" ? <Settings /> : <PromptManager />}
+          </div>
+        );
     }
   };
 

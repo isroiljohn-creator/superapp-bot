@@ -134,17 +134,31 @@ async def handle_copy_prompt(message: Message, state: FSMContext):
     status_msg = await message.answer(uz.COPYWRITER_GENERATING, parse_mode="HTML")
 
     try:
-        # Build Gemini prompt
-        gemini_prompt = (
-            f"Sen professional kopirayter/kontent yozuvchisan. "
-            f"O'zbek tilida {copy_desc} yoz.\n\n"
-            f"Mavzu: {prompt}\n\n"
-            f"Qoidalar:\n"
-            f"- O'zbek tilida (lotin alifbosida) yoz\n"
-            f"- Qisqa va ta'sirli bo'lsin\n"
-            f"- Emoji ishlatishingiz mumkin\n"
-            f"- Faqat tayyor matnni ber, izoh qo'shma\n"
-            f"- {copy_type} formatida yoz"
+        # Load custom prompt template from DB
+        default_template = (
+            "Sen professional kopirayter/kontent yozuvchisan. "
+            "O'zbek tilida {copy_desc} yoz.\n\n"
+            "Mavzu: {prompt}\n\n"
+            "Qoidalar:\n"
+            "- O'zbek tilida (lotin alifbosida) yoz\n"
+            "- Qisqa va ta'sirli bo'lsin\n"
+            "- Emoji ishlatishingiz mumkin\n"
+            "- Faqat tayyor matnni ber, izoh qo'shma\n"
+            "- {copy_type} formatida yoz"
+        )
+        try:
+            from db.models import AdminSetting
+            from sqlalchemy import select as sel
+            async with async_session() as db:
+                r = await db.execute(sel(AdminSetting.value).where(AdminSetting.key == "prompt_copywriter"))
+                custom_tmpl = r.scalar_one_or_none()
+                if custom_tmpl:
+                    default_template = custom_tmpl
+        except Exception:
+            pass
+
+        gemini_prompt = default_template.format(
+            copy_desc=copy_desc, prompt=prompt, copy_type=copy_type
         )
 
         logger.info(f"Calling Gemini for: {copy_type} - {prompt[:50]}")

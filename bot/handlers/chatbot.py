@@ -27,11 +27,18 @@ class ChatbotStates(StatesGroup):
     chatting = State()
 
 
-def _ask_gemini(prompt: str, history: list[dict] = None) -> str:
+def _ask_gemini(prompt: str, history: list[dict] = None, system_prompt: str = None) -> str:
     """Call Gemini API for chat completion."""
     api_key = settings.GEMINI_API_KEY
     if not api_key:
         raise ValueError("GEMINI_API_KEY not configured")
+
+    default_system = (
+        "Sen AI yordamchisan. O'zbek tilida javob ber. "
+        "Qisqa, aniq va foydali javoblar ber. "
+        "Savolga 2-3 paragrafda javob ber, kitob yozma."
+    )
+    system_text = system_prompt or default_system
 
     url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={api_key}"
 
@@ -51,11 +58,7 @@ def _ask_gemini(prompt: str, history: list[dict] = None) -> str:
     payload = json.dumps({
         "contents": contents,
         "systemInstruction": {
-            "parts": [{"text": (
-                "Sen AI yordamchisan. O'zbek tilida javob ber. "
-                "Qisqa, aniq va foydali javoblar ber. "
-                "Savolga 2-3 paragrafda javob ber, kitob yozma."
-            )}]
+            "parts": [{"text": system_text}]
         },
         "generationConfig": {
             "temperature": 0.7,
@@ -112,8 +115,17 @@ async def handle_chat_message(message: Message, state: FSMContext):
         data = await state.get_data()
         history = data.get("chat_history", [])
 
-        # Call Gemini
-        response = await asyncio.to_thread(_ask_gemini, text, history)
+        # Call Gemini with custom prompt from DB
+        custom_prompt = None
+        try:
+            from db.models import AdminSetting
+            from sqlalchemy import select
+            async with async_session() as db:
+                r = await db.execute(select(AdminSetting.value).where(AdminSetting.key == "prompt_chatbot"))
+                custom_prompt = r.scalar_one_or_none()
+        except Exception:
+            pass
+        response = await asyncio.to_thread(_ask_gemini, text, history, custom_prompt)
 
         # Save to history
         history.append({"role": "user", "text": text})

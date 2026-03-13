@@ -171,11 +171,20 @@ async def handle_imagegen_prompt(message: Message, state: FSMContext):
     )
 
     try:
-        # Add quality hint for non-Latin prompts
-        if any(ord(c) > 127 for c in prompt):
-            final_prompt = f"{prompt}, high quality, detailed, photorealistic"
-        else:
-            final_prompt = prompt
+        # Load custom prompt suffix from DB
+        prompt_template = "{prompt}, high quality, detailed, photorealistic"
+        try:
+            from db.models import AdminSetting
+            from sqlalchemy import select as sel
+            async with async_session() as db:
+                r = await db.execute(sel(AdminSetting.value).where(AdminSetting.key == "prompt_imagegen"))
+                custom_tmpl = r.scalar_one_or_none()
+                if custom_tmpl:
+                    prompt_template = custom_tmpl
+        except Exception:
+            pass
+
+        final_prompt = prompt_template.format(prompt=prompt)
 
         image_data = None
         used_api = None

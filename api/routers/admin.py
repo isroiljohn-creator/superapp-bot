@@ -1254,3 +1254,94 @@ async def get_funnel_data(admin_id: int = Depends(check_admin), db: AsyncSession
             {"name": "To'lagan", "count": active_subs.scalar() or 0},
         ]
     }
+
+
+# ── Prompt Management ────────────────────────
+# Default prompts (used when no custom value is set)
+DEFAULT_PROMPTS = {
+    "prompt_chatbot": (
+        "Sen AI yordamchisan. O'zbek tilida javob ber. "
+        "Qisqa, aniq va foydali javoblar ber. "
+        "Savolga 2-3 paragrafda javob ber, kitob yozma."
+    ),
+    "prompt_copywriter": (
+        "Sen professional kopirayter/kontent yozuvchisan. "
+        "O'zbek tilida {copy_desc} yoz.\n\n"
+        "Mavzu: {prompt}\n\n"
+        "Qoidalar:\n"
+        "- O'zbek tilida (lotin alifbosida) yoz\n"
+        "- Qisqa va ta'sirli bo'lsin\n"
+        "- Emoji ishlatishingiz mumkin\n"
+        "- Faqat tayyor matnni ber, izoh qo'shma\n"
+        "- {copy_type} formatida yoz"
+    ),
+    "prompt_imagegen": "{prompt}, high quality, detailed, photorealistic",
+}
+
+
+@router.get("/prompts")
+async def get_prompts(admin_id: int = Depends(check_admin), db: AsyncSession = Depends(get_db)):
+    """Get all AI prompts (custom values + defaults)."""
+    from db.models import AdminSetting
+    result = await db.execute(
+        select(AdminSetting).where(AdminSetting.key.like("prompt_%"))
+    )
+    custom = {s.key: s.value for s in result.scalars().all()}
+
+    prompts = []
+    labels = {
+        "prompt_chatbot": "🤖 Chatbot (system instruction)",
+        "prompt_copywriter": "✍️ Kopirayter shablon",
+        "prompt_imagegen": "🎨 Rasm yaratish (prompt suffix)",
+    }
+    for key, default_val in DEFAULT_PROMPTS.items():
+        prompts.append({
+            "key": key,
+            "label": labels.get(key, key),
+            "value": custom.get(key, default_val),
+            "is_custom": key in custom,
+            "default": default_val,
+        })
+    return prompts
+
+
+class PromptUpdate(BaseModel):
+    key: str
+    value: str
+
+
+@router.put("/prompts")
+async def update_prompt(data: PromptUpdate, admin_id: int = Depends(check_admin), db: AsyncSession = Depends(get_db)):
+    """Update an AI prompt."""
+    if data.key not in DEFAULT_PROMPTS:
+        raise HTTPException(status_code=400, detail="Noto'g'ri prompt kaliti")
+
+    from db.models import AdminSetting
+    result = await db.execute(
+        select(AdminSetting).where(AdminSetting.key == data.key)
+    )
+    existing = result.scalar_one_or_none()
+    if existing:
+        existing.value = data.value
+    else:
+        db.add(AdminSetting(key=data.key, value=data.value))
+    await db.commit()
+    return {"key": data.key, "status": "updated"}
+
+
+@router.delete("/prompts/{key}")
+async def reset_prompt(key: str, admin_id: int = Depends(check_admin), db: AsyncSession = Depends(get_db)):
+    """Reset a prompt to default."""
+    if key not in DEFAULT_PROMPTS:
+        raise HTTPException(status_code=400, detail="Noto'g'ri prompt kaliti")
+
+    from db.models import AdminSetting
+    result = await db.execute(
+        select(AdminSetting).where(AdminSetting.key == key)
+    )
+    existing = result.scalar_one_or_none()
+    if existing:
+        await db.delete(existing)
+        await db.commit()
+    return {"key": key, "status": "reset", "value": DEFAULT_PROMPTS[key]}
+
