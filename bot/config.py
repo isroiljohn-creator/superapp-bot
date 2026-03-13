@@ -18,6 +18,7 @@ class Settings(BaseSettings):
 
     # ── Gemini AI ─────────────────────────────────────
     GEMINI_API_KEY: str = ""
+    GEMINIGEN_API_KEY: str = ""  # GeminiGen.ai image generation API
 
     @property
     def get_webhook_url(self) -> str:
