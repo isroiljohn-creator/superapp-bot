@@ -23,6 +23,10 @@ async def deliver_lead_magnet(message: Message, telegram_id: int):
         if not user:
             return
 
+        # Skip if already delivered
+        if user.lead_magnet_opened:
+            return
+
         funnel = FunnelService(session)
         # For deep links like /start PROMO, the value is saved in source or campaign
         campaign = user.campaign or user.source or "lead_dars"
@@ -30,7 +34,7 @@ async def deliver_lead_magnet(message: Message, telegram_id: int):
         lead_magnet = await funnel.get_lead_magnet(campaign)
 
         if lead_magnet:
-            # Deliver based on content type
+            # Deliver based on content type — only send intro if we have actual content
             if lead_magnet.content_type == "video" and lead_magnet.file_id:
                 if uz.LEAD_MAGNET_INTRO: await message.answer(uz.LEAD_MAGNET_INTRO)
                 await message.answer_video(lead_magnet.file_id)
@@ -42,14 +46,12 @@ async def deliver_lead_magnet(message: Message, telegram_id: int):
             elif lead_magnet.content_type == "vsl" and lead_magnet.file_id:
                 if uz.LEAD_MAGNET_INTRO: await message.answer(uz.LEAD_MAGNET_INTRO)
                 await message.answer_video(lead_magnet.file_id)
-            else:
-                # Fallback: send description as text
-                text = (uz.LEAD_MAGNET_INTRO + "\n\n" if uz.LEAD_MAGNET_INTRO else "") + (lead_magnet.description or "")
-                if text.strip():
-                    await message.answer(text)
-        else:
-            # No lead magnet configured for this campaign
-            if uz.LEAD_MAGNET_INTRO: await message.answer(uz.LEAD_MAGNET_INTRO)
+            elif lead_magnet.description:
+                # Has description but no file — send as text
+                text = (uz.LEAD_MAGNET_INTRO + "\n\n" if uz.LEAD_MAGNET_INTRO else "") + lead_magnet.description
+                await message.answer(text)
+            # else: lead magnet exists but has no content — skip silently
+        # else: no lead magnet for this campaign — skip silently (don't spam!)
 
         # Mark as opened
         await crm.mark_lead_magnet_opened(telegram_id)
