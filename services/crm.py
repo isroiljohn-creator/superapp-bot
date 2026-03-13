@@ -141,7 +141,7 @@ class CRMService:
         await self.session.execute(
             update(User)
             .where(User.telegram_id == telegram_id)
-            .values(lead_score=new_score, lead_segment=segment)
+            .values(lead_score=User.lead_score + points, lead_segment=segment)
         )
 
     # ── Queries for broadcast / analytics ────
@@ -156,7 +156,6 @@ class CRMService:
 
     async def get_users_filtered(self, filters: dict, limit: int = 100, offset: int = 0):
         """Get filtered users for broadcast."""
-        from sqlalchemy import exists
         q = select(User)
 
         if filters.get("source"):

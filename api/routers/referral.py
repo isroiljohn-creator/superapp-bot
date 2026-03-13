@@ -10,6 +10,22 @@ from services.referral import ReferralService
 
 router = APIRouter(prefix="/referral", tags=["referral"])
 
+# Cache bot username to avoid creating Bot instances per request
+_bot_username_cache: str = ""
+
+
+async def _get_bot_username() -> str:
+    global _bot_username_cache
+    if not _bot_username_cache:
+        from aiogram import Bot
+        bot = Bot(token=settings.BOT_TOKEN)
+        try:
+            bot_info = await bot.get_me()
+            _bot_username_cache = bot_info.username
+        finally:
+            await bot.session.close()
+    return _bot_username_cache
+
 
 @router.get("/stats", response_model=ReferralStats)
 async def get_referral_stats(x_telegram_init_data: str = Header(...)):
@@ -27,14 +43,8 @@ async def get_referral_stats(x_telegram_init_data: str = Header(...)):
         ref_service = ReferralService(session)
         stats = await ref_service.get_stats(telegram_id)
 
-        # Get bot username for link
-        from aiogram import Bot
-        bot = Bot(token=settings.BOT_TOKEN)
-        try:
-            bot_info = await bot.get_me()
-            link = ref_service.generate_link(bot_info.username, telegram_id)
-        finally:
-            await bot.session.close()
+        bot_username = await _get_bot_username()
+        link = ref_service.generate_link(bot_username, telegram_id)
 
     amount_for_free = max(0, settings.CLUB_PRICE - stats["balance"])
 

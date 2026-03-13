@@ -555,7 +555,11 @@ async def guide_db_callback(callback_query):
     from sqlalchemy import select
     from db.models import Guide
 
-    guide_id = int(callback_query.data.split(":")[1])
+    try:
+        guide_id = int(callback_query.data.split(":")[1])
+    except (ValueError, IndexError):
+        await callback_query.answer("Noto'g'ri qo'llanma", show_alert=True)
+        return
 
     async with async_session() as session:
         result = await session.execute(select(Guide).where(Guide.id == guide_id))

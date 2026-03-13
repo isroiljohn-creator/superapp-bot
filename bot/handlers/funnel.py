@@ -81,6 +81,7 @@ async def handle_subscribe_click(callback: CallbackQuery):
 
             scoring = LeadScoringService(session)
             await scoring.process_event(callback.from_user.id, user.id, EVT_OFFER_CLICK)
+            await scoring.process_event(callback.from_user.id, user.id, EVT_PAYMENT_OPEN)
 
             await session.commit()
 

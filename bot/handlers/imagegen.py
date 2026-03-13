@@ -224,6 +224,7 @@ async def handle_imagegen_prompt(message: Message, state: FSMContext):
             async with async_session() as session:
                 await add_tokens_async(session, message.from_user.id, IMAGE_COST)
                 await session.commit()
+            await state.clear()
             try:
                 await status_msg.edit_text("⏰ Vaqt tugadi. Token qaytarildi. Qayta urinib ko'ring.")
             except Exception:
