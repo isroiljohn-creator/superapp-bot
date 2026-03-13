@@ -17,7 +17,7 @@ _warnings: dict[int, int] = defaultdict(int)
 
 # Spam patterns (Cyrillic + Latin)
 SPAM_PATTERNS = [
-    "t.me/", "http://", "https://", "bit.ly/",
+    "t.me/", "http://", "https://", "bit.ly/", "@",
     "казино", "casino", "бесплатно", "free money",
     "заработок", "click here",
 ]
