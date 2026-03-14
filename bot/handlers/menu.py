@@ -192,7 +192,7 @@ async def menu_profile(message: Message):
                 ref_service = ReferralService(session)
                 stats = await ref_service.get_stats(message.from_user.id)
                 referrals = stats.get("total_referrals", 0)
-                balance = stats.get("balance", 0)
+                balance = user.tokens or 0
     except Exception as exc:
         import logging
         logging.getLogger("menu").warning(f"Profil yuklanmadi: {exc}")
