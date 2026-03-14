@@ -32,7 +32,6 @@ LYRICS_TYPES = {
     "romantic": ("❤️ Romantik", "romantik sevgi qo'shig'i matni"),
     "folk": ("🪕 Xalq qo'shig'i", "o'zbek xalq qo'shig'i uslubida matn"),
     "poem": ("📜 She'r", "go'zal she'r (qofiyali)"),
-    "nasheed": ("🌙 Nashid", "nashid (ilohiy qo'shiq) matni"),
 }
 
 

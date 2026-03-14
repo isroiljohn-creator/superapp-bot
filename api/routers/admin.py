@@ -283,11 +283,12 @@ async def adjust_user_balance(
     if not user:
         raise HTTPException(status_code=404, detail="Foydalanuvchi topilmadi")
 
-    new_balance = user.tokens + body.amount
+    current_tokens = user.tokens or 0
+    new_balance = current_tokens + body.amount
     if new_balance < 0:
         raise HTTPException(
             status_code=400,
-            detail=f"Balans manfiy bo'lishi mumkin emas. Hozirgi: {user.tokens:,}, o'zgarish: {body.amount:,}"
+            detail=f"Balans manfiy bo'lishi mumkin emas. Hozirgi: {current_tokens:,}, o'zgarish: {body.amount:,}"
         )
 
     user.tokens = new_balance
@@ -295,7 +296,7 @@ async def adjust_user_balance(
 
     return {
         "telegram_id": telegram_id,
-        "previous_balance": user.tokens - body.amount,
+        "previous_balance": current_tokens,
         "adjustment": body.amount,
         "new_balance": new_balance,
         "reason": body.reason,
