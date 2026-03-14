@@ -275,6 +275,9 @@ async def adjust_user_balance(
     db: AsyncSession = Depends(get_db),
 ):
     """Admin: adjust user token balance (add or subtract)."""
+    import logging
+    logger = logging.getLogger("admin.balance")
+
     if body.amount == 0:
         raise HTTPException(status_code=400, detail="Miqdor 0 bo'lishi mumkin emas")
 
@@ -291,14 +294,17 @@ async def adjust_user_balance(
             detail=f"Balans manfiy bo'lishi mumkin emas. Hozirgi: {current_tokens:,}, o'zgarish: {body.amount:,}"
         )
 
+    logger.info(f"[BALANCE] user={telegram_id} before={current_tokens} adjust={body.amount} after={new_balance}")
     user.tokens = new_balance
     await db.commit()
+    await db.refresh(user)
+    logger.info(f"[BALANCE] user={telegram_id} COMMITTED, verified={user.tokens}")
 
     return {
         "telegram_id": telegram_id,
         "previous_balance": current_tokens,
         "adjustment": body.amount,
-        "new_balance": new_balance,
+        "new_balance": user.tokens,
         "reason": body.reason,
     }
 
