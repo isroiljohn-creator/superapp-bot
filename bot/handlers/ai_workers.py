@@ -30,21 +30,13 @@ async def menu_ai_workers(message: Message, state: FSMContext):
     """Show AI Workers sub-menu with reply keyboard."""
     await state.clear()
 
-    # Pre-flight: check if Gemini API key is configured
-    if not settings.GEMINI_API_KEY:
-        await message.answer(
-            "⚠️ AI xizmatlari hozircha sozlanmagan.\n"
-            "Admin GEMINI_API_KEY ni sozlashi kerak.",
-            reply_markup=main_menu_keyboard(message.from_user.id),
-        )
-        return
-
-    async with async_session() as session:
-        tokens = await get_tokens_async(session, message.from_user.id)
     await message.answer(
-        uz.AI_WORKERS_INTRO.format(tokens=tokens),
+        "🤖 <b>AI hodimlar</b>\n\n"
+        "Kechirasiz, hozirda bu menyu ishlab chiqish jarayonida.\n\n"
+        "Tez orada sizga qulay AI hodimlarni taqdim qilamiz, "
+        "biz bilan qolganingiz uchun rahmat! 🙏",
         parse_mode="HTML",
-        reply_markup=ai_workers_reply_keyboard(),
+        reply_markup=main_menu_keyboard(message.from_user.id),
     )
 
 
