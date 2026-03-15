@@ -371,6 +371,9 @@ export default function CourseManager() {
                         <div className="space-y-2">
                             <Label>Ta'rif (Description)</Label>
                             <Textarea value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} placeholder="Dars haqida qisqacha ma'lumot..." />
+                            <p className="text-[10px] text-muted-foreground">
+                                💡 HTML format: <code className="bg-secondary px-1 rounded">&lt;b&gt;qalin&lt;/b&gt;</code> <code className="bg-secondary px-1 rounded">&lt;i&gt;kursiv&lt;/i&gt;</code> <code className="bg-secondary px-1 rounded">&lt;a href="url"&gt;havola&lt;/a&gt;</code>
+                            </p>
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">

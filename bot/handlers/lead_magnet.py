@@ -42,14 +42,14 @@ async def deliver_lead_magnet(message: Message, telegram_id: int):
                 if uz.LEAD_MAGNET_INTRO: await message.answer(uz.LEAD_MAGNET_INTRO)
                 await message.answer_document(lead_magnet.file_id)
                 if lead_magnet.description:
-                    await message.answer(lead_magnet.description)
+                    await message.answer(lead_magnet.description, parse_mode="HTML")
             elif lead_magnet.content_type == "vsl" and lead_magnet.file_id:
                 if uz.LEAD_MAGNET_INTRO: await message.answer(uz.LEAD_MAGNET_INTRO)
                 await message.answer_video(lead_magnet.file_id)
             elif lead_magnet.description:
                 # Has description but no file — send as text
                 text = (uz.LEAD_MAGNET_INTRO + "\n\n" if uz.LEAD_MAGNET_INTRO else "") + lead_magnet.description
-                await message.answer(text)
+                await message.answer(text, parse_mode="HTML")
             # else: lead magnet exists but has no content — skip silently
         # else: no lead magnet for this campaign — skip silently (don't spam!)
 
