@@ -4,6 +4,7 @@ import { Plus, Trash2, Pencil, Link as LinkIcon, FileText, Video, File, BookOpen
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { HtmlToolbar } from "@/components/ui/html-toolbar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import {
     Select,
@@ -154,15 +155,12 @@ export default function GuidesManager() {
 
                             <div className="space-y-2">
                                 <label className="text-sm font-medium">Matn ma'lumoti</label>
-                                <Textarea
+                                <HtmlToolbar
                                     value={formData.content}
-                                    onChange={(e) => setFormData({ ...formData, content: e.target.value })}
+                                    onChange={(val) => setFormData({ ...formData, content: val })}
                                     placeholder="To'liq ta'rif yoki qadam-ba-qadam qo'llanma..."
                                     rows={4}
                                 />
-                                <p className="text-[10px] text-muted-foreground">
-                                    💡 HTML format: <code className="bg-secondary px-1 rounded">&lt;b&gt;qalin&lt;/b&gt;</code> <code className="bg-secondary px-1 rounded">&lt;i&gt;kursiv&lt;/i&gt;</code> <code className="bg-secondary px-1 rounded">&lt;a href="url"&gt;havola&lt;/a&gt;</code>
-                                </p>
                             </div>
 
                             <div className="grid grid-cols-2 gap-4">

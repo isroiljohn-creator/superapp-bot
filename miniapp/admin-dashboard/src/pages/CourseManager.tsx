@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { HtmlToolbar } from "@/components/ui/html-toolbar";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/components/ui/use-toast";
 import {
@@ -370,10 +371,11 @@ export default function CourseManager() {
 
                         <div className="space-y-2">
                             <Label>Ta'rif (Description)</Label>
-                            <Textarea value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} placeholder="Dars haqida qisqacha ma'lumot..." />
-                            <p className="text-[10px] text-muted-foreground">
-                                💡 HTML format: <code className="bg-secondary px-1 rounded">&lt;b&gt;qalin&lt;/b&gt;</code> <code className="bg-secondary px-1 rounded">&lt;i&gt;kursiv&lt;/i&gt;</code> <code className="bg-secondary px-1 rounded">&lt;a href="url"&gt;havola&lt;/a&gt;</code>
-                            </p>
+                            <HtmlToolbar
+                                value={formData.description}
+                                onChange={(val) => setFormData({ ...formData, description: val })}
+                                placeholder="Dars haqida qisqacha ma'lumot..."
+                            />
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
