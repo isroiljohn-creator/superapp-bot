@@ -1,18 +1,39 @@
+import { useState } from "react";
 import { Users, UserCheck, UserX, CreditCard, AlertCircle, ClipboardList, UserPlus } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
-  AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ComposedChart,
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from "recharts";
 import { useQuery } from "@tanstack/react-query";
 import { fetchApi } from "@/lib/api";
 
+interface GrowthData {
+  date: string;
+  users: number;
+  total: number;
+}
+
+const PERIODS = [
+  { label: "7 kun", days: 7 },
+  { label: "30 kun", days: 30 },
+  { label: "90 kun", days: 90 },
+  { label: "Barchasi", days: 365 },
+];
+
 export default function DashboardHome() {
+  const [selectedDays, setSelectedDays] = useState(30);
+
   const { data: statsData, isLoading, isError, error } = useQuery({
     queryKey: ["admin_stats"],
     queryFn: () => fetchApi("/api/admin/stats"),
     retry: 1,
     refetchInterval: 30_000,
+  });
+
+  const { data: growthData = [], isLoading: growthLoading } = useQuery<GrowthData[]>({
+    queryKey: ["admin_daily_growth", selectedDays],
+    queryFn: () => fetchApi(`/api/admin/analytics/daily-growth?days=${selectedDays}`),
   });
 
   const totalUsers = statsData?.kpis?.totalUsers ?? 0;
@@ -33,8 +54,14 @@ export default function DashboardHome() {
   ];
 
   const chartData = statsData?.revenueChart7d || [];
-  const usersChartData = statsData?.usersChart14d || [];
   const displayActivities: any[] = statsData?.recentActivity || [];
+
+  // Growth chart calculations
+  const maxTotal = growthData.length > 0 ? Math.max(...growthData.map((d) => d.total)) : 1;
+  const minTotal = growthData.length > 0 ? Math.min(...growthData.map((d) => d.total)) : 0;
+  const range = maxTotal - minTotal || 1;
+  const totalNew = growthData.reduce((s, d) => s + d.users, 0);
+  const lastTotal = growthData.length > 0 ? growthData[growthData.length - 1].total : 0;
 
   return (
     <div className="space-y-3">
@@ -91,61 +118,87 @@ export default function DashboardHome() {
         </Card>
       )}
 
-      {/* Charts */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        <Card className="glass-card border-border/30">
-          <CardContent className="p-2.5">
-            <h3 className="text-xs font-semibold mb-2">Foydalanuvchilar o'sishi (14 kun)</h3>
-            {isLoading ? (
-              <div className="h-36 flex items-center justify-center text-xs text-muted-foreground">Yuklanmoqda…</div>
-            ) : usersChartData.length === 0 ? (
-              <div className="h-36 flex items-center justify-center text-xs text-muted-foreground">Ma'lumot yo'q</div>
-            ) : (
-              <div className="h-40">
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={usersChartData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
-                    <defs>
-                      <linearGradient id="userGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="hsl(199, 85%, 55%)" stopOpacity={0.3} />
-                        <stop offset="95%" stopColor="hsl(199, 85%, 55%)" stopOpacity={0} />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                    <XAxis dataKey="day" tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" interval="preserveStartEnd" />
-                    <YAxis tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" width={40} />
-                    <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "6px", fontSize: 12 }} formatter={(v: number, name: string) => [`${v.toLocaleString()}`, name === "total" ? "Jami" : "Yangi"]} />
-                    <Area type="monotone" dataKey="total" stroke="hsl(199, 85%, 55%)" strokeWidth={2} fill="url(#userGrad)" name="total" />
-                    <Bar dataKey="users" fill="hsl(142, 60%, 45%)" radius={[2, 2, 0, 0]} name="users" opacity={0.7} />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+      {/* User Growth Chart with date selector */}
+      <Card className="glass-card border-border/30">
+        <CardContent className="p-2.5">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-xs font-semibold">Foydalanuvchilar o'sishi</h3>
+            <div className="flex gap-1">
+              {PERIODS.map((p) => (
+                <button
+                  key={p.days}
+                  onClick={() => setSelectedDays(p.days)}
+                  className={`text-[10px] px-2 py-0.5 rounded-full font-medium transition-colors ${
+                    selectedDays === p.days
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-secondary text-muted-foreground hover:bg-secondary/80"
+                  }`}
+                >
+                  {p.label}
+                </button>
+              ))}
+            </div>
+          </div>
+          {growthLoading ? (
+            <div className="h-36 flex items-center justify-center text-xs text-muted-foreground">Yuklanmoqda…</div>
+          ) : growthData.length === 0 ? (
+            <div className="h-36 flex items-center justify-center text-xs text-muted-foreground">Ma'lumot yo'q</div>
+          ) : (
+            <div className="flex items-end gap-[2px] h-36">
+              {growthData.map((d, i) => {
+                const height = Math.max(4, ((d.total - minTotal) / range) * 100);
+                return (
+                  <div
+                    key={i}
+                    className="flex-1 group relative"
+                    title={`${d.date}: Jami ${d.total.toLocaleString()}, Yangi +${d.users}`}
+                  >
+                    <div
+                      className="bg-primary/70 hover:bg-primary rounded-t transition-all"
+                      style={{ height: `${height}%` }}
+                    />
+                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 hidden group-hover:block bg-popover text-popover-foreground text-[9px] px-1.5 py-0.5 rounded shadow whitespace-nowrap mb-1 z-10">
+                      {d.date.slice(5)}: {d.total.toLocaleString()} (+{d.users})
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+          <div className="flex justify-between text-[9px] text-muted-foreground mt-1">
+            <span>{growthData[0]?.date?.slice(5) || ""}</span>
+            <span>{growthData[growthData.length - 1]?.date?.slice(5) || ""}</span>
+          </div>
+          <div className="flex justify-between text-xs text-muted-foreground mt-1">
+            <span>Yangi: <b className="text-foreground">+{totalNew.toLocaleString()}</b> ta</span>
+            <span>Jami: <b className="text-foreground">{lastTotal.toLocaleString()}</b> ta</span>
+          </div>
+        </CardContent>
+      </Card>
 
-        <Card className="glass-card border-border/30">
-          <CardContent className="p-2.5">
-            <h3 className="text-xs font-semibold mb-2">Tushum (7 kun)</h3>
-            {isLoading ? (
-              <div className="h-36 flex items-center justify-center text-xs text-muted-foreground">Yuklanmoqda…</div>
-            ) : chartData.length === 0 ? (
-              <div className="h-36 flex items-center justify-center text-xs text-muted-foreground">Hozircha daromad yo'q</div>
-            ) : (
-              <div className="h-40">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={chartData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                    <XAxis dataKey="day" tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" />
-                    <YAxis tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" width={30} tickFormatter={(v) => v >= 1000000 ? `${(v / 1000000).toFixed(0)}M` : v >= 1000 ? `${(v / 1000).toFixed(0)}K` : v} />
-                    <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "6px", fontSize: 12 }} formatter={(v: number) => [v >= 1000000 ? `${(v / 1000000).toFixed(1)}M` : v.toLocaleString(), "so'm"]} />
-                    <Bar dataKey="revenue" fill="hsl(142, 60%, 45%)" radius={[3, 3, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+      {/* Revenue Chart */}
+      <Card className="glass-card border-border/30">
+        <CardContent className="p-2.5">
+          <h3 className="text-xs font-semibold mb-2">Tushum (7 kun)</h3>
+          {isLoading ? (
+            <div className="h-36 flex items-center justify-center text-xs text-muted-foreground">Yuklanmoqda…</div>
+          ) : chartData.length === 0 ? (
+            <div className="h-36 flex items-center justify-center text-xs text-muted-foreground">Hozircha daromad yo'q</div>
+          ) : (
+            <div className="h-40">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={chartData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                  <XAxis dataKey="day" tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" />
+                  <YAxis tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" width={30} tickFormatter={(v) => v >= 1000000 ? `${(v / 1000000).toFixed(0)}M` : v >= 1000 ? `${(v / 1000).toFixed(0)}K` : v} />
+                  <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "6px", fontSize: 12 }} formatter={(v: number) => [v >= 1000000 ? `${(v / 1000000).toFixed(1)}M` : v.toLocaleString(), "so'm"]} />
+                  <Bar dataKey="revenue" fill="hsl(142, 60%, 45%)" radius={[3, 3, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Recent Activity */}
       <Card className="glass-card border-border/30">
