@@ -1265,24 +1265,31 @@ async def cancel_scheduled_message(msg_id: int, admin_id: int = Depends(check_ad
 # ── Analytics (Charts) ───────────────────────
 @router.get("/analytics/daily-growth")
 async def get_daily_growth(admin_id: int = Depends(check_admin), db: AsyncSession = Depends(get_db)):
-    """Get user growth over last 30 days."""
+    """Get user growth over last 30 days — returns all 30 days including zeros."""
     from datetime import datetime, timedelta, timezone
     from sqlalchemy import cast, Date
 
-    now = datetime.now(timezone.utc).replace(tzinfo=None)
-    since = now - timedelta(days=30)
+    today = datetime.now(timezone.utc).date()
+    since = today - timedelta(days=29)  # 30 days including today
 
     result = await db.execute(
         select(
             cast(User.created_at, Date).label("day"),
             func.count(User.id).label("count"),
         )
-        .where(User.created_at >= since)
+        .where(User.created_at >= datetime(since.year, since.month, since.day, tzinfo=timezone.utc))
         .group_by(cast(User.created_at, Date))
         .order_by(cast(User.created_at, Date))
     )
     rows = result.all()
-    return [{"date": str(row.day), "users": row.count} for row in rows]
+    counts_by_day = {row.day: row.count for row in rows}
+
+    # Fill all 30 days (including days with 0 new users)
+    data = []
+    for i in range(30):
+        day = since + timedelta(days=i)
+        data.append({"date": str(day), "users": counts_by_day.get(day, 0)})
+    return data
 
 
 
