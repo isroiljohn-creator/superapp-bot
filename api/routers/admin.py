@@ -1313,13 +1313,18 @@ async def cancel_scheduled_message(msg_id: int, admin_id: int = Depends(check_ad
 
 # ── Analytics (Charts) ───────────────────────
 @router.get("/analytics/daily-growth")
-async def get_daily_growth(admin_id: int = Depends(check_admin), db: AsyncSession = Depends(get_db)):
-    """Get user growth over last 30 days — returns daily new + cumulative total."""
+async def get_daily_growth(
+    days: int = 30,
+    admin_id: int = Depends(check_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get user growth over N days — returns daily new + cumulative total."""
     from datetime import datetime, timedelta, timezone
     from sqlalchemy import cast, Date
 
+    days = max(1, min(days, 365))  # Clamp to 1-365
     today = datetime.now(timezone.utc).date()
-    since = today - timedelta(days=29)  # 30 days including today
+    since = today - timedelta(days=days - 1)
 
     result = await db.execute(
         select(
@@ -1344,9 +1349,9 @@ async def get_daily_growth(admin_id: int = Depends(check_admin), db: AsyncSessio
     )
     cumulative = (before_q.scalar() or 0) + (null_q.scalar() or 0)
 
-    # Fill all 30 days (including days with 0 new users) + cumulative total
+    # Fill all days (including days with 0 new users) + cumulative total
     data = []
-    for i in range(30):
+    for i in range(days):
         day = since + timedelta(days=i)
         day_count = counts_by_day.get(day, 0)
         cumulative += day_count
