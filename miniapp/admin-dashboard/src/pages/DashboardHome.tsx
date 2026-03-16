@@ -140,39 +140,43 @@ export default function DashboardHome() {
             </div>
           </div>
           {growthLoading ? (
-            <div className="h-36 flex items-center justify-center text-xs text-muted-foreground">Yuklanmoqda…</div>
+            <div className="h-40 flex items-center justify-center text-xs text-muted-foreground">Yuklanmoqda…</div>
           ) : growthData.length === 0 ? (
-            <div className="h-36 flex items-center justify-center text-xs text-muted-foreground">Ma'lumot yo'q</div>
+            <div className="h-40 flex items-center justify-center text-xs text-muted-foreground">Ma'lumot yo'q</div>
           ) : (
-            <div className="flex items-end gap-[2px] h-36">
-              {growthData.map((d, i) => {
-                const height = Math.max(4, ((d.total - minTotal) / range) * 100);
-                return (
-                  <div
-                    key={i}
-                    className="flex-1 group relative"
-                    title={`${d.date}: Jami ${d.total.toLocaleString()}, Yangi +${d.users}`}
-                  >
-                    <div
-                      className="bg-primary/70 hover:bg-primary rounded-t transition-all"
-                      style={{ height: `${height}%` }}
+            <>
+              <div className="h-40">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={growthData} margin={{ top: 4, right: 4, left: -10, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                    <XAxis
+                      dataKey="date"
+                      tick={{ fontSize: 9 }}
+                      stroke="hsl(var(--muted-foreground))"
+                      interval={Math.max(0, Math.floor(growthData.length / 6) - 1)}
+                      tickFormatter={(v: string) => v.slice(5)}
                     />
-                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 hidden group-hover:block bg-popover text-popover-foreground text-[9px] px-1.5 py-0.5 rounded shadow whitespace-nowrap mb-1 z-10">
-                      {d.date.slice(5)}: {d.total.toLocaleString()} (+{d.users})
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+                    <YAxis
+                      tick={{ fontSize: 10 }}
+                      stroke="hsl(var(--muted-foreground))"
+                      width={40}
+                      tickFormatter={(v) => v >= 1000 ? `${(v / 1000).toFixed(0)}K` : v}
+                    />
+                    <Tooltip
+                      contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "6px", fontSize: 12 }}
+                      formatter={(v: number, name: string) => [v.toLocaleString(), name === "total" ? "Jami" : "Yangi"]}
+                      labelFormatter={(label: string) => label.slice(5)}
+                    />
+                    <Bar dataKey="total" fill="hsl(199, 85%, 55%)" radius={[2, 2, 0, 0]} name="total" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                <span>Yangi: <b className="text-foreground">+{totalNew.toLocaleString()}</b> ta</span>
+                <span>Jami: <b className="text-foreground">{lastTotal.toLocaleString()}</b> ta</span>
+              </div>
+            </>
           )}
-          <div className="flex justify-between text-[9px] text-muted-foreground mt-1">
-            <span>{growthData[0]?.date?.slice(5) || ""}</span>
-            <span>{growthData[growthData.length - 1]?.date?.slice(5) || ""}</span>
-          </div>
-          <div className="flex justify-between text-xs text-muted-foreground mt-1">
-            <span>Yangi: <b className="text-foreground">+{totalNew.toLocaleString()}</b> ta</span>
-            <span>Jami: <b className="text-foreground">{lastTotal.toLocaleString()}</b> ta</span>
-          </div>
         </CardContent>
       </Card>
 
