@@ -18,7 +18,7 @@ export default function FunnelAnalytics() {
   const maxUsers = steps.length > 0 ? steps[0].users : 1;
 
   const totalConv = steps.length >= 2
-    ? ((steps[steps.length - 1].users / steps[0].users) * 100).toFixed(1)
+    ? steps[steps.length - 1].rate.toFixed(1)
     : "0";
 
   // Find worst drop-off

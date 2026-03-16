@@ -1,12 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { fetchApi } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
-
-const API_BASE = import.meta.env.VITE_API_URL || "";
-
-function getAuthHeaders(): Record<string, string> {
-    const initData = (window as any).Telegram?.WebApp?.initData || "";
-    return initData ? { "Authorization": `tma ${initData}` } : {};
-}
 
 interface Prompt {
     key: string;
@@ -18,56 +13,41 @@ interface Prompt {
 
 export default function PromptManager() {
     const { toast } = useToast();
-    const [prompts, setPrompts] = useState<Prompt[]>([]);
-    const [loading, setLoading] = useState(true);
+    const queryClient = useQueryClient();
     const [editingKey, setEditingKey] = useState<string | null>(null);
     const [editValue, setEditValue] = useState("");
-    const [saving, setSaving] = useState(false);
 
-    useEffect(() => { fetchPrompts(); }, []);
+    const { data: prompts = [], isLoading } = useQuery<Prompt[]>({
+        queryKey: ["admin_prompts"],
+        queryFn: () => fetchApi("/api/admin/prompts"),
+    });
 
-    const fetchPrompts = async () => {
-        try {
-            const res = await fetch(`${API_BASE}/api/admin/prompts`, {
-                headers: getAuthHeaders(),
-            });
-            if (res.ok) setPrompts(await res.json());
-        } catch (e) { console.error(e); }
-        setLoading(false);
-    };
-
-    const savePrompt = async (key: string) => {
-        setSaving(true);
-        try {
-            const res = await fetch(`${API_BASE}/api/admin/prompts`, {
+    const saveMutation = useMutation({
+        mutationFn: ({ key, value }: { key: string; value: string }) =>
+            fetchApi("/api/admin/prompts", {
                 method: "PUT",
-                headers: { "Content-Type": "application/json", ...getAuthHeaders() },
-                body: JSON.stringify({ key, value: editValue }),
-            });
-            if (res.ok) {
-                toast({ title: "✅ Prompt saqlandi" });
-                setEditingKey(null);
-                fetchPrompts();
-            }
-        } catch (e) { console.error(e); }
-        setSaving(false);
-    };
+                body: JSON.stringify({ key, value }),
+            }),
+        onSuccess: () => {
+            toast({ title: "✅ Prompt saqlandi" });
+            setEditingKey(null);
+            queryClient.invalidateQueries({ queryKey: ["admin_prompts"] });
+        },
+        onError: (err: Error) => toast({ title: "Xatolik", description: err.message, variant: "destructive" }),
+    });
 
-    const resetPrompt = async (key: string) => {
-        try {
-            const res = await fetch(`${API_BASE}/api/admin/prompts/${key}`, {
-                method: "DELETE",
-                headers: getAuthHeaders(),
-            });
-            if (res.ok) {
-                toast({ title: "🔄 Standart qiymatga qaytarildi" });
-                setEditingKey(null);
-                fetchPrompts();
-            }
-        } catch (e) { console.error(e); }
-    };
+    const resetMutation = useMutation({
+        mutationFn: (key: string) =>
+            fetchApi(`/api/admin/prompts/${key}`, { method: "DELETE" }),
+        onSuccess: () => {
+            toast({ title: "🔄 Standart qiymatga qaytarildi" });
+            setEditingKey(null);
+            queryClient.invalidateQueries({ queryKey: ["admin_prompts"] });
+        },
+        onError: (err: Error) => toast({ title: "Xatolik", description: err.message, variant: "destructive" }),
+    });
 
-    if (loading) return <div className="text-center py-8 text-muted-foreground">Yuklanmoqda...</div>;
+    if (isLoading) return <div className="text-center py-8 text-muted-foreground">Yuklanmoqda...</div>;
 
     return (
         <div className="space-y-4">
@@ -120,16 +100,17 @@ export default function PromptManager() {
                                 )}
                                 <div className="flex gap-2">
                                     <button
-                                        onClick={() => savePrompt(p.key)}
-                                        disabled={saving}
+                                        onClick={() => saveMutation.mutate({ key: p.key, value: editValue })}
+                                        disabled={saveMutation.isPending}
                                         className="flex-1 py-2 bg-primary text-primary-foreground text-xs rounded-md hover:opacity-90 disabled:opacity-50"
                                     >
-                                        {saving ? "Saqlanmoqda..." : "💾 Saqlash"}
+                                        {saveMutation.isPending ? "Saqlanmoqda..." : "💾 Saqlash"}
                                     </button>
                                     {p.is_custom && (
                                         <button
-                                            onClick={() => resetPrompt(p.key)}
-                                            className="px-3 py-2 bg-red-500/20 text-red-400 text-xs rounded-md hover:bg-red-500/30"
+                                            onClick={() => resetMutation.mutate(p.key)}
+                                            disabled={resetMutation.isPending}
+                                            className="px-3 py-2 bg-red-500/20 text-red-400 text-xs rounded-md hover:bg-red-500/30 disabled:opacity-50"
                                         >
                                             🔄 Standart
                                         </button>

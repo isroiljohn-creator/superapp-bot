@@ -201,8 +201,8 @@ export default function UsersCRM() {
             <p className="text-[10px] text-muted-foreground">Sahifa</p>
           </div>
           <div className="flex-1 bg-secondary/50 rounded-md px-2 py-1.5 text-center">
-            <p className="text-sm font-bold text-warning">{filtered.filter(u => u.status === "started").length}</p>
-            <p className="text-[10px] text-muted-foreground">Kutilmoqda</p>
+            <p className="text-sm font-bold">{ITEMS_PER_PAGE}</p>
+            <p className="text-[10px] text-muted-foreground">Sahifada</p>
           </div>
         </div>
       )}

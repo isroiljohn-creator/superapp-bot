@@ -41,12 +41,7 @@ export default function EventTracking() {
                     <span className="text-[10px] font-bold text-muted-foreground w-4">#{i + 1}</span>
                     <span className="text-xs font-medium">{btn.name}</span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-semibold">{btn.clicks.toLocaleString()}</span>
-                    <span className={`text-[10px] font-medium ${btn.trend.startsWith("+") ? "text-success" : "text-destructive"}`}>
-                      {btn.trend}
-                    </span>
-                  </div>
+                  <span className="text-xs font-semibold">{btn.clicks.toLocaleString()}</span>
                 </div>
               ))}
             </div>

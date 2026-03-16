@@ -1,12 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { fetchApi } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
-
-const API_BASE = import.meta.env.VITE_API_URL || "";
-
-function getAuthHeaders(): Record<string, string> {
-    const initData = (window as any).Telegram?.WebApp?.initData || "";
-    return initData ? { "Authorization": `tma ${initData}` } : {};
-}
 
 interface ABTest {
     id: number;
@@ -22,8 +17,7 @@ interface ABTest {
 
 export default function ABTests() {
     const { toast } = useToast();
-    const [tests, setTests] = useState<ABTest[]>([]);
-    const [loading, setLoading] = useState(true);
+    const queryClient = useQueryClient();
     const [showCreate, setShowCreate] = useState(false);
     const [form, setForm] = useState({
         name: "", description: "",
@@ -31,49 +25,36 @@ export default function ABTests() {
         variant_a_value: "", variant_b_value: "",
     });
 
-    useEffect(() => { fetchTests(); }, []);
+    const { data: tests = [], isLoading } = useQuery<ABTest[]>({
+        queryKey: ["admin_ab_tests"],
+        queryFn: () => fetchApi("/api/admin/ab-tests"),
+    });
 
-    const fetchTests = async () => {
-        try {
-            const res = await fetch(`${API_BASE}/api/admin/ab-tests`, {
-                headers: getAuthHeaders(),
-            });
-            if (res.ok) setTests(await res.json());
-        } catch (e) { console.error(e); }
-        setLoading(false);
-    };
-
-    const createTest = async () => {
-        if (!form.name.trim()) return;
-        try {
-            const res = await fetch(`${API_BASE}/api/admin/ab-tests`, {
+    const createMutation = useMutation({
+        mutationFn: () =>
+            fetchApi("/api/admin/ab-tests", {
                 method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    ...getAuthHeaders(),
-                },
                 body: JSON.stringify(form),
-            });
-            if (res.ok) {
-                toast({ title: "✅ Test yaratildi" });
-                setShowCreate(false);
-                setForm({ name: "", description: "", variant_a_name: "A", variant_b_name: "B", variant_a_value: "", variant_b_value: "" });
-                fetchTests();
-            }
-        } catch (e) { console.error(e); }
-    };
+            }),
+        onSuccess: () => {
+            toast({ title: "✅ Test yaratildi" });
+            setShowCreate(false);
+            setForm({ name: "", description: "", variant_a_name: "A", variant_b_name: "B", variant_a_value: "", variant_b_value: "" });
+            queryClient.invalidateQueries({ queryKey: ["admin_ab_tests"] });
+        },
+        onError: (err: Error) => toast({ title: "Xatolik", description: err.message, variant: "destructive" }),
+    });
 
-    const toggleTest = async (id: number) => {
-        try {
-            const res = await fetch(`${API_BASE}/api/admin/ab-tests/${id}/toggle`, {
-                method: "POST",
-                headers: getAuthHeaders(),
-            });
-            if (res.ok) fetchTests();
-        } catch (e) { console.error(e); }
-    };
+    const toggleMutation = useMutation({
+        mutationFn: (id: number) =>
+            fetchApi(`/api/admin/ab-tests/${id}/toggle`, { method: "POST" }),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["admin_ab_tests"] });
+        },
+        onError: (err: Error) => toast({ title: "Xatolik", description: err.message, variant: "destructive" }),
+    });
 
-    if (loading) return <div className="text-center py-8 text-muted-foreground">Yuklanmoqda...</div>;
+    if (isLoading) return <div className="text-center py-8 text-muted-foreground">Yuklanmoqda...</div>;
 
     return (
         <div className="space-y-4">
@@ -138,10 +119,11 @@ export default function ABTests() {
                         />
                     </div>
                     <button
-                        onClick={createTest}
-                        className="w-full py-2 bg-primary text-primary-foreground text-sm rounded-md hover:opacity-90"
+                        onClick={() => createMutation.mutate()}
+                        disabled={!form.name.trim() || createMutation.isPending}
+                        className="w-full py-2 bg-primary text-primary-foreground text-sm rounded-md hover:opacity-90 disabled:opacity-50"
                     >
-                        ✅ Yaratish
+                        {createMutation.isPending ? "Yaratilmoqda..." : "✅ Yaratish"}
                     </button>
                 </div>
             )}
@@ -157,14 +139,14 @@ export default function ABTests() {
                             <div className="flex items-center justify-between mb-2">
                                 <div>
                                     <span className="font-medium text-sm">{test.name}</span>
-                                    <span className={`ml-2 text-[10px] px-1.5 py-0.5 rounded-full ${test.is_active ? "bg-green-500/20 text-green-400" : "bg-red-500/20 text-red-400"
-                                        }`}>
+                                    <span className={`ml-2 text-[10px] px-1.5 py-0.5 rounded-full ${test.is_active ? "bg-green-500/20 text-green-400" : "bg-red-500/20 text-red-400"}`}>
                                         {test.is_active ? "Faol" : "O'chirilgan"}
                                     </span>
                                 </div>
                                 <button
-                                    onClick={() => toggleTest(test.id)}
-                                    className="text-xs px-2 py-1 rounded-md bg-secondary hover:bg-secondary/80"
+                                    onClick={() => toggleMutation.mutate(test.id)}
+                                    disabled={toggleMutation.isPending}
+                                    className="text-xs px-2 py-1 rounded-md bg-secondary hover:bg-secondary/80 disabled:opacity-50"
                                 >
                                     {test.is_active ? "⏸ O'chirish" : "▶️ Yoqish"}
                                 </button>

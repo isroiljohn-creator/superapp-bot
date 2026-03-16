@@ -1,12 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { fetchApi } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
-
-const API_BASE = import.meta.env.VITE_API_URL || "";
-
-function getAuthHeaders(): Record<string, string> {
-    const initData = (window as any).Telegram?.WebApp?.initData || "";
-    return initData ? { "Authorization": `tma ${initData}` } : {};
-}
 
 interface ScheduledMsg {
     id: number;
@@ -19,54 +14,42 @@ interface ScheduledMsg {
 
 export default function ScheduledMessages() {
     const { toast } = useToast();
-    const [messages, setMessages] = useState<ScheduledMsg[]>([]);
-    const [loading, setLoading] = useState(true);
+    const queryClient = useQueryClient();
     const [showCreate, setShowCreate] = useState(false);
     const [content, setContent] = useState("");
     const [sendAt, setSendAt] = useState("");
 
-    useEffect(() => { fetchMessages(); }, []);
+    const { data: messages = [], isLoading } = useQuery<ScheduledMsg[]>({
+        queryKey: ["admin_scheduled_messages"],
+        queryFn: () => fetchApi("/api/admin/scheduled-messages"),
+        refetchInterval: 10_000,
+    });
 
-    const fetchMessages = async () => {
-        try {
-            const res = await fetch(`${API_BASE}/api/admin/scheduled-messages`, {
-                headers: getAuthHeaders(),
-            });
-            if (res.ok) setMessages(await res.json());
-        } catch (e) { console.error(e); }
-        setLoading(false);
-    };
-
-    const createMessage = async () => {
-        if (!content.trim() || !sendAt) return;
-        try {
-            const res = await fetch(`${API_BASE}/api/admin/scheduled-messages`, {
+    const createMutation = useMutation({
+        mutationFn: () =>
+            fetchApi("/api/admin/scheduled-messages", {
                 method: "POST",
-                headers: { "Content-Type": "application/json", ...getAuthHeaders() },
                 body: JSON.stringify({ content, send_at: new Date(sendAt).toISOString() }),
-            });
-            if (res.ok) {
-                toast({ title: "✅ Xabar rejalashtirildi" });
-                setShowCreate(false);
-                setContent("");
-                setSendAt("");
-                fetchMessages();
-            }
-        } catch (e) { console.error(e); }
-    };
+            }),
+        onSuccess: () => {
+            toast({ title: "✅ Xabar rejalashtirildi" });
+            setShowCreate(false);
+            setContent("");
+            setSendAt("");
+            queryClient.invalidateQueries({ queryKey: ["admin_scheduled_messages"] });
+        },
+        onError: (err: Error) => toast({ title: "Xatolik", description: err.message, variant: "destructive" }),
+    });
 
-    const cancelMessage = async (id: number) => {
-        try {
-            const res = await fetch(`${API_BASE}/api/admin/scheduled-messages/${id}`, {
-                method: "DELETE",
-                headers: getAuthHeaders(),
-            });
-            if (res.ok) {
-                toast({ title: "❌ Bekor qilindi" });
-                fetchMessages();
-            }
-        } catch (e) { console.error(e); }
-    };
+    const cancelMutation = useMutation({
+        mutationFn: (id: number) =>
+            fetchApi(`/api/admin/scheduled-messages/${id}`, { method: "DELETE" }),
+        onSuccess: () => {
+            toast({ title: "❌ Bekor qilindi" });
+            queryClient.invalidateQueries({ queryKey: ["admin_scheduled_messages"] });
+        },
+        onError: (err: Error) => toast({ title: "Xatolik", description: err.message, variant: "destructive" }),
+    });
 
     const statusBadge = (status: string) => {
         const colors: Record<string, string> = {
@@ -88,7 +71,7 @@ export default function ScheduledMessages() {
         );
     };
 
-    if (loading) return <div className="text-center py-8 text-muted-foreground">Yuklanmoqda...</div>;
+    if (isLoading) return <div className="text-center py-8 text-muted-foreground">Yuklanmoqda...</div>;
 
     return (
         <div className="space-y-4">
@@ -120,10 +103,11 @@ export default function ScheduledMessages() {
                         />
                     </div>
                     <button
-                        onClick={createMessage}
-                        className="w-full py-2 bg-primary text-primary-foreground text-sm rounded-md hover:opacity-90"
+                        onClick={() => createMutation.mutate()}
+                        disabled={!content.trim() || !sendAt || createMutation.isPending}
+                        className="w-full py-2 bg-primary text-primary-foreground text-sm rounded-md hover:opacity-90 disabled:opacity-50"
                     >
-                        📅 Rejalash
+                        {createMutation.isPending ? "Saqlanmoqda..." : "📅 Rejalash"}
                     </button>
                 </div>
             )}
@@ -145,8 +129,9 @@ export default function ScheduledMessages() {
                                 </div>
                                 {msg.status === "pending" && (
                                     <button
-                                        onClick={() => cancelMessage(msg.id)}
-                                        className="text-xs px-2 py-1 rounded-md bg-red-500/20 text-red-400 hover:bg-red-500/30"
+                                        onClick={() => cancelMutation.mutate(msg.id)}
+                                        disabled={cancelMutation.isPending}
+                                        className="text-xs px-2 py-1 rounded-md bg-red-500/20 text-red-400 hover:bg-red-500/30 disabled:opacity-50"
                                     >
                                         ❌ Bekor
                                     </button>

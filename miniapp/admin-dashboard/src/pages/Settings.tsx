@@ -1,12 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { fetchApi } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
-
-const API_BASE = import.meta.env.VITE_API_URL || "";
-
-function getAuthHeaders(): Record<string, string> {
-    const initData = (window as any).Telegram?.WebApp?.initData || "";
-    return initData ? { "Authorization": `tma ${initData}` } : {};
-}
 
 const SETTING_KEYS = [
     { key: "churn_day_1", label: "Churn Day 1 (reminder)", placeholder: "Salom {name}! Sizni sog'indik..." },
@@ -19,50 +14,36 @@ const SETTING_KEYS = [
 
 export default function Settings() {
     const { toast } = useToast();
-    const [settings, setSettings] = useState<Record<string, string>>({});
-    const [loading, setLoading] = useState(true);
-    const [saving, setSaving] = useState<string | null>(null);
+    const [localSettings, setLocalSettings] = useState<Record<string, string>>({});
 
-    useEffect(() => { fetchSettings(); }, []);
-
-    const fetchSettings = async () => {
-        try {
-            const res = await fetch(`${API_BASE}/api/admin/settings`, {
-                headers: getAuthHeaders(),
-            });
-            if (res.ok) {
-                const data = await res.json();
-                const map: Record<string, string> = {};
-                if (Array.isArray(data)) {
-                    data.forEach((s: any) => { map[s.key] = s.value; });
-                } else {
-                    Object.assign(map, data);
-                }
-                setSettings(map);
+    const { isLoading } = useQuery<Record<string, string>>({
+        queryKey: ["admin_settings"],
+        queryFn: async () => {
+            const data = await fetchApi("/api/admin/settings");
+            const map: Record<string, string> = {};
+            if (Array.isArray(data)) {
+                data.forEach((s: any) => { map[s.key] = s.value; });
+            } else {
+                Object.assign(map, data);
             }
-        } catch (e) { console.error(e); }
-        setLoading(false);
-    };
+            setLocalSettings(map);
+            return map;
+        },
+    });
 
-    const saveSetting = async (key: string) => {
-        setSaving(key);
-        try {
-            const res = await fetch(`${API_BASE}/api/admin/settings/${key}`, {
+    const saveMutation = useMutation({
+        mutationFn: ({ key, value }: { key: string; value: string }) =>
+            fetchApi(`/api/admin/settings/${key}`, {
                 method: "PUT",
-                headers: {
-                    "Content-Type": "application/json",
-                    ...getAuthHeaders(),
-                },
-                body: JSON.stringify({ value: settings[key] || "" }),
-            });
-            if (res.ok) {
-                toast({ title: "✅ Saqlandi", description: `${key} yangilandi` });
-            }
-        } catch (e) { console.error(e); }
-        setSaving(null);
-    };
+                body: JSON.stringify({ value }),
+            }),
+        onSuccess: (_, { key }) => {
+            toast({ title: "✅ Saqlandi", description: `${key} yangilandi` });
+        },
+        onError: (err: Error) => toast({ title: "Xatolik", description: err.message, variant: "destructive" }),
+    });
 
-    if (loading) return <div className="text-center py-8 text-muted-foreground">Yuklanmoqda...</div>;
+    if (isLoading) return <div className="text-center py-8 text-muted-foreground">Yuklanmoqda...</div>;
 
     return (
         <div className="space-y-6">
@@ -76,24 +57,24 @@ export default function Settings() {
                             <textarea
                                 className="w-full bg-secondary/50 border border-border/30 rounded-md p-2 text-sm min-h-[80px] resize-y"
                                 placeholder={placeholder}
-                                value={settings[key] || ""}
-                                onChange={(e) => setSettings(prev => ({ ...prev, [key]: e.target.value }))}
+                                value={localSettings[key] || ""}
+                                onChange={(e) => setLocalSettings(prev => ({ ...prev, [key]: e.target.value }))}
                             />
                         ) : (
                             <input
                                 type="text"
                                 className="w-full bg-secondary/50 border border-border/30 rounded-md p-2 text-sm"
                                 placeholder={placeholder}
-                                value={settings[key] || ""}
-                                onChange={(e) => setSettings(prev => ({ ...prev, [key]: e.target.value }))}
+                                value={localSettings[key] || ""}
+                                onChange={(e) => setLocalSettings(prev => ({ ...prev, [key]: e.target.value }))}
                             />
                         )}
                         <button
-                            onClick={() => saveSetting(key)}
-                            disabled={saving === key}
+                            onClick={() => saveMutation.mutate({ key, value: localSettings[key] || "" })}
+                            disabled={saveMutation.isPending && saveMutation.variables?.key === key}
                             className="px-3 py-1.5 bg-primary text-primary-foreground text-xs rounded-md hover:opacity-90 disabled:opacity-50"
                         >
-                            {saving === key ? "Saqlanmoqda..." : "💾 Saqlash"}
+                            {saveMutation.isPending && saveMutation.variables?.key === key ? "Saqlanmoqda..." : "💾 Saqlash"}
                         </button>
                     </div>
                 ))}
