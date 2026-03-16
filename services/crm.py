@@ -156,7 +156,7 @@ class CRMService:
 
     async def get_users_filtered(self, filters: dict, limit: int = 100, offset: int = 0):
         """Get filtered users for broadcast."""
-        q = select(User)
+        q = select(User).where(User.is_active == True)  # Only send to active users
 
         if filters.get("source"):
             q = q.where(User.source == filters["source"])

@@ -2,7 +2,7 @@ import { Users, UserCheck, UserX, CreditCard, AlertCircle, ClipboardList, UserPl
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
-  AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ComposedChart,
 } from "recharts";
 import { useQuery } from "@tanstack/react-query";
 import { fetchApi } from "@/lib/api";
@@ -95,7 +95,7 @@ export default function DashboardHome() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <Card className="glass-card border-border/30">
           <CardContent className="p-2.5">
-            <h3 className="text-xs font-semibold mb-2">Yangi foydalanuvchilar (14 kun)</h3>
+            <h3 className="text-xs font-semibold mb-2">Foydalanuvchilar o'sishi (14 kun)</h3>
             {isLoading ? (
               <div className="h-36 flex items-center justify-center text-xs text-muted-foreground">Yuklanmoqda…</div>
             ) : usersChartData.length === 0 ? (
@@ -112,9 +112,10 @@ export default function DashboardHome() {
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                     <XAxis dataKey="day" tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" interval="preserveStartEnd" />
-                    <YAxis tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" width={30} />
-                    <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "6px", fontSize: 12 }} formatter={(v: number) => [`${v}`, "Yangi"]} />
-                    <Area type="monotone" dataKey="users" stroke="hsl(199, 85%, 55%)" strokeWidth={2} fill="url(#userGrad)" />
+                    <YAxis tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" width={40} />
+                    <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "6px", fontSize: 12 }} formatter={(v: number, name: string) => [`${v.toLocaleString()}`, name === "total" ? "Jami" : "Yangi"]} />
+                    <Area type="monotone" dataKey="total" stroke="hsl(199, 85%, 55%)" strokeWidth={2} fill="url(#userGrad)" name="total" />
+                    <Bar dataKey="users" fill="hsl(142, 60%, 45%)" radius={[2, 2, 0, 0]} name="users" opacity={0.7} />
                   </AreaChart>
                 </ResponsiveContainer>
               </div>

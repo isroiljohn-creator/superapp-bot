@@ -4,6 +4,7 @@ import { fetchApi } from "@/lib/api";
 interface DailyData {
   date: string;
   users: number;
+  total: number;
 }
 
 interface FunnelStep {
@@ -24,8 +25,10 @@ export default function AnalyticsCharts() {
   });
 
   const loading = growthLoading || funnelLoading;
-  const maxUsers = Math.max(...dailyData.map((d) => d.users), 1);
+  const maxTotal = Math.max(...dailyData.map((d) => d.total), 1);
   const maxFunnel = funnel.length > 0 ? funnel[0].users : 1;
+  const totalNew = dailyData.reduce((s, d) => s + d.users, 0);
+  const lastTotal = dailyData.length > 0 ? dailyData[dailyData.length - 1].total : 0;
 
   if (loading)
     return (
@@ -38,22 +41,22 @@ export default function AnalyticsCharts() {
     <div className="space-y-6">
       <h2 className="text-lg font-bold">📊 Analytics</h2>
 
-      {/* Daily Growth Chart */}
+      {/* Daily Growth Chart — cumulative total */}
       <div className="bg-card border border-border/30 rounded-lg p-4">
         <h3 className="text-sm font-semibold mb-3">
-          📈 Kunlik o'sish (30 kun)
+          📈 Foydalanuvchilar o'sishi (30 kun)
         </h3>
         {dailyData.length === 0 ? (
           <p className="text-xs text-muted-foreground">Ma'lumot yo'q</p>
         ) : (
           <div className="flex items-end gap-1 h-32">
             {dailyData.map((d, i) => {
-              const height = Math.max(4, (d.users / maxUsers) * 100);
+              const height = Math.max(4, (d.total / maxTotal) * 100);
               return (
                 <div
                   key={i}
                   className="flex-1 group relative"
-                  title={`${d.date}: ${d.users} ta`}
+                  title={`${d.date}: Jami ${d.total}, Yangi +${d.users}`}
                 >
                   <div
                     className="bg-primary/70 hover:bg-primary rounded-t transition-all mx-[1px]"
@@ -61,7 +64,7 @@ export default function AnalyticsCharts() {
                   />
                   {/* Tooltip on hover */}
                   <div className="absolute bottom-full left-1/2 -translate-x-1/2 hidden group-hover:block bg-popover text-popover-foreground text-[9px] px-1.5 py-0.5 rounded shadow whitespace-nowrap mb-1 z-10">
-                    {d.date.slice(5)}: {d.users}
+                    {d.date.slice(5)}: {d.total.toLocaleString()} (+{d.users})
                   </div>
                 </div>
               );
@@ -72,10 +75,13 @@ export default function AnalyticsCharts() {
           <span>{dailyData[0]?.date?.slice(5) || ""}</span>
           <span>{dailyData[dailyData.length - 1]?.date?.slice(5) || ""}</span>
         </div>
-        <div className="text-right text-xs text-muted-foreground mt-1">
-          Jami:{" "}
-          <b>{dailyData.reduce((s, d) => s + d.users, 0)}</b> ta yangi
-          foydalanuvchi
+        <div className="flex justify-between text-xs text-muted-foreground mt-1">
+          <span>
+            Yangi: <b>+{totalNew}</b> ta
+          </span>
+          <span>
+            Jami: <b>{lastTotal.toLocaleString()}</b> ta
+          </span>
         </div>
       </div>
 
