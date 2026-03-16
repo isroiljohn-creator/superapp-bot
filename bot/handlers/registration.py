@@ -57,6 +57,11 @@ async def cmd_start(message: Message, state: FSMContext):
             await session.commit()
 
         if not is_new and user.user_status == "registered":
+            # Re-activate user if they were previously blocked
+            if not user.is_active:
+                user.is_active = True
+                await session.commit()
+
             # Check if this start command was meant to trigger a specific lead magnet
             campaign_to_check = campaign or source
             if campaign_to_check:
