@@ -111,21 +111,54 @@ async def get_dashboard_stats(admin_id: int = Depends(check_admin), db: AsyncSes
         rev_val = rev_q.scalar() or 0
         revenue_chart.append({"day": day_labels[day.weekday()], "revenue": int(rev_val)})
 
-    # Recent activity from Events table (last 10)
+    # Recent activity — events + recent registrations combined
+    event_labels = {
+        "lead": "🟢 Yangi foydalanuvchi",
+        "registration_complete": "✅ Ro'yxatdan o'tdi",
+        "lead_magnet_open": "📖 Material ochdi",
+        "vsl_view": "🎬 Video ko'rdi",
+        "vsl_50": "🎬 Video 50%",
+        "vsl_90": "🎬 Video 90%",
+        "offer_click": "💰 Taklif bosdi",
+        "payment_open": "💳 To'lov ochdi",
+        "payment_success": "✅ To'lov qildi",
+        "payment_fail": "❌ To'lov rad",
+        "referral_valid": "🤝 Referal tasdiqlandi",
+        "referral_paid": "💸 Referal to'landi",
+    }
     events_q = await db.execute(
         select(Event, User).join(User, Event.user_id == User.id)
         .order_by(Event.created_at.desc())
-        .limit(10)
+        .limit(15)
     )
     rows = events_q.all()
     recent_activity = []
     for ev, user in rows:
+        label = event_labels.get(ev.event_type, ev.event_type.replace('_', ' '))
         recent_activity.append({
             "id": ev.id,
             "type": ev.event_type,
-            "text": f"{user.name or 'Foydalanuvchi'} — {ev.event_type}",
+            "text": f"{user.name or 'Foydalanuvchi'} — {label}",
             "time": _format_time(ev.created_at),
         })
+    # If events are sparse, also add recent user registrations
+    if len(recent_activity) < 5:
+        recent_users_q = await db.execute(
+            select(User).where(User.registered_at.isnot(None))
+            .order_by(User.registered_at.desc())
+            .limit(10)
+        )
+        for u in recent_users_q.scalars().all():
+            # Skip if already in activity list
+            if not any(a.get("type") == "registration_complete" and u.name in a.get("text", "") for a in recent_activity):
+                recent_activity.append({
+                    "id": f"reg_{u.id}",
+                    "type": "registration_complete",
+                    "text": f"{u.name or 'Foydalanuvchi'} — ✅ Ro'yxatdan o'tdi",
+                    "time": _format_time(u.registered_at),
+                })
+        # Sort combined list by time (newest first), limit to 15
+        recent_activity = recent_activity[:15]
 
     # Daily new users chart — last 14 days
     users_chart_14d = []
@@ -578,17 +611,22 @@ def _format_time(dt: datetime) -> str:
     """Format datetime to readable 'X daqiqa' or date string."""
     if not dt:
         return "—"
-    now = datetime.now(timezone.utc).replace(tzinfo=None)
-    # Ensure dt is also naive
-    if dt.tzinfo is not None:
-        dt = dt.replace(tzinfo=None)
+    now = datetime.now(timezone.utc)
+    # Make both timezone-aware for correct comparison
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
     diff = now - dt
-    if diff.total_seconds() < 60:
+    seconds = diff.total_seconds()
+    if seconds < 0:
         return "Hozirgina"
-    elif diff.total_seconds() < 3600:
-        return f"{int(diff.total_seconds() // 60)} daqiqa oldin"
-    elif diff.total_seconds() < 86400:
-        return f"{int(diff.total_seconds() // 3600)} soat oldin"
+    elif seconds < 60:
+        return "Hozirgina"
+    elif seconds < 3600:
+        return f"{int(seconds // 60)} daqiqa oldin"
+    elif seconds < 86400:
+        return f"{int(seconds // 3600)} soat oldin"
+    elif seconds < 172800:
+        return "Kecha"
     else:
         return dt.strftime("%d.%m.%Y")
 
