@@ -162,12 +162,15 @@ async def get_dashboard_stats(admin_id: int = Depends(check_admin), db: AsyncSes
 
     # Daily new users chart — last 14 days (with cumulative total)
     users_chart_14d = []
-    # Get count of users created BEFORE the chart period
+    # Get count of users created BEFORE the chart period + users with NULL created_at
     period_start_14 = datetime(today.year, today.month, today.day, tzinfo=timezone.utc) - timedelta(days=13)
     before_q = await db.execute(
         select(func.count(User.id)).where(User.created_at < period_start_14)
     )
-    cumulative = before_q.scalar() or 0
+    null_q = await db.execute(
+        select(func.count(User.id)).where(User.created_at.is_(None))
+    )
+    cumulative = (before_q.scalar() or 0) + (null_q.scalar() or 0)
     for i in range(13, -1, -1):
         day = today - timedelta(days=i)
         day_start = datetime(day.year, day.month, day.day, tzinfo=timezone.utc)
@@ -1330,13 +1333,16 @@ async def get_daily_growth(admin_id: int = Depends(check_admin), db: AsyncSessio
     rows = result.all()
     counts_by_day = {row.day: row.count for row in rows}
 
-    # Get count of users created BEFORE the chart period
+    # Get count of users created BEFORE the chart period + users with NULL created_at
     before_q = await db.execute(
         select(func.count(User.id)).where(
             User.created_at < datetime(since.year, since.month, since.day, tzinfo=timezone.utc)
         )
     )
-    cumulative = before_q.scalar() or 0
+    null_q = await db.execute(
+        select(func.count(User.id)).where(User.created_at.is_(None))
+    )
+    cumulative = (before_q.scalar() or 0) + (null_q.scalar() or 0)
 
     # Fill all 30 days (including days with 0 new users) + cumulative total
     data = []
