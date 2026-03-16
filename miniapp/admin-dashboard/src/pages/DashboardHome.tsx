@@ -164,10 +164,10 @@ export default function DashboardHome() {
                     />
                     <Tooltip
                       contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "6px", fontSize: 12 }}
-                      formatter={(v: number, name: string) => [v.toLocaleString(), name === "total" ? "Jami" : "Yangi"]}
+                      formatter={(v: number) => [v.toLocaleString(), "Yangi"]}
                       labelFormatter={(label: string) => label.slice(5)}
                     />
-                    <Bar dataKey="total" fill="hsl(199, 85%, 55%)" radius={[2, 2, 0, 0]} name="total" />
+                    <Bar dataKey="users" fill="hsl(199, 85%, 55%)" radius={[2, 2, 0, 0]} name="users" />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
