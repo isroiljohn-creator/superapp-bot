@@ -70,9 +70,9 @@ async def get_dashboard_stats(admin_id: int = Depends(check_admin), db: AsyncSes
     total_users_q = await db.execute(select(func.count(User.id)))
     total_users = total_users_q.scalar() or 0
 
-    # Active users — is_active == True (has not blocked bot)
+    # Active users — is_active IS NOT FALSE (includes NULL = never blocked)
     active_q = await db.execute(
-        select(func.count(User.id)).where(User.is_active == True)
+        select(func.count(User.id)).where(User.is_active.isnot(False))
     )
     active_users = active_q.scalar() or 0
 
@@ -235,7 +235,7 @@ async def get_users_list(
 
     # Filter by status (is_active definition)
     if status == "active":
-        query = query.where(User.is_active == True)
+        query = query.where(User.is_active.isnot(False))
     elif status == "inactive":
         query = query.where(User.is_active == False)
     elif status == "registered":
@@ -615,7 +615,7 @@ async def send_broadcast(payload: dict, admin_id: int = Depends(check_admin), db
     if queue_ok:
         from sqlalchemy import func, select as _sel
         from db.models import User as _U2
-        q = _sel(func.count()).select_from(_U2).where(_U2.is_active == True)
+        q = _sel(func.count()).select_from(_U2).where(_U2.is_active.isnot(False))
         if filters.get("lead_score_min"):
             q = q.where(_U2.lead_score >= filters["lead_score_min"])
         if filters.get("lead_segment"):

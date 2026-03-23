@@ -231,7 +231,7 @@ async def process_broadcast_content(message: Message, state: FSMContext):
     async with async_session() as session:
         from sqlalchemy import func, select as _select
         from db.models import User as _User, Subscription as _Sub
-        q = _select(func.count()).select_from(_User).where(_User.is_active == True)
+        q = _select(func.count()).select_from(_User).where(_User.is_active.isnot(False))
         if filters.get("user_status"):
             q = q.where(_User.user_status == filters["user_status"])
         if filters.get("lead_segment"):

@@ -148,7 +148,7 @@ async def start_scheduled_message_checker():
 
                         # Get all ACTIVE users only (skip blocked/inactive)
                         users = await session.execute(
-                            select(User.telegram_id).where(User.is_active == True)
+                            select(User.telegram_id).where(User.is_active.isnot(False))
                         )
                         user_ids = [row[0] for row in users.all()]
 

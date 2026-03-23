@@ -58,7 +58,7 @@ class BroadcastService:
     async def count_recipients(self, broadcast: BroadcastMessage) -> int:
         """Count active recipients without loading them into memory."""
         filters = broadcast.filters or {}
-        q = select(func.count()).select_from(User).where(User.is_active == True)
+        q = select(func.count()).select_from(User).where(User.is_active.isnot(False))
         if filters.get("source"):
             q = q.where(User.source == filters["source"])
         if filters.get("user_status"):
