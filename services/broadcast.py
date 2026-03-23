@@ -257,8 +257,17 @@ async def send_broadcast(
 
             except Exception as e:
                 failed += 1
-                err_str = str(e)
-                if "Forbidden" in err_str or "bot was blocked" in err_str.lower() or "user is deactivated" in err_str.lower():
+                err_str = str(e).lower()
+
+                # Only mark as truly inactive if user explicitly blocked the bot or is deactivated
+                # "Forbidden: bot can't initiate conversation" and other Forbidden variants
+                # are NOT the same as "blocked" — don't mark those users inactive!
+                truly_blocked = (
+                    "bot was blocked by the user" in err_str
+                    or "user is deactivated" in err_str
+                )
+
+                if truly_blocked:
                     try:
                         async with async_session() as _s:
                             await _s.execute(
@@ -270,8 +279,12 @@ async def send_broadcast(
                     except Exception:
                         pass
                     logger.debug(f"[Broadcast {broadcast_id}] {tid} blocked → inactive.")
+                elif "forbidden" in err_str:
+                    # Other Forbidden errors (can't initiate, kicked, etc.) — skip silently
+                    logger.debug(f"[Broadcast {broadcast_id}] {tid} forbidden (not blocked): {str(e)[:80]}")
                 else:
-                    logger.warning(f"[Broadcast {broadcast_id}] Failed {tid}: {err_str[:120]}")
+                    logger.warning(f"[Broadcast {broadcast_id}] Failed {tid}: {str(e)[:120]}")
+
 
             # ── Rate limit ────────────────────────────────────────────────
             if processed % RATE_LIMIT_EVERY == 0:
