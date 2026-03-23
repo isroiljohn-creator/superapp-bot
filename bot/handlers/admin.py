@@ -227,14 +227,22 @@ async def process_broadcast_content(message: Message, state: FSMContext):
         file_id=file_id,
     )
 
-    # Count recipients efficiently — COUNT(*) query, no RAM load
+    # Count recipients efficiently — direct COUNT(*) SQL query, no RAM load
     async with async_session() as session:
-        from db.models import BroadcastMessage as _BM
-        svc = BroadcastService(session)
-        # Build a temp-like object just for count_recipients()
-        class _FB:
-            filters = filters
-        count = await svc.count_recipients(_FB())  # type: ignore[arg-type]
+        from sqlalchemy import func, select as _select
+        from db.models import User as _User, Subscription as _Sub
+        q = _select(func.count()).select_from(_User).where(_User.is_active == True)
+        if filters.get("user_status"):
+            q = q.where(_User.user_status == filters["user_status"])
+        if filters.get("lead_segment"):
+            q = q.where(_User.lead_segment == filters["lead_segment"])
+        if filters.get("lead_score_min"):
+            q = q.where(_User.lead_score >= filters["lead_score_min"])
+        if filters.get("paid"):
+            sub_sq = _select(_Sub.user_id).where(_Sub.status == "active").scalar_subquery()
+            q = q.where(_User.id.in_(sub_sq))
+        result = await session.execute(q)
+        count = result.scalar() or 0
 
     preview = (
         f"📋 <b>Broadcast ko'rib chiqish:</b>\n\n"
