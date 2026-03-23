@@ -254,6 +254,8 @@ async def confirm_broadcast(callback: CallbackQuery, state: FSMContext):
     data = await state.get_data()
     await state.clear()
 
+    # Create broadcast record and save broadcast_id before session closes
+    broadcast_id = None
     async with async_session() as session:
         broadcast_service = BroadcastService(session)
         broadcast = await broadcast_service.create_broadcast(
@@ -263,10 +265,13 @@ async def confirm_broadcast(callback: CallbackQuery, state: FSMContext):
             filters=data.get("filters", {}),
         )
         await session.commit()
+        broadcast_id = broadcast.id
 
-        # Get recipients
-        recipients = await broadcast_service.get_recipients(broadcast)
-        count = len(recipients)
+    # Count recipients in a fresh session (avoids DetachedInstanceError)
+    async with async_session() as session:
+        broadcast_service = BroadcastService(session)
+        broadcast_fresh = await broadcast_service.get_broadcast(broadcast_id)
+        count = await broadcast_service.count_recipients(broadcast_fresh)
 
     await callback.message.edit_text(
         uz.BROADCAST_STARTED.format(count=count),
@@ -275,11 +280,15 @@ async def confirm_broadcast(callback: CallbackQuery, state: FSMContext):
     # Schedule batch sending via queue
     try:
         from taskqueue import schedule_broadcast
-        await schedule_broadcast(broadcast.id)
+        await schedule_broadcast(broadcast_id)
     except Exception:
         await callback.message.answer("⚠️ Queue mavjud emas. Xabarlar to'g'ridan-to'g'ri yuboriladi.")
-        # Direct send (fallback)
-        await _direct_broadcast(callback.message.bot, recipients, data)
+        # Direct send fallback — fetch users fresh
+        async with async_session() as session:
+            svc = BroadcastService(session)
+            fresh = await svc.get_broadcast(broadcast_id)
+            fallback_users = await svc.get_recipients(fresh)
+        await _direct_broadcast(callback.message.bot, fallback_users, data)
 
     await callback.answer()
 

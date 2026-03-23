@@ -126,12 +126,23 @@ async def send_broadcast(broadcast_id: int):
             service = BroadcastService(session)
             for user in recipients:
                 try:
-                    if broadcast.content_type == "photo" and broadcast.file_id:
-                        await bot.send_photo(chat_id=user.telegram_id, photo=broadcast.file_id, caption=broadcast.content, parse_mode="HTML")
-                    elif broadcast.content_type == "video" and broadcast.file_id:
-                        await bot.send_video(chat_id=user.telegram_id, video=broadcast.file_id, caption=broadcast.content, parse_mode="HTML")
+                    c = broadcast.content_type
+                    fid = broadcast.file_id
+                    cap = broadcast.content or ""
+                    if c == "photo" and fid:
+                        await bot.send_photo(chat_id=user.telegram_id, photo=fid, caption=cap, parse_mode="HTML")
+                    elif c == "video" and fid:
+                        await bot.send_video(chat_id=user.telegram_id, video=fid, caption=cap, parse_mode="HTML")
+                    elif c == "document" and fid:
+                        await bot.send_document(chat_id=user.telegram_id, document=fid, caption=cap, parse_mode="HTML")
+                    elif c == "audio" and fid:
+                        await bot.send_audio(chat_id=user.telegram_id, audio=fid, caption=cap, parse_mode="HTML")
+                    elif c == "voice" and fid:
+                        await bot.send_voice(chat_id=user.telegram_id, voice=fid, caption=cap, parse_mode="HTML")
+                    elif c == "video_note" and fid:
+                        await bot.send_video_note(chat_id=user.telegram_id, video_note=fid)
                     else:
-                        await bot.send_message(chat_id=user.telegram_id, text=broadcast.content, parse_mode="HTML")
+                        await bot.send_message(chat_id=user.telegram_id, text=cap, parse_mode="HTML")
                     sent += 1
                 except Exception:
                     failed += 1
