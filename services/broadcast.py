@@ -1,8 +1,15 @@
-"""Broadcast service — filtered mass messaging with rate limiting."""
+"""Broadcast service — filtered mass messaging with rate limiting.
+
+Design:
+- Users are fetched in batches of BROADCAST_BATCH_SIZE (never loads all 10k+ into RAM at once)
+- Progress (sent/failed/total) is saved to DB every PROGRESS_SAVE_EVERY messages
+- Rate limit: 25 msgs then 1s sleep → stays safely under Telegram's 30 msg/sec
+- Blocked users (Forbidden) are auto-marked as is_active=False
+"""
 import asyncio
 import logging
 from datetime import datetime, timezone
-from typing import Optional
+from typing import Optional, AsyncGenerator
 
 from sqlalchemy import select, update, func
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -12,7 +19,9 @@ from services.crm import CRMService
 
 logger = logging.getLogger("broadcast")
 
-BROADCAST_BATCH_SIZE = 500  # Load 500 users at a time
+BROADCAST_BATCH_SIZE = 200   # Users loaded per DB query (memory efficient)
+PROGRESS_SAVE_EVERY  = 50    # Save sent/failed counts every N messages
+RATE_LIMIT_EVERY     = 25    # Sleep 1s after every N sends (Telegram: 30 msg/sec limit)
 
 
 class BroadcastService:
@@ -46,23 +55,6 @@ class BroadcastService:
         )
         return result.scalar_one_or_none()
 
-    async def get_recipients(self, broadcast: BroadcastMessage) -> list:
-        """Get filtered list of recipients (batched to avoid OOM). Only active users."""
-        filters = broadcast.filters or {}
-        all_users = []
-        offset = 0
-        while True:
-            batch = await self.crm.get_users_filtered(
-                filters, limit=BROADCAST_BATCH_SIZE, offset=offset
-            )
-            if not batch:
-                break
-            all_users.extend(batch)
-            offset += BROADCAST_BATCH_SIZE
-            if len(batch) < BROADCAST_BATCH_SIZE:
-                break
-        return all_users
-
     async def count_recipients(self, broadcast: BroadcastMessage) -> int:
         """Count active recipients without loading them into memory."""
         filters = broadcast.filters or {}
@@ -85,6 +77,24 @@ class BroadcastService:
         result = await self.session.execute(q)
         return result.scalar() or 0
 
+    # Kept for backward‑compat (bot/handlers/admin.py uses it for preview count)
+    async def get_recipients(self, broadcast: BroadcastMessage) -> list:
+        """Load ALL matching active users — only called for small previews."""
+        filters = broadcast.filters or {}
+        all_users: list = []
+        offset = 0
+        while True:
+            batch = await self.crm.get_users_filtered(
+                filters, limit=BROADCAST_BATCH_SIZE, offset=offset
+            )
+            if not batch:
+                break
+            all_users.extend(batch)
+            offset += BROADCAST_BATCH_SIZE
+            if len(batch) < BROADCAST_BATCH_SIZE:
+                break
+        return all_users
+
     async def mark_sending(self, broadcast_id: int, total: int):
         await self.session.execute(
             update(BroadcastMessage)
@@ -103,19 +113,74 @@ class BroadcastService:
         await self.session.execute(
             update(BroadcastMessage)
             .where(BroadcastMessage.id == broadcast_id)
-            .values(status="completed", completed_at=datetime.now(timezone.utc).replace(tzinfo=None))
+            .values(
+                status="completed",
+                completed_at=datetime.now(timezone.utc).replace(tzinfo=None),
+            )
         )
 
 
+# ── Streaming helpers ─────────────────────────────────────────────────────────
+
+async def _iter_recipients(filters: dict) -> AsyncGenerator:
+    """
+    Async generator: yields User objects one batch at a time from DB.
+    Never loads the entire 10,000‑user list into RAM simultaneously.
+    """
+    from db.database import async_session
+    offset = 0
+    while True:
+        async with async_session() as session:
+            crm = CRMService(session)
+            batch = await crm.get_users_filtered(
+                filters, limit=BROADCAST_BATCH_SIZE, offset=offset
+            )
+            if not batch:
+                return
+            for user in batch:
+                yield user
+            if len(batch) < BROADCAST_BATCH_SIZE:
+                return
+        offset += BROADCAST_BATCH_SIZE
+
+
+async def _count_active(filters: dict) -> int:
+    """Count active recipients with a single COUNT(*) query."""
+    from db.database import async_session
+    async with async_session() as session:
+        service = BroadcastService(session)
+        # Wrap in a dummy BroadcastMessage‑like object
+        class _FakeBroadcast:
+            filters = {}
+        fb = _FakeBroadcast()
+        fb.filters = filters
+        return await service.count_recipients(fb)  # type: ignore[arg-type]
+
+
+# ── Main send function ────────────────────────────────────────────────────────
+
 async def send_broadcast(broadcast_id: int):
-    """Standalone async function for taskqueue — sends a broadcast by ID."""
+    """
+    Taskqueue entry‑point: stream‑sends a broadcast to all active recipients.
+
+    Memory model:
+        Only BROADCAST_BATCH_SIZE (200) users are in memory at any time.
+        Progress is persisted every PROGRESS_SAVE_EVERY messages.
+
+    Rate limiting:
+        After every RATE_LIMIT_EVERY (25) sends, sleep 1 second.
+        → max ~25 msg/sec, safely under Telegram's 30/sec global limit.
+
+    Timing estimate for 10,000 users:
+        10,000 sends / 25 per batch × 1s = ~400s ≈ 6–7 minutes.
+    """
     from db.database import async_session
     from bot.config import settings
     from aiogram import Bot
 
     logger.info(f"[Broadcast {broadcast_id}] Starting...")
 
-    # Phase 1: load broadcast + recipients, mark as 'sending'
+    # ── Phase 1: load broadcast metadata & count recipients ───────────────
     async with async_session() as session:
         service = BroadcastService(session)
         broadcast = await service.get_broadcast(broadcast_id)
@@ -123,82 +188,97 @@ async def send_broadcast(broadcast_id: int):
             logger.warning(f"[Broadcast {broadcast_id}] Not found, aborting.")
             return
 
-        recipients = await service.get_recipients(broadcast)
-        total = len(recipients)
-        logger.info(f"[Broadcast {broadcast_id}] {total} recipients found.")
+        # Cache primitive fields — so they survive after the session closes
+        c_type    = broadcast.content_type
+        file_id   = broadcast.file_id
+        content   = broadcast.content or ""
+        filters   = dict(broadcast.filters or {})
+
+        # COUNT(*) — no OOM, works for 10k+ users
+        total = await service.count_recipients(broadcast)
+        logger.info(f"[Broadcast {broadcast_id}] {total} active recipients.")
+
+        if total == 0:
+            await service.mark_completed(broadcast_id)
+            await session.commit()
+            logger.info(f"[Broadcast {broadcast_id}] No recipients — done.")
+            return
 
         await service.mark_sending(broadcast_id, total)
         await session.commit()
 
-    if not recipients:
-        # Mark completed immediately if nobody to send to
-        async with async_session() as session:
-            service = BroadcastService(session)
-            await service.mark_completed(broadcast_id)
-            await session.commit()
-        logger.info(f"[Broadcast {broadcast_id}] No recipients — completed immediately.")
-        return
-
-    # Phase 2: send messages
+    # ── Phase 2: stream-send ──────────────────────────────────────────────
     bot = Bot(token=settings.BOT_TOKEN)
-    sent, failed, processed = 0, 0, 0
-
-    # Cache broadcast data BEFORE closing the first session to avoid DetachedInstanceError
-    c_type = broadcast.content_type
-    file_id = broadcast.file_id
-    content = broadcast.content or ""
+    sent = failed = processed = 0
 
     try:
-        async with async_session() as session:
-            service = BroadcastService(session)
+        async for user in _iter_recipients(filters):
+            processed += 1
+            tid = user.telegram_id
 
-            for user in recipients:
-                processed += 1
-                try:
-                    if c_type == "photo" and file_id:
-                        await bot.send_photo(chat_id=user.telegram_id, photo=file_id, caption=content, parse_mode="HTML")
-                    elif c_type == "video" and file_id:
-                        await bot.send_video(chat_id=user.telegram_id, video=file_id, caption=content, parse_mode="HTML")
-                    elif c_type == "document" and file_id:
-                        await bot.send_document(chat_id=user.telegram_id, document=file_id, caption=content, parse_mode="HTML")
-                    elif c_type == "audio" and file_id:
-                        await bot.send_audio(chat_id=user.telegram_id, audio=file_id, caption=content, parse_mode="HTML")
-                    elif c_type == "voice" and file_id:
-                        await bot.send_voice(chat_id=user.telegram_id, voice=file_id, caption=content, parse_mode="HTML")
-                    elif c_type == "video_note" and file_id:
-                        await bot.send_video_note(chat_id=user.telegram_id, video_note=file_id)
-                    else:
-                        await bot.send_message(chat_id=user.telegram_id, text=content, parse_mode="HTML")
-                    sent += 1
+            try:
+                if c_type == "photo" and file_id:
+                    await bot.send_photo(chat_id=tid, photo=file_id, caption=content, parse_mode="HTML")
+                elif c_type == "video" and file_id:
+                    await bot.send_video(chat_id=tid, video=file_id, caption=content, parse_mode="HTML")
+                elif c_type == "document" and file_id:
+                    await bot.send_document(chat_id=tid, document=file_id, caption=content, parse_mode="HTML")
+                elif c_type == "audio" and file_id:
+                    await bot.send_audio(chat_id=tid, audio=file_id, caption=content, parse_mode="HTML")
+                elif c_type == "voice" and file_id:
+                    await bot.send_voice(chat_id=tid, voice=file_id, caption=content, parse_mode="HTML")
+                elif c_type == "video_note" and file_id:
+                    await bot.send_video_note(chat_id=tid, video_note=file_id)
+                else:
+                    await bot.send_message(chat_id=tid, text=content, parse_mode="HTML")
+                sent += 1
 
-                except Exception as e:
-                    failed += 1
-                    err_str = str(e)
-                    # Bot blocked by user → mark user as inactive to skip in future broadcasts
-                    if "Forbidden" in err_str or "bot was blocked" in err_str.lower() or "user is deactivated" in err_str.lower():
-                        try:
-                            await session.execute(
+            except Exception as e:
+                failed += 1
+                err_str = str(e)
+                if "Forbidden" in err_str or "bot was blocked" in err_str.lower() or "user is deactivated" in err_str.lower():
+                    # Mark as inactive so future broadcasts skip this user
+                    try:
+                        async with async_session() as _s:
+                            await _s.execute(
                                 update(User)
-                                .where(User.telegram_id == user.telegram_id)
+                                .where(User.telegram_id == tid)
                                 .values(is_active=False)
                             )
-                            logger.info(f"[Broadcast {broadcast_id}] User {user.telegram_id} blocked — marked inactive.")
-                        except Exception:
-                            pass  # Non-critical
-                    else:
-                        logger.warning(f"[Broadcast {broadcast_id}] Failed for {user.telegram_id}: {err_str[:100]}")
+                            await _s.commit()
+                    except Exception:
+                        pass
+                    logger.info(f"[Broadcast {broadcast_id}] {tid} blocked → marked inactive.")
+                else:
+                    logger.warning(f"[Broadcast {broadcast_id}] Failed {tid}: {err_str[:120]}")
 
-                # Save progress + rate limit every 25 messages
-                if processed % 25 == 0:
-                    await service.update_progress(broadcast_id, sent, failed)
-                    await session.commit()
-                    await asyncio.sleep(1)  # Stay under Telegram's 30 msg/sec limit
+            # ── Rate limit: 25 msg → sleep 1s ────────────────────────────
+            if processed % RATE_LIMIT_EVERY == 0:
+                await asyncio.sleep(1)
 
-            # Final save
-            await service.update_progress(broadcast_id, sent, failed)
-            await service.mark_completed(broadcast_id)
+            # ── Save progress every 50 messages ──────────────────────────
+            if processed % PROGRESS_SAVE_EVERY == 0:
+                async with async_session() as _s:
+                    svc = BroadcastService(_s)
+                    await svc.update_progress(broadcast_id, sent, failed)
+                    await _s.commit()
+                logger.debug(
+                    f"[Broadcast {broadcast_id}] Progress: {processed}/{total} "
+                    f"sent={sent} failed={failed}"
+                )
+
+        # ── Final save ────────────────────────────────────────────────────
+        async with async_session() as session:
+            svc = BroadcastService(session)
+            await svc.update_progress(broadcast_id, sent, failed)
+            await svc.mark_completed(broadcast_id)
             await session.commit()
-            logger.info(f"[Broadcast {broadcast_id}] Done. sent={sent}, failed={failed}, total={processed}")
+
+        logger.info(
+            f"[Broadcast {broadcast_id}] DONE. "
+            f"total={processed} sent={sent} failed={failed} "
+            f"({round(sent/max(processed,1)*100)}% success)"
+        )
 
     finally:
         await bot.session.close()
