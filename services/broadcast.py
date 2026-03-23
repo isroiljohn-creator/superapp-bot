@@ -124,8 +124,8 @@ class BroadcastService:
 
 async def _iter_recipients(filters: dict) -> AsyncGenerator:
     """
-    Async generator: yields User objects one batch at a time from DB.
-    Never loads the entire 10,000‑user list into RAM simultaneously.
+    Async generator: yields telegram_id (int) one batch at a time from DB.
+    Yields primitive ints — no ORM session dependency after fetch.
     """
     from db.database import async_session
     offset = 0
@@ -137,10 +137,15 @@ async def _iter_recipients(filters: dict) -> AsyncGenerator:
             )
             if not batch:
                 return
-            for user in batch:
-                yield user
-            if len(batch) < BROADCAST_BATCH_SIZE:
-                return
+            # Extract telegram_ids inside session — primitive ints, safe after session closes
+            ids = [u.telegram_id for u in batch if u.telegram_id]
+            count = len(batch)
+
+        for tid in ids:
+            yield tid
+
+        if count < BROADCAST_BATCH_SIZE:
+            return
         offset += BROADCAST_BATCH_SIZE
 
 
@@ -149,11 +154,10 @@ async def _count_active(filters: dict) -> int:
     from db.database import async_session
     async with async_session() as session:
         service = BroadcastService(session)
-        # Wrap in a dummy BroadcastMessage‑like object
         class _FakeBroadcast:
-            filters = {}
+            pass
         fb = _FakeBroadcast()
-        fb.filters = filters
+        fb.filters = filters  # type: ignore
         return await service.count_recipients(fb)  # type: ignore[arg-type]
 
 
@@ -162,17 +166,6 @@ async def _count_active(filters: dict) -> int:
 async def send_broadcast(broadcast_id: int):
     """
     Taskqueue entry‑point: stream‑sends a broadcast to all active recipients.
-
-    Memory model:
-        Only BROADCAST_BATCH_SIZE (200) users are in memory at any time.
-        Progress is persisted every PROGRESS_SAVE_EVERY messages.
-
-    Rate limiting:
-        After every RATE_LIMIT_EVERY (25) sends, sleep 1 second.
-        → max ~25 msg/sec, safely under Telegram's 30/sec global limit.
-
-    Timing estimate for 10,000 users:
-        10,000 sends / 25 per batch × 1s = ~400s ≈ 6–7 minutes.
     """
     from db.database import async_session
     from bot.config import settings
@@ -212,9 +205,8 @@ async def send_broadcast(broadcast_id: int):
     sent = failed = processed = 0
 
     try:
-        async for user in _iter_recipients(filters):
+        async for tid in _iter_recipients(filters):
             processed += 1
-            tid = user.telegram_id
 
             try:
                 if c_type == "photo" and file_id:
@@ -237,7 +229,6 @@ async def send_broadcast(broadcast_id: int):
                 failed += 1
                 err_str = str(e)
                 if "Forbidden" in err_str or "bot was blocked" in err_str.lower() or "user is deactivated" in err_str.lower():
-                    # Mark as inactive so future broadcasts skip this user
                     try:
                         async with async_session() as _s:
                             await _s.execute(
@@ -282,3 +273,4 @@ async def send_broadcast(broadcast_id: int):
 
     finally:
         await bot.session.close()
+
