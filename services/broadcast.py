@@ -210,15 +210,19 @@ async def send_broadcast(
     _own_bot = bot_instance is None
     bot = bot_instance or Bot(token=settings.BOT_TOKEN)
     sent = failed = processed = 0
+    inactive_batch: list = []   # collect blocked user IDs, flush in bulk every 50
 
     def _progress_text():
-        pct = round(sent / max(processed, 1) * 100)
+        # pct = actual completion progress (processed / total)
+        pct = round(processed / max(total, 1) * 100)
+        success_rate = round(sent / max(processed, 1) * 100)
+        eta = max(1, (total - processed) // max(processed // max(1, int((processed or 1) / max(1, 1))), 25))
         return (
             f"📤 <b>Broadcast davom etmoqda...</b>\n\n"
-            f"✅ Yuborildi: <b>{sent}</b>\n"
-            f"❌ Xato (bloklagan): <b>{failed}</b>\n"
-            f"📊 Jami: <b>{processed}/{total}</b>  ({pct}%)\n\n"
-            f"⏳ Taxminan {max(1, (total-processed)//25)} soniyada tugaydi..."
+            f"✅ Yetkazildi: <b>{sent}</b>\n"
+            f"❌ Yetkazilmadi: <b>{failed}</b>\n"
+            f"📊 Jarayon: <b>{processed}/{total}</b>  ({pct}% tugadi | {success_rate}% muvaffaqiyat)\n\n"
+            f"⏳ Taxminan {max(1, (total - processed) // 25)} soniyada tugaydi..."
         )
 
     async def _update_progress():
@@ -298,40 +302,14 @@ async def send_broadcast(
                 failed += 1
                 err_str = str(e).lower()
 
-                # ── Report FIRST error to admin immediately for diagnosis ──
-                if not first_error_reported[0] and progress_chat_id:
-                    first_error_reported[0] = True
-                    try:
-                        await bot.send_message(
-                            chat_id=progress_chat_id,
-                            text=(
-                                f"⚠️ <b>Birinchi xato (diagnostika):</b>\n"
-                                f"<code>{str(e)[:400]}</code>\n\n"
-                                f"Chat ID: <code>{tid}</code>"
-                            ),
-                            parse_mode="HTML",
-                        )
-                    except Exception:
-                        pass
-
-                # Only mark as truly inactive if user explicitly blocked the bot or is deactivated
+                # Collect truly blocked users into a batch — no DB call here
                 truly_blocked = (
                     "bot was blocked by the user" in err_str
                     or "user is deactivated" in err_str
                 )
-
                 if truly_blocked:
-                    try:
-                        async with async_session() as _s:
-                            await _s.execute(
-                                update(User)
-                                .where(User.telegram_id == tid)
-                                .values(is_active=False)
-                            )
-                            await _s.commit()
-                    except Exception:
-                        pass
-                    logger.debug(f"[Broadcast {broadcast_id}] {tid} blocked → inactive.")
+                    inactive_batch.append(tid)
+                    logger.debug(f"[Broadcast {broadcast_id}] {tid} → queued inactive.")
                 elif "forbidden" in err_str:
                     logger.debug(f"[Broadcast {broadcast_id}] {tid} forbidden: {str(e)[:80]}")
                 else:
@@ -342,12 +320,28 @@ async def send_broadcast(
             if processed % RATE_LIMIT_EVERY == 0:
                 await asyncio.sleep(1)
 
-            # ── Save progress + update Telegram message every 50 ─────────
+            # ── Every 50: save progress + flush inactive batch + update Telegram ──
             if processed % PROGRESS_SAVE_EVERY == 0:
+                # Batch-update blocked users in one DB call
+                if inactive_batch:
+                    try:
+                        async with async_session() as _s:
+                            await _s.execute(
+                                update(User)
+                                .where(User.telegram_id.in_(inactive_batch))
+                                .values(is_active=False)
+                            )
+                            await _s.commit()
+                    except Exception as _db_err:
+                        logger.warning(f"[Broadcast {broadcast_id}] Batch inactive update failed: {_db_err}")
+                    inactive_batch.clear()
+
+                # Save counts to DB
                 async with async_session() as _s:
                     svc = BroadcastService(_s)
                     await svc.update_progress(broadcast_id, sent, failed)
                     await _s.commit()
+
                 await _update_progress()
                 logger.info(
                     f"[Broadcast {broadcast_id}] {processed}/{total} "
