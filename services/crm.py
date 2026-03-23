@@ -38,6 +38,7 @@ class CRMService:
             source=source,
             campaign=campaign,
             user_status="started",
+            is_active=True,   # Explicit: ensures DB insert sets True regardless of server_default
             tokens=10,
         )
         self.session.add(user)
@@ -72,6 +73,7 @@ class CRMService:
             campaign=campaign,
             referer_id=referer_id,
             user_status="started",
+            is_active=True,   # Explicit: ensures DB insert sets True regardless of server_default
             tokens=10,
         )
         self.session.add(user)
