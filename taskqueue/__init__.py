@@ -146,8 +146,10 @@ async def start_scheduled_message_checker():
                         msg.status = "sending"
                         await session.commit()
 
-                        # Get all users
-                        users = await session.execute(select(User.telegram_id))
+                        # Get all ACTIVE users only (skip blocked/inactive)
+                        users = await session.execute(
+                            select(User.telegram_id).where(User.is_active == True)
+                        )
                         user_ids = [row[0] for row in users.all()]
 
                         sent, failed = 0, 0
@@ -159,7 +161,7 @@ async def start_scheduled_message_checker():
                                     sent += 1
                                 except Exception:
                                     failed += 1
-                                if sent % 25 == 0:
+                                if (sent + failed) % 25 == 0:
                                     await asyncio.sleep(1)  # Rate limit
                         finally:
                             await bot.session.close()

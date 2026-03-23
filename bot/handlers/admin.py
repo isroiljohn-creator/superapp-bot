@@ -227,11 +227,14 @@ async def process_broadcast_content(message: Message, state: FSMContext):
         file_id=file_id,
     )
 
-    # Count recipients
+    # Count recipients efficiently — COUNT(*) query, no RAM load
     async with async_session() as session:
-        crm = CRMService(session)
-        users = await crm.get_users_filtered(filters, limit=50_000)
-        count = len(users)
+        from db.models import BroadcastMessage as _BM
+        svc = BroadcastService(session)
+        # Build a temp-like object just for count_recipients()
+        class _FB:
+            filters = filters
+        count = await svc.count_recipients(_FB())  # type: ignore[arg-type]
 
     preview = (
         f"📋 <b>Broadcast ko'rib chiqish:</b>\n\n"
@@ -288,7 +291,7 @@ async def confirm_broadcast(callback: CallbackQuery, state: FSMContext):
             svc = BroadcastService(session)
             fresh = await svc.get_broadcast(broadcast_id)
             fallback_users = await svc.get_recipients(fresh)
-        await _direct_broadcast(callback.message.bot, fallback_users, data)
+        await _direct_broadcast(callback.message.bot, fallback_users, data, broadcast_id)
 
     await callback.answer()
 
@@ -300,7 +303,7 @@ async def cancel_broadcast(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
 
 
-async def _direct_broadcast(bot, users, data):
+async def _direct_broadcast(bot, users, data, broadcast_id: int = None):
     """Fallback: direct send with rate limiting (Telegram limit: 30 msg/sec)."""
     import asyncio
     import logging
@@ -332,15 +335,25 @@ async def _direct_broadcast(bot, users, data):
         except Exception:
             failed += 1
 
-        # Rate limiting: 25 messages per second (safe margin under Telegram's 30/sec limit)
+        # Rate limiting: every 25 processed (sent+failed)
         processed = sent + failed
         if processed % 25 == 0:
             await asyncio.sleep(1)
-        # Log progress every 500 messages
         if processed % 500 == 0:
             _log.info(f"Broadcast progress: {processed}/{total} (sent={sent}, failed={failed})")
 
     _log.info(f"Broadcast complete: sent={sent}, failed={failed}, total={total}")
+
+    # Save final progress to DB so broadcast shows as 'completed'
+    if broadcast_id:
+        try:
+            async with async_session() as session:
+                svc = BroadcastService(session)
+                await svc.update_progress(broadcast_id, sent, failed)
+                await svc.mark_completed(broadcast_id)
+                await session.commit()
+        except Exception as e:
+            _log.warning(f"Could not save broadcast {broadcast_id} completion: {e}")
 
 
 # ── /referral_settings — Admin config ────

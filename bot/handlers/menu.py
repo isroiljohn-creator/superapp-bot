@@ -631,7 +631,8 @@ async def guide_db_callback(callback_query):
             await callback_query.message.answer(caption, parse_mode="HTML", disable_web_page_preview=False)
     except Exception as e:
         await callback_query.answer("Faylni yuborishda xatolik yuz berdi.", show_alert=True)
-        print(f"Error sending guide {guide.id}: {e}")
+        import logging as _logging
+        _logging.getLogger("menu").error(f"Error sending guide {guide.id}: {e}")
 
     await callback_query.answer()
 
