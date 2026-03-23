@@ -199,10 +199,14 @@ async def process_broadcast_content(message: Message, state: FSMContext):
     filters = data.get("filters", {})
 
     content_type = "text"
-    # Use html_text/caption_html to preserve bold, italic, blockquote, URL formatting.
-    # message.text gives plain text (formatting lost); html_text keeps HTML tags.
+    # Use html_text/html_caption to preserve bold, italic, blockquote, URL formatting.
+    # Also save raw entities for expandable_blockquote which html_text can't encode properly.
     content = message.html_text or message.html_caption or message.text or message.caption or ""
     file_id = None
+
+    # Save entities as JSON list for exact format reconstruction (expandable_blockquote etc.)
+    raw_entities = message.entities or message.caption_entities or []
+    entities_json = [e.model_dump() for e in raw_entities] if raw_entities else None
 
     if message.photo:
         content_type = "photo"
@@ -227,7 +231,9 @@ async def process_broadcast_content(message: Message, state: FSMContext):
         content=content,
         content_type=content_type,
         file_id=file_id,
+        entities=entities_json,
     )
+
 
     # Count recipients efficiently — direct COUNT(*) SQL query, no RAM load
     async with async_session() as session:
@@ -282,6 +288,7 @@ async def confirm_broadcast(callback: CallbackQuery, state: FSMContext):
                 content_type=data.get("content_type", "text"),
                 file_id=data.get("file_id"),
                 filters=data.get("filters", {}),
+                entities=data.get("entities"),
             )
             await session.commit()
             broadcast_id = broadcast.id

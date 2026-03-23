@@ -37,12 +37,14 @@ class BroadcastService:
         content_type: str = "text",
         file_id: Optional[str] = None,
         filters: Optional[dict] = None,
+        entities: Optional[list] = None,
     ) -> BroadcastMessage:
         broadcast = BroadcastMessage(
             content=content,
             content_type=content_type,
             file_id=file_id,
             filters=filters or {},
+            entities=entities,
             status="draft",
         )
         self.session.add(broadcast)
@@ -193,6 +195,8 @@ async def send_broadcast(
         file_id = broadcast.file_id
         content = broadcast.content or ""
         filters = dict(broadcast.filters or {})
+        # Load saved entities for exact format reconstruction
+        stored_entities_json = broadcast.entities  # list of dicts or None
 
         total = await service.count_recipients(broadcast)
         logger.info(f"[Broadcast {broadcast_id}] {total} active recipients.")
@@ -238,7 +242,14 @@ async def send_broadcast(
             except Exception:
                 pass  # Telegram throttles edits — ignore
 
-    first_error_reported = [False]  # mutable container so nested func can mutate it
+    # Convert stored entities JSON → aiogram MessageEntity objects (for expandable_blockquote etc.)
+    send_entities: list | None = None
+    if stored_entities_json:
+        try:
+            from aiogram.types import MessageEntity
+            send_entities = [MessageEntity(**e) for e in stored_entities_json]
+        except Exception as _ee:
+            logger.warning(f"[Broadcast {broadcast_id}] Entity parse failed: {_ee}")
 
     CAPTION_LIMIT = 1024   # Telegram max caption length for media
     TEXT_LIMIT = 4096       # Telegram max text message length
@@ -246,30 +257,40 @@ async def send_broadcast(
     async def _send_to(tid, text, pm="HTML"):
         """
         Send with:
+        - Entities mode: if send_entities available, use them (preserves expandable_blockquote)
         - Auto-split: media with long caption → media + separate text message
         - Auto-split: text > 4096 chars → multiple messages
         - Auto-fallback: if HTML parse fails → retry without parse_mode
         """
         is_media = c_type in ("photo", "video", "document", "audio", "voice") and file_id
+
+        # Decide: use raw entities or parse_mode
+        use_entities = bool(send_entities and pm is not None)
+        ent_kwargs = {"entities": send_entities} if use_entities and not is_media else {}
+        cap_ent_kwargs = {"caption_entities": send_entities} if use_entities and is_media else {}
+        pm_kwarg = {} if use_entities else {"parse_mode": pm}
+
         try:
             if is_media:
-                caption = text[:CAPTION_LIMIT] if text else ""
-                overflow = text[CAPTION_LIMIT:] if text and len(text) > CAPTION_LIMIT else ""
+                # Caption must be plain text when using caption_entities
+                plain_text = text  # html_text is stored but entities encode the format
+                caption = plain_text[:CAPTION_LIMIT] if plain_text else ""
+                overflow = plain_text[CAPTION_LIMIT:] if plain_text and len(plain_text) > CAPTION_LIMIT else ""
 
                 if c_type == "photo":
-                    await bot.send_photo(chat_id=tid, photo=file_id, caption=caption or None, parse_mode=pm if caption else None)
+                    await bot.send_photo(chat_id=tid, photo=file_id, caption=caption or None, **cap_ent_kwargs, **pm_kwarg)
                 elif c_type == "video":
-                    await bot.send_video(chat_id=tid, video=file_id, caption=caption or None, parse_mode=pm if caption else None)
+                    await bot.send_video(chat_id=tid, video=file_id, caption=caption or None, **cap_ent_kwargs, **pm_kwarg)
                 elif c_type == "document":
-                    await bot.send_document(chat_id=tid, document=file_id, caption=caption or None, parse_mode=pm if caption else None)
+                    await bot.send_document(chat_id=tid, document=file_id, caption=caption or None, **cap_ent_kwargs, **pm_kwarg)
                 elif c_type == "audio":
-                    await bot.send_audio(chat_id=tid, audio=file_id, caption=caption or None, parse_mode=pm if caption else None)
+                    await bot.send_audio(chat_id=tid, audio=file_id, caption=caption or None, **cap_ent_kwargs, **pm_kwarg)
                 elif c_type == "voice":
-                    await bot.send_voice(chat_id=tid, voice=file_id, caption=caption or None, parse_mode=pm if caption else None)
+                    await bot.send_voice(chat_id=tid, voice=file_id, caption=caption or None, **cap_ent_kwargs, **pm_kwarg)
 
                 # Send overflow text as a separate message
                 if overflow:
-                    await bot.send_message(chat_id=tid, text=overflow[:TEXT_LIMIT], parse_mode=pm)
+                    await bot.send_message(chat_id=tid, text=overflow[:TEXT_LIMIT], **pm_kwarg)
 
             elif c_type == "video_note" and file_id:
                 await bot.send_video_note(chat_id=tid, video_note=file_id)
@@ -278,7 +299,7 @@ async def send_broadcast(
                 # Plain text — split if too long
                 chunks = [text[i:i+TEXT_LIMIT] for i in range(0, max(len(text), 1), TEXT_LIMIT)]
                 for chunk in chunks:
-                    await bot.send_message(chat_id=tid, text=chunk, parse_mode=pm)
+                    await bot.send_message(chat_id=tid, text=chunk, **ent_kwargs, **pm_kwarg)
 
             return True  # success
 
@@ -286,6 +307,7 @@ async def send_broadcast(
             # If HTML parsing fails, retry without parse_mode (once only)
             if pm and "can't parse entities" in str(e).lower():
                 return await _send_to(tid, text, pm=None)
+
             raise  # re-raise other errors
 
 

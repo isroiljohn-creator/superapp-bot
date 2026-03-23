@@ -245,6 +245,7 @@ class BroadcastMessage(Base):
     filters = Column(JSON, nullable=True)        # {"source":"instagram","lead_score_min":30}
     content_type = Column(String(20), nullable=False)  # text | photo | video
     content = Column(Text, nullable=False)
+    entities = Column(JSON, nullable=True)   # Telegram message entities for format preservation
     file_id = Column(String(255), nullable=True)
     sent_count = Column(Integer, default=0)
     failed_count = Column(Integer, default=0)
