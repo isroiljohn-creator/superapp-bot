@@ -234,34 +234,62 @@ async def send_broadcast(
             except Exception:
                 pass  # Telegram throttles edits — ignore
 
+    first_error_reported = [False]  # mutable container so nested func can mutate it
+
+    async def _send_to(tid, text, pm="HTML"):
+        """Send with auto-fallback: if HTML parse fails, retry without parse_mode."""
+        try:
+            if c_type == "photo" and file_id:
+                await bot.send_photo(chat_id=tid, photo=file_id, caption=text, parse_mode=pm)
+            elif c_type == "video" and file_id:
+                await bot.send_video(chat_id=tid, video=file_id, caption=text, parse_mode=pm)
+            elif c_type == "document" and file_id:
+                await bot.send_document(chat_id=tid, document=file_id, caption=text, parse_mode=pm)
+            elif c_type == "audio" and file_id:
+                await bot.send_audio(chat_id=tid, audio=file_id, caption=text, parse_mode=pm)
+            elif c_type == "voice" and file_id:
+                await bot.send_voice(chat_id=tid, voice=file_id, caption=text, parse_mode=pm)
+            elif c_type == "video_note" and file_id:
+                await bot.send_video_note(chat_id=tid, video_note=file_id)
+            else:
+                await bot.send_message(chat_id=tid, text=text, parse_mode=pm)
+            return True  # success
+        except Exception as e:
+            # If HTML parsing fails, retry without parse_mode (once only)
+            if pm and "can't parse entities" in str(e).lower():
+                return await _send_to(tid, text, pm=None)
+            raise  # re-raise other errors
+
     try:
         async for tid in _iter_recipients(filters):
             processed += 1
 
             try:
-                if c_type == "photo" and file_id:
-                    await bot.send_photo(chat_id=tid, photo=file_id, caption=content, parse_mode="HTML")
-                elif c_type == "video" and file_id:
-                    await bot.send_video(chat_id=tid, video=file_id, caption=content, parse_mode="HTML")
-                elif c_type == "document" and file_id:
-                    await bot.send_document(chat_id=tid, document=file_id, caption=content, parse_mode="HTML")
-                elif c_type == "audio" and file_id:
-                    await bot.send_audio(chat_id=tid, audio=file_id, caption=content, parse_mode="HTML")
-                elif c_type == "voice" and file_id:
-                    await bot.send_voice(chat_id=tid, voice=file_id, caption=content, parse_mode="HTML")
-                elif c_type == "video_note" and file_id:
-                    await bot.send_video_note(chat_id=tid, video_note=file_id)
-                else:
-                    await bot.send_message(chat_id=tid, text=content, parse_mode="HTML")
-                sent += 1
+                ok = await _send_to(tid, content)
+                if ok:
+                    sent += 1
 
             except Exception as e:
                 failed += 1
                 err_str = str(e).lower()
 
+                # ── Report FIRST error to admin immediately for diagnosis ──
+                if not first_error_reported[0] and progress_chat_id:
+                    first_error_reported[0] = True
+                    try:
+                        await bot.send_message(
+                            chat_id=progress_chat_id,
+                            text=(
+                                f"⚠️ <b>Birinchi xato (diagnostika):</b>\n"
+                                f"<code>{str(e)[:400]}</code>\n\n"
+                                f"Chat ID: <code>{tid}</code>"
+                            ),
+                            parse_mode="HTML",
+                        )
+                    except Exception:
+                        pass
+
                 # Only mark as truly inactive if user explicitly blocked the bot or is deactivated
-                # "Forbidden: bot can't initiate conversation" and other Forbidden variants
-                # are NOT the same as "blocked" — don't mark those users inactive!
                 truly_blocked = (
                     "bot was blocked by the user" in err_str
                     or "user is deactivated" in err_str
@@ -280,8 +308,7 @@ async def send_broadcast(
                         pass
                     logger.debug(f"[Broadcast {broadcast_id}] {tid} blocked → inactive.")
                 elif "forbidden" in err_str:
-                    # Other Forbidden errors (can't initiate, kicked, etc.) — skip silently
-                    logger.debug(f"[Broadcast {broadcast_id}] {tid} forbidden (not blocked): {str(e)[:80]}")
+                    logger.debug(f"[Broadcast {broadcast_id}] {tid} forbidden: {str(e)[:80]}")
                 else:
                     logger.warning(f"[Broadcast {broadcast_id}] Failed {tid}: {str(e)[:120]}")
 
