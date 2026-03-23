@@ -313,7 +313,7 @@ async def confirm_broadcast(callback: CallbackQuery, state: FSMContext):
     # Step 4: Send broadcast
     try:
         from taskqueue import schedule_broadcast
-        await schedule_broadcast(broadcast_id)
+        await schedule_broadcast(broadcast_id, bot_instance=callback.bot)
         _logger.info(f"[confirm_broadcast] Broadcast {broadcast_id} scheduled via taskqueue")
     except Exception as e:
         _logger.error(f"[confirm_broadcast] schedule_broadcast failed: {e}. Switching to direct send.")

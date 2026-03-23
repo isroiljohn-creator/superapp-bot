@@ -46,17 +46,18 @@ async def schedule_delayed_video(telegram_id: int, delay_seconds: int = 1800):
     logger.info(f"Delayed video scheduled for {telegram_id} in {delay_seconds}s")
 
 
-async def schedule_broadcast(broadcast_id: int):
+async def schedule_broadcast(broadcast_id: int, bot_instance=None):
     """Schedule batch broadcast sending."""
 
     async def _send_broadcast():
-        await asyncio.sleep(1)  # Small delay to not block
+        await asyncio.sleep(0)  # Yield control to event loop, don't block
         try:
             from services.broadcast import send_broadcast
-            await send_broadcast(broadcast_id)
+            await send_broadcast(broadcast_id, bot_instance=bot_instance)
             logger.info(f"Broadcast {broadcast_id} completed")
         except Exception as e:
-            logger.error(f"Broadcast {broadcast_id} failed: {e}")
+            import traceback
+            logger.error(f"Broadcast {broadcast_id} failed: {e}\n{traceback.format_exc()}")
 
     _fire_and_forget(_send_broadcast())
     logger.info(f"Broadcast {broadcast_id} scheduled")

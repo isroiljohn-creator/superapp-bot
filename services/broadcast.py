@@ -163,9 +163,10 @@ async def _count_active(filters: dict) -> int:
 
 # ── Main send function ────────────────────────────────────────────────────────
 
-async def send_broadcast(broadcast_id: int):
+async def send_broadcast(broadcast_id: int, bot_instance=None):
     """
     Taskqueue entry‑point: stream‑sends a broadcast to all active recipients.
+    bot_instance: pass existing Bot to reuse its session (avoids aiohttp conflict in webhook mode).
     """
     from db.database import async_session
     from bot.config import settings
@@ -178,6 +179,7 @@ async def send_broadcast(broadcast_id: int):
         service = BroadcastService(session)
         broadcast = await service.get_broadcast(broadcast_id)
         if not broadcast:
+
             logger.warning(f"[Broadcast {broadcast_id}] Not found, aborting.")
             return
 
@@ -201,7 +203,9 @@ async def send_broadcast(broadcast_id: int):
         await session.commit()
 
     # ── Phase 2: stream-send ──────────────────────────────────────────────
-    bot = Bot(token=settings.BOT_TOKEN)
+    # Use provided bot instance (from webhook handler) to avoid aiohttp session conflicts
+    _own_bot = bot_instance is None
+    bot = bot_instance or Bot(token=settings.BOT_TOKEN)
     sent = failed = processed = 0
 
     try:
@@ -272,5 +276,6 @@ async def send_broadcast(broadcast_id: int):
         )
 
     finally:
-        await bot.session.close()
+        if _own_bot:
+            await bot.session.close()
 
