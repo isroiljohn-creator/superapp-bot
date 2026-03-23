@@ -236,29 +236,54 @@ async def send_broadcast(
 
     first_error_reported = [False]  # mutable container so nested func can mutate it
 
+    CAPTION_LIMIT = 1024   # Telegram max caption length for media
+    TEXT_LIMIT = 4096       # Telegram max text message length
+
     async def _send_to(tid, text, pm="HTML"):
-        """Send with auto-fallback: if HTML parse fails, retry without parse_mode."""
+        """
+        Send with:
+        - Auto-split: media with long caption → media + separate text message
+        - Auto-split: text > 4096 chars → multiple messages
+        - Auto-fallback: if HTML parse fails → retry without parse_mode
+        """
+        is_media = c_type in ("photo", "video", "document", "audio", "voice") and file_id
         try:
-            if c_type == "photo" and file_id:
-                await bot.send_photo(chat_id=tid, photo=file_id, caption=text, parse_mode=pm)
-            elif c_type == "video" and file_id:
-                await bot.send_video(chat_id=tid, video=file_id, caption=text, parse_mode=pm)
-            elif c_type == "document" and file_id:
-                await bot.send_document(chat_id=tid, document=file_id, caption=text, parse_mode=pm)
-            elif c_type == "audio" and file_id:
-                await bot.send_audio(chat_id=tid, audio=file_id, caption=text, parse_mode=pm)
-            elif c_type == "voice" and file_id:
-                await bot.send_voice(chat_id=tid, voice=file_id, caption=text, parse_mode=pm)
+            if is_media:
+                caption = text[:CAPTION_LIMIT] if text else ""
+                overflow = text[CAPTION_LIMIT:] if text and len(text) > CAPTION_LIMIT else ""
+
+                if c_type == "photo":
+                    await bot.send_photo(chat_id=tid, photo=file_id, caption=caption or None, parse_mode=pm if caption else None)
+                elif c_type == "video":
+                    await bot.send_video(chat_id=tid, video=file_id, caption=caption or None, parse_mode=pm if caption else None)
+                elif c_type == "document":
+                    await bot.send_document(chat_id=tid, document=file_id, caption=caption or None, parse_mode=pm if caption else None)
+                elif c_type == "audio":
+                    await bot.send_audio(chat_id=tid, audio=file_id, caption=caption or None, parse_mode=pm if caption else None)
+                elif c_type == "voice":
+                    await bot.send_voice(chat_id=tid, voice=file_id, caption=caption or None, parse_mode=pm if caption else None)
+
+                # Send overflow text as a separate message
+                if overflow:
+                    await bot.send_message(chat_id=tid, text=overflow[:TEXT_LIMIT], parse_mode=pm)
+
             elif c_type == "video_note" and file_id:
                 await bot.send_video_note(chat_id=tid, video_note=file_id)
+
             else:
-                await bot.send_message(chat_id=tid, text=text, parse_mode=pm)
+                # Plain text — split if too long
+                chunks = [text[i:i+TEXT_LIMIT] for i in range(0, max(len(text), 1), TEXT_LIMIT)]
+                for chunk in chunks:
+                    await bot.send_message(chat_id=tid, text=chunk, parse_mode=pm)
+
             return True  # success
+
         except Exception as e:
             # If HTML parsing fails, retry without parse_mode (once only)
             if pm and "can't parse entities" in str(e).lower():
                 return await _send_to(tid, text, pm=None)
             raise  # re-raise other errors
+
 
     try:
         async for tid in _iter_recipients(filters):
