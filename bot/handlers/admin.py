@@ -302,18 +302,33 @@ async def confirm_broadcast(callback: CallbackQuery, state: FSMContext):
     except Exception as e:
         _logger.warning(f"[confirm_broadcast] count_recipients failed: {e}. Continuing anyway.")
 
-    # Step 3: Notify admin
+    # Step 3: Send initial progress message and get its ID
+    progress_message_id = None
+    progress_chat_id = callback.message.chat.id
+    started_text = (
+        f"📤 <b>Broadcast boshlandi!</b>\n\n"
+        f"👥 Jami foydalanuvchilar: <b>{count}</b>\n\n"
+        f"⏳ Yuborilmoqda, kuting..."
+    )
     try:
-        await callback.message.edit_text(
-            uz.BROADCAST_STARTED.format(count=count),
-        )
+        sent_msg = await callback.message.edit_text(started_text, parse_mode="HTML")
+        progress_message_id = sent_msg.message_id
     except Exception:
-        await callback.message.answer(uz.BROADCAST_STARTED.format(count=count))
+        try:
+            sent_msg = await callback.message.answer(started_text, parse_mode="HTML")
+            progress_message_id = sent_msg.message_id
+        except Exception:
+            pass
 
     # Step 4: Send broadcast
     try:
         from taskqueue import schedule_broadcast
-        await schedule_broadcast(broadcast_id, bot_instance=callback.bot)
+        await schedule_broadcast(
+            broadcast_id,
+            bot_instance=callback.bot,
+            progress_chat_id=progress_chat_id,
+            progress_message_id=progress_message_id,
+        )
         _logger.info(f"[confirm_broadcast] Broadcast {broadcast_id} scheduled via taskqueue")
     except Exception as e:
         _logger.error(f"[confirm_broadcast] schedule_broadcast failed: {e}. Switching to direct send.")
@@ -330,6 +345,7 @@ async def confirm_broadcast(callback: CallbackQuery, state: FSMContext):
             await callback.message.answer(f"❌ Broadcast muvaffaqiyatsiz: {e2}")
 
     await callback.answer()
+
 
 
 

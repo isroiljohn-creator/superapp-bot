@@ -163,33 +163,37 @@ async def _count_active(filters: dict) -> int:
 
 # ── Main send function ────────────────────────────────────────────────────────
 
-async def send_broadcast(broadcast_id: int, bot_instance=None):
+async def send_broadcast(
+    broadcast_id: int,
+    bot_instance=None,
+    progress_chat_id: int = None,
+    progress_message_id: int = None,
+):
     """
-    Taskqueue entry‑point: stream‑sends a broadcast to all active recipients.
-    bot_instance: pass existing Bot to reuse its session (avoids aiohttp conflict in webhook mode).
+    Stream-sends a broadcast to all active recipients.
+    - bot_instance: pass existing Bot to avoid new aiohttp session
+    - progress_chat_id / progress_message_id: edit this message live for admin progress
     """
+    import traceback as _tb
     from db.database import async_session
     from bot.config import settings
     from aiogram import Bot
 
-    logger.info(f"[Broadcast {broadcast_id}] Starting...")
+    logger.info(f"[Broadcast {broadcast_id}] Starting... progress_chat={progress_chat_id}")
 
     # ── Phase 1: load broadcast metadata & count recipients ───────────────
     async with async_session() as session:
         service = BroadcastService(session)
         broadcast = await service.get_broadcast(broadcast_id)
         if not broadcast:
-
             logger.warning(f"[Broadcast {broadcast_id}] Not found, aborting.")
             return
 
-        # Cache primitive fields — so they survive after the session closes
-        c_type    = broadcast.content_type
-        file_id   = broadcast.file_id
-        content   = broadcast.content or ""
-        filters   = dict(broadcast.filters or {})
+        c_type  = broadcast.content_type
+        file_id = broadcast.file_id
+        content = broadcast.content or ""
+        filters = dict(broadcast.filters or {})
 
-        # COUNT(*) — no OOM, works for 10k+ users
         total = await service.count_recipients(broadcast)
         logger.info(f"[Broadcast {broadcast_id}] {total} active recipients.")
 
@@ -203,10 +207,32 @@ async def send_broadcast(broadcast_id: int, bot_instance=None):
         await session.commit()
 
     # ── Phase 2: stream-send ──────────────────────────────────────────────
-    # Use provided bot instance (from webhook handler) to avoid aiohttp session conflicts
     _own_bot = bot_instance is None
     bot = bot_instance or Bot(token=settings.BOT_TOKEN)
     sent = failed = processed = 0
+
+    def _progress_text():
+        pct = round(sent / max(processed, 1) * 100)
+        return (
+            f"📤 <b>Broadcast davom etmoqda...</b>\n\n"
+            f"✅ Yuborildi: <b>{sent}</b>\n"
+            f"❌ Xato (bloklagan): <b>{failed}</b>\n"
+            f"📊 Jami: <b>{processed}/{total}</b>  ({pct}%)\n\n"
+            f"⏳ Taxminan {max(1, (total-processed)//25)} soniyada tugaydi..."
+        )
+
+    async def _update_progress():
+        """Edit admin's progress message — ignore errors."""
+        if progress_chat_id and progress_message_id:
+            try:
+                await bot.edit_message_text(
+                    chat_id=progress_chat_id,
+                    message_id=progress_message_id,
+                    text=_progress_text(),
+                    parse_mode="HTML",
+                )
+            except Exception:
+                pass  # Telegram throttles edits — ignore
 
     try:
         async for tid in _iter_recipients(filters):
@@ -243,22 +269,23 @@ async def send_broadcast(broadcast_id: int, bot_instance=None):
                             await _s.commit()
                     except Exception:
                         pass
-                    logger.info(f"[Broadcast {broadcast_id}] {tid} blocked → marked inactive.")
+                    logger.debug(f"[Broadcast {broadcast_id}] {tid} blocked → inactive.")
                 else:
                     logger.warning(f"[Broadcast {broadcast_id}] Failed {tid}: {err_str[:120]}")
 
-            # ── Rate limit: 25 msg → sleep 1s ────────────────────────────
+            # ── Rate limit ────────────────────────────────────────────────
             if processed % RATE_LIMIT_EVERY == 0:
                 await asyncio.sleep(1)
 
-            # ── Save progress every 50 messages ──────────────────────────
+            # ── Save progress + update Telegram message every 50 ─────────
             if processed % PROGRESS_SAVE_EVERY == 0:
                 async with async_session() as _s:
                     svc = BroadcastService(_s)
                     await svc.update_progress(broadcast_id, sent, failed)
                     await _s.commit()
-                logger.debug(
-                    f"[Broadcast {broadcast_id}] Progress: {processed}/{total} "
+                await _update_progress()
+                logger.info(
+                    f"[Broadcast {broadcast_id}] {processed}/{total} "
                     f"sent={sent} failed={failed}"
                 )
 
@@ -269,13 +296,47 @@ async def send_broadcast(broadcast_id: int, bot_instance=None):
             await svc.mark_completed(broadcast_id)
             await session.commit()
 
+        # ── Final Telegram message ────────────────────────────────────────
+        final_text = (
+            f"✅ <b>Broadcast yakunlandi!</b>\n\n"
+            f"✅ Muvaffaqiyatli: <b>{sent}</b>\n"
+            f"❌ Xato (bloklagan): <b>{failed}</b>\n"
+            f"📊 Jami urinish: <b>{processed}</b>\n"
+            f"📈 Muvaffaqiyat: <b>{round(sent/max(processed,1)*100)}%</b>"
+        )
+        if progress_chat_id and progress_message_id:
+            try:
+                await bot.edit_message_text(
+                    chat_id=progress_chat_id,
+                    message_id=progress_message_id,
+                    text=final_text,
+                    parse_mode="HTML",
+                )
+            except Exception:
+                try:
+                    await bot.send_message(chat_id=progress_chat_id, text=final_text, parse_mode="HTML")
+                except Exception:
+                    pass
+
         logger.info(
             f"[Broadcast {broadcast_id}] DONE. "
             f"total={processed} sent={sent} failed={failed} "
             f"({round(sent/max(processed,1)*100)}% success)"
         )
 
+    except Exception as e:
+        logger.error(f"[Broadcast {broadcast_id}] CRASHED: {e}\n{_tb.format_exc()}")
+        # Notify admin about crash
+        if progress_chat_id:
+            try:
+                await bot.send_message(
+                    chat_id=progress_chat_id,
+                    text=f"❌ <b>Broadcast xatosi!</b>\n<code>{str(e)[:300]}</code>",
+                    parse_mode="HTML",
+                )
+            except Exception:
+                pass
+        raise
     finally:
         if _own_bot:
             await bot.session.close()
-
