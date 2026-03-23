@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   Send, ImageIcon, Plus, ChevronDown, ChevronUp,
-  X, FileText, Film, Mic, Video, RefreshCw, Link
+  X, FileText, Film, Mic, Video, RefreshCw, Link,
 } from "lucide-react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { fetchApi, API_URL, getInitData } from "@/lib/api";
@@ -21,9 +21,9 @@ interface AudienceCount {
 interface PastBroadcast {
   id: number;
   title: string;
-  sent: number;
-  total: number;
-  failed: number;
+  sent: number;   // muvaffaqiyatli yetkazilgan
+  total: number;  // jami recipients
+  failed: number; // xato (bloklagan + boshqa)
   status: string;
   date: string;
 }
@@ -83,11 +83,16 @@ export default function Broadcast() {
     queryFn: () => fetchApi("/api/admin/audience-counts"),
   });
 
-  // Fetch & auto-refresh broadcast history (every 5s)
+  // Fetch & auto-refresh broadcast history
+  // Refresh every 3s when a broadcast is live, otherwise 10s
   const { data: broadcastHistory, refetch: refetchHistory } = useQuery<PastBroadcast[]>({
     queryKey: ["broadcast_history"],
     queryFn: () => fetchApi("/api/admin/broadcasts"),
-    refetchInterval: 5000,
+    refetchInterval: (query) => {
+      const data = query.state.data as PastBroadcast[] | undefined;
+      const hasLive = data?.some((b) => b.status === "Yuborilmoqda");
+      return hasLive ? 3000 : 10000;
+    },
   });
 
   // Media upload mutation
@@ -108,7 +113,9 @@ export default function Broadcast() {
       return response.json() as Promise<{ file_id: string; content_type: string }>;
     },
     onSuccess: (data) => {
-      setMedia((m) => m ? { ...m, fileId: data.file_id, contentType: data.content_type, uploading: false } : null);
+      setMedia((m) =>
+        m ? { ...m, fileId: data.file_id, contentType: data.content_type, uploading: false } : null
+      );
       toast({ title: "✅ Media yuklandi", description: "Xabarni yuborishga tayyor." });
     },
     onError: (err: Error) => {
@@ -117,12 +124,15 @@ export default function Broadcast() {
     },
   });
 
-  const handleFileSelect = useCallback((file: File) => {
-    const preview = file.type.startsWith("image") ? URL.createObjectURL(file) : undefined;
-    const tgType = mapMimeToTgType(file.type);
-    setMedia({ file, preview, contentType: tgType, uploading: true });
-    uploadMedia.mutate(file);
-  }, [uploadMedia]);
+  const handleFileSelect = useCallback(
+    (file: File) => {
+      const preview = file.type.startsWith("image") ? URL.createObjectURL(file) : undefined;
+      const tgType = mapMimeToTgType(file.type);
+      setMedia({ file, preview, contentType: tgType, uploading: true });
+      uploadMedia.mutate(file);
+    },
+    [uploadMedia]
+  );
 
   const sendBroadcast = useMutation({
     mutationFn: async () => {
@@ -150,24 +160,22 @@ export default function Broadcast() {
       setMessage("");
       setMedia(null);
       setButtons([]);
-      refetchHistory();
-      // Keep refreshing history
-      setTimeout(() => refetchHistory(), 3000);
-      setTimeout(() => refetchHistory(), 8000);
+      setTimeout(() => refetchHistory(), 1000);
+      setTimeout(() => refetchHistory(), 4000);
     },
     onError: (error: Error) => {
-      toast({
-        title: "Xatolik",
-        description: error.message,
-        variant: "destructive",
-      });
+      toast({ title: "Xatolik", description: error.message, variant: "destructive" });
     },
   });
 
   const addButton = () => {
     if (!btnText.trim() || !btnUrl.trim()) return;
     if (!btnUrl.startsWith("http://") && !btnUrl.startsWith("https://")) {
-      toast({ title: "URL noto'g'ri", description: "URL https:// bilan boshlanishi kerak.", variant: "destructive" });
+      toast({
+        title: "URL noto'g'ri",
+        description: "URL https:// bilan boshlanishi kerak.",
+        variant: "destructive",
+      });
       return;
     }
     setButtons((prev) => [...prev, { text: btnText.trim(), url: btnUrl.trim() }]);
@@ -176,7 +184,10 @@ export default function Broadcast() {
     setShowButtonForm(false);
   };
 
-  const canSend = (message.trim().length > 0 || media?.fileId) && !sendBroadcast.isPending && !media?.uploading;
+  const canSend =
+    (message.trim().length > 0 || media?.fileId) &&
+    !sendBroadcast.isPending &&
+    !media?.uploading;
 
   const getCount = (key: keyof AudienceCount) => {
     const val = audienceCounts?.[key];
@@ -200,10 +211,11 @@ export default function Broadcast() {
                 <button
                   key={a.key}
                   onClick={() => setSelectedAudience(i)}
-                  className={`px-2.5 py-1 text-[11px] font-medium rounded-md transition-colors ${selectedAudience === i
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-secondary text-secondary-foreground"
-                    }`}
+                  className={`px-2.5 py-1 text-[11px] font-medium rounded-md transition-colors ${
+                    selectedAudience === i
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-secondary text-secondary-foreground"
+                  }`}
                 >
                   {a.label} ({getCount(a.key)})
                 </button>
@@ -211,7 +223,7 @@ export default function Broadcast() {
             </div>
           </div>
 
-          {/* Attached Media Preview */}
+          {/* Media Preview */}
           {media && (
             <div className="flex items-center gap-2 p-2 bg-secondary rounded-lg border border-border/30">
               {media.preview ? (
@@ -233,7 +245,7 @@ export default function Broadcast() {
             </div>
           )}
 
-          {/* Attached Buttons Preview */}
+          {/* Buttons Preview */}
           {buttons.length > 0 && (
             <div className="space-y-1">
               <p className="text-[11px] text-muted-foreground">Qo'shilgan tugmalar:</p>
@@ -279,7 +291,7 @@ export default function Broadcast() {
             </div>
           )}
 
-          {/* Message input */}
+          {/* Message textarea */}
           <textarea
             placeholder="Xabaringizni yozing... (ixtiyoriy, agar media bo'lsa caption sifatida yuboriladi)"
             value={message}
@@ -287,7 +299,6 @@ export default function Broadcast() {
             className="w-full h-20 text-xs bg-secondary border border-border/30 rounded-lg p-2.5 resize-none focus:outline-none focus:ring-1 focus:ring-primary"
           />
 
-          {/* Hidden file input */}
           <input
             ref={fileInputRef}
             type="file"
@@ -330,7 +341,11 @@ export default function Broadcast() {
               onClick={() => sendBroadcast.mutate()}
             >
               <Send className="h-3.5 w-3.5" />
-              {sendBroadcast.isPending ? "Yuborilmoqda..." : media?.uploading ? "Yuklanmoqda..." : "Yuborish"}
+              {sendBroadcast.isPending
+                ? "Yuborilmoqda..."
+                : media?.uploading
+                ? "Yuklanmoqda..."
+                : "Yuborish"}
             </Button>
           </div>
         </CardContent>
@@ -345,19 +360,33 @@ export default function Broadcast() {
               <RefreshCw className="h-3.5 w-3.5" />
             </button>
           </div>
+
           <div className="space-y-2">
             {!broadcastHistory ? (
-              <div className="text-xs text-muted-foreground text-center py-2">Yuklanmoqda...</div>
+              <p className="text-xs text-muted-foreground text-center py-2">Yuklanmoqda...</p>
             ) : broadcastHistory.length === 0 ? (
-              <div className="text-xs text-muted-foreground text-center py-2">Hozircha xabar yuborilmagan</div>
+              <p className="text-xs text-muted-foreground text-center py-2">Hozircha xabar yuborilmagan</p>
             ) : (
               broadcastHistory.map((b) => {
                 const isLive = b.status === "Yuborilmoqda";
+                // processed = sent (success) + failed (error) = total attempted so far
+                const processed = b.sent + b.failed;
+                const progressPct = b.total > 0 ? Math.round((processed / b.total) * 100) : 0;
+                const successRate = processed > 0 ? Math.round((b.sent / processed) * 100) : 0;
+
                 return (
-                  <div key={b.id} className={`border rounded-lg p-2.5 ${isLive ? "border-primary/40 bg-primary/5" : "border-border/30"}`}>
+                  <div
+                    key={b.id}
+                    className={`border rounded-lg p-2.5 ${
+                      isLive ? "border-primary/40 bg-primary/5" : "border-border/30"
+                    }`}
+                  >
+                    {/* Header row */}
                     <button
                       className="w-full flex items-center justify-between"
-                      onClick={() => setExpandedBroadcast(expandedBroadcast === b.id ? null : b.id)}
+                      onClick={() =>
+                        setExpandedBroadcast(expandedBroadcast === b.id ? null : b.id)
+                      }
                     >
                       <div className="text-left">
                         <p className="text-xs font-medium">{b.title}</p>
@@ -366,7 +395,11 @@ export default function Broadcast() {
                       <div className="flex items-center gap-2">
                         <Badge
                           variant="secondary"
-                          className={`text-[10px] ${isLive ? "bg-primary/20 text-primary animate-pulse" : "bg-primary/10 text-primary"}`}
+                          className={`text-[10px] ${
+                            isLive
+                              ? "bg-primary/20 text-primary animate-pulse"
+                              : "bg-primary/10 text-primary"
+                          }`}
                         >
                           {b.status}
                         </Badge>
@@ -377,20 +410,65 @@ export default function Broadcast() {
                         )}
                       </div>
                     </button>
+
+                    {/* Live progress bar (always visible when sending) */}
+                    {isLive && b.total > 0 && (
+                      <div className="mt-2">
+                        <div className="flex justify-between text-[10px] text-muted-foreground mb-1">
+                          <span>
+                            {processed.toLocaleString()} / {b.total.toLocaleString()} yuborildi
+                          </span>
+                          <span>{progressPct}%</span>
+                        </div>
+                        <div className="h-1.5 bg-secondary rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-primary rounded-full transition-all duration-500"
+                            style={{ width: `${progressPct}%` }}
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Expanded details */}
                     {expandedBroadcast === b.id && (
-                      <div className="mt-2 pt-2 border-t border-border/30 grid grid-cols-3 gap-2">
-                        <div className="text-center">
-                          <p className="text-sm font-bold text-primary">{b.sent.toLocaleString()}</p>
-                          <p className="text-[10px] text-muted-foreground">Yuborildi</p>
+                      <div className="mt-2 pt-2 border-t border-border/30 space-y-2">
+                        {/* Stats: Jami | Yetkazildi | Xato */}
+                        <div className="grid grid-cols-3 gap-2">
+                          <div className="text-center">
+                            <p className="text-sm font-bold text-foreground">
+                              {b.total.toLocaleString()}
+                            </p>
+                            <p className="text-[10px] text-muted-foreground">Jami</p>
+                          </div>
+                          <div className="text-center">
+                            <p className="text-sm font-bold text-green-500">
+                              {b.sent.toLocaleString()}
+                            </p>
+                            <p className="text-[10px] text-muted-foreground">Yetkazildi ✅</p>
+                          </div>
+                          <div className="text-center">
+                            <p className="text-sm font-bold text-destructive">
+                              {b.failed.toLocaleString()}
+                            </p>
+                            <p className="text-[10px] text-muted-foreground">Xato ❌</p>
+                          </div>
                         </div>
-                        <div className="text-center">
-                          <p className="text-sm font-bold text-success">{(b.sent - b.failed).toLocaleString()}</p>
-                          <p className="text-[10px] text-muted-foreground">Yetkazildi</p>
-                        </div>
-                        <div className="text-center">
-                          <p className="text-sm font-bold text-destructive">{b.failed.toLocaleString()}</p>
-                          <p className="text-[10px] text-muted-foreground">Xato</p>
-                        </div>
+
+                        {/* Success rate bar */}
+                        {processed > 0 && (
+                          <div>
+                            <div className="flex justify-between text-[10px] text-muted-foreground mb-1">
+                              <span>Muvaffaqiyat darajasi</span>
+                              <span className="font-medium text-green-500">{successRate}%</span>
+                            </div>
+                            <div className="h-1.5 bg-secondary rounded-full overflow-hidden">
+                              <div
+                                className="h-full bg-green-500 rounded-full"
+                                style={{ width: `${successRate}%` }}
+                              />
+                            </div>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
