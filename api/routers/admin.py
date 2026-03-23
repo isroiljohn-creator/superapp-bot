@@ -606,7 +606,11 @@ async def send_broadcast(payload: dict, admin_id: int = Depends(check_admin), db
             finally:
                 await bot.session.close()
 
-        asyncio.create_task(_send_all(telegram_ids, message_content, file_id, content_type, inline_kb, broadcast.id))
+        import asyncio as _asyncio
+        _bg_tasks: set = set()
+        task = _asyncio.ensure_future(_send_all(telegram_ids, message_content, file_id, content_type, inline_kb, broadcast.id))
+        _bg_tasks.add(task)
+        task.add_done_callback(_bg_tasks.discard)
 
     count = len(telegram_ids)
     return {
@@ -685,18 +689,24 @@ async def get_broadcasts_history(admin_id: int = Depends(check_admin), db: Async
         "cancelled": "Bekor qilindi",
     }
 
-    return [
-        {
+    result_list = []
+    for b in broadcasts:
+        raw = (b.content or "").strip()
+        # For media-only broadcasts, content may be "[photo]" — show content_type instead
+        if raw.startswith("[") and raw.endswith("]"):
+            title_text = f"📎 {b.content_type.capitalize()} xabar"
+        else:
+            title_text = raw[:40] + ("..." if len(raw) > 40 else "")
+        result_list.append({
             "id": b.id,
-            "title": b.content[:40] + ("..." if len(b.content) > 40 else ""),
-            "sent": b.sent_count,
-            "total": b.total_count,
-            "failed": b.failed_count,
+            "title": title_text or "(xabar)",
+            "sent": b.sent_count or 0,
+            "total": b.total_count or 0,
+            "failed": b.failed_count or 0,
             "status": status_labels.get(b.status, b.status),
             "date": _format_time(b.created_at),
-        }
-        for b in broadcasts
-    ]
+        })
+    return result_list
 
 
 # ── Guides CRUD ──────────────────────────────────
