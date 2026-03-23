@@ -507,6 +507,8 @@ async def send_broadcast(payload: dict, admin_id: int = Depends(check_admin), db
     from bot.config import settings
     from aiogram import Bot
     from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+    import logging as _log
+    _logger = _log.getLogger("api.broadcast")
 
     # Build inline keyboard if buttons provided
     inline_kb = None
@@ -515,21 +517,17 @@ async def send_broadcast(payload: dict, admin_id: int = Depends(check_admin), db
         if keyboard_rows:
             inline_kb = InlineKeyboardMarkup(inline_keyboard=keyboard_rows)
 
-    # Get recipients
-    crm = CRMService(db)
-    all_users = await crm.get_users_filtered(filters, limit=50_000)
-    telegram_ids = [u.telegram_id for u in all_users if u.telegram_id]
-
-    # Create broadcast record
+    # Create broadcast record first (generates ID for taskqueue)
     broadcast_service = BroadcastService(db)
     broadcast = await broadcast_service.create_broadcast(
-        content=message_content or f"[{content_type}]" ,
+        content=message_content or f"[{content_type}]",
         content_type=content_type if file_id else "text",
         file_id=file_id or None,
         filters=filters,
     )
-    await broadcast_service.mark_sending(broadcast.id, len(telegram_ids))
     await db.commit()
+    broadcast_id = broadcast.id
+    _logger.info(f"[API Broadcast {broadcast_id}] Created. filters={filters}, ctype={content_type}")
 
     # Parse scheduled_at if provided
     scheduled_at_str = payload.get("scheduled_at")
@@ -537,29 +535,34 @@ async def send_broadcast(payload: dict, admin_id: int = Depends(check_admin), db
     if scheduled_at_str:
         from datetime import datetime
         try:
-            # ISO format parsing
             run_at = datetime.fromisoformat(scheduled_at_str.replace("Z", "+00:00"))
         except ValueError:
             pass
 
-    # Try ARQ queue first
+    # Try taskqueue first (streaming, memory-efficient for 10k+ users)
     queue_ok = False
     try:
         from taskqueue import schedule_broadcast
-        await schedule_broadcast(broadcast_id=broadcast.id)
+        await schedule_broadcast(broadcast_id=broadcast_id)
         queue_ok = True
+        _logger.info(f"[API Broadcast {broadcast_id}] Queued via taskqueue.")
     except Exception as e:
-        print(f"[broadcast] ARQ queue unavailable, falling back to direct send: {e}")
+        _logger.warning(f"[API Broadcast {broadcast_id}] Taskqueue failed ({e}), falling back to direct send.")
 
-    # Direct send fallback
+    # Direct send fallback — only runs if taskqueue truly failed
     if not queue_ok:
         import asyncio
+        # Load users for direct send
+        crm = CRMService(db)
+        all_users = await crm.get_users_filtered(filters, limit=50_000)
+        telegram_ids = [u.telegram_id for u in all_users if u.telegram_id]
+        await broadcast_service.mark_sending(broadcast_id, len(telegram_ids))
+        await db.commit()
 
-        async def _send_all(ids: list, text: str, fid: str, ctype: str, kb, broadcast_id: int):
+        async def _send_all(ids: list, text: str, fid: str, ctype: str, kb, b_id: int):
             bot = Bot(token=settings.BOT_TOKEN)
+            sent = failed = 0
             try:
-                sent = 0
-                failed = 0
                 for tid in ids:
                     try:
                         if fid:
@@ -579,40 +582,53 @@ async def send_broadcast(payload: dict, admin_id: int = Depends(check_admin), db
                             await bot.send_message(chat_id=tid, text=text, reply_markup=kb)
                         sent += 1
                     except Exception as ex:
-                        # If bot is blocked (Forbidden), mark user as inactive
-                        if "Forbidden" in str(ex):
-                            print(f"[broadcast] User {tid} blocked the bot. Marking as inactive.")
+                        failed += 1
+                        if "Forbidden" in str(ex) or "blocked" in str(ex).lower():
                             try:
                                 from db.database import async_session
-                                async with async_session() as dsess:
-                                    await dsess.execute(
-                                        update(User).where(User.telegram_id == tid).values(is_active=False)
-                                    )
-                                    await dsess.commit()
-                            except Exception as dbex:
-                                print(f"[broadcast] DB error updating user {tid}: {dbex}")
-                        else:
-                            print(f"[broadcast] Failed to send to {tid}: {ex}")
-                        failed += 1
-                    if (sent + failed) % 30 == 0:
-                        await asyncio.sleep(1)  # Rate limit
-                # Update DB
+                                async with async_session() as _s:
+                                    from sqlalchemy import update as _upd
+                                    from db.models import User as _U
+                                    await _s.execute(_upd(_U).where(_U.telegram_id == tid).values(is_active=False))
+                                    await _s.commit()
+                            except Exception:
+                                pass
+                    if (sent + failed) % 25 == 0:
+                        await asyncio.sleep(1)
+                # Final DB update
                 from db.database import async_session
                 async with async_session() as sess:
                     bs = BroadcastService(sess)
-                    await bs.update_progress(broadcast_id, sent, failed)
-                    await bs.mark_completed(broadcast_id)
+                    await bs.update_progress(b_id, sent, failed)
+                    await bs.mark_completed(b_id)
                     await sess.commit()
+                _logger.info(f"[API Broadcast {b_id}] Direct send done. sent={sent} failed={failed}")
             finally:
                 await bot.session.close()
 
-        import asyncio as _asyncio
         _bg_tasks: set = set()
-        task = _asyncio.ensure_future(_send_all(telegram_ids, message_content, file_id, content_type, inline_kb, broadcast.id))
-        _bg_tasks.add(task)
-        task.add_done_callback(_bg_tasks.discard)
+        _task = asyncio.ensure_future(_send_all(telegram_ids, message_content, file_id, content_type, inline_kb, broadcast_id))
+        _bg_tasks.add(_task)
+        _task.add_done_callback(_bg_tasks.discard)
 
-    count = len(telegram_ids)
+    # Count for response (quick COUNT(*) if queue used)
+    if queue_ok:
+        from sqlalchemy import func, select as _sel
+        from db.models import User as _U2
+        q = _sel(func.count()).select_from(_U2).where(_U2.is_active == True)
+        if filters.get("lead_score_min"):
+            q = q.where(_U2.lead_score >= filters["lead_score_min"])
+        if filters.get("lead_segment"):
+            q = q.where(_U2.lead_segment == filters["lead_segment"])
+        if filters.get("paid"):
+            from db.models import Subscription as _Sb
+            sub_sq = _sel(_Sb.user_id).where(_Sb.status == "active").scalar_subquery()
+            q = q.where(_U2.id.in_(sub_sq))
+        res = await db.execute(q)
+        count = res.scalar() or 0
+    else:
+        count = len(telegram_ids)
+
     return {
         "status": "accepted",
         "message": f"{count} ta foydalanuvchiga xabar yuborilmoqda...",
