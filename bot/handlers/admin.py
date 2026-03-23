@@ -199,7 +199,9 @@ async def process_broadcast_content(message: Message, state: FSMContext):
     filters = data.get("filters", {})
 
     content_type = "text"
-    content = message.text or message.caption or ""
+    # Use html_text/caption_html to preserve bold, italic, blockquote, URL formatting.
+    # message.text gives plain text (formatting lost); html_text keeps HTML tags.
+    content = message.html_text or message.html_caption or message.text or message.caption or ""
     file_id = None
 
     if message.photo:
