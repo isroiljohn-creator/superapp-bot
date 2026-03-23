@@ -262,46 +262,75 @@ async def process_broadcast_content(message: Message, state: FSMContext):
 
 @router.callback_query(BroadcastFSM.waiting_confirm, F.data == "broadcast:confirm")
 async def confirm_broadcast(callback: CallbackQuery, state: FSMContext):
+    import logging as _log
+    _logger = _log.getLogger("bot.broadcast")
+
     data = await state.get_data()
     await state.clear()
 
-    # Create broadcast record and save broadcast_id before session closes
+    _logger.info(f"[confirm_broadcast] Admin {callback.from_user.id} confirmed broadcast. data={data}")
+
+    # Step 1: Create broadcast DB record
     broadcast_id = None
-    async with async_session() as session:
-        broadcast_service = BroadcastService(session)
-        broadcast = await broadcast_service.create_broadcast(
-            content=data.get("content", ""),
-            content_type=data.get("content_type", "text"),
-            file_id=data.get("file_id"),
-            filters=data.get("filters", {}),
+    try:
+        async with async_session() as session:
+            broadcast_service = BroadcastService(session)
+            broadcast = await broadcast_service.create_broadcast(
+                content=data.get("content", ""),
+                content_type=data.get("content_type", "text"),
+                file_id=data.get("file_id"),
+                filters=data.get("filters", {}),
+            )
+            await session.commit()
+            broadcast_id = broadcast.id
+        _logger.info(f"[confirm_broadcast] Broadcast {broadcast_id} created in DB")
+    except Exception as e:
+        _logger.error(f"[confirm_broadcast] Failed to create broadcast in DB: {e}")
+        await callback.message.answer(f"❌ Broadcast yaratishda xatolik: {e}")
+        await callback.answer()
+        return
+
+    # Step 2: Count recipients
+    count = 0
+    try:
+        async with async_session() as session:
+            broadcast_service = BroadcastService(session)
+            broadcast_fresh = await broadcast_service.get_broadcast(broadcast_id)
+            if broadcast_fresh:
+                count = await broadcast_service.count_recipients(broadcast_fresh)
+        _logger.info(f"[confirm_broadcast] Recipient count: {count}")
+    except Exception as e:
+        _logger.warning(f"[confirm_broadcast] count_recipients failed: {e}. Continuing anyway.")
+
+    # Step 3: Notify admin
+    try:
+        await callback.message.edit_text(
+            uz.BROADCAST_STARTED.format(count=count),
         )
-        await session.commit()
-        broadcast_id = broadcast.id
+    except Exception:
+        await callback.message.answer(uz.BROADCAST_STARTED.format(count=count))
 
-    # Count recipients in a fresh session (avoids DetachedInstanceError)
-    async with async_session() as session:
-        broadcast_service = BroadcastService(session)
-        broadcast_fresh = await broadcast_service.get_broadcast(broadcast_id)
-        count = await broadcast_service.count_recipients(broadcast_fresh)
-
-    await callback.message.edit_text(
-        uz.BROADCAST_STARTED.format(count=count),
-    )
-
-    # Schedule batch sending via queue
+    # Step 4: Send broadcast
     try:
         from taskqueue import schedule_broadcast
         await schedule_broadcast(broadcast_id)
-    except Exception:
-        await callback.message.answer("⚠️ Queue mavjud emas. Xabarlar to'g'ridan-to'g'ri yuboriladi.")
-        # Direct send fallback — fetch users fresh
-        async with async_session() as session:
-            svc = BroadcastService(session)
-            fresh = await svc.get_broadcast(broadcast_id)
-            fallback_users = await svc.get_recipients(fresh)
-        await _direct_broadcast(callback.message.bot, fallback_users, data, broadcast_id)
+        _logger.info(f"[confirm_broadcast] Broadcast {broadcast_id} scheduled via taskqueue")
+    except Exception as e:
+        _logger.error(f"[confirm_broadcast] schedule_broadcast failed: {e}. Switching to direct send.")
+        await callback.message.answer("⚠️ Direct yuborish rejimida ishlamoqda...")
+        # Direct fallback
+        try:
+            async with async_session() as session:
+                svc = BroadcastService(session)
+                fresh = await svc.get_broadcast(broadcast_id)
+                fallback_users = await svc.get_recipients(fresh)
+            await _direct_broadcast(callback.message.bot, fallback_users, data, broadcast_id)
+        except Exception as e2:
+            _logger.error(f"[confirm_broadcast] Direct broadcast also failed: {e2}")
+            await callback.message.answer(f"❌ Broadcast muvaffaqiyatsiz: {e2}")
 
     await callback.answer()
+
 
 
 @router.callback_query(BroadcastFSM.waiting_confirm, F.data == "broadcast:cancel")
