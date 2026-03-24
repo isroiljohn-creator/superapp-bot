@@ -234,9 +234,30 @@ async def process_broadcast_content(message: Message, state: FSMContext):
     )
     await state.set_state(BroadcastFSM.waiting_confirm)
 
+    # Count recipients (safe, won't block)
+    count = 0
+    try:
+        async with async_session() as session:
+            from sqlalchemy import func, select as _select
+            from db.models import User as _User, Subscription as _Sub
+            q = _select(func.count()).select_from(_User).where(_User.is_active.isnot(False))
+            if filters.get("user_status"):
+                q = q.where(_User.user_status == filters["user_status"])
+            if filters.get("lead_segment"):
+                q = q.where(_User.lead_segment == filters["lead_segment"])
+            if filters.get("lead_score_min"):
+                q = q.where(_User.lead_score >= filters["lead_score_min"])
+            if filters.get("paid"):
+                sub_sq = _select(_Sub.user_id).where(_Sub.status == "active").scalar_subquery()
+                q = q.where(_User.id.in_(sub_sq))
+            result = await session.execute(q)
+            count = result.scalar() or 0
+    except Exception:
+        count = 0
+
     preview = (
         f"📋 <b>Broadcast ko'rib chiqish:</b>\n\n"
-        f"📊 Filtrlar: <code>{json.dumps(filters, ensure_ascii=False)}</code>\n"
+        f"👥 Qabul qiluvchilar: <b>{count:,}</b> ta\n"
         f"📝 Turi: {content_type}\n\n"
         f"Yuborasizmi?"
     )
@@ -245,6 +266,7 @@ async def process_broadcast_content(message: Message, state: FSMContext):
         parse_mode="HTML",
         reply_markup=broadcast_confirm_keyboard(),
     )
+
 
 
 @router.callback_query(F.data == "broadcast:confirm")
