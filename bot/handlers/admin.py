@@ -171,6 +171,49 @@ async def cmd_broadcast(message: Message, state: FSMContext, user_id_override: i
     )
 
 
+@router.message(Command("broadcast_status"))
+async def cmd_broadcast_status(message: Message):
+    """Show last 5 broadcasts status."""
+    if not is_admin(message.from_user.id):
+        return
+
+    try:
+        from db.models import BroadcastMessage as _BM
+        from sqlalchemy import select as _sel, desc as _desc
+        async with async_session() as session:
+            result = await session.execute(
+                _sel(_BM).order_by(_desc(_BM.id)).limit(5)
+            )
+            broadcasts = result.scalars().all()
+
+        if not broadcasts:
+            await message.answer("📭 Hali birorta broadcast yuborilmagan.")
+            return
+
+        status_icons = {
+            "draft": "📝",
+            "sending": "⏳",
+            "completed": "✅",
+            "cancelled": "❌",
+        }
+
+        lines = ["📋 <b>Oxirgi broadcastlar:</b>\n"]
+        for b in broadcasts:
+            icon = status_icons.get(b.status, "❓")
+            pct = round(b.sent_count / max(b.total_count, 1) * 100) if b.total_count else 0
+            dt = b.created_at.strftime("%d.%m %H:%M") if b.created_at else ""
+            lines.append(
+                f"{icon} <b>#{b.id}</b> [{dt}]\n"
+                f"   📊 {b.status} | ✅ {b.sent_count} / ❌ {b.failed_count} / 📊 {b.total_count} ({pct}%)\n"
+                f"   📝 {str(b.content or '')[:50]}...\n"
+            )
+
+        await message.answer("\n".join(lines), parse_mode="HTML")
+    except Exception as e:
+        await message.answer(f"❌ Xatolik: {e}")
+
+
+
 @router.callback_query(F.data.startswith("broadcast_seg:"))
 async def process_broadcast_segment(callback: CallbackQuery, state: FSMContext):
     segment = callback.data.split(":")[1]
