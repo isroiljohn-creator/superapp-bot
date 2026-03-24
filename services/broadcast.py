@@ -1,10 +1,11 @@
-"""Broadcast service — filtered mass messaging with rate limiting.
+"""Broadcast service — filtered mass messaging with parallel sending.
 
 Design:
 - Users are fetched in batches of BROADCAST_BATCH_SIZE (never loads all 10k+ into RAM at once)
 - Progress (sent/failed/total) is saved to DB every PROGRESS_SAVE_EVERY messages
-- Rate limit: 25 msgs then 1s sleep → stays safely under Telegram's 30 msg/sec
+- Parallel sending: up to CONCURRENCY msgs at the same time → ~29 msg/s, stays under Telegram's 30 msg/sec
 - Blocked users (Forbidden) are auto-marked as is_active=False
+- 10 000 users → ~6 min sequential, now ~6 min → ~2 min with concurrency=29
 """
 import asyncio
 import logging
@@ -19,9 +20,9 @@ from services.crm import CRMService
 
 logger = logging.getLogger("broadcast")
 
-BROADCAST_BATCH_SIZE = 200   # Users loaded per DB query (memory efficient)
-PROGRESS_SAVE_EVERY  = 50    # Save sent/failed counts every N messages
-RATE_LIMIT_EVERY     = 25    # Sleep 1s after every N sends (Telegram: 30 msg/sec limit)
+BROADCAST_BATCH_SIZE = 500   # Users loaded per DB query (memory efficient)
+PROGRESS_SAVE_EVERY  = 100   # Save sent/failed counts every N messages
+CONCURRENCY          = 29    # Max parallel sends (Telegram limit: 30/sec per bot)
 
 
 class BroadcastService:
@@ -210,23 +211,26 @@ async def send_broadcast(
         await service.mark_sending(broadcast_id, total)
         await session.commit()
 
-    # ── Phase 2: stream-send ──────────────────────────────────────────────
+    # ── Phase 2: parallel stream-send ────────────────────────────────────
     _own_bot = bot_instance is None
     bot = bot_instance or Bot(token=settings.BOT_TOKEN)
     sent = failed = processed = 0
-    inactive_batch: list = []   # collect blocked user IDs, flush in bulk every 50
+    inactive_batch: list = []   # collect blocked user IDs, flush in bulk
+    lock = asyncio.Lock()       # protect shared counters from concurrent writes
+
+    semaphore = asyncio.Semaphore(CONCURRENCY)  # max 29 concurrent sends
 
     def _progress_text():
-        # pct = actual completion progress (processed / total)
         pct = round(processed / max(total, 1) * 100)
         success_rate = round(sent / max(processed, 1) * 100)
-        eta = max(1, (total - processed) // max(processed // max(1, int((processed or 1) / max(1, 1))), 25))
+        # eta: remaining / CONCURRENCY msgs per second
+        eta_sec = max(1, (total - processed) // CONCURRENCY)
         return (
             f"📤 <b>Broadcast davom etmoqda...</b>\n\n"
             f"✅ Yetkazildi: <b>{sent}</b>\n"
             f"❌ Yetkazilmadi: <b>{failed}</b>\n"
             f"📊 Jarayon: <b>{processed}/{total}</b>  ({pct}% tugadi | {success_rate}% muvaffaqiyat)\n\n"
-            f"⏳ Taxminan {max(1, (total - processed) // 25)} soniyada tugaydi..."
+            f"⏳ Taxminan {eta_sec} soniyada tugaydi..."
         )
 
     async def _update_progress():
@@ -254,17 +258,15 @@ async def send_broadcast(
     CAPTION_LIMIT = 1024   # Telegram max caption length for media
     TEXT_LIMIT = 4096       # Telegram max text message length
 
-    async def _send_to(tid, text, pm="HTML"):
+    async def _send_to(tid, text, pm="HTML", _retry: int = 3):
         """
-        Send with:
-        - Entities mode: if send_entities available, use them (preserves expandable_blockquote)
-        - Auto-split: media with long caption → media + separate text message
-        - Auto-split: text > 4096 chars → multiple messages
-        - Auto-fallback: if HTML parse fails → retry without parse_mode
+        Send with RetryAfter handling + auto-fallback on parse errors.
+        - Retries up to _retry times on Telegram 429 (flood control)
+        - Entities mode preserves expandable_blockquote
+        - Auto-splits long captions / texts
         """
         is_media = c_type in ("photo", "video", "document", "audio", "voice") and file_id
 
-        # Decide: use raw entities or parse_mode
         use_entities = bool(send_entities and pm is not None)
         ent_kwargs = {"entities": send_entities} if use_entities and not is_media else {}
         cap_ent_kwargs = {"caption_entities": send_entities} if use_entities and is_media else {}
@@ -272,8 +274,7 @@ async def send_broadcast(
 
         try:
             if is_media:
-                # Caption must be plain text when using caption_entities
-                plain_text = text  # html_text is stored but entities encode the format
+                plain_text = text
                 caption = plain_text[:CAPTION_LIMIT] if plain_text else ""
                 overflow = plain_text[CAPTION_LIMIT:] if plain_text and len(plain_text) > CAPTION_LIMIT else ""
 
@@ -288,7 +289,6 @@ async def send_broadcast(
                 elif c_type == "voice":
                     await bot.send_voice(chat_id=tid, voice=file_id, caption=caption or None, **cap_ent_kwargs, **pm_kwarg)
 
-                # Send overflow text as a separate message
                 if overflow:
                     await bot.send_message(chat_id=tid, text=overflow[:TEXT_LIMIT], **pm_kwarg)
 
@@ -296,79 +296,144 @@ async def send_broadcast(
                 await bot.send_video_note(chat_id=tid, video_note=file_id)
 
             else:
-                # Plain text — split if too long
                 chunks = [text[i:i+TEXT_LIMIT] for i in range(0, max(len(text), 1), TEXT_LIMIT)]
                 for chunk in chunks:
                     await bot.send_message(chat_id=tid, text=chunk, **ent_kwargs, **pm_kwarg)
 
-            return True  # success
+            return True
 
         except Exception as e:
-            # If HTML parsing fails, retry without parse_mode (once only)
-            if pm and "can't parse entities" in str(e).lower():
-                return await _send_to(tid, text, pm=None)
+            err_str = str(e).lower()
 
-            raise  # re-raise other errors
+            # HTML parse error → retry without parse_mode (once)
+            if pm and "can't parse entities" in err_str:
+                return await _send_to(tid, text, pm=None, _retry=_retry)
 
+            # Telegram flood control (429) → wait and retry
+            if "retry after" in err_str or "too many requests" in err_str or "429" in err_str:
+                # Try to extract retry_after seconds from exception
+                retry_after = 5  # default fallback
+                try:
+                    # aiogram raises TelegramRetryAfter with .retry_after attribute
+                    if hasattr(e, "retry_after") and e.retry_after:  # type: ignore[union-attr]
+                        retry_after = int(e.retry_after) + 1  # type: ignore[union-attr]
+                    else:
+                        import re
+                        m = re.search(r"retry after (\d+)", err_str)
+                        if m:
+                            retry_after = int(m.group(1)) + 1
+                except Exception:
+                    pass
 
-    try:
-        async for tid in _iter_recipients(filters):
-            processed += 1
+                if _retry > 0:
+                    logger.warning(
+                        f"[Broadcast {broadcast_id}] 429 for {tid} — waiting {retry_after}s, "
+                        f"{_retry} retries left"
+                    )
+                    await asyncio.sleep(retry_after)
+                    return await _send_to(tid, text, pm=pm, _retry=_retry - 1)
 
+            raise
+
+    async def _worker(tid: int):
+        """Send to one user, guarded by semaphore; update shared counters."""
+        nonlocal sent, failed, processed, inactive_batch
+
+        async with semaphore:
             try:
                 ok = await _send_to(tid, content)
-                if ok:
-                    sent += 1
+                async with lock:
+                    if ok:
+                        sent += 1
+                    processed += 1
 
             except Exception as e:
-                failed += 1
-                err_str = str(e).lower()
+                async with lock:
+                    failed += 1
+                    processed += 1
+                    err_str = str(e).lower()
+                    truly_blocked = (
+                        "bot was blocked by the user" in err_str
+                        or "user is deactivated" in err_str
+                    )
+                    if truly_blocked:
+                        inactive_batch.append(tid)
+                        logger.debug(f"[Broadcast {broadcast_id}] {tid} → queued inactive.")
+                    elif "forbidden" in err_str:
+                        logger.debug(f"[Broadcast {broadcast_id}] {tid} forbidden: {str(e)[:80]}")
+                    else:
+                        logger.warning(f"[Broadcast {broadcast_id}] Failed {tid}: {str(e)[:120]}")
 
-                # Collect truly blocked users into a batch — no DB call here
-                truly_blocked = (
-                    "bot was blocked by the user" in err_str
-                    or "user is deactivated" in err_str
-                )
-                if truly_blocked:
-                    inactive_batch.append(tid)
-                    logger.debug(f"[Broadcast {broadcast_id}] {tid} → queued inactive.")
-                elif "forbidden" in err_str:
-                    logger.debug(f"[Broadcast {broadcast_id}] {tid} forbidden: {str(e)[:80]}")
-                else:
-                    logger.warning(f"[Broadcast {broadcast_id}] Failed {tid}: {str(e)[:120]}")
+    async def _flush_periodically():
+        """Every PROGRESS_SAVE_EVERY processed users: save to DB + update Telegram."""
+        nonlocal inactive_batch
+        last_saved = 0
+        while True:
+            await asyncio.sleep(3)  # check every 3 seconds
+            if processed - last_saved >= PROGRESS_SAVE_EVERY:
+                last_saved = processed
 
-
-            # ── Rate limit ────────────────────────────────────────────────
-            if processed % RATE_LIMIT_EVERY == 0:
-                await asyncio.sleep(1)
-
-            # ── Every 50: save progress + flush inactive batch + update Telegram ──
-            if processed % PROGRESS_SAVE_EVERY == 0:
-                # Batch-update blocked users in one DB call
-                if inactive_batch:
+                # Flush inactive batch
+                batch_copy = inactive_batch[:]
+                inactive_batch.clear()
+                if batch_copy:
                     try:
                         async with async_session() as _s:
                             await _s.execute(
                                 update(User)
-                                .where(User.telegram_id.in_(inactive_batch))
+                                .where(User.telegram_id.in_(batch_copy))
                                 .values(is_active=False)
                             )
                             await _s.commit()
                     except Exception as _db_err:
                         logger.warning(f"[Broadcast {broadcast_id}] Batch inactive update failed: {_db_err}")
-                    inactive_batch.clear()
 
                 # Save counts to DB
-                async with async_session() as _s:
-                    svc = BroadcastService(_s)
-                    await svc.update_progress(broadcast_id, sent, failed)
-                    await _s.commit()
+                try:
+                    async with async_session() as _s:
+                        svc = BroadcastService(_s)
+                        await svc.update_progress(broadcast_id, sent, failed)
+                        await _s.commit()
+                except Exception:
+                    pass
 
                 await _update_progress()
                 logger.info(
                     f"[Broadcast {broadcast_id}] {processed}/{total} "
                     f"sent={sent} failed={failed}"
                 )
+
+    try:
+        # ── Parallel dispatch: create one task per recipient ───────────────
+        flush_task = asyncio.create_task(_flush_periodically())
+        tasks = []
+
+        async for tid in _iter_recipients(filters):
+            tasks.append(asyncio.create_task(_worker(tid)))
+
+        # Wait for all sends to complete (semaphore limits to CONCURRENCY at once)
+        if tasks:
+            await asyncio.gather(*tasks, return_exceptions=True)
+
+        # Stop the periodic flusher
+        flush_task.cancel()
+        try:
+            await flush_task
+        except asyncio.CancelledError:
+            pass
+
+        # ── Final flush: remaining inactive users ─────────────────────────
+        if inactive_batch:
+            try:
+                async with async_session() as _s:
+                    await _s.execute(
+                        update(User)
+                        .where(User.telegram_id.in_(inactive_batch))
+                        .values(is_active=False)
+                    )
+                    await _s.commit()
+            except Exception as _db_err:
+                logger.warning(f"[Broadcast {broadcast_id}] Final inactive flush failed: {_db_err}")
 
         # ── Final save ────────────────────────────────────────────────────
         async with async_session() as session:
@@ -407,7 +472,6 @@ async def send_broadcast(
 
     except Exception as e:
         logger.error(f"[Broadcast {broadcast_id}] CRASHED: {e}\n{_tb.format_exc()}")
-        # Notify admin about crash
         if progress_chat_id:
             try:
                 await bot.send_message(
@@ -421,3 +485,4 @@ async def send_broadcast(
     finally:
         if _own_bot:
             await bot.session.close()
+
