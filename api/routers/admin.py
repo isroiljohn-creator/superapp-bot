@@ -539,17 +539,23 @@ async def send_broadcast(payload: dict, admin_id: int = Depends(check_admin), db
         except ValueError:
             pass
 
-    # Try taskqueue first (streaming, memory-efficient for 10k+ users)
+    # Try taskqueue — if fails, fire directly
     try:
         from taskqueue import schedule_broadcast
         await schedule_broadcast(broadcast_id=broadcast_id)
         _logger.info(f"[API Broadcast {broadcast_id}] Queued via taskqueue.")
     except Exception as e:
-        _logger.error(f"[API Broadcast {broadcast_id}] Taskqueue failed: {e}")
-        raise HTTPException(status_code=500, detail=f"Broadcast yuborishda xatolik: {e}")
+        _logger.error(f"[API Broadcast {broadcast_id}] Taskqueue failed ({e}), firing directly.")
+        # Fire directly as last resort
+        try:
+            import asyncio
+            from services.broadcast import send_broadcast as _sb
+            t = asyncio.create_task(_sb(broadcast_id))
+            t.add_done_callback(lambda _t: _logger.info(f"Direct broadcast {broadcast_id} done") if not _t.exception() else _logger.error(f"Direct broadcast {broadcast_id} failed: {_t.exception()}"))
+        except Exception as e2:
+            _logger.error(f"[API Broadcast {broadcast_id}] Direct fire also failed: {e2}")
+            # Don't raise — return 200, broadcast will need manual retry
 
-    # ✅ Return IMMEDIATELY — no slow COUNT query, no waiting
-    # The background task will update total_count in DB once it starts
     return {
         "status": "accepted",
         "message": "Xabar yuborilmoqda...",
@@ -557,6 +563,7 @@ async def send_broadcast(payload: dict, admin_id: int = Depends(check_admin), db
         "broadcast_id": broadcast_id,
         "method": "queue",
     }
+
 
 
 # ── Helpers ───────────────────────────────────────
