@@ -224,33 +224,15 @@ async def process_broadcast_content(message: Message, state: FSMContext):
         content_type = "video_note"
         file_id = message.video_note.file_id
 
-    # Try to save broadcast as DRAFT to DB
-    # If this fails, we show preview anyway and create at confirm time
-    broadcast_id = None
-    try:
-        async with async_session() as session:
-            broadcast_service = BroadcastService(session)
-            broadcast = await broadcast_service.create_broadcast(
-                content=content,
-                content_type=content_type,
-                file_id=file_id,
-                filters=filters,
-                entities=entities_json,
-            )
-            await session.commit()
-            broadcast_id = broadcast.id
-    except Exception as e:
-        # Log error but DON'T block the preview
-        import logging as _log
-        _log.getLogger("bot.broadcast").error(f"Draft save failed: {e}")
-        # Store in FSM as fallback
-        await state.update_data(
-            content=content,
-            content_type=content_type,
-            file_id=file_id,
-            entities=entities_json,
-        )
-        await state.set_state(BroadcastFSM.waiting_confirm)
+    # Save to FSM state only — simple and reliable
+    await state.update_data(
+        content=content,
+        content_type=content_type,
+        file_id=file_id,
+        entities=entities_json,
+        filters=filters,
+    )
+    await state.set_state(BroadcastFSM.waiting_confirm)
 
     preview = (
         f"📋 <b>Broadcast ko'rib chiqish:</b>\n\n"
@@ -258,39 +240,17 @@ async def process_broadcast_content(message: Message, state: FSMContext):
         f"📝 Turi: {content_type}\n\n"
         f"Yuborasizmi?"
     )
-
-    if broadcast_id:
-        await message.answer(
-            preview,
-            parse_mode="HTML",
-            reply_markup=broadcast_confirm_keyboard(broadcast_id),
-        )
-        await state.clear()  # broadcast_id in callback, FSM not needed
-    else:
-        # Fallback: use old FSM-based keyboard
-        from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-        fallback_kb = InlineKeyboardMarkup(inline_keyboard=[[
-            InlineKeyboardButton(text="✅ Yuborish", callback_data="broadcast:confirm:0"),
-            InlineKeyboardButton(text="❌ Bekor qilish", callback_data="broadcast:cancel:0"),
-        ]])
-        await message.answer(preview, parse_mode="HTML", reply_markup=fallback_kb)
+    await message.answer(
+        preview,
+        parse_mode="HTML",
+        reply_markup=broadcast_confirm_keyboard(),
+    )
 
 
-
-
-
-# No FSM state filter — broadcast_id is in callback data, works after bot restart
-@router.callback_query(F.data.startswith("broadcast:confirm:"))
+@router.callback_query(F.data == "broadcast:confirm")
 async def confirm_broadcast(callback: CallbackQuery, state: FSMContext):
     import logging as _log
     _logger = _log.getLogger("bot.broadcast")
-
-    # Parse broadcast_id from callback data
-    try:
-        broadcast_id = int(callback.data.split(":")[2])
-    except (IndexError, ValueError):
-        await callback.answer("❌ Xatolik: broadcast ID topilmadi")
-        return
 
     # Check admin
     from bot.config import settings
@@ -298,42 +258,18 @@ async def confirm_broadcast(callback: CallbackQuery, state: FSMContext):
         await callback.answer("❌ Ruxsat yo'q")
         return
 
-    _logger.info(f"[confirm_broadcast] Admin {callback.from_user.id} confirmed broadcast_id={broadcast_id}")
-
-    # IMPORTANT: get FSM data BEFORE clearing state
-    fsm_data = await state.get_data()
+    # Get FSM data
+    data = await state.get_data()
     await state.clear()
 
-    # If broadcast_id=0, draft save failed earlier — try creating from FSM data now
-    if broadcast_id == 0:
-        _logger.warning("[confirm_broadcast] broadcast_id=0, trying to create from FSM state")
-        try:
-            async with async_session() as session:
-                svc = BroadcastService(session)
-                bc = await svc.create_broadcast(
-                    content=fsm_data.get("content", ""),
-                    content_type=fsm_data.get("content_type", "text"),
-                    file_id=fsm_data.get("file_id"),
-                    filters=fsm_data.get("filters", {}),
-                    entities=fsm_data.get("entities"),
-                )
-                await session.commit()
-                broadcast_id = bc.id
-            _logger.info(f"[confirm_broadcast] Created from FSM: broadcast_id={broadcast_id}")
-        except Exception as exc:
-            _logger.error(f"[confirm_broadcast] FSM create failed: {exc}")
-            await callback.message.edit_text(f"❌ Xatolik: {exc}")
-            await callback.answer()
-            return
+    if not data:
+        await callback.answer("❌ Sessiya muddati o'tdi. Qaytadan /broadcast bosing.")
+        return
 
-    # Show started message immediately
-    progress_chat_id = callback.message.chat.id
-    progress_message_id = None
-    started_text = (
-        f"📤 <b>Broadcast boshlandi!</b>\n\n"
-        f"⏳ Yuborilmoqda, kuting...\n"
-        f"📊 Progress pastda yangilanadi."
-    )
+    await callback.answer()  # Answer IMMEDIATELY
+
+    # Show started message
+    started_text = "📤 <b>Broadcast boshlandi!</b>\n\n⏳ Yuborilmoqda, kuting..."
     try:
         sent_msg = await callback.message.edit_text(started_text, parse_mode="HTML")
         progress_message_id = sent_msg.message_id
@@ -342,11 +278,30 @@ async def confirm_broadcast(callback: CallbackQuery, state: FSMContext):
             sent_msg = await callback.message.answer(started_text, parse_mode="HTML")
             progress_message_id = sent_msg.message_id
         except Exception:
-            pass
+            progress_message_id = None
+    progress_chat_id = callback.message.chat.id
 
-    await callback.answer()  # Answer immediately
+    # Create broadcast in DB
+    broadcast_id = None
+    try:
+        async with async_session() as session:
+            svc = BroadcastService(session)
+            bc = await svc.create_broadcast(
+                content=data.get("content", ""),
+                content_type=data.get("content_type", "text"),
+                file_id=data.get("file_id"),
+                filters=data.get("filters", {}),
+                entities=data.get("entities"),
+            )
+            await session.commit()
+            broadcast_id = bc.id
+        _logger.info(f"[confirm_broadcast] Created broadcast_id={broadcast_id}")
+    except Exception as e:
+        _logger.error(f"[confirm_broadcast] DB create failed: {e}")
+        await callback.message.answer(f"❌ Xatolik: {e}")
+        return
 
-    # Schedule broadcast
+    # Schedule broadcast in background
     try:
         from taskqueue import schedule_broadcast
         await schedule_broadcast(
@@ -357,16 +312,11 @@ async def confirm_broadcast(callback: CallbackQuery, state: FSMContext):
         )
         _logger.info(f"[confirm_broadcast] Broadcast {broadcast_id} scheduled")
     except Exception as e:
-        _logger.error(f"[confirm_broadcast] schedule_broadcast failed: {e}")
-        await callback.message.answer(f"❌ Broadcast yuborishda xatolik: {e}")
+        _logger.error(f"[confirm_broadcast] schedule failed: {e}")
+        await callback.message.answer(f"❌ Yuborishda xatolik: {e}")
 
 
-
-
-
-
-
-@router.callback_query(F.data.startswith("broadcast:cancel:"))
+@router.callback_query(F.data == "broadcast:cancel")
 async def cancel_broadcast(callback: CallbackQuery, state: FSMContext):
     await state.clear()
     await callback.message.edit_text("❌ Broadcast bekor qilindi.")
