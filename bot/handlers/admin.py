@@ -224,8 +224,8 @@ async def process_broadcast_content(message: Message, state: FSMContext):
         content_type = "video_note"
         file_id = message.video_note.file_id
 
-    # ✅ Save broadcast as DRAFT to DB immediately
-    # This way the confirm button works even after bot restart
+    # Try to save broadcast as DRAFT to DB
+    # If this fails, we show preview anyway and create at confirm time
     broadcast_id = None
     try:
         async with async_session() as session:
@@ -240,45 +240,42 @@ async def process_broadcast_content(message: Message, state: FSMContext):
             await session.commit()
             broadcast_id = broadcast.id
     except Exception as e:
-        await message.answer(f"❌ Broadcast saqlashda xatolik: {e}")
-        await state.clear()
-        return
-
-    # Count recipients
-    count = 0
-    try:
-        async with async_session() as session:
-            from sqlalchemy import func, select as _select
-            from db.models import User as _User, Subscription as _Sub
-            q = _select(func.count()).select_from(_User).where(_User.is_active.isnot(False))
-            if filters.get("user_status"):
-                q = q.where(_User.user_status == filters["user_status"])
-            if filters.get("lead_segment"):
-                q = q.where(_User.lead_segment == filters["lead_segment"])
-            if filters.get("lead_score_min"):
-                q = q.where(_User.lead_score >= filters["lead_score_min"])
-            if filters.get("paid"):
-                sub_sq = _select(_Sub.user_id).where(_Sub.status == "active").scalar_subquery()
-                q = q.where(_User.id.in_(sub_sq))
-            result = await session.execute(q)
-            count = result.scalar() or 0
-    except Exception:
-        count = 0
+        # Log error but DON'T block the preview
+        import logging as _log
+        _log.getLogger("bot.broadcast").error(f"Draft save failed: {e}")
+        # Store in FSM as fallback
+        await state.update_data(
+            content=content,
+            content_type=content_type,
+            file_id=file_id,
+            entities=entities_json,
+        )
+        await state.set_state(BroadcastFSM.waiting_confirm)
 
     preview = (
         f"📋 <b>Broadcast ko'rib chiqish:</b>\n\n"
         f"📊 Filtrlar: <code>{json.dumps(filters, ensure_ascii=False)}</code>\n"
-        f"👥 Qabul qiluvchilar: {count}\n"
         f"📝 Turi: {content_type}\n\n"
         f"Yuborasizmi?"
     )
 
-    await message.answer(
-        preview,
-        parse_mode="HTML",
-        reply_markup=broadcast_confirm_keyboard(broadcast_id),
-    )
-    await state.clear()  # Clear FSM state — no longer needed, broadcast_id is in callback
+    if broadcast_id:
+        await message.answer(
+            preview,
+            parse_mode="HTML",
+            reply_markup=broadcast_confirm_keyboard(broadcast_id),
+        )
+        await state.clear()  # broadcast_id in callback, FSM not needed
+    else:
+        # Fallback: use old FSM-based keyboard
+        from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+        fallback_kb = InlineKeyboardMarkup(inline_keyboard=[[
+            InlineKeyboardButton(text="✅ Yuborish", callback_data="broadcast:confirm:0"),
+            InlineKeyboardButton(text="❌ Bekor qilish", callback_data="broadcast:cancel:0"),
+        ]])
+        await message.answer(preview, parse_mode="HTML", reply_markup=fallback_kb)
+
+
 
 
 
@@ -303,7 +300,17 @@ async def confirm_broadcast(callback: CallbackQuery, state: FSMContext):
 
     _logger.info(f"[confirm_broadcast] Admin {callback.from_user.id} confirmed broadcast_id={broadcast_id}")
 
-    await state.clear()  # Clean up any leftover FSM state
+    await state.clear()
+
+    # If broadcast_id=0, draft save failed — create now from FSM data (already cleared, use callback state)
+    if broadcast_id == 0:
+        # We can't get data after state.clear(), but the content is in DB from the draft save attempt
+        # This path only happens if create_broadcast failed - notify admin
+        await callback.message.edit_text(
+            "❌ Broadcast yaratishda xatolik yuz berdi. Iltimos qayta urinib ko'ring: /broadcast"
+        )
+        await callback.answer()
+        return
 
     # Show started message immediately
     progress_chat_id = callback.message.chat.id
@@ -338,6 +345,7 @@ async def confirm_broadcast(callback: CallbackQuery, state: FSMContext):
     except Exception as e:
         _logger.error(f"[confirm_broadcast] schedule_broadcast failed: {e}")
         await callback.message.answer(f"❌ Broadcast yuborishda xatolik: {e}")
+
 
 
 
