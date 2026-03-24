@@ -199,12 +199,9 @@ async def process_broadcast_content(message: Message, state: FSMContext):
     filters = data.get("filters", {})
 
     content_type = "text"
-    # Use html_text/html_caption to preserve bold, italic, blockquote, URL formatting.
-    # Also save raw entities for expandable_blockquote which html_text can't encode properly.
     content = message.html_text or message.html_caption or message.text or message.caption or ""
     file_id = None
 
-    # Save entities as JSON list for exact format reconstruction (expandable_blockquote etc.)
     raw_entities = message.entities or message.caption_entities or []
     entities_json = [e.model_dump() for e in raw_entities] if raw_entities else None
 
@@ -227,30 +224,46 @@ async def process_broadcast_content(message: Message, state: FSMContext):
         content_type = "video_note"
         file_id = message.video_note.file_id
 
-    await state.update_data(
-        content=content,
-        content_type=content_type,
-        file_id=file_id,
-        entities=entities_json,
-    )
+    # ✅ Save broadcast as DRAFT to DB immediately
+    # This way the confirm button works even after bot restart
+    broadcast_id = None
+    try:
+        async with async_session() as session:
+            broadcast_service = BroadcastService(session)
+            broadcast = await broadcast_service.create_broadcast(
+                content=content,
+                content_type=content_type,
+                file_id=file_id,
+                filters=filters,
+                entities=entities_json,
+            )
+            await session.commit()
+            broadcast_id = broadcast.id
+    except Exception as e:
+        await message.answer(f"❌ Broadcast saqlashda xatolik: {e}")
+        await state.clear()
+        return
 
-
-    # Count recipients efficiently — direct COUNT(*) SQL query, no RAM load
-    async with async_session() as session:
-        from sqlalchemy import func, select as _select
-        from db.models import User as _User, Subscription as _Sub
-        q = _select(func.count()).select_from(_User).where(_User.is_active.isnot(False))
-        if filters.get("user_status"):
-            q = q.where(_User.user_status == filters["user_status"])
-        if filters.get("lead_segment"):
-            q = q.where(_User.lead_segment == filters["lead_segment"])
-        if filters.get("lead_score_min"):
-            q = q.where(_User.lead_score >= filters["lead_score_min"])
-        if filters.get("paid"):
-            sub_sq = _select(_Sub.user_id).where(_Sub.status == "active").scalar_subquery()
-            q = q.where(_User.id.in_(sub_sq))
-        result = await session.execute(q)
-        count = result.scalar() or 0
+    # Count recipients
+    count = 0
+    try:
+        async with async_session() as session:
+            from sqlalchemy import func, select as _select
+            from db.models import User as _User, Subscription as _Sub
+            q = _select(func.count()).select_from(_User).where(_User.is_active.isnot(False))
+            if filters.get("user_status"):
+                q = q.where(_User.user_status == filters["user_status"])
+            if filters.get("lead_segment"):
+                q = q.where(_User.lead_segment == filters["lead_segment"])
+            if filters.get("lead_score_min"):
+                q = q.where(_User.lead_score >= filters["lead_score_min"])
+            if filters.get("paid"):
+                sub_sq = _select(_Sub.user_id).where(_Sub.status == "active").scalar_subquery()
+                q = q.where(_User.id.in_(sub_sq))
+            result = await session.execute(q)
+            count = result.scalar() or 0
+    except Exception:
+        count = 0
 
     preview = (
         f"📋 <b>Broadcast ko'rib chiqish:</b>\n\n"
@@ -263,43 +276,36 @@ async def process_broadcast_content(message: Message, state: FSMContext):
     await message.answer(
         preview,
         parse_mode="HTML",
-        reply_markup=broadcast_confirm_keyboard(),
+        reply_markup=broadcast_confirm_keyboard(broadcast_id),
     )
-    await state.set_state(BroadcastFSM.waiting_confirm)
+    await state.clear()  # Clear FSM state — no longer needed, broadcast_id is in callback
 
 
-@router.callback_query(BroadcastFSM.waiting_confirm, F.data == "broadcast:confirm")
+
+# No FSM state filter — broadcast_id is in callback data, works after bot restart
+@router.callback_query(F.data.startswith("broadcast:confirm:"))
 async def confirm_broadcast(callback: CallbackQuery, state: FSMContext):
     import logging as _log
     _logger = _log.getLogger("bot.broadcast")
 
-    data = await state.get_data()
-    await state.clear()
-
-    _logger.info(f"[confirm_broadcast] Admin {callback.from_user.id} confirmed broadcast.")
-
-    # Step 1: Create broadcast DB record
-    broadcast_id = None
+    # Parse broadcast_id from callback data
     try:
-        async with async_session() as session:
-            broadcast_service = BroadcastService(session)
-            broadcast = await broadcast_service.create_broadcast(
-                content=data.get("content", ""),
-                content_type=data.get("content_type", "text"),
-                file_id=data.get("file_id"),
-                filters=data.get("filters", {}),
-                entities=data.get("entities"),
-            )
-            await session.commit()
-            broadcast_id = broadcast.id
-        _logger.info(f"[confirm_broadcast] Broadcast {broadcast_id} created in DB")
-    except Exception as e:
-        _logger.error(f"[confirm_broadcast] Failed to create broadcast in DB: {e}")
-        await callback.message.answer(f"❌ Broadcast yaratishda xatolik: {e}")
-        await callback.answer()
+        broadcast_id = int(callback.data.split(":")[2])
+    except (IndexError, ValueError):
+        await callback.answer("❌ Xatolik: broadcast ID topilmadi")
         return
 
-    # Step 2: Show started message IMMEDIATELY (no slow COUNT query!)
+    # Check admin
+    from bot.config import settings
+    if callback.from_user.id not in settings.ADMIN_IDS:
+        await callback.answer("❌ Ruxsat yo'q")
+        return
+
+    _logger.info(f"[confirm_broadcast] Admin {callback.from_user.id} confirmed broadcast_id={broadcast_id}")
+
+    await state.clear()  # Clean up any leftover FSM state
+
+    # Show started message immediately
     progress_chat_id = callback.message.chat.id
     progress_message_id = None
     started_text = (
@@ -317,10 +323,9 @@ async def confirm_broadcast(callback: CallbackQuery, state: FSMContext):
         except Exception:
             pass
 
-    # ✅ Answer callback NOW — before heavy work to avoid Telegram 30s timeout
-    await callback.answer()
+    await callback.answer()  # Answer immediately
 
-    # Step 3: Schedule broadcast in background
+    # Schedule broadcast
     try:
         from taskqueue import schedule_broadcast
         await schedule_broadcast(
@@ -329,7 +334,7 @@ async def confirm_broadcast(callback: CallbackQuery, state: FSMContext):
             progress_chat_id=progress_chat_id,
             progress_message_id=progress_message_id,
         )
-        _logger.info(f"[confirm_broadcast] Broadcast {broadcast_id} scheduled via taskqueue")
+        _logger.info(f"[confirm_broadcast] Broadcast {broadcast_id} scheduled")
     except Exception as e:
         _logger.error(f"[confirm_broadcast] schedule_broadcast failed: {e}")
         await callback.message.answer(f"❌ Broadcast yuborishda xatolik: {e}")
@@ -337,7 +342,9 @@ async def confirm_broadcast(callback: CallbackQuery, state: FSMContext):
 
 
 
-@router.callback_query(BroadcastFSM.waiting_confirm, F.data == "broadcast:cancel")
+
+
+@router.callback_query(F.data.startswith("broadcast:cancel:"))
 async def cancel_broadcast(callback: CallbackQuery, state: FSMContext):
     await state.clear()
     await callback.message.edit_text("❌ Broadcast bekor qilindi.")

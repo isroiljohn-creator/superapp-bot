@@ -165,13 +165,13 @@ def renew_subscription_keyboard(webapp_url: str) -> InlineKeyboardMarkup:
 # ──────────────────────────────────────────────
 # Admin — broadcast filters
 # ──────────────────────────────────────────────
-def broadcast_confirm_keyboard() -> InlineKeyboardMarkup:
-    """Confirm broadcast send."""
+def broadcast_confirm_keyboard(broadcast_id: int) -> InlineKeyboardMarkup:
+    """Confirm broadcast send — includes broadcast_id so FSM state is not needed."""
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [
-                InlineKeyboardButton(text="✅ Yuborish", callback_data="broadcast:confirm"),
-                InlineKeyboardButton(text="❌ Bekor qilish", callback_data="broadcast:cancel"),
+                InlineKeyboardButton(text="✅ Yuborish", callback_data=f"broadcast:confirm:{broadcast_id}"),
+                InlineKeyboardButton(text="❌ Bekor qilish", callback_data=f"broadcast:cancel:{broadcast_id}"),
             ],
         ]
     )
