@@ -222,6 +222,12 @@ async def send_broadcast(
         ent_kw = {"entities": send_entities} if use_entities and not is_media else {}
         cap_kw = {"caption_entities": send_entities} if use_entities and is_media else {}
 
+        # Unsubscribe button for all broadcasts
+        from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+        unsub_kb = InlineKeyboardMarkup(inline_keyboard=[[
+            InlineKeyboardButton(text="🚫 Xabarlarni to'xtatish", callback_data="unsub:broadcast")
+        ]])
+
         async def _do(pm="HTML", retry=3):
             _pm = {} if use_entities else ({"parse_mode": pm} if pm else {})
             try:
@@ -229,24 +235,28 @@ async def send_broadcast(
                     cap = content[:CAPTION_LIMIT] if content else ""
                     overflow = content[CAPTION_LIMIT:] if content and len(content) > CAPTION_LIMIT else ""
                     if c_type == "photo":
-                        await bot.send_photo(tid, photo=file_id, caption=cap or None, **cap_kw, **_pm)
+                        await bot.send_photo(tid, photo=file_id, caption=cap or None, **cap_kw, **_pm, reply_markup=unsub_kb)
                     elif c_type == "video":
-                        await bot.send_video(tid, video=file_id, caption=cap or None, **cap_kw, **_pm)
+                        await bot.send_video(tid, video=file_id, caption=cap or None, **cap_kw, **_pm, reply_markup=unsub_kb)
                     elif c_type == "document":
-                        await bot.send_document(tid, document=file_id, caption=cap or None, **cap_kw, **_pm)
+                        await bot.send_document(tid, document=file_id, caption=cap or None, **cap_kw, **_pm, reply_markup=unsub_kb)
                     elif c_type == "audio":
-                        await bot.send_audio(tid, audio=file_id, caption=cap or None, **cap_kw, **_pm)
+                        await bot.send_audio(tid, audio=file_id, caption=cap or None, **cap_kw, **_pm, reply_markup=unsub_kb)
                     elif c_type == "voice":
-                        await bot.send_voice(tid, voice=file_id, caption=cap or None, **cap_kw, **_pm)
+                        await bot.send_voice(tid, voice=file_id, caption=cap or None, **cap_kw, **_pm, reply_markup=unsub_kb)
                     if overflow:
-                        await bot.send_message(tid, text=overflow[:TEXT_LIMIT], **_pm)
+                        await bot.send_message(tid, text=overflow[:TEXT_LIMIT], **_pm, reply_markup=unsub_kb)
                 elif c_type == "video_note" and file_id:
                     await bot.send_video_note(tid, video_note=file_id)
+                    # Send unsubscribe separately after video_note (can't attach kb)
+                    await bot.send_message(tid, text=".", reply_markup=unsub_kb)
                 else:
                     chunks = [content[i:i+TEXT_LIMIT] for i in range(0, max(len(content), 1), TEXT_LIMIT)]
-                    for ch in chunks:
-                        await bot.send_message(tid, text=ch, **ent_kw, **_pm)
+                    for i, ch in enumerate(chunks):
+                        kb = unsub_kb if i == len(chunks) - 1 else None
+                        await bot.send_message(tid, text=ch, **ent_kw, **_pm, reply_markup=kb)
                 return True, False
+
 
             except Exception as e:
                 err = str(e).lower()

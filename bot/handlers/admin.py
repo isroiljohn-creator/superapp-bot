@@ -345,6 +345,26 @@ async def cancel_broadcast(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
 
 
+@router.callback_query(F.data == "unsub:broadcast")
+async def unsubscribe_broadcast(callback: CallbackQuery):
+    """User clicked 'Stop messages' — mark as inactive."""
+    try:
+        from db.models import User as _User
+        from sqlalchemy import update as _update
+        async with async_session() as session:
+            await session.execute(
+                _update(_User)
+                .where(_User.telegram_id == callback.from_user.id)
+                .values(is_active=False)
+            )
+            await session.commit()
+        await callback.message.edit_reply_markup(reply_markup=None)
+        await callback.answer("✅ Siz xabarlar ro'yxatidan chiqarildingiz.", show_alert=True)
+    except Exception as e:
+        await callback.answer(f"Xatolik: {e}", show_alert=True)
+
+
+
 async def _direct_broadcast(bot, users, data, broadcast_id: int = None):
     """Fallback: direct send with rate limiting (Telegram limit: 30 msg/sec)."""
     import asyncio
