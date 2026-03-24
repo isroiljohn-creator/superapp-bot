@@ -540,100 +540,22 @@ async def send_broadcast(payload: dict, admin_id: int = Depends(check_admin), db
             pass
 
     # Try taskqueue first (streaming, memory-efficient for 10k+ users)
-    queue_ok = False
     try:
         from taskqueue import schedule_broadcast
         await schedule_broadcast(broadcast_id=broadcast_id)
-        queue_ok = True
         _logger.info(f"[API Broadcast {broadcast_id}] Queued via taskqueue.")
     except Exception as e:
-        _logger.warning(f"[API Broadcast {broadcast_id}] Taskqueue failed ({e}), falling back to direct send.")
+        _logger.error(f"[API Broadcast {broadcast_id}] Taskqueue failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Broadcast yuborishda xatolik: {e}")
 
-    # Direct send fallback — only runs if taskqueue truly failed
-    if not queue_ok:
-        import asyncio
-        # Load users for direct send
-        crm = CRMService(db)
-        all_users = await crm.get_users_filtered(filters, limit=50_000)
-        telegram_ids = [u.telegram_id for u in all_users if u.telegram_id]
-        await broadcast_service.mark_sending(broadcast_id, len(telegram_ids))
-        await db.commit()
-
-        async def _send_all(ids: list, text: str, fid: str, ctype: str, kb, b_id: int):
-            bot = Bot(token=settings.BOT_TOKEN)
-            sent = failed = 0
-            try:
-                for tid in ids:
-                    try:
-                        if fid:
-                            if ctype == "photo":
-                                await bot.send_photo(chat_id=tid, photo=fid, caption=text or None, reply_markup=kb)
-                            elif ctype == "video":
-                                await bot.send_video(chat_id=tid, video=fid, caption=text or None, reply_markup=kb)
-                            elif ctype == "audio":
-                                await bot.send_audio(chat_id=tid, audio=fid, caption=text or None, reply_markup=kb)
-                            elif ctype == "voice":
-                                await bot.send_voice(chat_id=tid, voice=fid, caption=text or None, reply_markup=kb)
-                            elif ctype == "video_note":
-                                await bot.send_video_note(chat_id=tid, video_note=fid)
-                            else:
-                                await bot.send_document(chat_id=tid, document=fid, caption=text or None, reply_markup=kb)
-                        else:
-                            await bot.send_message(chat_id=tid, text=text, reply_markup=kb)
-                        sent += 1
-                    except Exception as ex:
-                        failed += 1
-                        if "Forbidden" in str(ex) or "blocked" in str(ex).lower():
-                            try:
-                                from db.database import async_session
-                                async with async_session() as _s:
-                                    from sqlalchemy import update as _upd
-                                    from db.models import User as _U
-                                    await _s.execute(_upd(_U).where(_U.telegram_id == tid).values(is_active=False))
-                                    await _s.commit()
-                            except Exception:
-                                pass
-                    if (sent + failed) % 25 == 0:
-                        await asyncio.sleep(1)
-                # Final DB update
-                from db.database import async_session
-                async with async_session() as sess:
-                    bs = BroadcastService(sess)
-                    await bs.update_progress(b_id, sent, failed)
-                    await bs.mark_completed(b_id)
-                    await sess.commit()
-                _logger.info(f"[API Broadcast {b_id}] Direct send done. sent={sent} failed={failed}")
-            finally:
-                await bot.session.close()
-
-        _bg_tasks: set = set()
-        _task = asyncio.ensure_future(_send_all(telegram_ids, message_content, file_id, content_type, inline_kb, broadcast_id))
-        _bg_tasks.add(_task)
-        _task.add_done_callback(_bg_tasks.discard)
-
-    # Count for response (quick COUNT(*) if queue used)
-    if queue_ok:
-        from sqlalchemy import func, select as _sel
-        from db.models import User as _U2
-        q = _sel(func.count()).select_from(_U2).where(_U2.is_active.isnot(False))
-        if filters.get("lead_score_min"):
-            q = q.where(_U2.lead_score >= filters["lead_score_min"])
-        if filters.get("lead_segment"):
-            q = q.where(_U2.lead_segment == filters["lead_segment"])
-        if filters.get("paid"):
-            from db.models import Subscription as _Sb
-            sub_sq = _sel(_Sb.user_id).where(_Sb.status == "active").scalar_subquery()
-            q = q.where(_U2.id.in_(sub_sq))
-        res = await db.execute(q)
-        count = res.scalar() or 0
-    else:
-        count = len(telegram_ids)
-
+    # ✅ Return IMMEDIATELY — no slow COUNT query, no waiting
+    # The background task will update total_count in DB once it starts
     return {
         "status": "accepted",
-        "message": f"{count} ta foydalanuvchiga xabar yuborilmoqda...",
-        "recipient_count": count,
-        "method": "queue" if queue_ok else "direct",
+        "message": "Xabar yuborilmoqda...",
+        "recipient_count": 0,
+        "broadcast_id": broadcast_id,
+        "method": "queue",
     }
 
 
