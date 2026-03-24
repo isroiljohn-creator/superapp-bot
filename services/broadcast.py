@@ -375,25 +375,29 @@ async def send_broadcast(
             await svc.mark_completed(broadcast_id)
             await _s.commit()
 
-        # Final notification
+        # Final notification — always send new message so admin sees it
         final_text = (
-            f"✅ <b>Broadcast yakunlandi!</b>\n\n"
-            f"✅ Muvaffaqiyatli: <b>{sent}</b>\n"
-            f"❌ Xato (bloklagan): <b>{failed}</b>\n"
-            f"📊 Jami: <b>{processed}</b>\n"
-            f"📈 Muvaffaqiyat: <b>{round(sent/max(processed,1)*100)}%</b>"
+            f"✅ <b>Broadcast #{broadcast_id} yakunlandi!</b>\n\n"
+            f"✅ Muvaffaqiyatli: <b>{sent:,}</b>\n"
+            f"❌ Yetkazilmadi: <b>{failed:,}</b>\n"
+            f"📊 Jami: <b>{processed:,}</b>\n"
+            f"📈 Natija: <b>{round(sent/max(processed,1)*100)}%</b>"
         )
-        if progress_chat_id and progress_message_id:
-            try:
-                await bot.edit_message_text(
-                    chat_id=progress_chat_id, message_id=progress_message_id,
-                    text=final_text, parse_mode="HTML",
-                )
-            except Exception:
+        if progress_chat_id:
+            # Edit existing message first
+            if progress_message_id:
                 try:
-                    await bot.send_message(chat_id=progress_chat_id, text=final_text, parse_mode="HTML")
+                    await bot.edit_message_text(
+                        chat_id=progress_chat_id, message_id=progress_message_id,
+                        text=final_text, parse_mode="HTML",
+                    )
                 except Exception:
                     pass
+            # Always send a new final message so it's visible
+            try:
+                await bot.send_message(chat_id=progress_chat_id, text=final_text, parse_mode="HTML")
+            except Exception:
+                pass
 
         logger.info(
             f"[Broadcast {broadcast_id}] DONE. "
