@@ -336,18 +336,18 @@ async def send_broadcast(
                     pct = round(processed / max(total, 1) * 100)
                     logger.info(f"[Broadcast {broadcast_id}] {processed}/{total} ({pct}%) sent={sent} failed={failed}")
 
-                    if progress_chat_id and progress_message_id:
+                    # Send progress update every 1000 users (new message — more reliable than edit)
+                    if progress_chat_id and processed % 1000 < CONCURRENCY:
                         try:
                             eta = max(1, (total - processed) // CONCURRENCY)
-                            await bot.edit_message_text(
+                            await bot.send_message(
                                 chat_id=progress_chat_id,
-                                message_id=progress_message_id,
                                 text=(
-                                    f"📤 <b>Broadcast davom etmoqda...</b>\n\n"
-                                    f"✅ Yetkazildi: <b>{sent}</b>\n"
-                                    f"❌ Yetkazilmadi: <b>{failed}</b>\n"
-                                    f"📊 Jarayon: <b>{processed}/{total}</b> ({pct}%)\n\n"
-                                    f"⏳ Taxminan {eta} soniyada tugaydi..."
+                                    f"📊 <b>Broadcast #{broadcast_id} — jarayon</b>\n\n"
+                                    f"✅ Yetkazildi: <b>{sent:,}</b>\n"
+                                    f"❌ Yetkazilmadi: <b>{failed:,}</b>\n"
+                                    f"📈 {processed:,}/{total:,} ({pct}%)\n"
+                                    f"⏳ ~{eta // 60}d {eta % 60}s qoldi"
                                 ),
                                 parse_mode="HTML",
                             )
