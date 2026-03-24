@@ -300,17 +300,31 @@ async def confirm_broadcast(callback: CallbackQuery, state: FSMContext):
 
     _logger.info(f"[confirm_broadcast] Admin {callback.from_user.id} confirmed broadcast_id={broadcast_id}")
 
+    # IMPORTANT: get FSM data BEFORE clearing state
+    fsm_data = await state.get_data()
     await state.clear()
 
-    # If broadcast_id=0, draft save failed — create now from FSM data (already cleared, use callback state)
+    # If broadcast_id=0, draft save failed earlier — try creating from FSM data now
     if broadcast_id == 0:
-        # We can't get data after state.clear(), but the content is in DB from the draft save attempt
-        # This path only happens if create_broadcast failed - notify admin
-        await callback.message.edit_text(
-            "❌ Broadcast yaratishda xatolik yuz berdi. Iltimos qayta urinib ko'ring: /broadcast"
-        )
-        await callback.answer()
-        return
+        _logger.warning("[confirm_broadcast] broadcast_id=0, trying to create from FSM state")
+        try:
+            async with async_session() as session:
+                svc = BroadcastService(session)
+                bc = await svc.create_broadcast(
+                    content=fsm_data.get("content", ""),
+                    content_type=fsm_data.get("content_type", "text"),
+                    file_id=fsm_data.get("file_id"),
+                    filters=fsm_data.get("filters", {}),
+                    entities=fsm_data.get("entities"),
+                )
+                await session.commit()
+                broadcast_id = bc.id
+            _logger.info(f"[confirm_broadcast] Created from FSM: broadcast_id={broadcast_id}")
+        except Exception as exc:
+            _logger.error(f"[confirm_broadcast] FSM create failed: {exc}")
+            await callback.message.edit_text(f"❌ Xatolik: {exc}")
+            await callback.answer()
+            return
 
     # Show started message immediately
     progress_chat_id = callback.message.chat.id
