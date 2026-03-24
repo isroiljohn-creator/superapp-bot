@@ -133,7 +133,6 @@ export default function Broadcast() {
     },
     [uploadMedia]
   );
-
   const sendBroadcast = useMutation({
     mutationFn: async () => {
       const payload: Record<string, any> = {
@@ -154,17 +153,20 @@ export default function Broadcast() {
     },
     onSuccess: (data) => {
       toast({
-        title: "✅ Xabar yuborildi!",
-        description: data.message || "Xabarlar tarqatilmoqda.",
+        title: "✅ Broadcast qabul qilindi!",
+        description: `${data.recipient_count ?? "?"} ta foydalanuvchiga yuborilmoqda. Pastdagi ro'yxatda kuzating.`,
+        duration: 8000,
       });
       setMessage("");
       setMedia(null);
       setButtons([]);
-      setTimeout(() => refetchHistory(), 1000);
-      setTimeout(() => refetchHistory(), 4000);
+      // Refresh history: immediately + keyin 3s + 6s
+      refetchHistory();
+      setTimeout(() => refetchHistory(), 3000);
+      setTimeout(() => refetchHistory(), 6000);
     },
     onError: (error: Error) => {
-      toast({ title: "Xatolik", description: error.message, variant: "destructive" });
+      toast({ title: "❌ Xatolik", description: error.message, variant: "destructive", duration: 8000 });
     },
   });
 
