@@ -276,7 +276,7 @@ async def confirm_broadcast(callback: CallbackQuery, state: FSMContext):
     data = await state.get_data()
     await state.clear()
 
-    _logger.info(f"[confirm_broadcast] Admin {callback.from_user.id} confirmed broadcast. data={data}")
+    _logger.info(f"[confirm_broadcast] Admin {callback.from_user.id} confirmed broadcast.")
 
     # Step 1: Create broadcast DB record
     broadcast_id = None
@@ -299,25 +299,13 @@ async def confirm_broadcast(callback: CallbackQuery, state: FSMContext):
         await callback.answer()
         return
 
-    # Step 2: Count recipients
-    count = 0
-    try:
-        async with async_session() as session:
-            broadcast_service = BroadcastService(session)
-            broadcast_fresh = await broadcast_service.get_broadcast(broadcast_id)
-            if broadcast_fresh:
-                count = await broadcast_service.count_recipients(broadcast_fresh)
-        _logger.info(f"[confirm_broadcast] Recipient count: {count}")
-    except Exception as e:
-        _logger.warning(f"[confirm_broadcast] count_recipients failed: {e}. Continuing anyway.")
-
-    # Step 3: Send initial progress message and get its ID
-    progress_message_id = None
+    # Step 2: Show started message IMMEDIATELY (no slow COUNT query!)
     progress_chat_id = callback.message.chat.id
+    progress_message_id = None
     started_text = (
         f"📤 <b>Broadcast boshlandi!</b>\n\n"
-        f"👥 Jami foydalanuvchilar: <b>{count}</b>\n\n"
-        f"⏳ Yuborilmoqda, kuting..."
+        f"⏳ Yuborilmoqda, kuting...\n"
+        f"📊 Progress pastda yangilanadi."
     )
     try:
         sent_msg = await callback.message.edit_text(started_text, parse_mode="HTML")
@@ -329,7 +317,10 @@ async def confirm_broadcast(callback: CallbackQuery, state: FSMContext):
         except Exception:
             pass
 
-    # Step 4: Send broadcast
+    # ✅ Answer callback NOW — before heavy work to avoid Telegram 30s timeout
+    await callback.answer()
+
+    # Step 3: Schedule broadcast in background
     try:
         from taskqueue import schedule_broadcast
         await schedule_broadcast(
@@ -340,20 +331,8 @@ async def confirm_broadcast(callback: CallbackQuery, state: FSMContext):
         )
         _logger.info(f"[confirm_broadcast] Broadcast {broadcast_id} scheduled via taskqueue")
     except Exception as e:
-        _logger.error(f"[confirm_broadcast] schedule_broadcast failed: {e}. Switching to direct send.")
-        await callback.message.answer("⚠️ Direct yuborish rejimida ishlamoqda...")
-        # Direct fallback
-        try:
-            async with async_session() as session:
-                svc = BroadcastService(session)
-                fresh = await svc.get_broadcast(broadcast_id)
-                fallback_users = await svc.get_recipients(fresh)
-            await _direct_broadcast(callback.message.bot, fallback_users, data, broadcast_id)
-        except Exception as e2:
-            _logger.error(f"[confirm_broadcast] Direct broadcast also failed: {e2}")
-            await callback.message.answer(f"❌ Broadcast muvaffaqiyatsiz: {e2}")
-
-    await callback.answer()
+        _logger.error(f"[confirm_broadcast] schedule_broadcast failed: {e}")
+        await callback.message.answer(f"❌ Broadcast yuborishda xatolik: {e}")
 
 
 
