@@ -238,12 +238,15 @@ async def process_broadcast_segment(callback: CallbackQuery, state: FSMContext):
 
 @router.message(BroadcastFSM.waiting_content)
 async def process_broadcast_content(message: Message, state: FSMContext):
-    # If user typed a command (e.g. /broadcast_status), clear FSM and let them retry
+    # If user typed a command while in FSM state, clear state and handle it
     if message.text and message.text.startswith("/"):
         await state.clear()
-        await message.answer(
-            "⚠️ Broadcast bekor qilindi. Endi buyruqingizni qayta yuboring.",
-        )
+        if "/broadcast_status" in message.text:
+            await cmd_broadcast_status(message)
+        elif "/broadcast" in message.text:
+            await cmd_broadcast(message, state)
+        else:
+            await message.answer("⚠️ Broadcast bekor qilindi. Endi buyruqingizni qayta yuboring.")
         return
 
     data = await state.get_data()
