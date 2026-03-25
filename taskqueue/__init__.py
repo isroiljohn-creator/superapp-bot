@@ -125,20 +125,20 @@ async def schedule_churn_check(telegram_id: int):
 
 async def start_scheduled_message_checker():
     """Background loop: checks for pending scheduled messages every 60s."""
+    SCHED_CONCURRENCY = 28
 
     async def _checker_loop():
         from bot.config import settings
         from aiogram import Bot
         from db.database import async_session
         from db.models import ScheduledMessage, User
-        from sqlalchemy import select, update
+        from sqlalchemy import select
         from datetime import datetime, timezone
 
         while True:
             try:
                 now = datetime.now(timezone.utc).replace(tzinfo=None)
                 async with async_session() as session:
-                    # Find messages due to send
                     result = await session.execute(
                         select(ScheduledMessage).where(
                             ScheduledMessage.status == "pending",
@@ -147,39 +147,58 @@ async def start_scheduled_message_checker():
                     )
                     messages = result.scalars().all()
 
-                    for msg in messages:
-                        # Mark as sending
-                        msg.status = "sending"
+                for msg in messages:
+                    async with async_session() as session:
+                        result = await session.execute(select(ScheduledMessage).where(ScheduledMessage.id == msg.id))
+                        fresh = result.scalar_one_or_none()
+                        if not fresh or fresh.status != "pending":
+                            continue
+                        fresh.status = "sending"
                         await session.commit()
 
-                        # Get all ACTIVE users only (skip blocked/inactive)
-                        users = await session.execute(
+                    # Get active user IDs
+                    async with async_session() as session:
+                        users_result = await session.execute(
                             select(User.telegram_id).where(User.is_active.isnot(False))
                         )
-                        user_ids = [row[0] for row in users.all()]
+                        user_ids = [row[0] for row in users_result.all()]
 
-                        sent, failed = 0, 0
-                        bot = Bot(token=settings.BOT_TOKEN)
-                        try:
-                            for uid in user_ids:
+                    sent = 0
+                    failed = 0
+                    sem = asyncio.Semaphore(SCHED_CONCURRENCY)
+                    counters = {"sent": 0, "failed": 0}
+                    _lock = asyncio.Lock()
+
+                    bot = Bot(token=settings.BOT_TOKEN)
+                    try:
+                        async def _send(uid: int):
+                            async with sem:
                                 try:
                                     await bot.send_message(chat_id=uid, text=msg.content, parse_mode="HTML")
-                                    sent += 1
+                                    async with _lock:
+                                        counters["sent"] += 1
                                 except Exception:
-                                    failed += 1
-                                if (sent + failed) % 25 == 0:
-                                    await asyncio.sleep(1)  # Rate limit
-                        finally:
-                            await bot.session.close()
+                                    async with _lock:
+                                        counters["failed"] += 1
 
-                        # Update status
-                        msg.status = "sent"
-                        msg.sent_count = sent
-                        msg.failed_count = failed
-                        msg.sent_at = now
-                        await session.commit()
+                        await asyncio.gather(*[_send(uid) for uid in user_ids], return_exceptions=True)
+                    finally:
+                        await bot.session.close()
 
-                        logger.info(f"Scheduled msg {msg.id} sent: {sent} ok, {failed} failed")
+                    sent   = counters["sent"]
+                    failed = counters["failed"]
+
+                    async with async_session() as session:
+                        result = await session.execute(select(ScheduledMessage).where(ScheduledMessage.id == msg.id))
+                        fresh = result.scalar_one_or_none()
+                        if fresh:
+                            fresh.status = "sent"
+                            fresh.sent_count = sent
+                            fresh.failed_count = failed
+                            fresh.sent_at = datetime.now(timezone.utc).replace(tzinfo=None)
+                            await session.commit()
+
+                    logger.info(f"Scheduled msg {msg.id} sent: {sent} ok, {failed} failed")
 
             except Exception as e:
                 logger.error(f"Scheduled message checker error: {e}")
