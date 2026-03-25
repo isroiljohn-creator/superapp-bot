@@ -62,22 +62,40 @@ async def cmd_start(message: Message, state: FSMContext):
                 user.is_active = True
                 await session.commit()
 
-            # Check if this start command was meant to trigger a specific lead magnet
-            campaign_to_check = campaign or source
-            if campaign_to_check:
-                from bot.handlers.lead_magnet import deliver_lead_magnet
-                # Try to deliver lead magnet (will skip silently if already opened or no content)
-                user.campaign = campaign_to_check
-                await session.commit()
-                await deliver_lead_magnet(message, user.telegram_id)
+            # ── Deep link processing for existing/returning users ─────────────
+            if deep_link:
+                if referer_id and not user.referer_id:
+                    # First time this existing user came via referral — track it
+                    ref_service = ReferralService(session)
+                    await ref_service.create_referral(
+                        referer_id=referer_id,
+                        referred_id=message.from_user.id,
+                    )
+                    user.referer_id = referer_id
+                    await session.commit()
 
-            # Always show welcome-back + main menu
+                # Update campaign/source so lead magnet can find the right content
+                if campaign or source:
+                    if campaign:
+                        user.campaign = campaign
+                    if source:
+                        user.source = source
+                    await session.commit()
+
+                # Deliver lead magnet for campaign/source deep links (force re-deliver)
+                if campaign or (source and source != "referral"):
+                    from bot.handlers.lead_magnet import deliver_lead_magnet_force
+                    await deliver_lead_magnet_force(message, user.telegram_id)
+            # ─────────────────────────────────────────────────────────────────
+
+            # Welcome back + main menu
             await message.answer(
                 f"👋 Xush kelibsiz, {user.name or ''}!\n\n{uz.MENU_TEXT}",
                 parse_mode="HTML",
                 reply_markup=main_menu_keyboard(user_id=message.from_user.id),
             )
             return
+
 
         if is_new:
             # Track referral (only for genuinely new users)

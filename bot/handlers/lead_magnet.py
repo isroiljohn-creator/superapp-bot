@@ -1,4 +1,5 @@
 """Lead magnet handler — campaign-based delivery + smart delay trigger."""
+import html as _html
 from aiogram import Router
 from aiogram.types import Message
 
@@ -69,11 +70,51 @@ async def deliver_lead_magnet(message: Message, telegram_id: int):
     await _schedule_delayed_video(telegram_id)
 
 
+async def deliver_lead_magnet_force(message: Message, telegram_id: int):
+    """Like deliver_lead_magnet but forces re-delivery even if already opened.
+    Used when an existing user returns via a new campaign/source deep link.
+    """
+    async with async_session() as session:
+        crm = CRMService(session)
+        user = await crm.get_user(telegram_id)
+        if not user:
+            return
+
+        funnel = FunnelService(session)
+        campaign = user.campaign or user.source or "lead_dars"
+        lead_magnet = await funnel.get_lead_magnet(campaign)
+
+        if not lead_magnet:
+            return  # No content for this campaign, skip silently
+
+        if lead_magnet.content_type == "video" and lead_magnet.file_id:
+            if uz.LEAD_MAGNET_INTRO: await message.answer(uz.LEAD_MAGNET_INTRO)
+            await message.answer_video(lead_magnet.file_id)
+        elif lead_magnet.content_type == "pdf" and lead_magnet.file_id:
+            if uz.LEAD_MAGNET_INTRO: await message.answer(uz.LEAD_MAGNET_INTRO)
+            await message.answer_document(lead_magnet.file_id)
+            if lead_magnet.description:
+                await message.answer(lead_magnet.description, parse_mode="HTML")
+        elif lead_magnet.content_type == "vsl" and lead_magnet.file_id:
+            if uz.LEAD_MAGNET_INTRO: await message.answer(uz.LEAD_MAGNET_INTRO)
+            await message.answer_video(lead_magnet.file_id)
+        elif lead_magnet.description:
+            text = (uz.LEAD_MAGNET_INTRO + "\n\n" if uz.LEAD_MAGNET_INTRO else "") + lead_magnet.description
+            await message.answer(text, parse_mode="HTML")
+
+        analytics = AnalyticsService(session)
+        await analytics.track(user_id=user.id, event_type=EVT_LEAD_MAGNET_OPEN)
+        scoring = LeadScoringService(session)
+        await scoring.process_event(telegram_id, user.id, EVT_LEAD_MAGNET_OPEN)
+        await session.commit()
+
+    await _schedule_delayed_video(telegram_id)
+
+
 async def _schedule_delayed_video(telegram_id: int):
-    """Schedule a delayed video message via Redis queue."""
+    """Schedule a delayed video message via asyncio task queue."""
     try:
         from taskqueue import schedule_delayed_video
         await schedule_delayed_video(telegram_id, delay_seconds=1800)  # 30 min
     except Exception:
-        # Queue not available, skip
         pass

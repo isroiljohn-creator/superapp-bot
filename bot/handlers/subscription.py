@@ -59,10 +59,12 @@ async def handle_payment_success(bot: Bot, telegram_id: int, card_token: str = N
         try:
             if not settings.PRIVATE_GROUP_ID:
                 raise ValueError("PRIVATE_GROUP_ID not configured")
+            from datetime import datetime, timezone, timedelta
             invite_link = await bot.create_chat_invite_link(
                 chat_id=settings.PRIVATE_GROUP_ID,
                 member_limit=1,
                 name=f"user_{telegram_id}",
+                expire_date=datetime.now(timezone.utc) + timedelta(hours=24),  # expires in 24h
             )
             await bot.send_message(
                 chat_id=telegram_id,
@@ -160,7 +162,15 @@ async def handle_churn(bot: Bot, telegram_id: int, day: int):
     elif day == 7:
         text = custom_text or uz.CHURN_DAY_7
         await bot.send_message(chat_id=telegram_id, text=_safe_format(text, name=name))
-        # Remove from group
+        # Remove from group AND expire subscription in a single session
+        async with async_session() as session:
+            from services.analytics import AnalyticsService, EVT_CHURN
+            sub_service = SubscriptionService(session)
+            await sub_service.expire(user_id)
+            analytics = AnalyticsService(session)
+            await analytics.track(user_id=user_id, event_type=EVT_CHURN)
+            await session.commit()
+        # Ban/unban after DB commit (so even if this fails, sub is expired)
         try:
             if settings.PRIVATE_GROUP_ID:
                 await bot.ban_chat_member(
@@ -173,15 +183,3 @@ async def handle_churn(bot: Bot, telegram_id: int, day: int):
                 )
         except Exception:
             pass
-
-        # Mark subscription as expired in a fresh session
-        async with async_session() as session:
-            sub_service = SubscriptionService(session)
-            await sub_service.expire(user_id)
-
-            # Track churn event
-            from services.analytics import AnalyticsService, EVT_CHURN
-            analytics = AnalyticsService(session)
-            await analytics.track(user_id=user_id, event_type=EVT_CHURN)
-
-            await session.commit()

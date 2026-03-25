@@ -14,8 +14,10 @@ is_sqlite = db_url.startswith("sqlite")
 engine_kwargs = {"pool_pre_ping": True}
 if not is_sqlite:
     engine_kwargs.update({
-        "pool_size": 20,
-        "max_overflow": 10,
+        "pool_size": 30,        # sustained connections (was 20)
+        "max_overflow": 20,    # burst connections (was 10) — total max=50
+        "pool_timeout": 30,    # wait up to 30s for a connection slot
+        "pool_recycle": 1800,  # recycle connections after 30min (Railway keepalive)
     })
     ssl_context = ssl.create_default_context()
     ssl_context.check_hostname = False

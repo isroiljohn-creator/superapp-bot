@@ -131,6 +131,14 @@ async def lifespan(app: FastAPI):
     else:
         logger.warning("⚠️ WEBHOOK_URL yo'q. Bot webhook orqali ishlamaydi (faqat polling)")
 
+    # Start background services
+    try:
+        from taskqueue import start_scheduled_message_checker
+        await start_scheduled_message_checker()
+        logger.info("✅ Scheduled message checker started")
+    except Exception as e:
+        logger.warning(f"Scheduled message checker failed to start: {e}")
+
     yield
 
     # Shutdown
@@ -186,15 +194,6 @@ async def health():
     return {"status": "ok"}
 
 
-@app.on_event("startup")
-async def startup_event():
-    """Start background services on API startup."""
-    try:
-        from taskqueue import start_scheduled_message_checker
-        await start_scheduled_message_checker()
-    except Exception as e:
-        import logging
-        logging.getLogger("api").warning(f"Scheduled message checker start failed: {e}")
 
 @app.get("/")
 async def root():
@@ -228,6 +227,9 @@ async def bot_webhook(request: Request):
 
     data = await request.json()
     update = types.Update(**data)
+    if bot is None or dp is None:
+        logger.warning("Webhook received before bot initialized — skipping")
+        return {"ok": True}
     await dp.feed_update(bot=bot, update=update)
     
     elapsed = (time.perf_counter() - start_time) * 1000
