@@ -169,8 +169,13 @@ class CRMService:
 
     # ── Queries for broadcast / analytics ────
     async def count_users(self, **filters) -> int:
+        """Count unique users by distinct telegram_id (not raw rows).
+        
+        Uses COUNT(DISTINCT telegram_id) to prevent any remaining duplicate
+        rows from inflating statistics.
+        """
         from sqlalchemy import func
-        q = select(func.count()).select_from(User)
+        q = select(func.count(func.distinct(User.telegram_id))).select_from(User)
         for key, val in filters.items():
             if hasattr(User, key) and val is not None:
                 q = q.where(getattr(User, key) == val)

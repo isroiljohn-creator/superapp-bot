@@ -55,15 +55,23 @@ class AnalyticsService:
         return result.scalar_one_or_none() is not None
 
     async def count_events(self, event_type: str, since: Optional[datetime] = None) -> int:
-        """Count events of a type, optionally since a date."""
-        q = select(func.count()).select_from(Event).where(Event.event_type == event_type)
+        """Count unique users who triggered an event (not raw event count)."""
+        q = (
+            select(func.count(func.distinct(Event.user_id)))
+            .select_from(Event)
+            .where(Event.event_type == event_type)
+        )
         if since:
             q = q.where(Event.created_at >= since)
         result = await self.session.execute(q)
         return result.scalar() or 0
 
     async def get_funnel_stats(self) -> dict:
-        """Get full funnel conversion stats."""
+        """Get full funnel conversion stats — unique real users only.
+        
+        Joins Event → User on user_id and counts DISTINCT User.telegram_id
+        so that old duplicate user rows don't inflate any funnel step.
+        """
         events = [
             EVT_LEAD, EVT_REGISTRATION_COMPLETE, EVT_LEAD_MAGNET_OPEN,
             EVT_VSL_VIEW, EVT_VSL_50, EVT_VSL_90,
@@ -71,9 +79,11 @@ class AnalyticsService:
         ]
         stats = {}
         for evt in events:
-            # Count unique users per event
+            # Join to User to deduplicate by telegram_id (not internal DB id)
             result = await self.session.execute(
-                select(func.count(func.distinct(Event.user_id)))
+                select(func.count(func.distinct(User.telegram_id)))
+                .select_from(Event)
+                .join(User, Event.user_id == User.id)
                 .where(Event.event_type == evt)
             )
             stats[evt] = result.scalar() or 0
