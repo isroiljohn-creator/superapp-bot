@@ -28,7 +28,8 @@ logger = logging.getLogger("broadcast")
 
 BATCH_SIZE          = 500   # Users loaded per DB query
 PROGRESS_SAVE_EVERY = 200   # Save sent/failed counts every N messages
-CONCURRENCY         = 28    # Semaphore limit — stays under Telegram's 30 msg/sec
+CONCURRENCY         = 200   # Semaphore — high value, rate limiter is the real throttle
+SEND_RATE           = 29.0  # Token bucket: msgs/sec (just under Telegram's 30/sec limit)
 
 
 class BroadcastService:
@@ -127,30 +128,63 @@ class BroadcastService:
         )
 
 
-# ── Streaming recipient IDs ───────────────────────────────────────────────────
+# ── Token bucket rate limiter ────────────────────────────────────────────────
+
+class _TokenBucket:
+    """Smooth token bucket rate limiter.
+
+    Allows up to `rate` operations per second. Uses asyncio.sleep to
+    pace sends — avoids burst-and-429 pattern by giving every token
+    a steady time slot.
+    """
+
+    def __init__(self, rate: float):
+        self.rate = rate          # tokens per second
+        self._tokens = rate       # start full
+        self._last   = 0.0
+        self._lock   = asyncio.Lock()
+
+    async def acquire(self):
+        while True:
+            async with self._lock:
+                now = asyncio.get_event_loop().time()
+                if self._last == 0.0:
+                    self._last = now
+                elapsed = now - self._last
+                self._tokens = min(self.rate, self._tokens + elapsed * self.rate)
+                self._last = now
+                if self._tokens >= 1.0:
+                    self._tokens -= 1.0
+                    return
+                wait = (1.0 - self._tokens) / self.rate
+            await asyncio.sleep(wait)
+
+
+# ── Streaming recipient IDs (cursor-based) ────────────────────────────────────
 
 async def _iter_recipient_ids(filters: dict) -> AsyncGenerator:
     """
-    Async generator: yields telegram_id ints, batch by batch from DB.
-    Opens a fresh session per batch to avoid long-lived transactions.
+    Async generator: yields telegram_id ints using cursor-based pagination.
+    Each batch uses WHERE id > last_id ORDER BY id — hits PK index, O(1) regardless
+    of table size. Much faster than OFFSET for large tables (20k+ rows).
     """
     from db.database import async_session
-    offset = 0
+    last_id = 0
     while True:
         async with async_session() as session:
             crm = CRMService(session)
-            batch = await crm.get_users_filtered(filters, limit=BATCH_SIZE, offset=offset)
-            if not batch:
+            rows = await crm.get_user_ids_cursor(filters, limit=BATCH_SIZE, min_id=last_id)
+            if not rows:
                 return
-            ids = [u.telegram_id for u in batch if u.telegram_id]
-            count = len(batch)
+            last_id = rows[-1][0]  # Row.id (first column)
+            tids = [row[1] for row in rows if row[1]]  # Row.telegram_id
+            count = len(rows)
 
-        for tid in ids:
+        for tid in tids:
             yield tid
 
         if count < BATCH_SIZE:
             return
-        offset += BATCH_SIZE
 
 
 # ── Main broadcast function ───────────────────────────────────────────────────
@@ -227,11 +261,12 @@ async def send_broadcast(
     CAPTION_LIMIT = 1024
     TEXT_LIMIT    = 4096
 
-    # ── Phase 3: Semaphore-based pipelined send ────────────────────────────
-    sem  = asyncio.Semaphore(CONCURRENCY)
-    _c   = {"sent": 0, "failed": 0, "processed": 0}  # mutable counters (avoids nonlocal)
+    # ── Phase 3: Rate-limited pipelined send ──────────────────────────────
+    sem      = asyncio.Semaphore(CONCURRENCY)   # max concurrent API calls in-flight
+    _rate    = _TokenBucket(SEND_RATE)           # smooth 29 msg/sec token bucket
+    _c       = {"sent": 0, "failed": 0, "processed": 0}
     inactive_ids: list = []
-    _lock = asyncio.Lock()  # protect shared counters
+    _lock    = asyncio.Lock()
 
     async def _send_one(tid: int):
         """Send to one user. Handles 429 retry independently."""
@@ -288,8 +323,9 @@ async def send_broadcast(
         return await _do()
 
     async def _worker(tid: int):
-        """Acquire semaphore, send, update shared counters."""
-        async with sem:
+        """Acquire rate-limiter token + semaphore slot, then send to user."""
+        await _rate.acquire()  # smooth rate limiting (29/sec)
+        async with sem:        # cap concurrency during API call
             try:
                 ok, blocked = await _send_one(tid)
             except Exception as e:

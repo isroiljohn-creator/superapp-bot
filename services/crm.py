@@ -178,9 +178,32 @@ class CRMService:
         return result.scalar() or 0
 
     async def get_users_filtered(self, filters: dict, limit: int = 100, offset: int = 0):
-        """Get filtered users for broadcast."""
-        q = select(User).where(User.is_active.isnot(False))  # NULL = never blocked → include
+        """Get filtered users for broadcast (offset-based — for small previews only)."""
+        q = select(User).where(User.is_active.isnot(False))
+        q = self._apply_filters(q, filters)
+        q = q.limit(limit).offset(offset)
+        result = await self.session.execute(q)
+        return result.scalars().all()
 
+    async def get_user_ids_cursor(self, filters: dict, limit: int = 500, min_id: int = 0) -> list[int]:
+        """Cursor-based pagination: faster than OFFSET for large tables.
+
+        Uses WHERE id > min_id ORDER BY id instead of OFFSET, which hits
+        the primary key index and avoids full table scans on large offsets.
+        Returns list of (id, telegram_id) tuples.
+        """
+        q = (
+            select(User.id, User.telegram_id)
+            .where(User.is_active.isnot(False))
+            .where(User.id > min_id)
+        )
+        q = self._apply_filters(q, filters)
+        q = q.order_by(User.id).limit(limit)
+        result = await self.session.execute(q)
+        return result.all()  # list of Row(id, telegram_id)
+
+    def _apply_filters(self, q, filters: dict):
+        """Apply common broadcast filters to a query."""
         if filters.get("source"):
             q = q.where(User.source == filters["source"])
         if filters.get("campaign"):
@@ -195,8 +218,6 @@ class CRMService:
             q = q.where(User.user_status == filters["user_status"])
         if filters.get("lead_segment"):
             q = q.where(User.lead_segment == filters["lead_segment"])
-
-        # Paid users — join Subscription table (user_status='paid' does not exist in User model)
         if filters.get("paid"):
             active_sub_sq = (
                 select(Subscription.user_id)
@@ -204,7 +225,4 @@ class CRMService:
                 .scalar_subquery()
             )
             q = q.where(User.id.in_(active_sub_sq))
-
-        q = q.limit(limit).offset(offset)
-        result = await self.session.execute(q)
-        return result.scalars().all()
+        return q
