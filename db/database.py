@@ -57,7 +57,7 @@ async def init_db():
 
 
 async def _auto_migrate(engine):
-    """Add missing columns to existing tables (safe, idempotent)."""
+    """Add missing columns and one-time data cleanups (safe, idempotent)."""
     migrations = [
         # (table, column, type)
         ("course_modules", "channel_message_id", "INTEGER"),
@@ -73,3 +73,30 @@ async def _auto_migrate(engine):
                 logger.info(f"✅ Migration: {table}.{column} OK")
             except Exception as e:
                 logger.warning(f"⚠️ Migration {table}.{column}: {e}")
+
+        # One-time: deduplicate events table (keep earliest per user+type)
+        try:
+            result = await conn.execute(text(
+                "DELETE FROM events WHERE id NOT IN ("
+                "  SELECT MIN(id) FROM events GROUP BY user_id, event_type"
+                ")"
+            ))
+            deleted = result.rowcount
+            if deleted:
+                logger.info(f"✅ Events dedup: removed {deleted} duplicate event rows")
+        except Exception as e:
+            logger.warning(f"⚠️ Events dedup skipped: {e}")
+
+        # One-time: deduplicate users table (keep highest ID per telegram_id)
+        try:
+            result = await conn.execute(text(
+                "DELETE FROM users WHERE id NOT IN ("
+                "  SELECT MAX(id) FROM users GROUP BY telegram_id"
+                ")"
+            ))
+            deleted = result.rowcount
+            if deleted:
+                logger.info(f"✅ Users dedup: removed {deleted} duplicate user rows")
+        except Exception as e:
+            logger.warning(f"⚠️ Users dedup skipped: {e}")
+

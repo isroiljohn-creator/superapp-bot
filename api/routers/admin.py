@@ -50,7 +50,7 @@ def check_admin(user_data: dict = Depends(validate_init_data)):
 async def debug_endpoint(admin_id: int = Depends(check_admin), db: AsyncSession = Depends(get_db)):
     """Protected debug endpoint — admin only. Shows DB connection and environment status."""
     try:
-        result = await db.execute(select(func.count(User.id)))
+        result = await db.execute(select(func.count(func.distinct(User.telegram_id))))
         count = result.scalar() or 0
         return {
             "db_ok": True,
@@ -66,24 +66,24 @@ async def debug_endpoint(admin_id: int = Depends(check_admin), db: AsyncSession 
 @router.get("/stats")
 async def get_dashboard_stats(admin_id: int = Depends(check_admin), db: AsyncSession = Depends(get_db)):
     """High-level KPIs for Dashboard Home."""
-    # Total Users
-    total_users_q = await db.execute(select(func.count(User.id)))
+    # Total Users (unique by telegram_id)
+    total_users_q = await db.execute(select(func.count(func.distinct(User.telegram_id))))
     total_users = total_users_q.scalar() or 0
 
     # Active users — is_active IS NOT FALSE (includes NULL = never blocked)
     active_q = await db.execute(
-        select(func.count(User.id)).where(User.is_active.isnot(False))
+        select(func.count(func.distinct(User.telegram_id))).where(User.is_active.isnot(False))
     )
     active_users = active_q.scalar() or 0
 
     # Inactive users — is_active == False (blocked bot)
     inactive_q = await db.execute(
-        select(func.count(User.id)).where(User.is_active == False)
+        select(func.count(func.distinct(User.telegram_id))).where(User.is_active == False)
     )
     inactive_users = inactive_q.scalar() or 0
 
     # Active Subscriptions
-    active_subs_q = await db.execute(select(func.count(Subscription.id)).where(Subscription.status == "active"))
+    active_subs_q = await db.execute(select(func.count(func.distinct(Subscription.user_id))).where(Subscription.status == "active"))
     active_subs = active_subs_q.scalar() or 0
 
     # Total Revenue (sum of all successful payments)
@@ -160,15 +160,14 @@ async def get_dashboard_stats(admin_id: int = Depends(check_admin), db: AsyncSes
         # Sort combined list by time (newest first), limit to 15
         recent_activity = recent_activity[:15]
 
-    # Daily new users chart — last 14 days (with cumulative total)
+    # Daily new users chart — last 14 days (counts distinct telegram_ids per day)
     users_chart_14d = []
-    # Get count of users created BEFORE the chart period + users with NULL created_at
     period_start_14 = datetime(today.year, today.month, today.day, tzinfo=timezone.utc) - timedelta(days=13)
     before_q = await db.execute(
-        select(func.count(User.id)).where(User.created_at < period_start_14)
+        select(func.count(func.distinct(User.telegram_id))).where(User.created_at < period_start_14)
     )
     null_q = await db.execute(
-        select(func.count(User.id)).where(User.created_at.is_(None))
+        select(func.count(func.distinct(User.telegram_id))).where(User.created_at.is_(None))
     )
     cumulative = (before_q.scalar() or 0) + (null_q.scalar() or 0)
     for i in range(13, -1, -1):
@@ -176,7 +175,7 @@ async def get_dashboard_stats(admin_id: int = Depends(check_admin), db: AsyncSes
         day_start = datetime(day.year, day.month, day.day, tzinfo=timezone.utc)
         day_end = day_start + timedelta(days=1)
         day_q = await db.execute(
-            select(func.count(User.id)).where(
+            select(func.count(func.distinct(User.telegram_id))).where(
                 User.created_at >= day_start,
                 User.created_at < day_end,
             )
@@ -189,14 +188,14 @@ async def get_dashboard_stats(admin_id: int = Depends(check_admin), db: AsyncSes
             "total": cumulative,
         })
 
-    # Registration status counts
+    # Registration status counts (distinct telegram_ids)
     registered_q = await db.execute(
-        select(func.count(User.id)).where(User.user_status == "registered")
+        select(func.count(func.distinct(User.telegram_id))).where(User.user_status == "registered")
     )
     registered_count = registered_q.scalar() or 0
 
     started_q = await db.execute(
-        select(func.count(User.id)).where(User.user_status == "started")
+        select(func.count(func.distinct(User.telegram_id))).where(User.user_status == "started")
     )
     started_count = started_q.scalar() or 0
 
@@ -355,37 +354,51 @@ async def adjust_user_balance(
 
 @router.get("/funnel")
 async def get_funnel_stats(admin_id: int = Depends(check_admin), db: AsyncSession = Depends(get_db)):
-    """Get funnel conversion data from real DB counts."""
-    # All users who started
-    all_q = await db.execute(select(func.count(User.id)))
+    """Get funnel conversion data — unique users only."""
+    # All users who started (unique)
+    all_q = await db.execute(select(func.count(func.distinct(User.telegram_id))))
     all_users = all_q.scalar() or 0
 
-    # Registered (has phone)
-    reg_q = await db.execute(select(func.count(User.id)).where(User.user_status == "registered"))
+    # Registered (has phone) — unique
+    reg_q = await db.execute(
+        select(func.count(func.distinct(User.telegram_id))).where(User.user_status == "registered")
+    )
     registered = reg_q.scalar() or 0
 
-    # Segmented (has goal_tag or level_tag set)
-    seg_q = await db.execute(select(func.count(User.id)).where(User.goal_tag.isnot(None)))
+    # Segmented (has goal_tag set) — unique
+    seg_q = await db.execute(
+        select(func.count(func.distinct(User.telegram_id))).where(User.goal_tag.isnot(None))
+    )
     segmented = seg_q.scalar() or 0
 
-    # Lead magnet opened
-    lm_q = await db.execute(select(func.count(User.id)).where(User.lead_magnet_opened.is_(True)))
+    # Lead magnet opened — unique (flag on user)
+    lm_q = await db.execute(
+        select(func.count(func.distinct(User.telegram_id))).where(User.lead_magnet_opened.is_(True))
+    )
     lm_opened = lm_q.scalar() or 0
 
-    # VSL viewed (event_type = vsl_view)
+    # VSL viewed — unique users via events, deduped by telegram_id through join
     vsl_q = await db.execute(
-        select(func.count(func.distinct(Event.user_id))).where(Event.event_type == "vsl_view")
+        select(func.count(func.distinct(User.telegram_id)))
+        .select_from(Event)
+        .join(User, Event.user_id == User.id)
+        .where(Event.event_type == "vsl_view")
     )
     vsl_viewed = vsl_q.scalar() or 0
 
-    # Payment started (event_type = payment_open or checkout opened)
+    # Payment started — unique users via events, deduped by telegram_id
     pay_open_q = await db.execute(
-        select(func.count(func.distinct(Event.user_id))).where(Event.event_type == "payment_open")
+        select(func.count(func.distinct(User.telegram_id)))
+        .select_from(Event)
+        .join(User, Event.user_id == User.id)
+        .where(Event.event_type == "payment_open")
     )
     payment_opened = pay_open_q.scalar() or 0
 
-    # Payment successful
-    pay_q = await db.execute(select(func.count(Payment.id)).where(Payment.status == "success"))
+    # Payment successful — unique paying users
+    pay_q = await db.execute(
+        select(func.count(func.distinct(Payment.user_id))).where(Payment.status == "success")
+    )
     paid = pay_q.scalar() or 0
 
     def _rate(n, d):
@@ -594,20 +607,21 @@ def _format_time(dt: datetime) -> str:
 @router.get("/audience-counts")
 async def get_audience_counts(admin_id: int = Depends(check_admin), db: AsyncSession = Depends(get_db)):
     """Return real audience segment counts for the Broadcast composer."""
-    all_q = await db.execute(select(func.count(User.id)))
+    all_q = await db.execute(select(func.count(func.distinct(User.telegram_id))))
     all_users = all_q.scalar() or 0
 
-    from sqlalchemy import not_
     active_sub_ids = select(Subscription.user_id).where(Subscription.status == "active").scalar_subquery()
     video_not_paid_q = await db.execute(
-        select(func.count(User.id)).where(
+        select(func.count(func.distinct(User.telegram_id))).where(
             User.lead_score >= 30,
             User.id.not_in(active_sub_ids)
         )
     )
     video_not_paid = video_not_paid_q.scalar() or 0
 
-    hot_q = await db.execute(select(func.count(User.id)).where(User.lead_segment == "hot"))
+    hot_q = await db.execute(
+        select(func.count(func.distinct(User.telegram_id))).where(User.lead_segment == "hot")
+    )
     hot = hot_q.scalar() or 0
 
     paid_q = await db.execute(
