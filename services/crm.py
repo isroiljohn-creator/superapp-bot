@@ -1,12 +1,16 @@
 """CRM service — user management operations."""
 import hashlib
+import logging
 from datetime import datetime, timezone
 from typing import Optional
 
 from sqlalchemy import select, update
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from db.models import User, ReferralBalance, Subscription
+
+logger = logging.getLogger(__name__)
 
 
 class CRMService:
@@ -38,7 +42,7 @@ class CRMService:
             source=source,
             campaign=campaign,
             user_status="started",
-            is_active=True,   # Explicit: ensures DB insert sets True regardless of server_default
+            is_active=True,
             tokens=10,
         )
         self.session.add(user)
@@ -59,32 +63,49 @@ class CRMService:
         campaign: Optional[str] = None,
         referer_id: Optional[int] = None,
     ) -> tuple[User, bool]:
-        """Returns (user, is_new)."""
-        user = await self.get_user(telegram_id)
-        if user:
-            return user, False
-        
-        # Create user
-        user = User(
-            telegram_id=telegram_id,
-            name=name,
-            username=username,
-            source=source,
-            campaign=campaign,
-            referer_id=referer_id,
-            user_status="started",
-            is_active=True,   # Explicit: ensures DB insert sets True regardless of server_default
-            tokens=10,
-        )
-        self.session.add(user)
-        await self.session.flush()
+        """Returns (user, is_new).
 
-        # Create referral balance wallet
-        balance = ReferralBalance(user_id=user.id, balance=0, total_earned=0, total_used=0)
-        self.session.add(balance)
-        await self.session.flush()
-        
-        return user, True
+        Uses PostgreSQL INSERT ... ON CONFLICT DO NOTHING to prevent duplicate
+        rows when multiple /start commands arrive concurrently (race condition).
+        """
+        # ── Atomic upsert: INSERT if not exists, otherwise do nothing ──────
+        stmt = (
+            pg_insert(User)
+            .values(
+                telegram_id=telegram_id,
+                name=name,
+                username=username,
+                source=source,
+                campaign=campaign,
+                referer_id=referer_id,
+                user_status="started",
+                is_active=True,
+                tokens=10,
+            )
+            .on_conflict_do_nothing(index_elements=["telegram_id"])
+        )
+        result = await self.session.execute(stmt)
+        is_new = result.rowcount == 1  # 1 → inserted, 0 → already existed
+
+        # Always re-fetch to get the authoritative row (new OR existing)
+        user = await self.get_user(telegram_id)
+        if user is None:
+            # Should never happen, but guard just in case
+            logger.error("get_or_create_user: user not found after upsert for %s", telegram_id)
+            raise RuntimeError(f"User {telegram_id} not found after upsert")
+
+        if is_new:
+            # Create referral balance wallet for new users only
+            await self.session.flush()  # ensure user.id is set
+            existing_balance = await self.session.execute(
+                select(ReferralBalance).where(ReferralBalance.user_id == user.id)
+            )
+            if existing_balance.scalar_one_or_none() is None:
+                balance = ReferralBalance(user_id=user.id, balance=0, total_earned=0, total_used=0)
+                self.session.add(balance)
+                await self.session.flush()
+
+        return user, is_new
 
     # ── Registration ──────────────────────────
     async def set_name(self, telegram_id: int, name: str):

@@ -79,17 +79,19 @@ async def cmd_start(message: Message, state: FSMContext):
             )
             return
 
-        # Track referral
-        if referer_id and is_new:
-            ref_service = ReferralService(session)
-            await ref_service.create_referral(
-                referer_id=referer_id,
-                referred_id=message.from_user.id,
-            )
+        if is_new:
+            # Track referral (only for genuinely new users)
+            if referer_id:
+                ref_service = ReferralService(session)
+                await ref_service.create_referral(
+                    referer_id=referer_id,
+                    referred_id=message.from_user.id,
+                )
 
-        # Track lead event
-        analytics = AnalyticsService(session)
-        await analytics.track(user_id=user.id, event_type=EVT_LEAD)
+            # Track lead event (only once per user)
+            analytics = AnalyticsService(session)
+            await analytics.track(user_id=user.id, event_type=EVT_LEAD)
+
         await session.commit()
 
     # Start registration
