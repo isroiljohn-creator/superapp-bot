@@ -56,10 +56,15 @@ async def cmd_start(message: Message, state: FSMContext):
             user.username = message.from_user.username
             await session.commit()
 
-        if not is_new and user.user_status == "registered":
+        if not is_new and (user.user_status == "registered" or user.phone is not None):
             # Re-activate user if they were previously blocked
             if not user.is_active:
                 user.is_active = True
+                await session.commit()
+
+            # Mark as registered if they had dropped off at segmentation
+            if user.user_status != "registered":
+                user.user_status = "registered"
                 await session.commit()
 
             # ── Deep link processing for existing/returning users ─────────────
@@ -195,6 +200,14 @@ async def process_phone(message: Message, state: FSMContext):
 
     async with async_session() as session:
         crm = CRMService(session)
+        
+        # Prevent double registration spam (e.g. multiple taps on Share Contact)
+        existing_user = await crm.get_user(message.from_user.id)
+        if existing_user and existing_user.phone:
+            await message.answer(uz.ASK_GOAL, reply_markup=goal_keyboard())
+            await state.set_state(SegmentationFSM.waiting_goal)
+            return
+
         await crm.set_phone(message.from_user.id, phone)
 
         # Track registration event
