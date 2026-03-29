@@ -89,6 +89,40 @@ async def cmd_stats(message: Message, user_id_override: int = None):
         await message.answer(uz.ADMIN_ONLY)
         return
 
+@router.message(Command("admin_dupes"))
+async def cmd_admin_dupes(message: Message):
+    """Temporary command to query duplicate users in the live database."""
+    if not is_admin(message.from_user.id):
+        return
+        
+    async with async_session() as session:
+        from sqlalchemy import text
+        result = await session.execute(text("""
+            SELECT telegram_id, COUNT(*) as c, array_agg(id) as ids, MAX(name) as name
+            FROM users 
+            GROUP BY telegram_id 
+            HAVING COUNT(*) > 1
+            ORDER BY c DESC
+            LIMIT 100
+        """))
+        rows = result.fetchall()
+        
+    if not rows:
+        await message.answer("🎉 Baza toza! Hech qanday dublikat foydalanuvchi topilmadi.")
+        return
+        
+    lines = ["👥 <b>Dublikatlar ro'yxati (eng ko'p qaytarilgan 100 ta):</b>\n"]
+    for row in rows:
+        tg_id, count, ids, name = row
+        safe_name = str(name).replace('<', '').replace('>', '') if name else "Nomsiz"
+        lines.append(f"👤 {safe_name} (<code>{tg_id}</code>): <b>{count} ta</b> nusxa")
+        
+    out_text = "\n".join(lines)
+    if len(out_text) > 4000:
+        out_text = out_text[:4000] + "\n... (davomi bor)"
+        
+    await message.answer(out_text, parse_mode="HTML")
+
     async with async_session() as session:
         crm = CRMService(session)
         analytics = AnalyticsService(session)
