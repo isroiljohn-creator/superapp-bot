@@ -630,7 +630,7 @@ JOBS_CHANNEL_POST = (
     "📋 <b>Tavsif:</b>\n{description}\n\n"
     "📱 Aloqa: {contact}\n\n"
     "━━━━━━━━━━━━━━━━━━━━\n"
-    "📩 @nuviuz orqali ariza qoldiring"
+    "📩 @isroil_aibot orqali bepulga vakansiya joylang"
 )
 
 JOBS_ADMIN_NEW = (
