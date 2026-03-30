@@ -389,7 +389,7 @@ async def approve_job(callback: CallbackQuery):
         job.approved_at = datetime.now(timezone.utc).replace(tzinfo=None)
         await session.commit()
 
-        # Publish to channel
+        # Publish to channel with generated banner image
         channel_id = await _get_jobs_channel_id()
         if channel_id:
             channel_text = uz.JOBS_CHANNEL_POST.format(
@@ -402,9 +402,24 @@ async def approve_job(callback: CallbackQuery):
                 contact=html_mod.escape(job.contact_info or "—"),
             )
             try:
-                sent_msg = await callback.bot.send_message(
+                # Generate vacancy banner image
+                from services.job_image import generate_vacancy_image
+                from aiogram.types import BufferedInputFile
+
+                img_buf = generate_vacancy_image(
+                    title=job.title,
+                    company=job.company or "",
+                    salary=job.salary or "",
+                )
+                photo = BufferedInputFile(
+                    file=img_buf.read(),
+                    filename=f"vacancy_{vacancy_id}.png",
+                )
+
+                sent_msg = await callback.bot.send_photo(
                     chat_id=channel_id,
-                    text=channel_text,
+                    photo=photo,
+                    caption=channel_text,
                     parse_mode="HTML",
                 )
                 # Save channel message ID
