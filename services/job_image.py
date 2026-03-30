@@ -142,12 +142,32 @@ def generate_vacancy_image(title: str, company: str = "", salary: str = "") -> i
         s_w = s_bbox[2] - s_bbox[0]
         draw.text(((W - s_w) // 2, start_y + 10), salary_text, fill=TEXT_MEDIUM, font=salary_font)
 
-    # ── 6. "nuvi" logo at bottom center ──
-    logo_font = _get_font(38, bold=True)
-    logo_text = "nuvi"
-    l_bbox = draw.textbbox((0, 0), logo_text, font=logo_font)
-    l_w = l_bbox[2] - l_bbox[0]
-    draw.text(((W - l_w) // 2, H - 65), logo_text, fill=TEXT_DARK, font=logo_font)
+    # ── 6. NUVI logo at bottom center (from image file) ──
+    _logo_path = os.path.join(_ASSETS, "nuvi_logo.png")
+    if os.path.exists(_logo_path):
+        try:
+            logo = Image.open(_logo_path).convert("RGBA")
+            # Scale logo to height ~70px, keep aspect ratio
+            logo_target_h = 70
+            ratio = logo_target_h / logo.height
+            logo_w = int(logo.width * ratio)
+            logo = logo.resize((logo_w, logo_target_h), Image.Resampling.LANCZOS)
+            # Center horizontally, place near bottom
+            logo_x = (W - logo_w) // 2
+            logo_y = H - logo_target_h - 20
+            # Paste with alpha mask for transparency
+            img.paste(logo, (logo_x, logo_y), logo)
+        except Exception:
+            # Fallback: text if logo image fails
+            logo_font = _get_font(38, bold=True)
+            l_bbox = draw.textbbox((0, 0), "nuvi", font=logo_font)
+            l_w = l_bbox[2] - l_bbox[0]
+            draw.text(((W - l_w) // 2, H - 65), "nuvi", fill=TEXT_DARK, font=logo_font)
+    else:
+        logo_font = _get_font(38, bold=True)
+        l_bbox = draw.textbbox((0, 0), "nuvi", font=logo_font)
+        l_w = l_bbox[2] - l_bbox[0]
+        draw.text(((W - l_w) // 2, H - 65), "nuvi", fill=TEXT_DARK, font=logo_font)
 
     buf = io.BytesIO()
     img.save(buf, format="PNG", quality=95)

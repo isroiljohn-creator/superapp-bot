@@ -422,21 +422,43 @@ async def profile_help(callback_query):
 
 
 # ──────────────────────────────────────────────
-# 🔐 Yopiq klub — temporarily closed
+# 🔐 Yopiq klub — now inside Nuvi kursi
 # ──────────────────────────────────────────────
 @router.message(F.text == uz.MENU_BTN_CLUB)
 async def menu_club(message: Message):
-    """Yopiq klub — show temporarily closed message."""
-    await message.answer(uz.CLOSED_CLUB_COURSE_TEXT, parse_mode="HTML", reply_markup=main_menu_keyboard(user_id=message.from_user.id))
+    """Yopiq klub — legacy redirect to course section."""
+    await menu_course(message)
 
 
 # ──────────────────────────────────────────────
-# 📚 Nuvi kursi — temporarily closed
+# 📚 Nuvi kursi — with Yopiq klub inside
 # ──────────────────────────────────────────────
 @router.message(F.text == uz.MENU_BTN_COURSE)
 async def menu_course(message: Message):
-    """Nuvi kursi — show temporarily closed message."""
-    await message.answer(uz.CLOSED_CLUB_COURSE_TEXT, parse_mode="HTML", reply_markup=main_menu_keyboard(user_id=message.from_user.id))
+    """Nuvi kursi — show course info with club inside."""
+    course_text = (
+        "📚 <b>Nuvi kursi</b>\n\n"
+        "Kursda AI yordamida pul topish, "
+        "mijozlar olish va biznesni avtomatlashtirishni o'rganasiz.\n\n"
+        "🔐 <b>Yopiq klub</b> — AI va marketing bo'yicha ekskluziv hamjamiyat!\n"
+        "✅ Shaxsiy mentor yordami\n"
+        "✅ Haftalik live darslar\n"
+        "✅ Tayyor shablonlar va promptlar\n\n"
+        "⚠️ <i>Hozirda yangi taklif tayyorlanmoqda, tez orada e'lon qilamiz!</i>"
+    )
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="🔐 Yopiq klub haqida", callback_data="course:club_info")],
+    ])
+    await message.answer(course_text, parse_mode="HTML", reply_markup=kb)
+
+
+@router.callback_query(F.data == "course:club_info")
+async def course_club_info(callback_query: CallbackQuery):
+    """Show detailed club info from course section."""
+    await callback_query.message.answer(
+        uz.CLOSED_CLUB_COURSE_TEXT, parse_mode="HTML",
+    )
+    await callback_query.answer()
 
 
 # ──────────────────────────────────────────────
