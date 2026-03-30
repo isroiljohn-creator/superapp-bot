@@ -77,8 +77,9 @@ def _job_type_keyboard() -> InlineKeyboardMarkup:
 # 💼 Menu button → Jobs hub
 # ──────────────────────────────────────────────────
 @router.message(F.text == uz.MENU_BTN_JOBS)
-async def menu_jobs(message: Message):
+async def menu_jobs(message: Message, state: FSMContext):
     """Show NUVI Jobs hub."""
+    await state.clear()
     await message.answer(
         uz.JOBS_MENU_TEXT,
         parse_mode="HTML",
