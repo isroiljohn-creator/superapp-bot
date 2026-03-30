@@ -1,4 +1,12 @@
-"""Generate branded vacancy banner images with Pillow."""
+"""Generate branded NUVI Jobs vacancy banner images with Pillow.
+
+Uses the NUVI Jobs template design:
+- Light background with large "JOBS" watermark
+- "NUVI_JOBS" header
+- Vacancy title and salary in center
+- nuvi logo at bottom
+- Big Shoulders Text font (Google Fonts)
+"""
 import io
 import os
 import textwrap
@@ -7,141 +15,141 @@ from PIL import Image, ImageDraw, ImageFont
 
 # ── Paths ────────────────────────────────────────
 _DIR = os.path.dirname(os.path.abspath(__file__))
-_ASSETS = os.path.join(os.path.dirname(_DIR), "assets")
-_LOGO_PATH = os.path.join(_ASSETS, "nuvi_logo.png")
+_PROJECT = os.path.dirname(_DIR)
+_ASSETS = os.path.join(_PROJECT, "assets")
+_FONT_PATH = os.path.join(_ASSETS, "fonts", "BigShouldersText.ttf")
+_TEMPLATE_PATH = os.path.join(_ASSETS, "jobs_template.png")
 
 # ── Colors ───────────────────────────────────────
-BG_GRADIENT_TOP = (15, 23, 42)       # Dark navy
-BG_GRADIENT_BOTTOM = (30, 58, 138)   # Deep blue
-ACCENT = (99, 102, 241)              # Indigo accent
-TEXT_WHITE = (255, 255, 255)
-TEXT_LIGHT = (203, 213, 225)         # Slate-300
-BADGE_BG = (99, 102, 241, 200)      # Semi-transparent indigo
+TEXT_DARK = (25, 25, 25)          # Near-black
+TEXT_MEDIUM = (60, 60, 60)        # Dark gray for salary
+WATERMARK = (230, 230, 230)       # Light gray for "JOBS" watermark
+DOTS_COLOR = (210, 210, 210)      # Halftone dots
+HEADER_COLOR = (25, 25, 25)       # "NUVI_JOBS" header
 
 
-def _get_font(size: int, bold: bool = False) -> ImageFont.FreeTypeFont:
-    """Try to load a good font, fall back to default."""
-    font_candidates = [
-        # Common on Linux/Railway
-        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf" if bold else "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
-        "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf" if bold else "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
-        # macOS
-        "/System/Library/Fonts/Helvetica.ttc",
-        "/System/Library/Fonts/SFNSDisplay.ttf",
-        "/Library/Fonts/Arial Bold.ttf" if bold else "/Library/Fonts/Arial.ttf",
-    ]
-    for path in font_candidates:
-        if os.path.exists(path):
+def _get_font(size: int, bold: bool = True) -> ImageFont.FreeTypeFont:
+    """Load Big Shoulders Text font, fall back to system fonts."""
+    if os.path.exists(_FONT_PATH):
+        try:
+            font = ImageFont.truetype(_FONT_PATH, size)
+            if bold:
+                font.set_variation_by_name("Bold")
+            else:
+                font.set_variation_by_name("Regular")
+            return font
+        except Exception:
             try:
-                return ImageFont.truetype(path, size)
+                font = ImageFont.truetype(_FONT_PATH, size)
+                font.set_variation_by_name("ExtraBold" if bold else "Medium")
+                return font
+            except Exception:
+                pass
+
+    # Fallback: system fonts
+    fallbacks = [
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+        "/System/Library/Fonts/Helvetica.ttc",
+        "/Library/Fonts/Arial Bold.ttf",
+    ]
+    for p in fallbacks:
+        if os.path.exists(p):
+            try:
+                return ImageFont.truetype(p, size)
             except Exception:
                 continue
     return ImageFont.load_default()
 
 
-def _draw_gradient(draw: ImageDraw.Draw, width: int, height: int):
-    """Draw a vertical gradient background."""
-    for y in range(height):
-        ratio = y / height
-        r = int(BG_GRADIENT_TOP[0] + (BG_GRADIENT_BOTTOM[0] - BG_GRADIENT_TOP[0]) * ratio)
-        g = int(BG_GRADIENT_TOP[1] + (BG_GRADIENT_BOTTOM[1] - BG_GRADIENT_TOP[1]) * ratio)
-        b = int(BG_GRADIENT_TOP[2] + (BG_GRADIENT_BOTTOM[2] - BG_GRADIENT_TOP[2]) * ratio)
-        draw.line([(0, y), (width, y)], fill=(r, g, b))
+def _draw_halftone_dots(draw, cx, cy, radius, dot_color, bg_size):
+    """Draw a halftone dot pattern in a circular area."""
+    spacing = 14
+    max_dot_r = 5
+    for x in range(max(0, cx - radius), min(bg_size[0], cx + radius), spacing):
+        for y in range(max(0, cy - radius), min(bg_size[1], cy + radius), spacing):
+            dist = ((x - cx)**2 + (y - cy)**2) ** 0.5
+            if dist < radius:
+                # Dots get smaller toward center
+                ratio = dist / radius
+                dot_r = int(max_dot_r * (0.3 + 0.7 * ratio))
+                if dot_r > 0:
+                    draw.ellipse(
+                        [(x - dot_r, y - dot_r), (x + dot_r, y + dot_r)],
+                        fill=dot_color,
+                    )
 
 
 def generate_vacancy_image(title: str, company: str = "", salary: str = "") -> io.BytesIO:
     """
-    Generate a branded vacancy banner (1200×630).
+    Generate a branded NUVI Jobs vacancy banner (1200×630).
     
+    Design: Light background, large "JOBS" watermark, vacancy title + salary centered.
     Returns a BytesIO object with PNG data.
     """
     W, H = 1200, 630
-    img = Image.new("RGBA", (W, H))
+    img = Image.new("RGB", (W, H), (245, 245, 245))
     draw = ImageDraw.Draw(img)
 
-    # 1. Gradient background
-    _draw_gradient(draw, W, H)
-
-    # 2. Decorative elements
-    # Top-right accent circle
-    draw.ellipse([(W - 250, -100), (W + 50, 200)], fill=(99, 102, 241, 40))
-    # Bottom-left accent circle
-    draw.ellipse([(-100, H - 200), (200, H + 50)], fill=(99, 102, 241, 30))
-
-    # 3. "NUVI JOBS" badge at top
-    badge_font = _get_font(22, bold=True)
-    badge_text = "NUVI JOBS"
-    badge_bbox = draw.textbbox((0, 0), badge_text, font=badge_font)
-    badge_w = badge_bbox[2] - badge_bbox[0] + 40
-    badge_h = badge_bbox[3] - badge_bbox[1] + 16
-    badge_x = 60
-    badge_y = 50
-    draw.rounded_rectangle(
-        [(badge_x, badge_y), (badge_x + badge_w, badge_y + badge_h)],
-        radius=badge_h // 2,
-        fill=ACCENT,
-    )
+    # ── 1. Large "JOBS" watermark text ──
+    watermark_font = _get_font(340, bold=True)
+    wm_text = "JOBS"
+    wm_bbox = draw.textbbox((0, 0), wm_text, font=watermark_font)
+    wm_w = wm_bbox[2] - wm_bbox[0]
+    wm_h = wm_bbox[3] - wm_bbox[1]
     draw.text(
-        (badge_x + 20, badge_y + 6),
-        badge_text, fill=TEXT_WHITE, font=badge_font,
+        ((W - wm_w) // 2 - 40, (H - wm_h) // 2 - 40),
+        wm_text, fill=WATERMARK, font=watermark_font,
     )
 
-    # 4. Vacancy title (main text) — wrap long titles
-    title_font = _get_font(52, bold=True)
-    title_clean = title.strip()
-    
-    # Word wrap
-    wrapped = textwrap.fill(title_clean, width=28)
-    lines = wrapped.split("\n")[:3]  # Max 3 lines
-    
-    title_y = 130
-    for line in lines:
-        draw.text((60, title_y), line, fill=TEXT_WHITE, font=title_font)
-        title_y += 65
+    # ── 2. Halftone dots pattern (bottom-left and right areas) ──
+    _draw_halftone_dots(draw, 120, H - 100, 180, DOTS_COLOR, (W, H))
+    _draw_halftone_dots(draw, W - 100, 100, 200, DOTS_COLOR, (W, H))
 
-    # 5. "KERAK" label under title
-    kerak_font = _get_font(36, bold=False)
-    kerak_y = title_y + 10
-    draw.text((60, kerak_y), "kerak", fill=TEXT_LIGHT, font=kerak_font)
+    # ── 3. "NUVI_JOBS" header (top center, italic-bold) ──
+    header_font = _get_font(32, bold=True)
+    header_text = "NUVI_JOBS"
+    h_bbox = draw.textbbox((0, 0), header_text, font=header_font)
+    h_w = h_bbox[2] - h_bbox[0]
+    draw.text(((W - h_w) // 2, 35), header_text, fill=HEADER_COLOR, font=header_font)
 
-    # 6. Company & salary info
-    info_font = _get_font(28, bold=False)
-    info_y = kerak_y + 60
+    # ── 4. Vacancy title (CENTER, large, bold, dark) ──
+    title_font = _get_font(64, bold=True)
+    title_clean = title.strip().upper()
 
-    if company:
-        draw.text((60, info_y), f"Kompaniya:  {company}", fill=TEXT_LIGHT, font=info_font)
-        info_y += 40
+    # Word wrap for long titles
+    wrapped = textwrap.fill(title_clean, width=22)
+    lines = wrapped.split("\n")[:3]
 
+    # Calculate total text block height
+    line_height = 75
+    total_text_h = len(lines) * line_height
     if salary:
-        draw.text((60, info_y), f"Maosh:  {salary}", fill=TEXT_LIGHT, font=info_font)
+        total_text_h += 55  # Space for salary line
 
-    # 7. Decorative line
-    draw.rectangle([(60, H - 120), (W - 60, H - 118)], fill=(99, 102, 241, 80))
+    start_y = (H - total_text_h) // 2
 
-    # 8. NUVI logo at bottom center
-    try:
-        if os.path.exists(_LOGO_PATH):
-            logo = Image.open(_LOGO_PATH).convert("RGBA")
-            # Scale logo to height ~60px
-            logo_h = 60
-            ratio = logo_h / logo.height
-            logo_w = int(logo.width * ratio)
-            logo = logo.resize((logo_w, logo_h), Image.Resampling.LANCZOS)
-            logo_x = (W - logo_w) // 2
-            logo_y = H - 90
-            img.paste(logo, (logo_x, logo_y), logo)
-    except Exception:
-        # Fallback: text "NUVI" if logo fails
-        nuvi_font = _get_font(32, bold=True)
-        nuvi_bbox = draw.textbbox((0, 0), "NUVI", font=nuvi_font)
-        nuvi_w = nuvi_bbox[2] - nuvi_bbox[0]
-        draw.text(((W - nuvi_w) // 2, H - 80), "NUVI", fill=TEXT_LIGHT, font=nuvi_font)
+    for line in lines:
+        line_bbox = draw.textbbox((0, 0), line, font=title_font)
+        line_w = line_bbox[2] - line_bbox[0]
+        draw.text(((W - line_w) // 2, start_y), line, fill=TEXT_DARK, font=title_font)
+        start_y += line_height
 
-    # Convert to RGB for JPEG-compatible PNG
-    final = Image.new("RGB", (W, H))
-    final.paste(img, mask=img.split()[3] if img.mode == "RGBA" else None)
+    # ── 5. Salary (below title, centered, slightly smaller) ──
+    if salary:
+        salary_font = _get_font(36, bold=False)
+        salary_text = salary.strip()
+        s_bbox = draw.textbbox((0, 0), salary_text, font=salary_font)
+        s_w = s_bbox[2] - s_bbox[0]
+        draw.text(((W - s_w) // 2, start_y + 10), salary_text, fill=TEXT_MEDIUM, font=salary_font)
+
+    # ── 6. "nuvi" logo at bottom center ──
+    logo_font = _get_font(38, bold=True)
+    logo_text = "nuvi"
+    l_bbox = draw.textbbox((0, 0), logo_text, font=logo_font)
+    l_w = l_bbox[2] - l_bbox[0]
+    draw.text(((W - l_w) // 2, H - 65), logo_text, fill=TEXT_DARK, font=logo_font)
 
     buf = io.BytesIO()
-    final.save(buf, format="PNG", quality=95)
+    img.save(buf, format="PNG", quality=95)
     buf.seek(0)
     return buf
