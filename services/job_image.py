@@ -34,14 +34,14 @@ def _get_font(size: int, bold: bool = True) -> ImageFont.FreeTypeFont:
         try:
             font = ImageFont.truetype(_FONT_PATH, size)
             if bold:
-                font.set_variation_by_name("Bold")
+                font.set_variation_by_name("ExtraBold")
             else:
-                font.set_variation_by_name("Regular")
+                font.set_variation_by_name("SemiBold")
             return font
         except Exception:
             try:
                 font = ImageFont.truetype(_FONT_PATH, size)
-                font.set_variation_by_name("ExtraBold" if bold else "Medium")
+                font.set_variation_by_name("Black" if bold else "Bold")
                 return font
             except Exception:
                 pass
@@ -113,7 +113,7 @@ def generate_vacancy_image(title: str, company: str = "", salary: str = "") -> i
     draw.text(((W - h_w) // 2, 35), header_text, fill=HEADER_COLOR, font=header_font)
 
     # ── 4. Vacancy title (CENTER, large, bold, dark) ──
-    title_font = _get_font(64, bold=True)
+    title_font = _get_font(80, bold=True)
     title_clean = title.strip().upper()
 
     # Word wrap for long titles
@@ -121,7 +121,7 @@ def generate_vacancy_image(title: str, company: str = "", salary: str = "") -> i
     lines = wrapped.split("\n")[:3]
 
     # Calculate total text block height
-    line_height = 75
+    line_height = 90
     total_text_h = len(lines) * line_height
     if salary:
         total_text_h += 55  # Space for salary line
@@ -136,7 +136,7 @@ def generate_vacancy_image(title: str, company: str = "", salary: str = "") -> i
 
     # ── 5. Salary (below title, centered, slightly smaller) ──
     if salary:
-        salary_font = _get_font(36, bold=False)
+        salary_font = _get_font(42, bold=False)
         salary_text = salary.strip()
         s_bbox = draw.textbbox((0, 0), salary_text, font=salary_font)
         s_w = s_bbox[2] - s_bbox[0]
