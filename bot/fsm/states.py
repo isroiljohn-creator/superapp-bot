@@ -36,3 +36,15 @@ class FunnelBuilderFSM(StatesGroup):
     waiting_action = State()
     waiting_message = State()
     waiting_delay = State()
+
+
+class JobPostFSM(StatesGroup):
+    """Business owner job posting flow."""
+    waiting_title = State()
+    waiting_company = State()
+    waiting_description = State()
+    waiting_salary = State()
+    waiting_job_type = State()
+    waiting_location = State()
+    waiting_contact = State()
+    waiting_confirm = State()

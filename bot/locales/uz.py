@@ -553,3 +553,106 @@ SCHEDULED_MSG_CREATED = "✅ Xabar rejalashtirildi! {send_at} da yuboriladi."
 MOD_WARNING = "⚠️ {name}, guruh qoidalarini buzganingiz uchun ogohlantirish! ({count}/3)"
 MOD_BANNED = "🚫 {name} guruhdan chiqarildi (3 ta ogohlantirish)."
 MOD_LINK_DELETED = "🔗 Havolalar faqat adminlar tomonidan yuborilishi mumkin."
+
+# ──────────────────────────────────────────────
+# NUVI Jobs (Vakansiyalar)
+# ──────────────────────────────────────────────
+MENU_BTN_JOBS = "💼 Vakansiyalar"
+
+JOBS_MENU_TEXT = (
+    "💼 <b>NUVI Jobs</b>\n\n"
+    "Bu yerda siz o'z biznesingiz uchun vakansiya e'lon qilishingiz mumkin.\n"
+    "Vakansiya admin tomonidan tekshirilgach, kanalga chiqariladi.\n\n"
+    "Quyidan kerakli amalni tanlang 👇"
+)
+
+JOBS_LIST_EMPTY = (
+    "💼 <b>Vakansiyalar</b>\n\n"
+    "Hozircha aktiv vakansiyalar yo'q.\n"
+    "Tez orada yangi ish o'rinlari qo'shiladi! 🔔"
+)
+
+JOBS_ASK_TITLE = "✍️ Lavozim nomini kiriting:\n\n<i>Masalan: SMM mutaxassisi, Dizayner, Dasturchi</i>"
+
+JOBS_ASK_COMPANY = "🏢 Kompaniya nomini kiriting:\n\n<i>Masalan: NUVI Academy, IT Park</i>"
+
+JOBS_ASK_DESCRIPTION = (
+    "📋 Vakansiya tavsifini kiriting:\n\n"
+    "<i>Masalan: Biz jamoamizga tajribali SMM mutaxassisini qidirmoqdamiz. "
+    "Asosiy vazifalar: kontent rejalashtirish, post tayyorlash...</i>"
+)
+
+JOBS_ASK_SALARY = (
+    "💰 Maosh miqdorini kiriting:\n\n"
+    "<i>Masalan: 3-5 mln so'm, Kelishiladi, $500-800</i>\n\n"
+    "O'tkazib yuborish uchun /skip bosing"
+)
+
+JOBS_ASK_JOB_TYPE = "⏰ Ish turini tanlang:"
+
+JOBS_ASK_LOCATION = (
+    "📍 Joylashuvni kiriting:\n\n"
+    "<i>Masalan: Toshkent, Samarqand, Masofaviy</i>\n\n"
+    "O'tkazib yuborish uchun /skip bosing"
+)
+
+JOBS_ASK_CONTACT = (
+    "📱 Aloqa ma'lumotlarini kiriting:\n\n"
+    "<i>Masalan: @username yoki +998901234567</i>"
+)
+
+JOBS_CONFIRM_TEXT = (
+    "📋 <b>Vakansiyani tekshirib chiqing:</b>\n\n"
+    "💼 <b>Lavozim:</b> {title}\n"
+    "🏢 <b>Kompaniya:</b> {company}\n"
+    "📋 <b>Tavsif:</b>\n{description}\n\n"
+    "💰 <b>Maosh:</b> {salary}\n"
+    "⏰ <b>Ish turi:</b> {job_type}\n"
+    "📍 <b>Joylashuv:</b> {location}\n"
+    "📱 <b>Aloqa:</b> {contact}\n\n"
+    "Hammasini to'g'ri kiritdingizmi?"
+)
+
+JOBS_SUBMITTED = (
+    "✅ <b>Vakansiya qabul qilindi!</b>\n\n"
+    "Adminlar tekshirgandan so'ng kanalga chiqariladi.\n"
+    "Rahmat! 🙏"
+)
+
+JOBS_CANCELLED = "❌ Vakansiya berish bekor qilindi."
+
+JOBS_CHANNEL_POST = (
+    "💼 <b>{title}</b>\n\n"
+    "🏢 Kompaniya: <b>{company}</b>\n"
+    "📍 Joylashuv: {location}\n"
+    "💰 Maosh: <b>{salary}</b>\n"
+    "⏰ Ish turi: {job_type}\n\n"
+    "📋 <b>Tavsif:</b>\n{description}\n\n"
+    "📱 Aloqa: {contact}\n\n"
+    "━━━━━━━━━━━━━━━━━━━━\n"
+    "📩 @nuviuz orqali ariza qoldiring"
+)
+
+JOBS_ADMIN_NEW = (
+    "🔔 <b>Yangi vakansiya ariza!</b>\n\n"
+    "💼 <b>{title}</b>\n"
+    "🏢 {company}\n"
+    "💰 {salary}\n"
+    "📍 {location}\n\n"
+    "📋 {description}\n\n"
+    "📱 Aloqa: {contact}\n"
+    "👤 Yuboruvchi: {user_name} (@{username})\n\n"
+    "Tasdiqlaysizmi?"
+)
+
+JOBS_APPROVED = "✅ Vakansiya tasdiqlandi va kanalga yuborildi!"
+JOBS_REJECTED = "❌ Vakansiya rad etildi."
+JOBS_USER_APPROVED = "✅ Sizning vakansiyangiz «{title}» tasdiqlandi va kanalga chiqarildi! 🎉"
+JOBS_USER_REJECTED = "❌ Sizning vakansiyangiz «{title}» rad etildi."
+
+JOB_TYPE_NAMES = {
+    "full_time": "🏢 To'liq kun",
+    "part_time": "⏰ Yarim kun",
+    "remote": "🌐 Masofaviy",
+    "freelance": "💼 Frilanser",
+}

@@ -49,6 +49,9 @@ async def init_db():
         logger.info("✅ Jadvallar allaqachon mavjud")
         # Auto-migrate: add missing columns
         await _auto_migrate(engine)
+        # Auto-create missing tables (e.g., job_vacancies)
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
         return
 
     async with engine.begin() as conn:

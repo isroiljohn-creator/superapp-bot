@@ -319,3 +319,26 @@ class ABTest(Base):
     variant_b_value = Column(Text, default="")
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+# ──────────────────────────────────────────────
+# Job Vacancies (NUVI Jobs)
+# ──────────────────────────────────────────────
+class JobVacancy(Base):
+    __tablename__ = "job_vacancies"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    title = Column(String(255), nullable=False)             # Lavozim nomi
+    company = Column(String(255), nullable=True)            # Kompaniya nomi
+    description = Column(Text, nullable=False)              # Batafsil tavsif
+    salary = Column(String(100), nullable=True)             # "3-5 mln so'm"
+    job_type = Column(String(50), default="full_time")      # full_time / part_time / remote
+    location = Column(String(255), nullable=True)           # Joylashuv
+    contact_info = Column(String(255), nullable=True)       # Aloqa (telefon/username)
+    channel_msg_id = Column(Integer, nullable=True)         # Kanalga yuborilgan xabar ID
+    status = Column(String(20), default="pending")          # pending / approved / rejected
+    submitted_by = Column(BigInteger, nullable=False)       # Ariza bergan foydalanuvchi telegram_id
+    reviewed_by = Column(BigInteger, nullable=True)         # Tasdiqlagan admin telegram_id
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    approved_at = Column(DateTime, nullable=True)
