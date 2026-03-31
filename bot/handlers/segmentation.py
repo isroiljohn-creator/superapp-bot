@@ -8,7 +8,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery
 
 from bot.fsm.states import SegmentationFSM
-from bot.keyboards.buttons import level_keyboard, main_menu_keyboard
+from bot.keyboards.buttons import get_main_menu, level_keyboard, get_main_menu
 from bot.locales import uz
 from db.database import async_session
 from services.crm import CRMService
@@ -51,7 +51,7 @@ async def process_level(callback: CallbackQuery, state: FSMContext):
 
     await callback.message.answer(
         uz.REGISTRATION_COMPLETE.format(name=user_name),
-        reply_markup=main_menu_keyboard(user_id=callback.from_user.id),
+        reply_markup=await get_main_menu(user_id=callback.from_user.id),
     )
 
     await state.clear()

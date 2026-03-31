@@ -12,7 +12,7 @@ from aiogram.filters import Command  # used by cmd_menu
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
 
-from bot.keyboards.buttons import main_menu_keyboard, free_lessons_keyboard
+from bot.keyboards.buttons import get_main_menu, free_lessons_keyboard
 from bot.locales import uz
 from bot.config import settings
 from services.analytics import AnalyticsService
@@ -30,7 +30,7 @@ class ProfileEdit(StatesGroup):
 @router.message(Command("menu"))
 async def cmd_menu(message: Message):
     """Show main menu."""
-    await message.answer(uz.MENU_TEXT, reply_markup=main_menu_keyboard(user_id=message.from_user.id), parse_mode="HTML")
+    await message.answer(uz.MENU_TEXT, reply_markup=await get_main_menu(user_id=message.from_user.id), parse_mode="HTML")
 
 
 # ──────────────────────────────────────────────
@@ -145,7 +145,7 @@ async def menu_ai_list(message: Message):
 @router.message(F.text == uz.MENU_BTN_BACK)
 async def back_to_menu(message: Message):
     """Return to main menu from any sub-menu."""
-    await message.answer(uz.MENU_TEXT, reply_markup=main_menu_keyboard(user_id=message.from_user.id), parse_mode="HTML")
+    await message.answer(uz.MENU_TEXT, reply_markup=await get_main_menu(user_id=message.from_user.id), parse_mode="HTML")
 
 
 # ──────────────────────────────────────────────
@@ -294,7 +294,7 @@ async def process_name_edit(message: Message, state: FSMContext):
             user.name = new_name
             await session.commit()
     await state.clear()
-    await message.answer(uz.PROFILE_UPDATED, parse_mode="HTML", reply_markup=main_menu_keyboard(user_id=message.from_user.id))
+    await message.answer(uz.PROFILE_UPDATED, parse_mode="HTML", reply_markup=await get_main_menu(user_id=message.from_user.id))
 
 
 @router.message(ProfileEdit.waiting_age)
@@ -318,7 +318,7 @@ async def process_age_edit(message: Message, state: FSMContext):
             user.age = new_age
             await session.commit()
     await state.clear()
-    await message.answer(uz.PROFILE_UPDATED, parse_mode="HTML", reply_markup=main_menu_keyboard(user_id=message.from_user.id))
+    await message.answer(uz.PROFILE_UPDATED, parse_mode="HTML", reply_markup=await get_main_menu(user_id=message.from_user.id))
 
 
 # Goal change from PROFILE (not registration)
@@ -342,7 +342,7 @@ async def profile_subscribe(callback_query):
     """Redirect to subscription."""
     await callback_query.message.answer(
         uz.CLOSED_CLUB_COURSE_TEXT, parse_mode="HTML",
-        reply_markup=main_menu_keyboard(user_id=callback_query.from_user.id),
+        reply_markup=await get_main_menu(user_id=callback_query.from_user.id),
     )
     await callback_query.answer()
 
@@ -502,7 +502,7 @@ async def menu_referral(message: Message):
     await message.answer(
         uz.REFERRAL_MENU_TEXT.format(link=ref_link, count=referral_count, balance=f"{balance:,}".replace(",", " "), reward=reward_formatted),
         parse_mode="HTML",
-        reply_markup=main_menu_keyboard(user_id=message.from_user.id),
+        reply_markup=await get_main_menu(user_id=message.from_user.id),
     )
 
 
@@ -512,7 +512,7 @@ async def menu_referral(message: Message):
 @router.message(F.text == uz.MENU_BTN_HELP)
 async def menu_help(message: Message):
     """Yordam section."""
-    await message.answer(uz.HELP_MENU_TEXT, parse_mode="HTML", reply_markup=main_menu_keyboard(user_id=message.from_user.id))
+    await message.answer(uz.HELP_MENU_TEXT, parse_mode="HTML", reply_markup=await get_main_menu(user_id=message.from_user.id))
 
 
 # ──────────────────────────────────────────────

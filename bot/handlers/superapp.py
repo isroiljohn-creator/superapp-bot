@@ -12,23 +12,12 @@ router = Router(name="superapp")
 @router.message(F.text == uz.MENU_BTN_SUPERAPP)
 async def menu_superapp(message: Message, state: FSMContext):
     """Show Superapp menu."""
-    from db.database import async_session
-    from db.models import User
-    from sqlalchemy import select
-    from bot.config import settings
-    
     await state.clear()
-    
-    async with async_session() as session:
-        res = await session.execute(select(User.is_team_member).where(User.telegram_id == message.from_user.id))
-        is_team = res.scalar() or False
-        
-    is_admin = message.from_user.id in settings.ADMIN_IDS
     
     await message.answer(
         uz.SUPERAPP_MENU, 
         parse_mode="HTML", 
-        reply_markup=superapp_keyboard(is_team_member=is_team, is_admin=is_admin)
+        reply_markup=superapp_keyboard()
     )
 
 @router.message(F.text == uz.SUPERAPP_BTN_TEAM)

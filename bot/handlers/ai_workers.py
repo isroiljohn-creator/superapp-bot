@@ -8,7 +8,7 @@ from aiogram.fsm.state import State, StatesGroup
 
 from bot.locales import uz
 from bot.config import settings
-from bot.keyboards.buttons import main_menu_keyboard, ai_workers_reply_keyboard
+from bot.keyboards.buttons import get_main_menu, ai_workers_reply_keyboard
 from db.database import async_session
 from services.token_service import (
     get_tokens_async, has_enough_async, claim_daily_async,
@@ -36,7 +36,7 @@ async def menu_ai_workers(message: Message, state: FSMContext):
         "Tez orada sizga qulay AI hodimlarni taqdim qilamiz, "
         "biz bilan qolganingiz uchun rahmat! 🙏",
         parse_mode="HTML",
-        reply_markup=main_menu_keyboard(message.from_user.id),
+        reply_markup=await get_main_menu(message.from_user.id),
     )
 
 
@@ -184,7 +184,7 @@ async def back_to_menu_inline(callback_query: CallbackQuery, state: FSMContext):
         chat_id=callback_query.from_user.id,
         text=uz.MENU_TEXT,
         parse_mode="HTML",
-        reply_markup=main_menu_keyboard(user_id=callback_query.from_user.id),
+        reply_markup=await get_main_menu(user_id=callback_query.from_user.id),
     )
     await callback_query.answer()
 

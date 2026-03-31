@@ -15,7 +15,7 @@ from aiogram.types import (
 
 from bot.config import settings
 from bot.fsm.states import JobPostFSM
-from bot.keyboards.buttons import main_menu_keyboard
+from bot.keyboards.buttons import get_main_menu
 from bot.locales import uz
 from db.database import async_session
 
@@ -821,7 +821,7 @@ async def process_channel_or_confirm(message: Message, state: FSMContext):
         await message.answer(
             f"✅ Kanal muvaffaqiyatli ulandi!\n\nKanal ID: <code>{channel_id}</code>",
             parse_mode="HTML",
-            reply_markup=main_menu_keyboard(user_id=message.from_user.id),
+            reply_markup=await get_main_menu(user_id=message.from_user.id),
         )
     except Exception as e:
         await message.answer(
@@ -829,6 +829,6 @@ async def process_channel_or_confirm(message: Message, state: FSMContext):
             f"<code>{html_mod.escape(str(e)[:200])}</code>\n\n"
             f"Botni kanalga admin qilib qo'shing!",
             parse_mode="HTML",
-            reply_markup=main_menu_keyboard(user_id=message.from_user.id),
+            reply_markup=await get_main_menu(user_id=message.from_user.id),
         )
 

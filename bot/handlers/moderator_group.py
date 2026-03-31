@@ -137,12 +137,25 @@ async def bot_added_to_group(event: ChatMemberUpdated):
     logger.info(f"Bot added to group: {chat.title} ({chat.id}) by {added_by}")
 
     try:
-        await event.answer(
-            uz.MOD_GROUP_ADDED.format(title=chat.title or str(chat.id)),
-            parse_mode="HTML",
+        from bot.config import settings
+        from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo
+        
+        base_url = settings.WEBAPP_URL or f"https://{settings.RAILWAY_PUBLIC_DOMAIN}"
+        app_url = f"{base_url.rstrip('/')}/moderator/?group_id={chat.id}"
+        
+        kb = InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="⚙️ Guruhni sozlash", web_app=WebAppInfo(url=app_url))]
+        ])
+        
+        text = (
+            f"👋 Assalomu alaykum, <b>{chat.title}</b> guruhi a'zolari!\n\n"
+            f"Men <b>Nazoratchi Bot</b>man. Guruhdagi tartibni saqlash, spam va so'kinishlarni "
+            f"o'chirish hamda qoidalarni boshqarish mening vazifam!\n\n"
+            f"<i>Guruh adminlari quyidagi tugma orqali meni sozlashi mumkin:</i>"
         )
-    except Exception:
-        pass
+        await event.answer(text, reply_markup=kb, parse_mode="HTML")
+    except Exception as e:
+        logger.warning(f"Error sending group welcome message: {e}")
 
 
 # ──────────────────────────────────────────────

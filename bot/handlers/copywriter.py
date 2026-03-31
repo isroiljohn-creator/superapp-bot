@@ -10,7 +10,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 
 from bot.locales import uz
-from bot.keyboards.buttons import main_menu_keyboard, ai_workers_reply_keyboard
+from bot.keyboards.buttons import get_main_menu, ai_workers_reply_keyboard
 from bot.config import settings
 from db.database import async_session
 from services.token_service import spend_tokens_async, get_tokens_async, add_tokens_async, COPY_COST
@@ -127,7 +127,7 @@ async def handle_copy_prompt(message: Message, state: FSMContext):
             await message.answer(
                 uz.AI_WORKERS_NO_TOKENS.format(needed=COPY_COST, have=tokens),
                 parse_mode="HTML",
-                reply_markup=main_menu_keyboard(user_id=message.from_user.id),
+                reply_markup=await get_main_menu(user_id=message.from_user.id),
             )
             return
         await session.commit()

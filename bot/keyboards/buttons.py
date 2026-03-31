@@ -12,9 +12,24 @@ from bot.locales import uz
 # ──────────────────────────────────────────────
 # Main menu
 # ──────────────────────────────────────────────
-def main_menu_keyboard(user_id: int = None) -> ReplyKeyboardMarkup:
-    """Main menu — restructured layout."""
+async def get_main_menu(user_id: int = None) -> ReplyKeyboardMarkup:
+    """Main menu — restructured layout with async DB check for Nuvi Team."""
     from bot.config import settings
+    from db.database import async_session
+    from db.models import User
+    from sqlalchemy import select
+    
+    # Check is_team_member from DB
+    is_team_member = False
+    if user_id:
+        async with async_session() as session:
+            res = await session.execute(select(User.is_team_member).where(User.telegram_id == user_id))
+            is_team_member = res.scalar() or False
+            
+    is_admin = user_id and user_id in settings.ADMIN_IDS
+            
+    base_url = settings.WEBAPP_URL or f"https://{settings.RAILWAY_PUBLIC_DOMAIN}"
+    app_url = f"{base_url.rstrip('/')}/nuviteam/"
     
     buttons = [
         [KeyboardButton(text=uz.MENU_BTN_AI_WORKERS), KeyboardButton(text=uz.MENU_BTN_FREE_LESSONS)],
@@ -22,26 +37,22 @@ def main_menu_keyboard(user_id: int = None) -> ReplyKeyboardMarkup:
         [KeyboardButton(text=uz.MENU_BTN_SUPERAPP), KeyboardButton(text=uz.MENU_BTN_PROFILE)],
     ]
     
-    if user_id and user_id in settings.ADMIN_IDS:
+    # 🌟 Ko'rsatma asosida Asosiy menyuda "NUVI TEAM" chiqadi
+    if is_team_member or is_admin:
+        buttons.insert(0, [KeyboardButton(text=uz.SUPERAPP_BTN_TEAM, web_app=WebAppInfo(url=app_url))])
+    
+    if is_admin:
         buttons.append([KeyboardButton(text=uz.MENU_BTN_ADMIN)])
         
     return ReplyKeyboardMarkup(keyboard=buttons, resize_keyboard=True)
 
 
-def superapp_keyboard(is_team_member: bool = False, is_admin: bool = False) -> ReplyKeyboardMarkup:
-    """Superapp menu."""
-    from bot.config import settings
-    
-    base_url = settings.WEBAPP_URL or f"https://{settings.RAILWAY_PUBLIC_DOMAIN}"
-    app_url = f"{base_url.rstrip('/')}/nuviteam/"
-    
+def superapp_keyboard() -> ReplyKeyboardMarkup:
+    """Superapp menu (without Nuvi Team as requested)."""
     buttons = [
-        [KeyboardButton(text=uz.SUPERAPP_BTN_MODERATOR)]
+        [KeyboardButton(text=uz.SUPERAPP_BTN_MODERATOR)],
+        [KeyboardButton(text=uz.MENU_BTN_BACK)]
     ]
-    if is_team_member or is_admin:
-        buttons[0].append(KeyboardButton(text=uz.SUPERAPP_BTN_TEAM, web_app=WebAppInfo(url=app_url)))
-        
-    buttons.append([KeyboardButton(text=uz.MENU_BTN_BACK)])
     return ReplyKeyboardMarkup(keyboard=buttons, resize_keyboard=True)
 
 

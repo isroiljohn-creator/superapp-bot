@@ -11,7 +11,7 @@ from aiogram.types import Message, CallbackQuery, ReplyKeyboardRemove
 
 from bot.fsm.states import RegistrationFSM
 from bot.keyboards.buttons import (
-    phone_keyboard, goal_keyboard, level_keyboard,
+    phone_keyboard, goal_keyboard, level_keyboard, get_main_menu,
     main_menu_keyboard, business_check_keyboard, business_need_keyboard,
 )
 from bot.locales import uz
@@ -78,6 +78,26 @@ async def _handle_captcha_verify(message: Message, deep_link: str):
 async def cmd_start(message: Message, state: FSMContext):
     """Handle /start with optional deep link."""
     await state.clear()
+    
+    if message.chat.type in ("group", "supergroup"):
+        from bot.config import settings
+        from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo
+        
+        base_url = settings.WEBAPP_URL or f"https://{settings.RAILWAY_PUBLIC_DOMAIN}"
+        app_url = f"{base_url.rstrip('/')}/moderator/?group_id={message.chat.id}"
+        
+        kb = InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="⚙️ Guruhni sozlash", web_app=WebAppInfo(url=app_url))]
+        ])
+        
+        text = (
+            f"👋 Assalomu alaykum, <b>{message.chat.title}</b> guruhi a'zolari!\n\n"
+            f"Men <b>Nazoratchi Bot</b>man. Guruhdagi tartibni saqlash, spam va so'kinishlarni "
+            f"o'chirish hamda qoidalarni boshqarish mening vazifam!\n\n"
+            f"<i>Guruh adminlari quyidagi tugma orqali meni sozlashi mumkin:</i>"
+        )
+        await message.answer(text, reply_markup=kb, parse_mode="HTML")
+        return
 
     args = message.text.split(maxsplit=1)
     deep_link = args[1] if len(args) > 1 else None
@@ -156,7 +176,7 @@ async def cmd_start(message: Message, state: FSMContext):
             await message.answer(
                 f"👋 Xush kelibsiz, {user.name or ''}!\n\n{uz.MENU_TEXT}",
                 parse_mode="HTML",
-                reply_markup=main_menu_keyboard(user_id=message.from_user.id),
+                reply_markup=await get_main_menu(user_id=message.from_user.id),
             )
             return
 
@@ -371,12 +391,12 @@ async def process_phone(message: Message, state: FSMContext):
             if is_business:
                 await message.answer(
                     "✅ Rahmat! Siz bilan tez orada bog'lanamiz.",
-                    reply_markup=main_menu_keyboard(user_id=message.from_user.id),
+                    reply_markup=await get_main_menu(user_id=message.from_user.id),
                 )
             else:
                 await message.answer(
                     uz.REGISTRATION_COMPLETE.format(name=name),
-                    reply_markup=main_menu_keyboard(user_id=message.from_user.id),
+                    reply_markup=await get_main_menu(user_id=message.from_user.id),
                 )
             return
 
@@ -444,13 +464,13 @@ async def process_phone(message: Message, state: FSMContext):
         await message.answer(
             "✅ Rahmat! Siz bilan tez orada bog'lanamiz.\n\n"
             "Quyidagi bo'limlardan foydalanishingiz mumkin 👇",
-            reply_markup=main_menu_keyboard(user_id=message.from_user.id),
+            reply_markup=await get_main_menu(user_id=message.from_user.id),
         )
     else:
         # ── REGULAR USER: registration complete + lead magnet ──
         await message.answer(
             uz.REGISTRATION_COMPLETE.format(name=name),
-            reply_markup=main_menu_keyboard(user_id=message.from_user.id),
+            reply_markup=await get_main_menu(user_id=message.from_user.id),
         )
         # Deliver lead magnet
         try:
