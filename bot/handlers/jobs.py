@@ -258,6 +258,40 @@ async def start_job_post(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
 
 
+# AI sub-categories
+AI_SUBCATEGORIES = [
+    ("🤖 ChatBot yaratish", "AI — ChatBot mutaxassisi"),
+    ("🎨 Rasm generatsiya", "AI — Rasm generatsiya mutaxassisi"),
+    ("📝 Kontent yaratish", "AI — Kontent yaratish mutaxassisi"),
+    ("🔄 Avtomatlashtirish", "AI — Avtomatlashtirish mutaxassisi"),
+    ("📊 Data Science", "AI — Data Science mutaxassisi"),
+    ("🧠 Machine Learning", "AI — Machine Learning mutaxassisi"),
+    ("💬 NLP / Chatbot", "AI — NLP mutaxassisi"),
+    ("📢 AI Marketing", "AI — Marketing mutaxassisi"),
+    ("🎵 Audio / Video AI", "AI — Audio/Video mutaxassisi"),
+    ("⚙️ AI integratsiya", "AI — Integratsiya mutaxassisi"),
+]
+
+
+def _ai_subcategories_keyboard() -> InlineKeyboardMarkup:
+    """AI service types selection keyboard."""
+    buttons = []
+    for i in range(0, len(AI_SUBCATEGORIES), 2):
+        row = [InlineKeyboardButton(
+            text=AI_SUBCATEGORIES[i][0],
+            callback_data=f"jaisub:{i}",
+        )]
+        if i + 1 < len(AI_SUBCATEGORIES):
+            row.append(InlineKeyboardButton(
+                text=AI_SUBCATEGORIES[i + 1][0],
+                callback_data=f"jaisub:{i + 1}",
+            ))
+        buttons.append(row)
+    buttons.append([InlineKeyboardButton(text="✍️ O'zim yozaman", callback_data="jaisub:custom")])
+    buttons.append([InlineKeyboardButton(text="🔙 Orqaga", callback_data="jaisub:back")])
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
+
+
 @router.callback_query(F.data.startswith("jcat:"), JobPostFSM.waiting_title)
 async def process_job_category(callback: CallbackQuery, state: FSMContext):
     """Handle category selection from inline buttons."""
@@ -269,8 +303,53 @@ async def process_job_category(callback: CallbackQuery, state: FSMContext):
         await callback.answer()
         return  # Stay in waiting_title state for text input
 
+    if category == "AI mutaxassisi":
+        # Show AI sub-categories
+        await callback.message.edit_text(
+            "🤖 <b>AI hizmat turini tanlang</b>\n\n"
+            "Qaysi AI yo'nalishi bo'yicha mutaxassis kerak? 👇",
+            parse_mode="HTML",
+            reply_markup=_ai_subcategories_keyboard(),
+        )
+        await callback.answer()
+        return  # Stay in waiting_title state
+
     # Category selected — save and move to next step
     await state.update_data(title=category)
+    await state.set_state(JobPostFSM.waiting_company)
+    await callback.message.answer(uz.JOBS_ASK_COMPANY, parse_mode="HTML")
+    await callback.answer()
+
+
+@router.callback_query(F.data.startswith("jaisub:"), JobPostFSM.waiting_title)
+async def process_ai_subcategory(callback: CallbackQuery, state: FSMContext):
+    """Handle AI sub-category selection."""
+    value = callback.data.split(":", 1)[1]
+
+    if value == "back":
+        # Go back to main categories
+        await callback.message.edit_text(
+            "💼 <b>Vakansiya sohasi</b>\n\n"
+            "Quyidan sohani tanlang yoki o'zingiz yozing 👇",
+            parse_mode="HTML",
+            reply_markup=_job_categories_keyboard(),
+        )
+        await callback.answer()
+        return
+
+    if value == "custom":
+        await callback.message.answer(uz.JOBS_ASK_TITLE, parse_mode="HTML")
+        await callback.answer()
+        return
+
+    try:
+        idx = int(value)
+        title = AI_SUBCATEGORIES[idx][1]
+    except (ValueError, IndexError):
+        await callback.answer("Xatolik", show_alert=True)
+        return
+
+    await state.update_data(title=title)
     await state.set_state(JobPostFSM.waiting_company)
     await callback.message.answer(uz.JOBS_ASK_COMPANY, parse_mode="HTML")
     await callback.answer()
