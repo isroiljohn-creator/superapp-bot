@@ -278,13 +278,13 @@ async def add_no_cache_headers(request, call_next):
 @app.exception_handler(404)
 async def custom_404_handler(request, __):
     # If the user is requesting an admin path, serve the React index file
-    if (request.url.path.startswith("/admin/") or request.url.path.startswith("/panel/")) and os.path.exists(os.path.join(admin_dist, "index.html")):
+    if (request.url.path.startswith("/admin") or request.url.path.startswith("/panel")) and os.path.exists(os.path.join(admin_dist, "index.html")):
         return FileResponse(os.path.join(admin_dist, "index.html"))
     # If requesting moderator path, serve moderator index
-    if request.url.path.startswith("/moderator/") and os.path.exists(os.path.join(mod_dist, "index.html")):
+    if request.url.path.startswith("/moderator") and os.path.exists(os.path.join(mod_dist, "index.html")):
         return FileResponse(os.path.join(mod_dist, "index.html"))
     # If requesting nuviteam path, serve nuviteam index
-    if request.url.path.startswith("/nuviteam/") and os.path.exists(os.path.join(team_dist, "index.html")):
+    if request.url.path.startswith("/nuviteam") and os.path.exists(os.path.join(team_dist, "index.html")):
         return FileResponse(os.path.join(team_dist, "index.html"))
     # Otherwise, return a valid JSONResponse (Starlette stringently requires Response objects here)
     return JSONResponse(status_code=404, content={"detail": "Not Found"})
