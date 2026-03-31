@@ -92,6 +92,19 @@ async def cmd_start(message: Message, state: FSMContext):
             group_id = int(deep_link.replace("setup_", ""))
             from bot.config import settings
             from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo
+            from bot.handlers.moderator_group import _is_group_admin
+            
+            # 1. Verify access
+            is_admin = False
+            if message.from_user.id in settings.ADMIN_IDS:
+                is_admin = True
+            else:
+                is_admin = await _is_group_admin(message.bot, group_id, message.from_user.id)
+                
+            if not is_admin:
+                await message.answer("❌ <b>Siz ushbu guruhda admin emassiz!</b>\n\nFaqatgina guruh adminlari bot va guruh sozlamalarini o'zgartira oladi.", parse_mode="HTML")
+                return
+                
             base_url = settings.WEBAPP_URL or f"https://{settings.RAILWAY_PUBLIC_DOMAIN}"
             app_url = f"{base_url.rstrip('/')}/moderator/?group_id={group_id}"
             
