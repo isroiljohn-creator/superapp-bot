@@ -14,7 +14,7 @@ async def menu_superapp(message: Message, state: FSMContext):
     """Show Superapp menu."""
     await state.clear()
     kb = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="\ud83d\udee1 Nazoratchi bot", callback_data="superapp:moderator")],
+        [InlineKeyboardButton(text="🛡 Nazoratchi bot", callback_data="superapp:moderator")],
     ])
     await message.answer(uz.SUPERAPP_MENU, parse_mode="HTML", reply_markup=kb)
 
@@ -23,7 +23,7 @@ async def menu_superapp(message: Message, state: FSMContext):
 async def superapp_back(callback: CallbackQuery):
     """Back to superapp menu."""
     kb = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="\ud83d\udee1 Nazoratchi bot", callback_data="superapp:moderator")],
+        [InlineKeyboardButton(text="🛡 Nazoratchi bot", callback_data="superapp:moderator")],
     ])
     await callback.message.edit_text(uz.SUPERAPP_MENU, parse_mode="HTML", reply_markup=kb)
     await callback.answer()

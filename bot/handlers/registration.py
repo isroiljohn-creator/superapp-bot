@@ -154,7 +154,7 @@ async def cmd_start(message: Message, state: FSMContext):
 
             # Welcome back + main menu
             await message.answer(
-                f"\ud83d\udc4b Xush kelibsiz, {user.name or ''}!\n\n{uz.MENU_TEXT}",
+                f"👋 Xush kelibsiz, {user.name or ''}!\n\n{uz.MENU_TEXT}",
                 parse_mode="HTML",
                 reply_markup=main_menu_keyboard(user_id=message.from_user.id),
             )
@@ -229,7 +229,7 @@ async def process_business_need(callback: CallbackQuery, state: FSMContext):
             await session.commit()
 
     await callback.message.edit_text(
-        f"\u2705 Tanlandi!\n\n{uz.ASK_PHONE}",
+        f"✅ Tanlandi!\n\n{uz.ASK_PHONE}",
     )
     await callback.message.answer(
         uz.ASK_PHONE,
@@ -339,7 +339,7 @@ async def process_phone(message: Message, state: FSMContext):
     # Anti-fraud: ensure user is sharing their OWN contact
     if message.contact.user_id != message.from_user.id:
         await message.answer(
-            "\u274c Iltimos, o'zingizning telefon raqamingizni yuboring.\n"
+            "❌ Iltimos, o'zingizning telefon raqamingizni yuboring.\n"
             "Boshqa odamning kontaktini yubormang!",
             reply_markup=phone_keyboard(),
         )
@@ -351,7 +351,7 @@ async def process_phone(message: Message, state: FSMContext):
 
     if not phone.startswith("+998") or len(phone) != 13:
         await message.answer(
-            "\u274c Faqat O'zbek telefon raqamlari qabul qilinadi (+998).\n"
+            "❌ Faqat O'zbek telefon raqamlari qabul qilinadi (+998).\n"
             "Iltimos, O'zbek raqamingizni yuboring.",
             reply_markup=phone_keyboard(),
         )
@@ -370,7 +370,7 @@ async def process_phone(message: Message, state: FSMContext):
             await state.clear()
             if is_business:
                 await message.answer(
-                    "\u2705 Rahmat! Siz bilan tez orada bog'lanamiz.",
+                    "✅ Rahmat! Siz bilan tez orada bog'lanamiz.",
                     reply_markup=main_menu_keyboard(user_id=message.from_user.id),
                 )
             else:
@@ -401,7 +401,7 @@ async def process_phone(message: Message, state: FSMContext):
     try:
         import html as html_mod
         from bot.config import settings
-        user_type = "\ud83c\udfe2 Biznes egasi" if is_business else "\ud83d\udc64 Oddiy foydalanuvchi"
+        user_type = "🏢 Biznes egasi" if is_business else "👤 Oddiy foydalanuvchi"
         biz_need = data.get("business_need", "")
         need_label = {
             "integrate": "Integratsiya",
@@ -411,17 +411,17 @@ async def process_phone(message: Message, state: FSMContext):
 
         safe_name = html_mod.escape(name)
         safe_phone = html_mod.escape(phone)
-        safe_username = html_mod.escape(message.from_user.username or "\u2014")
+        safe_username = html_mod.escape(message.from_user.username or "—")
 
         admin_text = (
-            f"\ud83d\udd14 <b>Yangi ro'yxat!</b>\n\n"
-            f"\ud83d\udc64 {safe_name}\n"
-            f"\ud83d\udcf1 {safe_phone}\n"
-            f"\ud83d\udd17 @{safe_username}\n"
-            f"\ud83c\udfe2 Turi: {user_type}\n"
+            f"🔔 <b>Yangi ro'yxat!</b>\n\n"
+            f"👤 {safe_name}\n"
+            f"📱 {safe_phone}\n"
+            f"🔗 @{safe_username}\n"
+            f"🏢 Turi: {user_type}\n"
         )
         if is_business and need_label:
-            admin_text += f"\ud83c\udfaf Kerakli: {need_label}\n"
+            admin_text += f"🎯 Kerakli: {need_label}\n"
 
         for aid in settings.ADMIN_IDS:
             try:
@@ -438,8 +438,8 @@ async def process_phone(message: Message, state: FSMContext):
     if is_business:
         # ── BUSINESS OWNER: show business menu ──
         await message.answer(
-            "\u2705 Rahmat! Siz bilan tez orada bog'lanamiz.\n\n"
-            "Quyidagi bo'limlardan foydalanishingiz mumkin \ud83d\udc47",
+            "✅ Rahmat! Siz bilan tez orada bog'lanamiz.\n\n"
+            "Quyidagi bo'limlardan foydalanishingiz mumkin 👇",
             reply_markup=main_menu_keyboard(user_id=message.from_user.id),
         )
     else:

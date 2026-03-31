@@ -133,7 +133,7 @@ async def menu_jobs(message: Message, state: FSMContext):
                 chat = await message.bot.get_chat(channel_id)
                 if chat.username:
                     buttons.append([InlineKeyboardButton(
-                        text="\ud83d\udcce Vakansiyalar kanalga o'tish",
+                        text="📎 Vakansiyalar kanalga o'tish",
                         url=f"https://t.me/{chat.username}",
                     )])
             except Exception:

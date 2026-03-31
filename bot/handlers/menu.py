@@ -575,7 +575,7 @@ async def lesson_db_callback(callback_query):
         return
 
     import re
-    caption = f"\U0001f4f9 <b>{lesson.title}</b>\n\n{lesson.description or ''}"
+    caption = f"📹 <b>{lesson.title}</b>\n\n{lesson.description or ''}"
     delivered = False
 
     if lesson.video_url and "t.me/c/" in lesson.video_url:
@@ -608,11 +608,11 @@ async def lesson_db_callback(callback_query):
         delivered = True
 
     if not delivered and lesson.video_url:
-        await callback_query.message.answer(f"{caption}\n\n\U0001f517 {lesson.video_url}", parse_mode="HTML")
+        await callback_query.message.answer(f"{caption}\n\n🔗 {lesson.video_url}", parse_mode="HTML")
         delivered = True
 
     if not delivered:
-        await callback_query.answer(f"\U0001f4f9 {lesson.title} — tez orada qo'shiladi!", show_alert=True)
+        await callback_query.answer(f"📹 {lesson.title} — tez orada qo'shiladi!", show_alert=True)
         return
     await callback_query.answer()
 

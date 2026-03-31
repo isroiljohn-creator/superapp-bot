@@ -33,44 +33,44 @@ class ModSettingsFSM(StatesGroup):
 # Helpers
 # ──────────────────────────────────────────────
 def _toggle_icon(val: bool) -> str:
-    return "\u2705" if val else "\u274c"
+    return "✅" if val else "❌"
 
 
 def _settings_kb(group_id: int, plan: str = "free") -> InlineKeyboardMarkup:
     limits = get_plan_limits(plan)
     rows = [
         [
-            InlineKeyboardButton(text="\ud83d\udee1 Anti-reklama", callback_data=f"mod:toggle:anti_spam:{group_id}"),
-            InlineKeyboardButton(text="\ud83d\udeab So'z filtri", callback_data=f"mod:toggle:bad_words_filter:{group_id}"),
+            InlineKeyboardButton(text="🛡 Anti-reklama", callback_data=f"mod:toggle:anti_spam:{group_id}"),
+            InlineKeyboardButton(text="🚫 So'z filtri", callback_data=f"mod:toggle:bad_words_filter:{group_id}"),
         ],
         [
-            InlineKeyboardButton(text="\ud83e\udd16 CAPTCHA", callback_data=f"mod:toggle:captcha_enabled:{group_id}"),
+            InlineKeyboardButton(text="🤖 CAPTCHA", callback_data=f"mod:toggle:captcha_enabled:{group_id}"),
         ],
         [
-            InlineKeyboardButton(text="\ud83d\udeab So'zlar ro'yxati", callback_data=f"mod:words:{group_id}"),
+            InlineKeyboardButton(text="🚫 So'zlar ro'yxati", callback_data=f"mod:words:{group_id}"),
         ],
     ]
     # Pro+ features
     if limits["flood_control"]:
         rows.append([
-            InlineKeyboardButton(text="\ud83d\udca8 Flood limiti", callback_data=f"mod:set:flood:{group_id}"),
+            InlineKeyboardButton(text="💨 Flood limiti", callback_data=f"mod:set:flood:{group_id}"),
         ])
     if limits["night_mode"]:
         rows.append([
-            InlineKeyboardButton(text="\ud83c\udf19 Tungi rejim", callback_data=f"mod:toggle:night_mode:{group_id}"),
-            InlineKeyboardButton(text="\u23f0 Tungi soat", callback_data=f"mod:set:night_hours:{group_id}"),
+            InlineKeyboardButton(text="🌙 Tungi rejim", callback_data=f"mod:toggle:night_mode:{group_id}"),
+            InlineKeyboardButton(text="⏰ Tungi soat", callback_data=f"mod:set:night_hours:{group_id}"),
         ])
     if limits["welcome_message"]:
         rows.append([
-            InlineKeyboardButton(text="\ud83d\udcdd Xush kelibsiz", callback_data=f"mod:set:welcome:{group_id}"),
+            InlineKeyboardButton(text="📝 Xush kelibsiz", callback_data=f"mod:set:welcome:{group_id}"),
         ])
 
     # Plan info / upgrade
     plan_icon = plan_display_name(plan)
     rows.append([
-        InlineKeyboardButton(text=f"\ud83d\udcb3 Tarif: {plan_icon}", callback_data=f"mod:pricing:{group_id}"),
+        InlineKeyboardButton(text=f"💳 Tarif: {plan_icon}", callback_data=f"mod:pricing:{group_id}"),
     ])
-    rows.append([InlineKeyboardButton(text="\ud83d\udd19 Orqaga", callback_data="superapp:moderator")])
+    rows.append([InlineKeyboardButton(text="🔙 Orqaga", callback_data="superapp:moderator")])
     return InlineKeyboardMarkup(inline_keyboard=rows)
 
 
@@ -95,8 +95,8 @@ async def _show_settings(msg_or_cb, group_id: int, edit: bool = False):
         anti_spam=_toggle_icon(grp.anti_spam),
         bad_words=_toggle_icon(grp.bad_words_filter),
         captcha=_toggle_icon(grp.captcha_enabled),
-        flood=grp.flood_limit if limits["flood_control"] else "\ud83d\udd12 PRO",
-        night=_toggle_icon(grp.night_mode) if limits["night_mode"] else "\ud83d\udd12 PRO",
+        flood=grp.flood_limit if limits["flood_control"] else "🔒 PRO",
+        night=_toggle_icon(grp.night_mode) if limits["night_mode"] else "🔒 PRO",
         night_start=grp.night_start or "00:00",
         night_end=grp.night_end or "08:00",
         warn_limit=grp.warn_limit,
@@ -131,8 +131,8 @@ async def moderator_menu(callback: CallbackQuery, state: FSMContext):
         bot_info = await callback.bot.get_me()
         add_url = f"https://t.me/{bot_info.username}?startgroup=true"
         kb = InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="\u2795 Guruhga qo'shish", url=add_url)],
-            [InlineKeyboardButton(text="\ud83d\udd19 Orqaga", callback_data="superapp:back")],
+            [InlineKeyboardButton(text="➕ Guruhga qo'shish", url=add_url)],
+            [InlineKeyboardButton(text="🔙 Orqaga", callback_data="superapp:back")],
         ])
         await callback.message.edit_text(uz.MOD_NO_GROUPS, parse_mode="HTML", reply_markup=kb)
         await callback.answer()
@@ -149,14 +149,14 @@ async def moderator_menu(callback: CallbackQuery, state: FSMContext):
         # Barcha routing slash bilan tugashini ta'minlash va query param qo'shish
         app_url = f"{base_url.rstrip('/')}/moderator/?group_id={g.group_id}"
         buttons.append([InlineKeyboardButton(
-            text=f"\u2699\ufe0f {title}",
+            text=f"⚙️ {title}",
             web_app=WebAppInfo(url=app_url),
         )])
 
     bot_info = await callback.bot.get_me()
     add_url = f"https://t.me/{bot_info.username}?startgroup=true"
-    buttons.append([InlineKeyboardButton(text="\u2795 Yana guruh qo'shish", url=add_url)])
-    buttons.append([InlineKeyboardButton(text="\ud83d\udd19 Orqaga", callback_data="superapp:back")])
+    buttons.append([InlineKeyboardButton(text="➕ Yana guruh qo'shish", url=add_url)])
+    buttons.append([InlineKeyboardButton(text="🔙 Orqaga", callback_data="superapp:back")])
 
     await callback.message.edit_text(
         uz.MOD_MENU, parse_mode="HTML",
@@ -197,7 +197,7 @@ async def toggle_feature(callback: CallbackQuery):
             plan = get_effective_plan(grp_check.plan or "free", grp_check.plan_expires_at)
             if not can_use_feature(plan, grp_check.plan_expires_at, premium_features[feature]):
                 await callback.answer(
-                    "\ud83d\udd12 Bu funksiya PRO tarifda mavjud. Tarifni yangilang!",
+                    "🔒 Bu funksiya PRO tarifda mavjud. Tarifni yangilang!",
                     show_alert=True,
                 )
                 return
@@ -215,7 +215,7 @@ async def toggle_feature(callback: CallbackQuery):
         setattr(grp, feature, not current)
         await session.commit()
 
-    status = "\u2705 Yoqildi" if not current else "\u274c O'chirildi"
+    status = "✅ Yoqildi" if not current else "❌ O'chirildi"
     await callback.answer(f"{feature}: {status}")
     await _show_settings(callback, group_id, edit=True)
 
@@ -229,7 +229,7 @@ async def set_flood_prompt(callback: CallbackQuery, state: FSMContext):
     await state.set_state(ModSettingsFSM.waiting_flood_limit)
     await state.update_data(_mod_group_id=group_id)
     await callback.message.answer(
-        "\ud83d\udca8 Flood limiti (xabar/daqiqa) ni kiriting:\n\n"
+        "💨 Flood limiti (xabar/daqiqa) ni kiriting:\n\n"
         "Masalan: <code>10</code> (1 daqiqada 10 ta xabar)\n"
         "O'chirish uchun: <code>0</code>",
         parse_mode="HTML",
@@ -244,7 +244,7 @@ async def process_flood_limit(message: Message, state: FSMContext):
         if limit < 0 or limit > 100:
             raise ValueError
     except (ValueError, TypeError, AttributeError):
-        await message.answer("\u274c Raqam kiriting (0-100)")
+        await message.answer("❌ Raqam kiriting (0-100)")
         return
 
     data = await state.get_data()
@@ -260,7 +260,7 @@ async def process_flood_limit(message: Message, state: FSMContext):
             await session.commit()
 
     await state.clear()
-    await message.answer(f"\u2705 Flood limiti: {limit}/min")
+    await message.answer(f"✅ Flood limiti: {limit}/min")
     await _show_settings(message, group_id)
 
 
@@ -273,7 +273,7 @@ async def set_night_prompt(callback: CallbackQuery, state: FSMContext):
     await state.set_state(ModSettingsFSM.waiting_night_hours)
     await state.update_data(_mod_group_id=group_id)
     await callback.message.answer(
-        "\u23f0 Tungi rejim soatlarini kiriting:\n\n"
+        "⏰ Tungi rejim soatlarini kiriting:\n\n"
         "Format: <code>00:00-08:00</code>",
         parse_mode="HTML",
     )
@@ -284,12 +284,12 @@ async def set_night_prompt(callback: CallbackQuery, state: FSMContext):
 async def process_night_hours(message: Message, state: FSMContext):
     text = (message.text or "").strip()
     if "-" not in text:
-        await message.answer("\u274c Format: 00:00-08:00")
+        await message.answer("❌ Format: 00:00-08:00")
         return
 
     parts = text.split("-")
     if len(parts) != 2:
-        await message.answer("\u274c Format: 00:00-08:00")
+        await message.answer("❌ Format: 00:00-08:00")
         return
 
     start, end = parts[0].strip(), parts[1].strip()
@@ -307,7 +307,7 @@ async def process_night_hours(message: Message, state: FSMContext):
             await session.commit()
 
     await state.clear()
-    await message.answer(f"\u2705 Tungi rejim: {start} - {end}")
+    await message.answer(f"✅ Tungi rejim: {start} - {end}")
     await _show_settings(message, group_id)
 
 
@@ -320,7 +320,7 @@ async def set_welcome_prompt(callback: CallbackQuery, state: FSMContext):
     await state.set_state(ModSettingsFSM.waiting_welcome_msg)
     await state.update_data(_mod_group_id=group_id)
     await callback.message.answer(
-        "\ud83d\udcdd Xush kelibsiz xabarini yozing:\n\n"
+        "📝 Xush kelibsiz xabarini yozing:\n\n"
         "<code>{name}</code> — foydalanuvchi ismi\n"
         "<code>{group}</code> — guruh nomi\n\n"
         "Masalan: Xush kelibsiz, {name}! {group} ga qo'shilganingiz bilan!",
@@ -332,7 +332,7 @@ async def set_welcome_prompt(callback: CallbackQuery, state: FSMContext):
 @router.message(ModSettingsFSM.waiting_welcome_msg)
 async def process_welcome_msg(message: Message, state: FSMContext):
     if not message.text:
-        await message.answer("\u274c Matn kiriting")
+        await message.answer("❌ Matn kiriting")
         return
 
     data = await state.get_data()
@@ -348,7 +348,7 @@ async def process_welcome_msg(message: Message, state: FSMContext):
             await session.commit()
 
     await state.clear()
-    await message.answer("\u2705 Xush kelibsiz xabari saqlandi!")
+    await message.answer("✅ Xush kelibsiz xabari saqlandi!")
     await _show_settings(message, group_id)
 
 
@@ -369,21 +369,21 @@ async def show_banned_words(callback: CallbackQuery, state: FSMContext):
         await state.set_state(ModSettingsFSM.waiting_banned_word)
         await state.update_data(_mod_group_id=group_id)
         kb = InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="\ud83d\udd19 Orqaga", callback_data=f"mod:settings:{group_id}")],
+            [InlineKeyboardButton(text="🔙 Orqaga", callback_data=f"mod:settings:{group_id}")],
         ])
         await callback.message.edit_text(uz.MOD_WORDS_EMPTY, parse_mode="HTML", reply_markup=kb)
         await callback.answer()
         return
 
-    word_list = "\n".join(f"\u2022 {w.word}" for w in words)
+    word_list = "\n".join(f"• {w.word}" for w in words)
     buttons = []
     for w in words[:10]:
         buttons.append([InlineKeyboardButton(
-            text=f"\u274c {w.word}",
+            text=f"❌ {w.word}",
             callback_data=f"mod:delword:{group_id}:{w.id}",
         )])
-    buttons.append([InlineKeyboardButton(text="\u2795 So'z qo'shish", callback_data=f"mod:addword:{group_id}")])
-    buttons.append([InlineKeyboardButton(text="\ud83d\udd19 Orqaga", callback_data=f"mod:settings:{group_id}")])
+    buttons.append([InlineKeyboardButton(text="➕ So'z qo'shish", callback_data=f"mod:addword:{group_id}")])
+    buttons.append([InlineKeyboardButton(text="🔙 Orqaga", callback_data=f"mod:settings:{group_id}")])
 
     await callback.message.edit_text(
         uz.MOD_WORDS_LIST.format(count=len(words), words=word_list),
@@ -399,7 +399,7 @@ async def add_word_prompt(callback: CallbackQuery, state: FSMContext):
     await state.set_state(ModSettingsFSM.waiting_banned_word)
     await state.update_data(_mod_group_id=group_id)
     await callback.message.answer(
-        "\ud83d\udeab Ta'qiqlangan so'zni yozing (bir nechta bo'lsa, har birini yangi qatordan):",
+        "🚫 Ta'qiqlangan so'zni yozing (bir nechta bo'lsa, har birini yangi qatordan):",
     )
     await callback.answer()
 
@@ -407,7 +407,7 @@ async def add_word_prompt(callback: CallbackQuery, state: FSMContext):
 @router.message(ModSettingsFSM.waiting_banned_word)
 async def process_banned_word(message: Message, state: FSMContext):
     if not message.text:
-        await message.answer("\u274c So'z kiriting")
+        await message.answer("❌ So'z kiriting")
         return
 
     data = await state.get_data()
@@ -435,7 +435,7 @@ async def process_banned_word(message: Message, state: FSMContext):
     await state.clear()
     if added:
         await message.answer(
-            "\u2705 Qo'shildi: " + ", ".join(f"<b>{w}</b>" for w in added),
+            "✅ Qo'shildi: " + ", ".join(f"<b>{w}</b>" for w in added),
             parse_mode="HTML",
         )
     else:
@@ -458,7 +458,7 @@ async def delete_word(callback: CallbackQuery):
             word_text = word_obj.word
             await session.delete(word_obj)
             await session.commit()
-            await callback.answer(f"\u274c {word_text} olib tashlandi")
+            await callback.answer(f"❌ {word_text} olib tashlandi")
         else:
             await callback.answer("Topilmadi")
 
@@ -480,38 +480,38 @@ async def show_pricing(callback: CallbackQuery):
     ) if grp else "free"
 
     text = (
-        "\ud83d\udcb3 <b>Nazoratchi bot tariflari</b>\n\n"
+        "💳 <b>Nazoratchi bot tariflari</b>\n\n"
         f"Hozirgi tarif: <b>{plan_display_name(current_plan)}</b>\n\n"
-        "\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n\n"
-        "\ud83c\udd93 <b>Free</b> \u2014 Bepul\n"
-        "\u2022 Anti-reklama, CAPTCHA, So'z filtri (10 ta)\n"
-        "\u2022 1 ta guruh\n"
-        "\u2022 Kuniga 1 ta NUVI reklama\n\n"
-        "\u2b50 <b>Pro</b> \u2014 49,000 so'm/oy\n"
-        "\u2022 Hamma Free funksiyalar\n"
-        "\u2022 Flood nazorati, Tungi rejim, Xush kelibsiz\n"
-        "\u2022 100 ta ta'qiqlangan so'z, 3 ta guruh\n"
-        "\u2022 Reklama yo'q\n\n"
-        "\ud83d\udc8e <b>VIP</b> \u2014 149,000 so'm/oy\n"
-        "\u2022 Hamma Pro funksiyalar\n"
-        "\u2022 Cheksiz so'zlar, 10 ta guruh\n"
-        "\u2022 Auto-kick (CAPTCHA), Real-time statistika\n"
-        "\u2022 VIP qo'llab-quvvatlash"
+        "─────────────────────\n\n"
+        "🆓 <b>Free</b> — Bepul\n"
+        "• Anti-reklama, CAPTCHA, So'z filtri (10 ta)\n"
+        "• 1 ta guruh\n"
+        "• Kuniga 1 ta NUVI reklama\n\n"
+        "⭐ <b>Pro</b> — 49,000 so'm/oy\n"
+        "• Hamma Free funksiyalar\n"
+        "• Flood nazorati, Tungi rejim, Xush kelibsiz\n"
+        "• 100 ta ta'qiqlangan so'z, 3 ta guruh\n"
+        "• Reklama yo'q\n\n"
+        "💎 <b>VIP</b> — 149,000 so'm/oy\n"
+        "• Hamma Pro funksiyalar\n"
+        "• Cheksiz so'zlar, 10 ta guruh\n"
+        "• Auto-kick (CAPTCHA), Real-time statistika\n"
+        "• VIP qo'llab-quvvatlash"
     )
 
     buttons = []
     if current_plan != "pro":
         buttons.append([InlineKeyboardButton(
-            text="\u2b50 Pro ga o'tish \u2014 49,000 so'm",
+            text="⭐ Pro ga o'tish — 49,000 so'm",
             callback_data=f"mod:upgrade:pro:{group_id}",
         )])
     if current_plan != "vip":
         buttons.append([InlineKeyboardButton(
-            text="\ud83d\udc8e VIP ga o'tish \u2014 149,000 so'm",
+            text="💎 VIP ga o'tish — 149,000 so'm",
             callback_data=f"mod:upgrade:vip:{group_id}",
         )])
     buttons.append([InlineKeyboardButton(
-        text="\ud83d\udd19 Orqaga",
+        text="🔙 Orqaga",
         callback_data=f"mod:settings:{group_id}",
     )])
 
@@ -538,17 +538,17 @@ async def upgrade_plan(callback: CallbackQuery):
         import html as html_mod
         user = callback.from_user
         safe_name = html_mod.escape(user.full_name or "")
-        safe_username = html_mod.escape(user.username or "\u2014")
+        safe_username = html_mod.escape(user.username or "—")
         for aid in settings.ADMIN_IDS:
             try:
                 await callback.bot.send_message(
                     chat_id=aid,
                     text=(
-                        f"\ud83d\udcb3 <b>Tarif so'rovi!</b>\n\n"
-                        f"\ud83d\udc64 {safe_name} (@{safe_username})\n"
-                        f"\ud83c\udfe2 Guruh ID: <code>{group_id}</code>\n"
-                        f"\ud83d\udcb3 Tarif: {plan_name}\n"
-                        f"\ud83d\udcb0 Narx: {price}"
+                        f"💳 <b>Tarif so'rovi!</b>\n\n"
+                        f"👤 {safe_name} (@{safe_username})\n"
+                        f"🏢 Guruh ID: <code>{group_id}</code>\n"
+                        f"💳 Tarif: {plan_name}\n"
+                        f"💰 Narx: {price}"
                     ),
                     parse_mode="HTML",
                 )
@@ -558,14 +558,14 @@ async def upgrade_plan(callback: CallbackQuery):
         pass
 
     await callback.message.edit_text(
-        f"\u2705 <b>Tarif so'rovi yuborildi!</b>\n\n"
+        f"✅ <b>Tarif so'rovi yuborildi!</b>\n\n"
         f"Siz {plan_name} tarifiga o'tishni so'radingiz.\n"
         f"Narx: <b>{price}</b>\n\n"
-        f"\ud83d\udcf1 Admin siz bilan tez orada bog'lanadi.\n"
+        f"📱 Admin siz bilan tez orada bog'lanadi.\n"
         f"To'lovdan keyin tarif avtomatik yoqiladi.",
         parse_mode="HTML",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="\ud83d\udd19 Orqaga", callback_data=f"mod:settings:{group_id}")],
+            [InlineKeyboardButton(text="🔙 Orqaga", callback_data=f"mod:settings:{group_id}")],
         ]),
     )
     await callback.answer()

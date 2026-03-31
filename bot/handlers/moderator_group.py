@@ -202,7 +202,7 @@ async def new_member_joined(event: ChatMemberUpdated):
         deep_link = f"captcha_{chat.id}_{new_user.id}"
         kb = InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(
-                text="\u2705 Robot emasman",
+                text="✅ Robot emasman",
                 url=f"https://t.me/{bot_info.username}?start={deep_link}",
             )],
         ])

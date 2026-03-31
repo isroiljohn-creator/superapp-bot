@@ -86,11 +86,11 @@ def can_use_feature(plan: str, expires_at, feature: str) -> bool:
 
 def plan_display_name(plan: str) -> str:
     names = {
-        "free": "\ud83c\udd93 Free",
-        "pro": "\u2b50 Pro",
-        "vip": "\ud83d\udc8e VIP",
+        "free": "🆓 Free",
+        "pro": "⭐ Pro",
+        "vip": "💎 VIP",
     }
-    return names.get(plan, "\ud83c\udd93 Free")
+    return names.get(plan, "🆓 Free")
 
 
 def plan_price_text(plan: str) -> str:
