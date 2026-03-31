@@ -29,14 +29,14 @@ def _is_admin(user_id: int) -> bool:
     return user_id in settings.ADMIN_IDS
 
 
-async def _get_jobs_channel_id() -> "int | None":
-    """Get jobs channel ID from admin_settings table."""
+async def _get_jobs_channel_id(key: str = "jobs_channel_id") -> "int | None":
+    """Get channel ID from admin_settings table."""
     from sqlalchemy import select
     from db.models import AdminSetting
     try:
         async with async_session() as session:
             result = await session.execute(
-                select(AdminSetting).where(AdminSetting.key == "jobs_channel_id")
+                select(AdminSetting).where(AdminSetting.key == key)
             )
             setting = result.scalar_one_or_none()
             if setting and setting.value:
@@ -44,6 +44,23 @@ async def _get_jobs_channel_id() -> "int | None":
     except Exception:
         pass
     return None
+
+
+def _is_ai_vacancy(title: str) -> bool:
+    """Check if vacancy is AI-related."""
+    ai_keywords = ["ai", "sun'iy intellekt", "ai mutaxassisi", "machine learning",
+                   "ml", "data scientist", "deep learning", "neyroset"]
+    title_lower = title.lower().strip()
+    return any(kw in title_lower for kw in ai_keywords)
+
+
+async def _get_target_channel(title: str) -> "int | None":
+    """Get appropriate channel: AI channel for AI jobs, main channel for others."""
+    if _is_ai_vacancy(title):
+        ai_channel = await _get_jobs_channel_id("ai_jobs_channel_id")
+        if ai_channel:
+            return ai_channel
+    return await _get_jobs_channel_id("jobs_channel_id")
 
 
 def _job_type_label(tag: str) -> str:
@@ -59,7 +76,10 @@ def _jobs_menu_keyboard(user_id: int = None) -> InlineKeyboardMarkup:
     if user_id and _is_admin(user_id):
         buttons.append([
             InlineKeyboardButton(text="⏳ Kutilayotganlar", callback_data="jobs:pending"),
-            InlineKeyboardButton(text="⚙️ Kanal sozlash", callback_data="jobs:set_channel"),
+        ])
+        buttons.append([
+            InlineKeyboardButton(text="⚙️ Asosiy kanal", callback_data="jobs:set_channel"),
+            InlineKeyboardButton(text="🤖 AI kanal", callback_data="jobs:set_ai_channel"),
         ])
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
@@ -459,8 +479,8 @@ async def approve_job(callback: CallbackQuery):
         job.approved_at = datetime.now(timezone.utc).replace(tzinfo=None)
         await session.commit()
 
-        # Publish to channel with generated banner image
-        channel_id = await _get_jobs_channel_id()
+        # Publish to channel — AI vacancies go to AI channel
+        channel_id = await _get_target_channel(job.title)
         if channel_id:
             channel_text = uz.JOBS_CHANNEL_POST.format(
                 title=html_mod.escape(job.title),
@@ -611,17 +631,21 @@ async def list_pending_jobs(callback: CallbackQuery):
 # ──────────────────────────────────────────────────
 # Admin: set jobs channel ID
 # ──────────────────────────────────────────────────
-@router.callback_query(F.data == "jobs:set_channel")
+@router.callback_query(F.data.in_({"jobs:set_channel", "jobs:set_ai_channel"}))
 async def set_channel_prompt(callback: CallbackQuery, state: FSMContext):
     if not _is_admin(callback.from_user.id):
         await callback.answer("⛔ Faqat adminlar uchun", show_alert=True)
         return
 
-    current = await _get_jobs_channel_id()
+    is_ai = callback.data == "jobs:set_ai_channel"
+    setting_key = "ai_jobs_channel_id" if is_ai else "jobs_channel_id"
+    label = "🤖 AI vakansiya" if is_ai else "💼 Asosiy vakansiya"
+
+    current = await _get_jobs_channel_id(setting_key)
     current_text = f"<code>{current}</code>" if current else "o'rnatilmagan"
 
     await callback.message.answer(
-        f"⚙️ <b>Vakansiya kanali sozlash</b>\n\n"
+        f"⚙️ <b>{label} kanali sozlash</b>\n\n"
         f"Hozirgi kanal ID: {current_text}\n\n"
         f"Yangi kanal ID ni yuboring (masalan: <code>-1001234567890</code>)\n\n"
         f"💡 Kanal ID ni olish uchun kanalga @userinfobot ni qo'shing va /start bosing.\n"
@@ -629,7 +653,7 @@ async def set_channel_prompt(callback: CallbackQuery, state: FSMContext):
         parse_mode="HTML",
     )
     await state.set_state(JobPostFSM.waiting_confirm)
-    await state.update_data(_channel_setup=True)
+    await state.update_data(_channel_setup=True, _channel_key=setting_key)
     await callback.answer()
 
 
@@ -654,15 +678,17 @@ async def process_channel_or_confirm(message: Message, state: FSMContext):
     from sqlalchemy import select
     from db.models import AdminSetting
 
+    setting_key = data.get("_channel_key", "jobs_channel_id")
+
     async with async_session() as session:
         result = await session.execute(
-            select(AdminSetting).where(AdminSetting.key == "jobs_channel_id")
+            select(AdminSetting).where(AdminSetting.key == setting_key)
         )
         existing = result.scalar_one_or_none()
         if existing:
             existing.value = str(channel_id)
         else:
-            session.add(AdminSetting(key="jobs_channel_id", value=str(channel_id)))
+            session.add(AdminSetting(key=setting_key, value=str(channel_id)))
         await session.commit()
 
     await state.clear()
