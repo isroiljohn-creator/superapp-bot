@@ -86,6 +86,28 @@ async def cmd_start(message: Message, state: FSMContext):
     args = message.text.split(maxsplit=1)
     deep_link = args[1] if len(args) > 1 else None
 
+    # ── Handle Moderator Setup from Group Deep Link ──
+    if deep_link and deep_link.startswith("setup_"):
+        try:
+            group_id = int(deep_link.replace("setup_", ""))
+            from bot.config import settings
+            from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo
+            base_url = settings.WEBAPP_URL or f"https://{settings.RAILWAY_PUBLIC_DOMAIN}"
+            app_url = f"{base_url.rstrip('/')}/moderator/?group_id={group_id}"
+            
+            kb = InlineKeyboardMarkup(inline_keyboard=[
+                [InlineKeyboardButton(text="⚙️ Guruhni sozlash", web_app=WebAppInfo(url=app_url))]
+            ])
+            
+            await message.answer(
+                "👥 <b>Guruhni sozlash!</b>\n\nQuyidagi tugma orqali guruh qoidalari va xabarlarini sozlashingiz mumkin:", 
+                reply_markup=kb, 
+                parse_mode="HTML"
+            )
+        except Exception:
+            pass
+        return
+
     referer_id = None
     source = None
     campaign = None

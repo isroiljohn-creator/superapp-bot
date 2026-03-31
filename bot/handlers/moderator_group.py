@@ -137,14 +137,11 @@ async def bot_added_to_group(event: ChatMemberUpdated):
     logger.info(f"Bot added to group: {chat.title} ({chat.id}) by {added_by}")
 
     try:
-        from bot.config import settings
-        from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo
-        
-        base_url = settings.WEBAPP_URL or f"https://{settings.RAILWAY_PUBLIC_DOMAIN}"
-        app_url = f"{base_url.rstrip('/')}/moderator/?group_id={chat.id}"
+        bot_info = await event.bot.get_me()
+        setup_url = f"https://t.me/{bot_info.username}?start=setup_{chat.id}"
         
         kb = InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="⚙️ Guruhni sozlash", web_app=WebAppInfo(url=app_url))]
+            [InlineKeyboardButton(text="⚙️ Guruhni sozlash", url=setup_url)]
         ])
         
         text = (
@@ -152,13 +149,7 @@ async def bot_added_to_group(event: ChatMemberUpdated):
             f"Men <b>Nazoratchi Bot</b>man. Guruhdagi tartibni saqlash, spam va so'kinishlarni "
             f"o'chirish hamda qoidalarni boshqarish mening vazifam!"
         )
-        await event.bot.send_message(chat.id, text, parse_mode="HTML")
-        
-        pm_text = f"⚙️ <b>{chat.title}</b> guruhini sozlash uchun quyidagi tugmani bosing:"
-        try:
-            await event.bot.send_message(added_by, pm_text, reply_markup=kb, parse_mode="HTML")
-        except Exception:
-            await event.bot.send_message(chat.id, "ℹ️ <b>Guruh adminlari</b>, sozlamalarni o'zgartirish uchun avval menga (shaxsiy xabarda) /start deb yozing.", parse_mode="HTML")
+        await event.bot.send_message(chat.id, text, reply_markup=kb, parse_mode="HTML")
     except Exception as e:
         logger.warning(f"Error sending group welcome message: {e}")
 
@@ -168,14 +159,11 @@ async def bot_added_to_group(event: ChatMemberUpdated):
 @router.message(CommandStart(), F.chat.type.in_({"group", "supergroup"}))
 async def group_cmd_start(message: Message):
     """Handle /start in group explicitly so filter_group_message doesn't consume it."""
-    from bot.config import settings
-    from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo
-    
-    base_url = settings.WEBAPP_URL or f"https://{settings.RAILWAY_PUBLIC_DOMAIN}"
-    app_url = f"{base_url.rstrip('/')}/moderator/?group_id={message.chat.id}"
+    bot_info = await message.bot.get_me()
+    setup_url = f"https://t.me/{bot_info.username}?start=setup_{message.chat.id}"
     
     kb = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="⚙️ Guruhni sozlash", web_app=WebAppInfo(url=app_url))]
+        [InlineKeyboardButton(text="⚙️ Guruhni sozlash", url=setup_url)]
     ])
     
     text = (
@@ -183,13 +171,7 @@ async def group_cmd_start(message: Message):
         f"Men <b>Nazoratchi Bot</b>man. Guruhdagi tartibni saqlash, spam va so'kinishlarni "
         f"o'chirish hamda qoidalarni boshqarish mening vazifam!"
     )
-    await message.answer(text, parse_mode="HTML")
-    
-    pm_text = f"⚙️ <b>{message.chat.title}</b> guruhini sozlash uchun quyidagi tugmani bosing:"
-    try:
-        await message.bot.send_message(message.from_user.id, pm_text, reply_markup=kb, parse_mode="HTML")
-    except Exception:
-        await message.answer("ℹ️ <b>Guruh adminlari</b>, sozlamalarni o'zgartirish uchun avval menga (shaxsiy xabarda) /start deb yozing.", parse_mode="HTML")
+    await message.answer(text, reply_markup=kb, parse_mode="HTML")
 
 
 # ──────────────────────────────────────────────
