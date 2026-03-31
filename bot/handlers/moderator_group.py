@@ -150,10 +150,15 @@ async def bot_added_to_group(event: ChatMemberUpdated):
         text = (
             f"👋 Assalomu alaykum, <b>{chat.title}</b> guruhi a'zolari!\n\n"
             f"Men <b>Nazoratchi Bot</b>man. Guruhdagi tartibni saqlash, spam va so'kinishlarni "
-            f"o'chirish hamda qoidalarni boshqarish mening vazifam!\n\n"
-            f"<i>Guruh adminlari quyidagi tugma orqali meni sozlashi mumkin:</i>"
+            f"o'chirish hamda qoidalarni boshqarish mening vazifam!"
         )
-        await event.answer(text, reply_markup=kb, parse_mode="HTML")
+        await event.answer(text, parse_mode="HTML")
+        
+        pm_text = f"⚙️ <b>{chat.title}</b> guruhini sozlash uchun quyidagi tugmani bosing:"
+        try:
+            await event.bot.send_message(added_by, pm_text, reply_markup=kb, parse_mode="HTML")
+        except Exception:
+            await event.answer("ℹ️ <b>Guruh adminlari</b>, sozlamalarni o'zgartirish uchun avval menga (shaxsiy xabarda) /start deb yozing.", parse_mode="HTML")
     except Exception as e:
         logger.warning(f"Error sending group welcome message: {e}")
 

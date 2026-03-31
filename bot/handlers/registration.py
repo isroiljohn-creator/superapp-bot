@@ -93,10 +93,15 @@ async def cmd_start(message: Message, state: FSMContext):
         text = (
             f"👋 Assalomu alaykum, <b>{message.chat.title}</b> guruhi a'zolari!\n\n"
             f"Men <b>Nazoratchi Bot</b>man. Guruhdagi tartibni saqlash, spam va so'kinishlarni "
-            f"o'chirish hamda qoidalarni boshqarish mening vazifam!\n\n"
-            f"<i>Guruh adminlari quyidagi tugma orqali meni sozlashi mumkin:</i>"
+            f"o'chirish hamda qoidalarni boshqarish mening vazifam!"
         )
-        await message.answer(text, reply_markup=kb, parse_mode="HTML")
+        await message.answer(text, parse_mode="HTML")
+        
+        pm_text = f"⚙️ <b>{message.chat.title}</b> guruhini sozlash uchun quyidagi tugmani bosing:"
+        try:
+            await message.bot.send_message(message.from_user.id, pm_text, reply_markup=kb, parse_mode="HTML")
+        except Exception:
+            await message.answer("ℹ️ <b>Guruh adminlari</b>, sozlamalarni o'zgartirish uchun avval menga (shaxsiy xabarda) /start deb yozing.", parse_mode="HTML")
         return
 
     args = message.text.split(maxsplit=1)
