@@ -69,26 +69,48 @@ def phone_keyboard() -> ReplyKeyboardMarkup:
 
 
 # ──────────────────────────────────────────────
-# Segmentation
+# Onboarding — branched
 # ──────────────────────────────────────────────
+def business_check_keyboard() -> InlineKeyboardMarkup:
+    """Business check: Ha / Yo'q."""
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(text=uz.BUSINESS_YES, callback_data="biz:yes"),
+                InlineKeyboardButton(text=uz.BUSINESS_NO, callback_data="biz:no"),
+            ]
+        ]
+    )
+
+
+def business_need_keyboard() -> InlineKeyboardMarkup:
+    """Business owner needs selection."""
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text=uz.BUSINESS_NEED_INTEGRATE, callback_data="bizneed:integrate")],
+            [InlineKeyboardButton(text=uz.BUSINESS_NEED_SPECIALIST, callback_data="bizneed:specialist")],
+            [InlineKeyboardButton(text=uz.BUSINESS_NEED_LEARN, callback_data="bizneed:learn")],
+        ]
+    )
+
+
 def goal_keyboard() -> InlineKeyboardMarkup:
-    """Goal selection buttons."""
+    """Goal selection buttons (regular users)."""
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [InlineKeyboardButton(text=uz.GOAL_MAKE_MONEY, callback_data="goal:make_money")],
             [InlineKeyboardButton(text=uz.GOAL_GET_CLIENTS, callback_data="goal:get_clients")],
-            [InlineKeyboardButton(text=uz.GOAL_AUTOMATE, callback_data="goal:automate_business")],
+            [InlineKeyboardButton(text=uz.GOAL_LEARN_AI, callback_data="goal:learn_ai")],
         ]
     )
 
 
 def level_keyboard() -> InlineKeyboardMarkup:
-    """Level selection buttons."""
+    """Level selection buttons (regular users)."""
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [InlineKeyboardButton(text=uz.LEVEL_BEGINNER, callback_data="level:beginner")],
             [InlineKeyboardButton(text=uz.LEVEL_FREELANCER, callback_data="level:freelancer")],
-            [InlineKeyboardButton(text=uz.LEVEL_BUSINESS, callback_data="level:business")],
         ]
     )
 

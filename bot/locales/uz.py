@@ -7,11 +7,20 @@ Markazlashtirilgan lokalizatsiya fayli.
 # Registration FSM
 # ──────────────────────────────────────────────
 WELCOME = (
-    "👋 Assalomu alaykum! (v1.1)\n\n"
-    "Men sizga AI ya'ni Sun'iy intellektni tez o'rganishingizga va "
-    "AI yordamida pul topish, mijozlar olish va biznesni avtomatlashtirishda yordam beraman.\n\n"
+    "👋 Assalomu alaykum!\n\n"
     "Keling, avval tanishib olaylik!"
 )
+
+# Business check
+ASK_BUSINESS = "Sizda biznes bormi?"
+BUSINESS_YES = "✅ Ha"
+BUSINESS_NO = "❌ Yo'q"
+
+# Business owner needs
+ASK_BUSINESS_NEED = "Sizga nima kerak?"
+BUSINESS_NEED_INTEGRATE = "🤖 Biznesimga sun'iy intellektni integratsiya qilmoqchiman"
+BUSINESS_NEED_SPECIALIST = "🧠 Biznesim uchun sun'iy intellekt mutaxassisini topmoqchiman"
+BUSINESS_NEED_LEARN = "📚 Biznesim uchun sun'iy intellektni o'rganmoqchiman"
 
 ASK_NAME = "✍️ Ismingizni kiriting:"
 
@@ -40,6 +49,7 @@ ASK_GOAL = "🎯 Asosiy maqsadingiz nima?"
 
 GOAL_MAKE_MONEY = "💰 Pul topish"
 GOAL_GET_CLIENTS = "👥 Mijoz olish"
+GOAL_LEARN_AI = "📚 AI'ni o'rganish"
 GOAL_AUTOMATE = "⚙️ Biznesni avtomatlashtirish"
 
 ASK_LEVEL = "📊 Hozirgi darajangiz qanday?"
@@ -510,7 +520,11 @@ PROFILE_TEXT = (
 GOAL_NAMES = {
     "make_money": "Pul topish",
     "get_clients": "Mijoz olish",
+    "learn_ai": "AI'ni o'rganish",
     "automate_business": "Biznesni avtomatlashtirish",
+    "biz_integrate": "Biznesga AI integratsiya",
+    "biz_specialist": "AI mutaxassis topish",
+    "biz_learn": "Biznes uchun AI o'rganish",
 }
 
 LEVEL_NAMES = {

@@ -1,11 +1,19 @@
-"""Registration handler — FSM-based user onboarding."""
+"""Registration handler — branched onboarding flow.
+
+Two paths:
+  Business owner (Ha):  /start → business_check → business_need → phone → menu
+  Regular user (Yo'q):  /start → business_check → goal → level → name → age → phone → complete
+"""
 from aiogram import Router, F
 from aiogram.filters import CommandStart
 from aiogram.fsm.context import FSMContext
-from aiogram.types import Message, ReplyKeyboardRemove
+from aiogram.types import Message, CallbackQuery, ReplyKeyboardRemove
 
-from bot.fsm.states import RegistrationFSM, SegmentationFSM
-from bot.keyboards.buttons import phone_keyboard, goal_keyboard, main_menu_keyboard
+from bot.fsm.states import RegistrationFSM
+from bot.keyboards.buttons import (
+    phone_keyboard, goal_keyboard, level_keyboard,
+    main_menu_keyboard, business_check_keyboard, business_need_keyboard,
+)
 from bot.locales import uz
 from db.database import async_session
 from services.crm import CRMService
@@ -15,9 +23,12 @@ from services.referral import ReferralService
 router = Router(name="registration")
 
 
+# ──────────────────────────────────────────────
+# 1. /start
+# ──────────────────────────────────────────────
 @router.message(CommandStart())
 async def cmd_start(message: Message, state: FSMContext):
-    """Handle /start with optional deep link (ref_ID or campaign_NAME)."""
+    """Handle /start with optional deep link."""
     await state.clear()
 
     args = message.text.split(maxsplit=1)
@@ -62,15 +73,13 @@ async def cmd_start(message: Message, state: FSMContext):
                 user.is_active = True
                 await session.commit()
 
-            # Mark as registered if they had dropped off at segmentation
             if user.user_status != "registered":
                 user.user_status = "registered"
                 await session.commit()
 
-            # ── Deep link processing for existing/returning users ─────────────
+            # ── Deep link processing for existing users ──
             if deep_link:
                 if referer_id and not user.referer_id:
-                    # First time this existing user came via referral — track it
                     ref_service = ReferralService(session)
                     await ref_service.create_referral(
                         referer_id=referer_id,
@@ -79,7 +88,6 @@ async def cmd_start(message: Message, state: FSMContext):
                     user.referer_id = referer_id
                     await session.commit()
 
-                # Update campaign/source so lead magnet can find the right content
                 if campaign or source:
                     if campaign:
                         user.campaign = campaign
@@ -87,23 +95,19 @@ async def cmd_start(message: Message, state: FSMContext):
                         user.source = source
                     await session.commit()
 
-                # Deliver lead magnet for campaign/source deep links (force re-deliver)
                 if campaign or (source and source != "referral"):
                     from bot.handlers.lead_magnet import deliver_lead_magnet_force
                     await deliver_lead_magnet_force(message, user.telegram_id)
-            # ─────────────────────────────────────────────────────────────────
 
             # Welcome back + main menu
             await message.answer(
-                f"👋 Xush kelibsiz, {user.name or ''}!\n\n{uz.MENU_TEXT}",
+                f"\ud83d\udc4b Xush kelibsiz, {user.name or ''}!\n\n{uz.MENU_TEXT}",
                 parse_mode="HTML",
                 reply_markup=main_menu_keyboard(user_id=message.from_user.id),
             )
             return
 
-
         if is_new:
-            # Track referral (only for genuinely new users)
             if referer_id:
                 ref_service = ReferralService(session)
                 await ref_service.create_referral(
@@ -111,25 +115,127 @@ async def cmd_start(message: Message, state: FSMContext):
                     referred_id=message.from_user.id,
                 )
 
-            # Track lead event (only once per user)
             analytics = AnalyticsService(session)
             await analytics.track(user_id=user.id, event_type=EVT_LEAD)
 
         await session.commit()
 
-    # Start registration
-    await message.answer(uz.WELCOME)
-    await message.answer(uz.ASK_NAME)
+    # 2. Welcome message
+    await message.answer(uz.WELCOME, reply_markup=ReplyKeyboardRemove())
+
+    # 3. Business check question
+    await message.answer(
+        uz.ASK_BUSINESS,
+        reply_markup=business_check_keyboard(),
+    )
+    await state.set_state(RegistrationFSM.waiting_business_check)
+
+
+# ──────────────────────────────────────────────
+# 3. Business check: Ha / Yo'q
+# ──────────────────────────────────────────────
+@router.callback_query(RegistrationFSM.waiting_business_check, F.data.startswith("biz:"))
+async def process_business_check(callback: CallbackQuery, state: FSMContext):
+    answer = callback.data.split(":")[1]
+
+    if answer == "yes":
+        # ── BUSINESS OWNER PATH ──
+        await state.update_data(is_business=True)
+        await callback.message.edit_text(
+            uz.ASK_BUSINESS_NEED,
+            reply_markup=business_need_keyboard(),
+        )
+        await state.set_state(RegistrationFSM.waiting_business_need)
+    else:
+        # ── REGULAR USER PATH ──
+        await state.update_data(is_business=False)
+        await callback.message.edit_text(
+            uz.ASK_GOAL,
+            reply_markup=goal_keyboard(),
+        )
+        await state.set_state(RegistrationFSM.waiting_goal)
+
+    await callback.answer()
+
+
+# ──────────────────────────────────────────────
+# BUSINESS OWNER: 4. What do you need?
+# ──────────────────────────────────────────────
+@router.callback_query(RegistrationFSM.waiting_business_need, F.data.startswith("bizneed:"))
+async def process_business_need(callback: CallbackQuery, state: FSMContext):
+    need = callback.data.split(":")[1]
+    await state.update_data(business_need=need)
+
+    # Save business need to DB
+    async with async_session() as session:
+        crm = CRMService(session)
+        user = await crm.get_user(callback.from_user.id)
+        if user:
+            user.goal_tag = f"biz_{need}"
+            user.level_tag = "business"
+            await session.commit()
+
+    await callback.message.edit_text(
+        f"\u2705 Tanlandi!\n\n{uz.ASK_PHONE}",
+    )
+    await callback.message.answer(
+        uz.ASK_PHONE,
+        reply_markup=phone_keyboard(),
+    )
+    await state.set_state(RegistrationFSM.waiting_phone)
+    await callback.answer()
+
+
+# ──────────────────────────────────────────────
+# REGULAR USER: 4. Goal selection
+# ──────────────────────────────────────────────
+@router.callback_query(RegistrationFSM.waiting_goal, F.data.startswith("goal:"))
+async def process_goal(callback: CallbackQuery, state: FSMContext):
+    goal = callback.data.split(":")[1]
+    await state.update_data(goal=goal)
+
+    async with async_session() as session:
+        crm = CRMService(session)
+        await crm.set_goal(callback.from_user.id, goal)
+        await session.commit()
+
+    # 5. Level selection
+    await callback.message.edit_text(
+        uz.ASK_LEVEL,
+        reply_markup=level_keyboard(),
+    )
+    await state.set_state(RegistrationFSM.waiting_level)
+    await callback.answer()
+
+
+# ──────────────────────────────────────────────
+# REGULAR USER: 5. Level selection
+# ──────────────────────────────────────────────
+@router.callback_query(RegistrationFSM.waiting_level, F.data.startswith("level:"))
+async def process_level(callback: CallbackQuery, state: FSMContext):
+    level = callback.data.split(":")[1]
+    await state.update_data(level=level)
+
+    async with async_session() as session:
+        crm = CRMService(session)
+        await crm.set_level(callback.from_user.id, level)
+        await session.commit()
+
+    # 6. Ask name
+    await callback.message.edit_text(uz.ASK_NAME)
     await state.set_state(RegistrationFSM.waiting_name)
+    await callback.answer()
 
 
+# ──────────────────────────────────────────────
+# REGULAR USER: 6. Name input
+# ──────────────────────────────────────────────
 @router.message(RegistrationFSM.waiting_name)
 async def process_name(message: Message, state: FSMContext):
-    """Save name, ask for age."""
     if not message.text:
         await message.answer(uz.ASK_NAME)
         return
-        
+
     name = message.text.strip()
     if not name or len(name) < 2:
         await message.answer(uz.ASK_NAME)
@@ -141,13 +247,16 @@ async def process_name(message: Message, state: FSMContext):
         await crm.set_name(message.from_user.id, name)
         await session.commit()
 
+    # 7. Ask age
     await message.answer(uz.ASK_AGE)
     await state.set_state(RegistrationFSM.waiting_age)
 
 
+# ──────────────────────────────────────────────
+# REGULAR USER: 7. Age input
+# ──────────────────────────────────────────────
 @router.message(RegistrationFSM.waiting_age)
 async def process_age(message: Message, state: FSMContext):
-    """Save age, request phone."""
     try:
         if not message.text:
             raise ValueError
@@ -164,98 +273,134 @@ async def process_age(message: Message, state: FSMContext):
         await crm.set_age(message.from_user.id, age)
         await session.commit()
 
+    # 8. Ask phone
     await message.answer(uz.ASK_PHONE, reply_markup=phone_keyboard())
     await state.set_state(RegistrationFSM.waiting_phone)
 
 
+# ──────────────────────────────────────────────
+# BOTH PATHS: Phone number (contact share)
+# ──────────────────────────────────────────────
 @router.message(RegistrationFSM.waiting_phone, F.contact)
 async def process_phone(message: Message, state: FSMContext):
-    """Save phone, complete registration, start segmentation."""
-    # Anti-fraud: ensure user is sharing their OWN contact, not someone else's
+    # Anti-fraud: ensure user is sharing their OWN contact
     if message.contact.user_id != message.from_user.id:
         await message.answer(
-            "❌ Iltimos, o'zingizning telefon raqamingizni yuboring.\n"
+            "\u274c Iltimos, o'zingizning telefon raqamingizni yuboring.\n"
             "Boshqa odamning kontaktini yubormang!",
             reply_markup=phone_keyboard(),
         )
         return
 
     phone = message.contact.phone_number
-
-    # Normalize: ensure it starts with +
     if not phone.startswith("+"):
         phone = "+" + phone
 
-    # Validate: only Uzbek numbers (+998)
     if not phone.startswith("+998") or len(phone) != 13:
         await message.answer(
-            "❌ Faqat O'zbek telefon raqamlari qabul qilinadi (+998).\n"
+            "\u274c Faqat O'zbek telefon raqamlari qabul qilinadi (+998).\n"
             "Iltimos, O'zbek raqamingizni yuboring.",
             reply_markup=phone_keyboard(),
         )
         return
 
     data = await state.get_data()
-    name = data.get("name", "")
+    is_business = data.get("is_business", False)
+    name = data.get("name", message.from_user.full_name or "")
 
     async with async_session() as session:
         crm = CRMService(session)
-        
-        # Prevent double registration spam (e.g. multiple taps on Share Contact)
+
+        # Prevent double registration
         existing_user = await crm.get_user(message.from_user.id)
         if existing_user and existing_user.phone:
-            await message.answer(uz.ASK_GOAL, reply_markup=goal_keyboard())
-            await state.set_state(SegmentationFSM.waiting_goal)
+            await state.clear()
+            if is_business:
+                await message.answer(
+                    "\u2705 Rahmat! Siz bilan tez orada bog'lanamiz.",
+                    reply_markup=main_menu_keyboard(user_id=message.from_user.id),
+                )
+            else:
+                await message.answer(
+                    uz.REGISTRATION_COMPLETE.format(name=name),
+                    reply_markup=main_menu_keyboard(user_id=message.from_user.id),
+                )
             return
 
         await crm.set_phone(message.from_user.id, phone)
 
-        # Track registration event
         user = await crm.get_user(message.from_user.id)
         analytics = AnalyticsService(session)
         await analytics.track(user_id=user.id, event_type=EVT_REGISTRATION_COMPLETE)
 
-        # Validate referral if applicable
+        # Validate referral
         if user.referer_id:
             import hashlib
             phone_hash = hashlib.sha256(phone.encode()).hexdigest()
             ref_service = ReferralService(session)
             await ref_service.validate_referral(message.from_user.id, phone_hash)
 
+        # Mark as registered
+        user.user_status = "registered"
         await session.commit()
 
-    # Notify admins about new registration
+    # ── Notify admins ──
     try:
         import html as html_mod
         from bot.config import settings
-        admin_ids = settings.ADMIN_IDS
-        safe_name = html_mod.escape(name) if name else "—"
-        safe_username = html_mod.escape(message.from_user.username) if message.from_user.username else "—"
+        user_type = "\ud83c\udfe2 Biznes egasi" if is_business else "\ud83d\udc64 Oddiy foydalanuvchi"
+        biz_need = data.get("business_need", "")
+        need_label = {
+            "integrate": "Integratsiya",
+            "specialist": "Mutaxassis topish",
+            "learn": "O'rganish",
+        }.get(biz_need, biz_need)
+
+        safe_name = html_mod.escape(name)
         safe_phone = html_mod.escape(phone)
-        safe_source = html_mod.escape(user.source or "organik")
-        safe_campaign = html_mod.escape(user.campaign or "—")
-        for aid in admin_ids:
+        safe_username = html_mod.escape(message.from_user.username or "\u2014")
+
+        admin_text = (
+            f"\ud83d\udd14 <b>Yangi ro'yxat!</b>\n\n"
+            f"\ud83d\udc64 {safe_name}\n"
+            f"\ud83d\udcf1 {safe_phone}\n"
+            f"\ud83d\udd17 @{safe_username}\n"
+            f"\ud83c\udfe2 Turi: {user_type}\n"
+        )
+        if is_business and need_label:
+            admin_text += f"\ud83c\udfaf Kerakli: {need_label}\n"
+
+        for aid in settings.ADMIN_IDS:
             try:
                 await message.bot.send_message(
-                    chat_id=aid,
-                    text=(
-                        f"🔔 <b>Yangi ro'yxat!</b>\n\n"
-                        f"👤 {safe_name}\n"
-                        f"📱 {safe_phone}\n"
-                        f"🔗 @{safe_username}\n"
-                        f"📍 Manba: {safe_source}\n"
-                        f"📋 Kampaniya: {safe_campaign}"
-                    ),
-                    parse_mode="HTML",
+                    chat_id=aid, text=admin_text, parse_mode="HTML",
                 )
             except Exception:
                 pass
     except Exception:
         pass
 
-    # Start segmentation (success message will be sent after full completion)
-    await message.answer(uz.ASK_GOAL, reply_markup=goal_keyboard())
-    await state.set_state(SegmentationFSM.waiting_goal)
+    await state.clear()
+
+    if is_business:
+        # ── BUSINESS OWNER: show business menu ──
+        await message.answer(
+            "\u2705 Rahmat! Siz bilan tez orada bog'lanamiz.\n\n"
+            "Quyidagi bo'limlardan foydalanishingiz mumkin \ud83d\udc47",
+            reply_markup=main_menu_keyboard(user_id=message.from_user.id),
+        )
+    else:
+        # ── REGULAR USER: registration complete + lead magnet ──
+        await message.answer(
+            uz.REGISTRATION_COMPLETE.format(name=name),
+            reply_markup=main_menu_keyboard(user_id=message.from_user.id),
+        )
+        # Deliver lead magnet
+        try:
+            from bot.handlers.lead_magnet import deliver_lead_magnet
+            await deliver_lead_magnet(message, message.from_user.id)
+        except Exception:
+            pass
 
 
 @router.message(RegistrationFSM.waiting_phone)

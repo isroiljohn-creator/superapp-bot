@@ -3,14 +3,18 @@ from aiogram.fsm.state import State, StatesGroup
 
 
 class RegistrationFSM(StatesGroup):
-    """User registration flow."""
+    """User registration flow — branched onboarding."""
+    waiting_business_check = State()   # "Sizda biznes bormi?" → Ha / Yo'q
+    waiting_business_need = State()    # Business owner: "Sizga nima kerak?"
+    waiting_goal = State()             # Regular user: "Maqsadingiz?"
+    waiting_level = State()            # Regular user: "Darajangiz?"
     waiting_name = State()
     waiting_age = State()
     waiting_phone = State()
 
 
 class SegmentationFSM(StatesGroup):
-    """Post-registration segmentation."""
+    """Legacy segmentation — kept for backward compatibility."""
     waiting_goal = State()
     waiting_level = State()
 
