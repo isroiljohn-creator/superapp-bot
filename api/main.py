@@ -247,12 +247,12 @@ async def bot_webhook(request: Request):
 
 
 # Override static folder resolution safely
-admin_dist = os.path.join(os.path.dirname(__file__), "static", "admin")
+admin_dist = os.path.join(os.path.dirname(os.path.dirname(__file__)), "static", "admin")
 if os.path.exists(admin_dist):
     app.mount("/admin", StaticFiles(directory=admin_dist, html=True), name="admin_dashboard")
     app.mount("/panel", StaticFiles(directory=admin_dist, html=True), name="admin_dashboard_new")
 
-mod_dist = os.path.join(os.path.dirname(__file__), "static", "moderator")
+mod_dist = os.path.join(os.path.dirname(os.path.dirname(__file__)), "static", "moderator")
 if os.path.exists(mod_dist):
     app.mount("/moderator", StaticFiles(directory=mod_dist, html=True), name="moderator_dashboard")
 
