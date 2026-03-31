@@ -165,3 +165,113 @@ async def save_settings(
         await session.commit()
 
     return {"status": "success"}
+
+class UpgradeRequest(BaseModel):
+    group_id: int
+    plan: str
+
+@router.post("/upgrade")
+async def upgrade_plan(data: UpgradeRequest, user: dict = Depends(validate_init_data)):
+    """Upgrade group moderation plan pulling from user's unified balance."""
+    user_id = user.get("id")
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    price_val = 49000 if data.plan == "pro" else 149000 if data.plan == "vip" else 0
+    if price_val == 0:
+        raise HTTPException(status_code=400, detail="Noto'g'ri tarif")
+        
+    price_text = f"{price_val:,.0f} so'm"
+    plan_name = data.plan.capitalize()
+
+    async with async_session() as session:
+        from services.crm import CRMService
+        from db.models import User
+        from sqlalchemy import update
+        from datetime import datetime, timezone, timedelta
+        
+        crm = CRMService(session)
+        db_user = await crm.get_user(user_id)
+        if not db_user:
+            raise HTTPException(status_code=404, detail="Foydalanuvchi topilmadi")
+
+        balance = float(db_user.tokens or 0)
+        if balance < price_val:
+            raise HTTPException(status_code=400, detail="Hisobingizda yetarli mablag' yo'q!")
+
+        # Verify group ownership/admin
+        result = await session.execute(
+            select(ModeratedGroup).where(ModeratedGroup.group_id == data.group_id)
+        )
+        grp = result.scalar_one_or_none()
+        if not grp:
+            raise HTTPException(status_code=404, detail="Guruh topilmadi")
+            
+        from bot.config import settings as bot_settings
+        if grp.added_by != user_id and user_id not in bot_settings.ADMIN_IDS:
+            raise HTTPException(status_code=403, detail="Siz bu guruh admini emassiz")
+
+        # Deduct balance
+        await session.execute(
+            update(User).where(User.id == db_user.id).values(tokens=User.tokens - price_val)
+        )
+
+        # Update group plan
+        expiry = datetime.now(timezone.utc) + timedelta(days=30)
+        await session.execute(
+            update(ModeratedGroup)
+            .where(ModeratedGroup.group_id == data.group_id)
+            .values(
+                plan=data.plan,
+                plan_expires_at=expiry,
+                anti_spam=True,
+                bad_words_filter=True,
+                captcha_enabled=(data.plan == "vip"),
+            )
+        )
+        await session.commit()
+        
+        # Send Telegram notification
+        try:
+            from api.main import bot
+            import html as html_mod
+            safe_name = html_mod.escape(user.get("first_name") or "")
+            
+            # Message to user
+            try:
+                if bot:
+                    await bot.send_message(
+                        chat_id=user_id,
+                        text=(
+                            f"✅ <b>Tarif muvaffaqiyatli xarid qilindi!</b>\n\n"
+                            f"🏢 Guruh: <code>{grp.group_title or data.group_id}</code>\n"
+                            f"Sizning <b>{plan_name}</b> tarifingiz faollashdi.\n"
+                            f"Balansdan <b>{price_text}</b> yechib olindi.\n\n"
+                            f"Barcha premium funksiyalar guruhingiz uchun ishlashni boshladi! 🎉"
+                        ),
+                        parse_mode="HTML"
+                    )
+            except Exception as e:
+                logger.error(f"Failed to send confirmation to user: {e}")
+
+            # Message to admins
+            for aid in bot_settings.ADMIN_IDS:
+                try:
+                    if bot:
+                        await bot.send_message(
+                            chat_id=aid,
+                            text=(
+                                f"💳 <b>Yangi Tarif xaridi (MiniApp dan)!</b>\n\n"
+                                f"👤 {safe_name}\n"
+                                f"🏢 Guruh ID: <code>{data.group_id}</code>\n"
+                                f"💳 Tarif: {plan_name}\n"
+                                f"💰 To'landi: {price_text} (Ichki balansdan)"
+                            ),
+                            parse_mode="HTML",
+                        )
+                except Exception:
+                    pass
+        except Exception:
+            pass
+
+    return {"status": "success"}
