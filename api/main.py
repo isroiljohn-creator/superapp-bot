@@ -96,7 +96,7 @@ async def lifespan(app: FastAPI):
     dp = Dispatcher(storage=storage)
 
     # Register bot routers
-    from bot.handlers import registration, segmentation, lead_magnet, funnel, subscription, referral as bot_referral, admin as bot_admin, ai_workers, imagegen, copywriter, chatbot, moderation, menu, presentation, lyrics, lifecycle, jobs, superapp, moderator, moderator_group
+    from bot.handlers import registration, segmentation, lead_magnet, funnel, subscription, referral as bot_referral, admin as bot_admin, ai_workers, imagegen, copywriter, chatbot, moderation, menu, presentation, lyrics, lifecycle, jobs, superapp, moderator, moderator_group, wallet
     dp.include_routers(
         lifecycle.router,       # Bot block/unblock tracking — must be first
         moderator_group.router, # Group moderation — must be before menu
@@ -105,6 +105,7 @@ async def lifespan(app: FastAPI):
         lead_magnet.router,
         funnel.router,
         subscription.router,
+        wallet.router,          # Wallet top up
         bot_referral.router,
         bot_admin.router,
         jobs.router,            # NUVI Jobs — vacancy posting

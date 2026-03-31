@@ -16,32 +16,31 @@ router = Router(name="subscription")
 async def handle_payment_success(bot: Bot, telegram_id: int, card_token: str = None, payment_id: int = None):
     """
     Called when payment webhook confirms success.
-    Activates subscription, generates invite link, notifies user.
+    Adds the paid amount directly to the user's Unified Balance (tokens).
     """
+    amount_added = 0
     async with async_session() as session:
         crm = CRMService(session)
         user = await crm.get_user(telegram_id)
         if not user:
             return
 
-        # Activate subscription
-        sub_service = SubscriptionService(session)
-        await sub_service.activate(user.id, card_token=card_token)
-
-        # Apply referral balance if used
-        discount_to_apply = 0
+        # Increment User balance (tokens)
         if payment_id:
             from db.models import Payment
-            from sqlalchemy import select
+            from sqlalchemy import select, update
             payment_res = await session.execute(select(Payment).where(Payment.id == payment_id))
             payment_obj = payment_res.scalar_one_or_none()
-            if payment_obj and payment_obj.referral_discount:
-                discount_to_apply = payment_obj.referral_discount
+            if payment_obj:
+                amount_added = payment_obj.amount
+                await session.execute(
+                    update(user.__class__)
+                    .where(user.__class__.id == user.id)
+                    .values(tokens=user.__class__.tokens + amount_added)
+                )
 
-        if discount_to_apply > 0:
-            await sub_service.apply_referral_balance(user.id, discount_to_apply)
-
-        # Process paid referral for referer
+        # Apply referral rewards (if applicable for top-ups)
+        # We can keep process_paid_referral to reward the inviter when someone tops up
         ref_service = ReferralService(session)
         await ref_service.process_paid_referral(telegram_id)
 
@@ -51,38 +50,14 @@ async def handle_payment_success(bot: Bot, telegram_id: int, card_token: str = N
 
         await session.commit()
 
-    # Generate invite link for private group (with retry)
-    import logging as _log
-    _sub_logger = _log.getLogger("subscription")
-    invite_sent = False
-    for attempt in range(3):
-        try:
-            if not settings.PRIVATE_GROUP_ID:
-                raise ValueError("PRIVATE_GROUP_ID not configured")
-            from datetime import datetime, timezone, timedelta
-            invite_link = await bot.create_chat_invite_link(
-                chat_id=settings.PRIVATE_GROUP_ID,
-                member_limit=1,
-                name=f"user_{telegram_id}",
-                expire_date=datetime.now(timezone.utc) + timedelta(hours=24),  # expires in 24h
-            )
-            await bot.send_message(
-                chat_id=telegram_id,
-                text=uz.PAYMENT_SUCCESS.format(invite_link=invite_link.invite_link),
-                parse_mode="HTML",
-            )
-            invite_sent = True
-            break
-        except Exception as e:
-            _sub_logger.warning(f"Invite link attempt {attempt+1}/3 failed: {e}")
-            if attempt < 2:
-                import asyncio
-                await asyncio.sleep(1)
-    if not invite_sent:
-        _sub_logger.error(f"All invite link attempts failed for user {telegram_id}")
+    if amount_added > 0:
         await bot.send_message(
             chat_id=telegram_id,
-            text=uz.PAYMENT_SUCCESS.format(invite_link="[Link yaratilmoqda... Admin bilan bog'laning]"),
+            text=(
+                f"✅ <b>To'lov muvaffaqiyatli!</b>\n\n"
+                f"💰 Hamyoningizga <b>{amount_added:,.0f} so'm</b> qo'shildi.\n"
+                f"Endi siz ushbu mablag'dan qulay narxlarda barcha xizmatlarimiz (Moderator bot, AI xodimlar) uchun foydalanishingiz mumkin."
+            ),
             parse_mode="HTML",
         )
 

@@ -538,31 +538,80 @@ async def show_pricing(callback: CallbackQuery):
 
 @router.callback_query(F.data.startswith("mod:upgrade:"))
 async def upgrade_plan(callback: CallbackQuery):
-    """Handle upgrade request — for now, notify admin."""
+    """Handle upgrade request via Unified Balance."""
     parts = callback.data.split(":")
     plan = parts[2]
     group_id = int(parts[3])
 
-    price = plan_price_text(plan)
-    plan_name = plan_display_name(plan)
+    # Determine numeric price based on plan name in text (Pro=49k, VIP=149k)
+    price_val = 49000 if plan == "pro" else 149000 if plan == "vip" else 0
+    price_text = f"{price_val:,.0f} so'm"
+    plan_name = plan.capitalize()
 
-    # Notify admin about upgrade request
+    async with async_session() as session:
+        from services.crm import CRMService
+        from db.models import User, ModeratedGroup
+        from sqlalchemy import update
+        crm = CRMService(session)
+        user = await crm.get_user(callback.from_user.id)
+        if not user:
+            return
+
+        balance = float(user.tokens or 0)
+        if balance < price_val:
+            await callback.message.edit_text(
+                f"❌ <b>Hisobingizda yetarli mablag' yo'q!</b>\n\n"
+                f"Tarif: <b>{plan_name}</b>\n"
+                f"Narxi: <b>{price_text}</b>\n"
+                f"Joriy balansingiz: <b>{balance:,.0f} so'm</b>\n\n"
+                f"Iltimos, avval Hamyoningizni to'ldiring.",
+                parse_mode="HTML",
+                reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+                    [InlineKeyboardButton(text="💳 Hisobni to'ldirish", callback_data="wallet_topup")],
+                    [InlineKeyboardButton(text="🔙 Orqaga", callback_data=f"mod:settings:{group_id}")]
+                ])
+            )
+            return
+
+        # Deduct balance and activate plan
+        await session.execute(
+            update(User).where(User.id == user.id).values(tokens=User.tokens - price_val)
+        )
+        
+        from datetime import datetime, timezone, timedelta
+        # Add 30 days
+        expiry = datetime.now(timezone.utc) + timedelta(days=30)
+        
+        await session.execute(
+            update(ModeratedGroup)
+            .where(ModeratedGroup.group_id == group_id)
+            .values(
+                plan=plan,
+                plan_expires_at=expiry,
+                # also turn on corresponding features automatically if paid
+                anti_spam=True,
+                bad_words_filter=True,
+                captcha_enabled=(plan == "vip"),
+            )
+        )
+        await session.commit()
+
+    import html as html_mod
+    safe_name = html_mod.escape(callback.from_user.full_name or "")
+    
+    # Notify Admin about purchase
     try:
         from bot.config import settings
-        import html as html_mod
-        user = callback.from_user
-        safe_name = html_mod.escape(user.full_name or "")
-        safe_username = html_mod.escape(user.username or "—")
         for aid in settings.ADMIN_IDS:
             try:
                 await callback.bot.send_message(
                     chat_id=aid,
                     text=(
-                        f"💳 <b>Tarif so'rovi!</b>\n\n"
-                        f"👤 {safe_name} (@{safe_username})\n"
+                        f"💳 <b>Yangi Tarif xaridi!</b>\n\n"
+                        f"👤 {safe_name}\n"
                         f"🏢 Guruh ID: <code>{group_id}</code>\n"
                         f"💳 Tarif: {plan_name}\n"
-                        f"💰 Narx: {price}"
+                        f"💰 To'landi: {price_text} (Ichki balansdan)"
                     ),
                     parse_mode="HTML",
                 )
@@ -571,16 +620,13 @@ async def upgrade_plan(callback: CallbackQuery):
     except Exception:
         pass
 
-    await (update.message.edit_text if is_cb else update.answer)(
-        f"✅ <b>Tarif so'rovi yuborildi!</b>\n\n"
-        f"Siz {plan_name} tarifiga o'tishni so'radingiz.\n"
-        f"Narx: <b>{price}</b>\n\n"
-        f"📱 Admin siz bilan tez orada bog'lanadi.\n"
-        f"To'lovdan keyin tarif avtomatik yoqiladi.",
+    await callback.message.edit_text(
+        f"✅ <b>Tarif muvaffaqiyatli xarid qilindi!</b>\n\n"
+        f"Sizning <b>{plan_name}</b> tarifingiz faollashdi.\n"
+        f"Balansdan <b>{price_text}</b> yechib olindi (Qoldiq: {(balance - price_val):,.0f} so'm).\n\n"
+        f"Barcha premium funksiyalar guruhingiz uchun ishlashni boshladi! 🎉",
         parse_mode="HTML",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="🔙 Orqaga", callback_data=f"mod:settings:{group_id}")],
+            [InlineKeyboardButton(text="⚙️ Guruh sozlamalarini ko'rish", callback_data=f"mod:settings:{group_id}")],
         ]),
     )
-    if is_cb:
-            await update.answer()

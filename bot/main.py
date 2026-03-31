@@ -75,7 +75,7 @@ async def main():
     dp = Dispatcher(storage=storage)
 
     # Register routers
-    from bot.handlers import registration, segmentation, lead_magnet, funnel, subscription, referral, admin, ai_workers, imagegen, copywriter, chatbot, moderation, menu, presentation, lyrics, lifecycle, jobs
+    from bot.handlers import registration, segmentation, lead_magnet, funnel, subscription, referral, admin, ai_workers, imagegen, copywriter, chatbot, moderation, menu, presentation, lyrics, lifecycle, jobs, wallet
     dp.include_routers(
         lifecycle.router,    # Bot block/unblock tracking — must be first
         registration.router,
@@ -83,6 +83,7 @@ async def main():
         lead_magnet.router,
         funnel.router,
         subscription.router,
+        wallet.router,       # Wallet top up
         referral.router,
         admin.router,
         jobs.router,         # NUVI Jobs — vacancy posting

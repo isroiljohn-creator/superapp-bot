@@ -253,6 +253,7 @@ MENU_BTN_FREE_LESSONS = "📚 Bepul darslar"
 MENU_BTN_PROFILE = "👤 Mening profilim"
 MENU_BTN_SUPERAPP = "⚡ Superapp"
 MENU_BTN_BACK = "🔙 Orqaga"
+MENU_BTN_WALLET = "💳 Balans"
 
 SUPERAPP_BTN_MODERATOR = "🛡 Nazoratchi bot"
 SUPERAPP_BTN_TEAM = "💼 Nuvi Team"

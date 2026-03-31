@@ -52,3 +52,8 @@ class JobPostFSM(StatesGroup):
     waiting_location = State()
     waiting_contact = State()
     waiting_confirm = State()
+
+
+class WalletTopUpFSM(StatesGroup):
+    """User wallet top up amount flow."""
+    waiting_for_amount = State()
