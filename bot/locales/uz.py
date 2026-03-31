@@ -254,6 +254,9 @@ MENU_BTN_PROFILE = "👤 Mening profilim"
 MENU_BTN_SUPERAPP = "⚡ Superapp"
 MENU_BTN_BACK = "🔙 Orqaga"
 
+SUPERAPP_BTN_MODERATOR = "🛡 Nazoratchi bot"
+SUPERAPP_BTN_TEAM = "💼 Nuvi Team"
+
 # Bepul darslar sub-menu
 FREE_LESSONS_BTN_VIDEO = "🎬 Videodarslar"
 FREE_LESSONS_BTN_GUIDES = "📖 Qo'llanmalar"

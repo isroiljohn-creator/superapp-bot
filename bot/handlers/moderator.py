@@ -112,11 +112,15 @@ async def _show_settings(msg_or_cb, group_id: int, edit: bool = False):
 # ──────────────────────────────────────────────
 # Entry: Nazoratchi bot menu
 # ──────────────────────────────────────────────
+@router.message(F.text == uz.SUPERAPP_BTN_MODERATOR)
 @router.callback_query(F.data == "superapp:moderator")
-async def moderator_menu(callback: CallbackQuery, state: FSMContext):
+async def moderator_menu(update: CallbackQuery | Message, state: FSMContext):
+    # If message, we just use from_user.id
     """Show moderator bot dashboard — list user's groups."""
     await state.clear()
-    user_id = callback.from_user.id
+    user_id = update.from_user.id
+    bot_instance = update.bot
+    is_cb = isinstance(update, CallbackQuery)
 
     async with async_session() as session:
         result = await session.execute(
@@ -128,14 +132,15 @@ async def moderator_menu(callback: CallbackQuery, state: FSMContext):
         groups = result.scalars().all()
 
     if not groups:
-        bot_info = await callback.bot.get_me()
+        bot_info = await bot_instance.get_me()
         add_url = f"https://t.me/{bot_info.username}?startgroup=true"
         kb = InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="➕ Guruhga qo'shish", url=add_url)],
             [InlineKeyboardButton(text="🔙 Orqaga", callback_data="superapp:back")],
         ])
-        await callback.message.edit_text(uz.MOD_NO_GROUPS, parse_mode="HTML", reply_markup=kb)
-        await callback.answer()
+        await (update.message.edit_text if is_cb else update.answer)(uz.MOD_NO_GROUPS, parse_mode="HTML", reply_markup=kb)
+        if is_cb:
+            await update.answer()
         return
 
     from aiogram.types import WebAppInfo
@@ -153,16 +158,17 @@ async def moderator_menu(callback: CallbackQuery, state: FSMContext):
             web_app=WebAppInfo(url=app_url),
         )])
 
-    bot_info = await callback.bot.get_me()
+    bot_info = await bot_instance.get_me()
     add_url = f"https://t.me/{bot_info.username}?startgroup=true"
     buttons.append([InlineKeyboardButton(text="➕ Yana guruh qo'shish", url=add_url)])
     buttons.append([InlineKeyboardButton(text="🔙 Orqaga", callback_data="superapp:back")])
 
-    await callback.message.edit_text(
+    await (update.message.edit_text if is_cb else update.answer)(
         uz.MOD_MENU, parse_mode="HTML",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=buttons),
     )
-    await callback.answer()
+    if is_cb:
+            await update.answer()
 
 
 # ──────────────────────────────────────────────
@@ -172,7 +178,8 @@ async def moderator_menu(callback: CallbackQuery, state: FSMContext):
 async def group_settings(callback: CallbackQuery, state: FSMContext):
     group_id = int(callback.data.split(":")[2])
     await _show_settings(callback, group_id, edit=True)
-    await callback.answer()
+    if is_cb:
+            await update.answer()
 
 
 # ──────────────────────────────────────────────
@@ -234,7 +241,8 @@ async def set_flood_prompt(callback: CallbackQuery, state: FSMContext):
         "O'chirish uchun: <code>0</code>",
         parse_mode="HTML",
     )
-    await callback.answer()
+    if is_cb:
+            await update.answer()
 
 
 @router.message(ModSettingsFSM.waiting_flood_limit)
@@ -277,7 +285,8 @@ async def set_night_prompt(callback: CallbackQuery, state: FSMContext):
         "Format: <code>00:00-08:00</code>",
         parse_mode="HTML",
     )
-    await callback.answer()
+    if is_cb:
+            await update.answer()
 
 
 @router.message(ModSettingsFSM.waiting_night_hours)
@@ -326,7 +335,8 @@ async def set_welcome_prompt(callback: CallbackQuery, state: FSMContext):
         "Masalan: Xush kelibsiz, {name}! {group} ga qo'shilganingiz bilan!",
         parse_mode="HTML",
     )
-    await callback.answer()
+    if is_cb:
+            await update.answer()
 
 
 @router.message(ModSettingsFSM.waiting_welcome_msg)
@@ -371,8 +381,9 @@ async def show_banned_words(callback: CallbackQuery, state: FSMContext):
         kb = InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="🔙 Orqaga", callback_data=f"mod:settings:{group_id}")],
         ])
-        await callback.message.edit_text(uz.MOD_WORDS_EMPTY, parse_mode="HTML", reply_markup=kb)
-        await callback.answer()
+        await (update.message.edit_text if is_cb else update.answer)(uz.MOD_WORDS_EMPTY, parse_mode="HTML", reply_markup=kb)
+        if is_cb:
+            await update.answer()
         return
 
     word_list = "\n".join(f"• {w.word}" for w in words)
@@ -385,12 +396,13 @@ async def show_banned_words(callback: CallbackQuery, state: FSMContext):
     buttons.append([InlineKeyboardButton(text="➕ So'z qo'shish", callback_data=f"mod:addword:{group_id}")])
     buttons.append([InlineKeyboardButton(text="🔙 Orqaga", callback_data=f"mod:settings:{group_id}")])
 
-    await callback.message.edit_text(
+    await (update.message.edit_text if is_cb else update.answer)(
         uz.MOD_WORDS_LIST.format(count=len(words), words=word_list),
         parse_mode="HTML",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=buttons),
     )
-    await callback.answer()
+    if is_cb:
+            await update.answer()
 
 
 @router.callback_query(F.data.startswith("mod:addword:"))
@@ -401,7 +413,8 @@ async def add_word_prompt(callback: CallbackQuery, state: FSMContext):
     await callback.message.answer(
         "🚫 Ta'qiqlangan so'zni yozing (bir nechta bo'lsa, har birini yangi qatordan):",
     )
-    await callback.answer()
+    if is_cb:
+            await update.answer()
 
 
 @router.message(ModSettingsFSM.waiting_banned_word)
@@ -515,11 +528,12 @@ async def show_pricing(callback: CallbackQuery):
         callback_data=f"mod:settings:{group_id}",
     )])
 
-    await callback.message.edit_text(
+    await (update.message.edit_text if is_cb else update.answer)(
         text, parse_mode="HTML",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=buttons),
     )
-    await callback.answer()
+    if is_cb:
+            await update.answer()
 
 
 @router.callback_query(F.data.startswith("mod:upgrade:"))
@@ -557,7 +571,7 @@ async def upgrade_plan(callback: CallbackQuery):
     except Exception:
         pass
 
-    await callback.message.edit_text(
+    await (update.message.edit_text if is_cb else update.answer)(
         f"✅ <b>Tarif so'rovi yuborildi!</b>\n\n"
         f"Siz {plan_name} tarifiga o'tishni so'radingiz.\n"
         f"Narx: <b>{price}</b>\n\n"
@@ -568,4 +582,5 @@ async def upgrade_plan(callback: CallbackQuery):
             [InlineKeyboardButton(text="🔙 Orqaga", callback_data=f"mod:settings:{group_id}")],
         ]),
     )
-    await callback.answer()
+    if is_cb:
+            await update.answer()
