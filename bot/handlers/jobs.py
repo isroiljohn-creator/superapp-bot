@@ -179,17 +179,78 @@ async def jobs_back(callback: CallbackQuery):
 # ──────────────────────────────────────────────────
 # 📝 Vacancy posting FSM (by business owner)
 # ──────────────────────────────────────────────────
+
+# Predefined job categories
+JOB_CATEGORIES = [
+    ("💻 Dasturchi", "Dasturchi"),
+    ("📱 SMM mutaxassisi", "SMM mutaxassisi"),
+    ("🎨 Dizayner", "Dizayner"),
+    ("📝 Kontent menejer", "Kontent menejer"),
+    ("📊 Marketolog", "Marketolog"),
+    ("📞 Sotuv menejeri", "Sotuv menejeri"),
+    ("🎥 Videograf", "Videograf"),
+    ("📷 Fotograf", "Fotograf"),
+    ("👨‍💼 HR menejer", "HR menejer"),
+    ("💼 Buxgalter", "Buxgalter"),
+    ("🚗 Haydovchi", "Haydovchi"),
+    ("🏪 Sotuvchi", "Sotuvchi"),
+]
+
+
+def _job_categories_keyboard() -> InlineKeyboardMarkup:
+    """Job category selection keyboard with 2 columns + custom input button."""
+    buttons = []
+    for i in range(0, len(JOB_CATEGORIES), 2):
+        row = [InlineKeyboardButton(
+            text=JOB_CATEGORIES[i][0],
+            callback_data=f"jcat:{JOB_CATEGORIES[i][1]}",
+        )]
+        if i + 1 < len(JOB_CATEGORIES):
+            row.append(InlineKeyboardButton(
+                text=JOB_CATEGORIES[i + 1][0],
+                callback_data=f"jcat:{JOB_CATEGORIES[i + 1][1]}",
+            ))
+        buttons.append(row)
+    # "O'zim yozaman" button at the bottom
+    buttons.append([InlineKeyboardButton(text="✍️ O'zim yozaman", callback_data="jcat:custom")])
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
+
+
 @router.callback_query(F.data == "jobs:post")
 async def start_job_post(callback: CallbackQuery, state: FSMContext):
-    """Start vacancy posting FSM."""
+    """Start vacancy posting FSM — show category selection."""
     await state.clear()
     await state.set_state(JobPostFSM.waiting_title)
-    await callback.message.answer(uz.JOBS_ASK_TITLE, parse_mode="HTML")
+    await callback.message.answer(
+        "💼 <b>Vakansiya sohasi</b>\n\n"
+        "Quyidan sohani tanlang yoki o'zingiz yozing 👇",
+        parse_mode="HTML",
+        reply_markup=_job_categories_keyboard(),
+    )
+    await callback.answer()
+
+
+@router.callback_query(F.data.startswith("jcat:"), JobPostFSM.waiting_title)
+async def process_job_category(callback: CallbackQuery, state: FSMContext):
+    """Handle category selection from inline buttons."""
+    category = callback.data.split(":", 1)[1]
+
+    if category == "custom":
+        # User wants to type custom title
+        await callback.message.answer(uz.JOBS_ASK_TITLE, parse_mode="HTML")
+        await callback.answer()
+        return  # Stay in waiting_title state for text input
+
+    # Category selected — save and move to next step
+    await state.update_data(title=category)
+    await state.set_state(JobPostFSM.waiting_company)
+    await callback.message.answer(uz.JOBS_ASK_COMPANY, parse_mode="HTML")
     await callback.answer()
 
 
 @router.message(JobPostFSM.waiting_title)
 async def process_job_title(message: Message, state: FSMContext):
+    """Handle custom title text input."""
     if not message.text or len(message.text.strip()) < 2:
         await message.answer(uz.JOBS_ASK_TITLE, parse_mode="HTML")
         return
