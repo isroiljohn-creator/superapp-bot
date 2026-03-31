@@ -28,7 +28,7 @@ def main_menu_keyboard(user_id: int = None) -> ReplyKeyboardMarkup:
     return ReplyKeyboardMarkup(keyboard=buttons, resize_keyboard=True)
 
 
-def superapp_keyboard(user_id: int = None) -> ReplyKeyboardMarkup:
+def superapp_keyboard(is_team_member: bool = False, is_admin: bool = False) -> ReplyKeyboardMarkup:
     """Superapp menu."""
     from bot.config import settings
     
@@ -38,7 +38,7 @@ def superapp_keyboard(user_id: int = None) -> ReplyKeyboardMarkup:
     buttons = [
         [KeyboardButton(text=uz.SUPERAPP_BTN_MODERATOR)]
     ]
-    if user_id and user_id in settings.ADMIN_IDS:
+    if is_team_member or is_admin:
         buttons[0].append(KeyboardButton(text=uz.SUPERAPP_BTN_TEAM, web_app=WebAppInfo(url=app_url)))
         
     buttons.append([KeyboardButton(text=uz.MENU_BTN_BACK)])

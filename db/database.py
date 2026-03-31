@@ -66,6 +66,7 @@ async def _auto_migrate(engine):
         ("course_modules", "channel_message_id", "INTEGER"),
         ("users", "tokens", "INTEGER DEFAULT 2000"),
         ("users", "last_daily_claim", "TIMESTAMP"),
+        ("users", "is_team_member", "BOOLEAN DEFAULT FALSE NOT NULL"),
         # Moderated groups
         ("moderated_groups", "plan", "VARCHAR(10) DEFAULT 'free'"),
         ("moderated_groups", "plan_expires_at", "TIMESTAMP"),

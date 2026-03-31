@@ -11,6 +11,8 @@ from bot.fsm.states import BroadcastFSM
 from bot.keyboards.buttons import broadcast_confirm_keyboard
 from bot.locales import uz
 from db.database import async_session
+from db.models import User
+from sqlalchemy import update
 from services.crm import CRMService
 from services.analytics import AnalyticsService
 from services.broadcast import BroadcastService
@@ -22,6 +24,49 @@ def is_admin(user_id: int) -> bool:
     return user_id in settings.ADMIN_IDS
 
 
+@router.message(Command("addteam"))
+async def add_team_member(message: Message):
+    """Add a team member by Telegram ID."""
+    if not is_admin(message.from_user.id):
+        return
+        
+    try:
+        user_id = int(message.text.split()[1])
+    except (IndexError, ValueError):
+        await message.answer("❌ Noto'g'ri format. Foydalanish: `/addteam 12345678`")
+        return
+        
+    async with async_session() as session:
+        res = await session.execute(update(User).where(User.telegram_id == user_id).values(is_team_member=True))
+        if res.rowcount == 0:
+            await message.answer("❌ Bunday foydalanuvchi botda ro'yxatdan o'tmagan.")
+            return
+        await session.commit()
+        
+    await message.answer(f"✅ User ID {user_id} Nuvi Jamoasiga qo'shildi! Endi ularda Nuvi Team tugmasi chiqadi.")
+
+@router.message(Command("remteam"))
+async def rem_team_member(message: Message):
+    """Remove a team member by Telegram ID."""
+    if not is_admin(message.from_user.id):
+        return
+        
+    try:
+        user_id = int(message.text.split()[1])
+    except (IndexError, ValueError):
+        await message.answer("❌ Noto'g'ri format. Foydalanish: `/remteam 12345678`")
+        return
+        
+    async with async_session() as session:
+        res = await session.execute(update(User).where(User.telegram_id == user_id).values(is_team_member=False))
+        if res.rowcount == 0:
+            await message.answer("❌ Bunday foydalanuvchi botda ro'yxatdan o'tmagan.")
+            return
+        await session.commit()
+        
+    await message.answer(f"✅ User ID {user_id} Nuvi Jamoasidan o'chirildi.")
+
+# ── Content Management ───────────────────
 # ── Admin Menu Dashboard ─────────────────
 def admin_menu_keyboard() -> InlineKeyboardMarkup:
     """Inline keyboard for the admin dashboard."""

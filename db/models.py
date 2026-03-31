@@ -45,6 +45,7 @@ class User(Base):
     # Flags
     lead_magnet_opened = Column(Boolean, default=False)
     is_active = Column(Boolean, default=True, nullable=False)
+    is_team_member = Column(Boolean, default=False, nullable=False)
 
     # AI balance (so'm)
     tokens = Column(Integer, default=2000, nullable=False, server_default="2000")
