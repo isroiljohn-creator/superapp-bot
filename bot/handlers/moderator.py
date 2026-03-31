@@ -12,6 +12,10 @@ from sqlalchemy import select
 from bot.locales import uz
 from db.database import async_session
 from db.models import ModeratedGroup, BannedWord
+from services.tariff import (
+    get_plan_limits, get_effective_plan, can_use_feature,
+    plan_display_name, plan_price_text, PLAN_LIMITS,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -32,26 +36,42 @@ def _toggle_icon(val: bool) -> str:
     return "\u2705" if val else "\u274c"
 
 
-def _settings_kb(group_id: int) -> InlineKeyboardMarkup:
-    return InlineKeyboardMarkup(inline_keyboard=[
+def _settings_kb(group_id: int, plan: str = "free") -> InlineKeyboardMarkup:
+    limits = get_plan_limits(plan)
+    rows = [
         [
             InlineKeyboardButton(text="\ud83d\udee1 Anti-reklama", callback_data=f"mod:toggle:anti_spam:{group_id}"),
             InlineKeyboardButton(text="\ud83d\udeab So'z filtri", callback_data=f"mod:toggle:bad_words_filter:{group_id}"),
         ],
         [
             InlineKeyboardButton(text="\ud83e\udd16 CAPTCHA", callback_data=f"mod:toggle:captcha_enabled:{group_id}"),
-            InlineKeyboardButton(text="\ud83c\udf19 Tungi rejim", callback_data=f"mod:toggle:night_mode:{group_id}"),
-        ],
-        [
-            InlineKeyboardButton(text="\ud83d\udca8 Flood limiti", callback_data=f"mod:set:flood:{group_id}"),
-            InlineKeyboardButton(text="\u23f0 Tungi soat", callback_data=f"mod:set:night_hours:{group_id}"),
         ],
         [
             InlineKeyboardButton(text="\ud83d\udeab So'zlar ro'yxati", callback_data=f"mod:words:{group_id}"),
-            InlineKeyboardButton(text="\ud83d\udcdd Xush kelibsiz", callback_data=f"mod:set:welcome:{group_id}"),
         ],
-        [InlineKeyboardButton(text="\ud83d\udd19 Orqaga", callback_data="superapp:moderator")],
+    ]
+    # Pro+ features
+    if limits["flood_control"]:
+        rows.append([
+            InlineKeyboardButton(text="\ud83d\udca8 Flood limiti", callback_data=f"mod:set:flood:{group_id}"),
+        ])
+    if limits["night_mode"]:
+        rows.append([
+            InlineKeyboardButton(text="\ud83c\udf19 Tungi rejim", callback_data=f"mod:toggle:night_mode:{group_id}"),
+            InlineKeyboardButton(text="\u23f0 Tungi soat", callback_data=f"mod:set:night_hours:{group_id}"),
+        ])
+    if limits["welcome_message"]:
+        rows.append([
+            InlineKeyboardButton(text="\ud83d\udcdd Xush kelibsiz", callback_data=f"mod:set:welcome:{group_id}"),
+        ])
+
+    # Plan info / upgrade
+    plan_icon = plan_display_name(plan)
+    rows.append([
+        InlineKeyboardButton(text=f"\ud83d\udcb3 Tarif: {plan_icon}", callback_data=f"mod:pricing:{group_id}"),
     ])
+    rows.append([InlineKeyboardButton(text="\ud83d\udd19 Orqaga", callback_data="superapp:moderator")])
+    return InlineKeyboardMarkup(inline_keyboard=rows)
 
 
 async def _get_group(group_id: int):
@@ -67,18 +87,21 @@ async def _show_settings(msg_or_cb, group_id: int, edit: bool = False):
     if not grp:
         return
 
+    effective_plan = get_effective_plan(grp.plan or "free", grp.plan_expires_at)
+    limits = get_plan_limits(effective_plan)
+
     text = uz.MOD_SETTINGS_TEXT.format(
         title=grp.group_title or str(grp.group_id),
         anti_spam=_toggle_icon(grp.anti_spam),
         bad_words=_toggle_icon(grp.bad_words_filter),
         captcha=_toggle_icon(grp.captcha_enabled),
-        flood=grp.flood_limit or "O'chirilgan",
-        night=_toggle_icon(grp.night_mode),
+        flood=grp.flood_limit if limits["flood_control"] else "\ud83d\udd12 PRO",
+        night=_toggle_icon(grp.night_mode) if limits["night_mode"] else "\ud83d\udd12 PRO",
         night_start=grp.night_start or "00:00",
         night_end=grp.night_end or "08:00",
         warn_limit=grp.warn_limit,
     )
-    kb = _settings_kb(group_id)
+    kb = _settings_kb(group_id, effective_plan)
 
     if edit and hasattr(msg_or_cb, "message"):
         await msg_or_cb.message.edit_text(text, parse_mode="HTML", reply_markup=kb)
@@ -158,6 +181,19 @@ async def toggle_feature(callback: CallbackQuery):
     if feature not in valid_features:
         await callback.answer("Noto'g'ri sozlama", show_alert=True)
         return
+
+    # Tariff check for premium features
+    premium_features = {"night_mode": "night_mode"}
+    if feature in premium_features:
+        grp_check = await _get_group(group_id)
+        if grp_check:
+            plan = get_effective_plan(grp_check.plan or "free", grp_check.plan_expires_at)
+            if not can_use_feature(plan, grp_check.plan_expires_at, premium_features[feature]):
+                await callback.answer(
+                    "\ud83d\udd12 Bu funksiya PRO tarifda mavjud. Tarifni yangilang!",
+                    show_alert=True,
+                )
+                return
 
     async with async_session() as session:
         result = await session.execute(
@@ -423,3 +459,106 @@ async def delete_word(callback: CallbackQuery):
     from bot.handlers.moderator import show_banned_words
     callback.data = f"mod:words:{group_id}"
     await show_banned_words(callback, None)
+
+
+# ──────────────────────────────────────────────
+# Pricing / Tarif
+# ──────────────────────────────────────────────
+@router.callback_query(F.data.startswith("mod:pricing:"))
+async def show_pricing(callback: CallbackQuery):
+    group_id = int(callback.data.split(":")[2])
+    grp = await _get_group(group_id)
+    current_plan = get_effective_plan(
+        grp.plan or "free", grp.plan_expires_at
+    ) if grp else "free"
+
+    text = (
+        "\ud83d\udcb3 <b>Nazoratchi bot tariflari</b>\n\n"
+        f"Hozirgi tarif: <b>{plan_display_name(current_plan)}</b>\n\n"
+        "\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n\n"
+        "\ud83c\udd93 <b>Free</b> \u2014 Bepul\n"
+        "\u2022 Anti-reklama, CAPTCHA, So'z filtri (10 ta)\n"
+        "\u2022 1 ta guruh\n"
+        "\u2022 Kuniga 1 ta NUVI reklama\n\n"
+        "\u2b50 <b>Pro</b> \u2014 49,000 so'm/oy\n"
+        "\u2022 Hamma Free funksiyalar\n"
+        "\u2022 Flood nazorati, Tungi rejim, Xush kelibsiz\n"
+        "\u2022 100 ta ta'qiqlangan so'z, 3 ta guruh\n"
+        "\u2022 Reklama yo'q\n\n"
+        "\ud83d\udc8e <b>VIP</b> \u2014 149,000 so'm/oy\n"
+        "\u2022 Hamma Pro funksiyalar\n"
+        "\u2022 Cheksiz so'zlar, 10 ta guruh\n"
+        "\u2022 Auto-kick (CAPTCHA), Real-time statistika\n"
+        "\u2022 VIP qo'llab-quvvatlash"
+    )
+
+    buttons = []
+    if current_plan != "pro":
+        buttons.append([InlineKeyboardButton(
+            text="\u2b50 Pro ga o'tish \u2014 49,000 so'm",
+            callback_data=f"mod:upgrade:pro:{group_id}",
+        )])
+    if current_plan != "vip":
+        buttons.append([InlineKeyboardButton(
+            text="\ud83d\udc8e VIP ga o'tish \u2014 149,000 so'm",
+            callback_data=f"mod:upgrade:vip:{group_id}",
+        )])
+    buttons.append([InlineKeyboardButton(
+        text="\ud83d\udd19 Orqaga",
+        callback_data=f"mod:settings:{group_id}",
+    )])
+
+    await callback.message.edit_text(
+        text, parse_mode="HTML",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=buttons),
+    )
+    await callback.answer()
+
+
+@router.callback_query(F.data.startswith("mod:upgrade:"))
+async def upgrade_plan(callback: CallbackQuery):
+    """Handle upgrade request — for now, notify admin."""
+    parts = callback.data.split(":")
+    plan = parts[2]
+    group_id = int(parts[3])
+
+    price = plan_price_text(plan)
+    plan_name = plan_display_name(plan)
+
+    # Notify admin about upgrade request
+    try:
+        from bot.config import settings
+        import html as html_mod
+        user = callback.from_user
+        safe_name = html_mod.escape(user.full_name or "")
+        safe_username = html_mod.escape(user.username or "\u2014")
+        for aid in settings.ADMIN_IDS:
+            try:
+                await callback.bot.send_message(
+                    chat_id=aid,
+                    text=(
+                        f"\ud83d\udcb3 <b>Tarif so'rovi!</b>\n\n"
+                        f"\ud83d\udc64 {safe_name} (@{safe_username})\n"
+                        f"\ud83c\udfe2 Guruh ID: <code>{group_id}</code>\n"
+                        f"\ud83d\udcb3 Tarif: {plan_name}\n"
+                        f"\ud83d\udcb0 Narx: {price}"
+                    ),
+                    parse_mode="HTML",
+                )
+            except Exception:
+                pass
+    except Exception:
+        pass
+
+    await callback.message.edit_text(
+        f"\u2705 <b>Tarif so'rovi yuborildi!</b>\n\n"
+        f"Siz {plan_name} tarifiga o'tishni so'radingiz.\n"
+        f"Narx: <b>{price}</b>\n\n"
+        f"\ud83d\udcf1 Admin siz bilan tez orada bog'lanadi.\n"
+        f"To'lovdan keyin tarif avtomatik yoqiladi.",
+        parse_mode="HTML",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="\ud83d\udd19 Orqaga", callback_data=f"mod:settings:{group_id}")],
+        ]),
+    )
+    await callback.answer()

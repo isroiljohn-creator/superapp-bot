@@ -366,6 +366,11 @@ class ModeratedGroup(Base):
     welcome_message = Column(Text, nullable=True)       # Xush kelibsiz xabar
     warn_limit = Column(Integer, default=3)             # Max ogohlantirishlar before ban
 
+    # Tariff plan
+    plan = Column(String(10), default="free")           # free | pro | vip
+    plan_expires_at = Column(DateTime, nullable=True)   # None = bepul / muddatsiz
+    last_ad_sent_at = Column(DateTime, nullable=True)   # Oxirgi reklama yuborilgan sana (free)
+
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
