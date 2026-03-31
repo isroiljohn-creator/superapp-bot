@@ -229,7 +229,7 @@ COURSE_ALL_COMPLETE = "🎉 Tabriklaymiz! Barcha modullarni tugatdingiz."
 # ──────────────────────────────────────────────
 # Main menu
 # ──────────────────────────────────────────────
-MENU_BTN_AI_WORKERS = "🤖 AI"
+MENU_BTN_AI_WORKERS = "🤖 AI hodimlar"
 MENU_BTN_CLUB = "🔐 Yopiq klub"
 MENU_BTN_COURSE = "📚 Nuvi kursi"
 MENU_BTN_LESSONS = "🎓 Darslar"

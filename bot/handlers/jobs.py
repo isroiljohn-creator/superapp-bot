@@ -182,6 +182,7 @@ async def jobs_back(callback: CallbackQuery):
 
 # Predefined job categories
 JOB_CATEGORIES = [
+    ("🤖 AI (SUN'IY INTELLEKT)", "AI mutaxassisi"),
     ("💻 Dasturchi", "Dasturchi"),
     ("📱 SMM mutaxassisi", "SMM mutaxassisi"),
     ("🎨 Dizayner", "Dizayner"),
@@ -198,17 +199,24 @@ JOB_CATEGORIES = [
 
 
 def _job_categories_keyboard() -> InlineKeyboardMarkup:
-    """Job category selection keyboard with 2 columns + custom input button."""
+    """Job category selection keyboard — AI on top, 2 columns for rest."""
     buttons = []
-    for i in range(0, len(JOB_CATEGORIES), 2):
+    # AI — first row, full width, stands out
+    buttons.append([InlineKeyboardButton(
+        text="🤖 AI (SUN'IY INTELLEKT)",
+        callback_data="jcat:AI mutaxassisi",
+    )])
+    # Rest of categories in 2 columns (skip first item which is AI)
+    rest = JOB_CATEGORIES[1:]
+    for i in range(0, len(rest), 2):
         row = [InlineKeyboardButton(
-            text=JOB_CATEGORIES[i][0],
-            callback_data=f"jcat:{JOB_CATEGORIES[i][1]}",
+            text=rest[i][0],
+            callback_data=f"jcat:{rest[i][1]}",
         )]
-        if i + 1 < len(JOB_CATEGORIES):
+        if i + 1 < len(rest):
             row.append(InlineKeyboardButton(
-                text=JOB_CATEGORIES[i + 1][0],
-                callback_data=f"jcat:{JOB_CATEGORIES[i + 1][1]}",
+                text=rest[i + 1][0],
+                callback_data=f"jcat:{rest[i + 1][1]}",
             ))
         buttons.append(row)
     # "O'zim yozaman" button at the bottom
