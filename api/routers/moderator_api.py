@@ -12,7 +12,7 @@ from services.tariff import get_effective_plan, get_plan_limits
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/moderator", tags=["moderator"])
+router = APIRouter(prefix="/api/moderator", tags=["moderator"])
 
 
 class SettingsDTO(BaseModel):
