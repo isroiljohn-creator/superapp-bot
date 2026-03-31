@@ -7,11 +7,13 @@ from bot.config import settings
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/team", tags=["team"])
 
+from typing import Optional
+
 class UserProfile(BaseModel):
     id: int
     first_name: str
-    last_name: str | None = None
-    username: str | None = None
+    last_name: Optional[str] = None
+    username: Optional[str] = None
     role: str
 
 @router.get("/auth", response_model=UserProfile)

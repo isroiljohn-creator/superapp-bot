@@ -12,7 +12,7 @@ from aiogram.types import Message, CallbackQuery, ReplyKeyboardRemove
 from bot.fsm.states import RegistrationFSM
 from bot.keyboards.buttons import (
     phone_keyboard, goal_keyboard, level_keyboard, get_main_menu,
-    main_menu_keyboard, business_check_keyboard, business_need_keyboard,
+    business_check_keyboard, business_need_keyboard,
 )
 from bot.locales import uz
 from db.database import async_session
