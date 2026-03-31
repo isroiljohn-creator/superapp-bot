@@ -35,7 +35,6 @@ async def get_main_menu(user_id: int = None) -> ReplyKeyboardMarkup:
         [KeyboardButton(text=uz.MENU_BTN_AI_WORKERS), KeyboardButton(text=uz.MENU_BTN_FREE_LESSONS)],
         [KeyboardButton(text=uz.MENU_BTN_COURSE), KeyboardButton(text=uz.MENU_BTN_JOBS)],
         [KeyboardButton(text=uz.MENU_BTN_SUPERAPP), KeyboardButton(text=uz.MENU_BTN_PROFILE)],
-        [KeyboardButton(text=uz.MENU_BTN_WALLET)]
     ]
     
     # 🌟 Ko'rsatma asosida Asosiy menyuda "NUVI TEAM" chiqadi

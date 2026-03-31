@@ -10,10 +10,17 @@ from services.payment import PaymentService
 router = Router(name="wallet")
 
 @router.message(F.text == uz.MENU_BTN_WALLET)
-async def show_wallet(message: Message):
+@router.callback_query(F.data == "wallet_open")
+async def show_wallet(update: Message | CallbackQuery):
+    user_id = update.from_user.id
+    is_cb = isinstance(update, CallbackQuery)
+    
+    if is_cb:
+        await update.answer()
+
     async with async_session() as session:
         crm = CRMService(session)
-        user = await crm.get_user(message.from_user.id)
+        user = await crm.get_user(user_id)
         if not user:
             return
             
@@ -23,7 +30,7 @@ async def show_wallet(message: Message):
         [InlineKeyboardButton(text="💳 Hisobni to'ldirish", callback_data="wallet_topup")]
     ])
     
-    await message.answer(
+    await (update.message.answer if is_cb else update.answer)(
         f"💳 <b>Mening Hamyonim</b>\n\n"
         f"Joriy balans: <b>{balance:,.0f} so'm</b>\n\n"
         f"Mablag'ingizdan botning istalgan xizmatlarida (Moderator, AI) foydalanishingiz mumkin.",

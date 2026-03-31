@@ -211,7 +211,10 @@ async def menu_profile(message: Message):
             InlineKeyboardButton(text="💎 Obuna", callback_data="profile:subscribe"),
         ],
         [
+            InlineKeyboardButton(text="💳 Balans", callback_data="wallet_open"),
             InlineKeyboardButton(text="🔗 Referal", callback_data="profile:referral"),
+        ],
+        [
             InlineKeyboardButton(text="ℹ️ Yordam", callback_data="profile:help"),
         ],
     ])
