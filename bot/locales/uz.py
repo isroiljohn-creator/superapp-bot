@@ -251,6 +251,7 @@ MENU_BTN_ADMIN = "👨‍💻 Admin"
 # New menu structure
 MENU_BTN_FREE_LESSONS = "📚 Bepul darslar"
 MENU_BTN_PROFILE = "👤 Mening profilim"
+MENU_BTN_SUPERAPP = "⚡ Superapp"
 MENU_BTN_BACK = "🔙 Orqaga"
 
 # Bepul darslar sub-menu
@@ -679,3 +680,66 @@ JOB_TYPE_NAMES = {
     "remote": "🌐 Masofaviy",
     "freelance": "💼 Frilanser",
 }
+
+# ──────────────────────────────────────────────
+# Superapp / Nazoratchi Bot
+# ──────────────────────────────────────────────
+SUPERAPP_MENU = (
+    "⚡ <b>Superapp</b>\n\n"
+    "Qo'shimcha kuchli vositalar shu yerda!\n"
+    "Quyidan tanlang 👇"
+)
+
+MOD_MENU = (
+    "🛡 <b>Nazoratchi bot</b>\n\n"
+    "Guruhlaringizni avtomatik boshqaring:\n"
+    "✅ Anti-reklama (URL, @, forward)\n"
+    "✅ So'kinish filtri\n"
+    "✅ CAPTCHA (robot tekshiruvi)\n"
+    "✅ Flood nazorati\n"
+    "✅ Tungi rejim\n\n"
+    "Quyidan tanlang 👇"
+)
+
+MOD_NO_GROUPS = (
+    "🛡 <b>Nazoratchi bot</b>\n\n"
+    "Hozircha hech qanday guruh qo'shilmagan.\n\n"
+    "Botni guruhga qo'shish uchun quyidagi tugmani bosing 👇"
+)
+
+MOD_GROUP_ADDED = "✅ Guruh <b>{title}</b> muvaffaqiyatli qo'shildi!"
+MOD_GROUP_ALREADY = "ℹ️ Bu guruh allaqachon qo'shilgan."
+
+MOD_SETTINGS_TEXT = (
+    "⚙️ <b>Guruh sozlamalari</b>\n"
+    "Guruh: <b>{title}</b>\n\n"
+    "🛡 Anti-reklama: {anti_spam}\n"
+    "🚫 So'kinish filtri: {bad_words}\n"
+    "🤖 CAPTCHA: {captcha}\n"
+    "💨 Flood limiti: {flood}/min\n"
+    "🌙 Tungi rejim: {night}\n"
+    "⏰ Tungi soat: {night_start} - {night_end}\n"
+    "⚠️ Warn limiti: {warn_limit}\n\n"
+    "Sozlamani o'zgartirish uchun tanlang 👇"
+)
+
+MOD_SPAM_DELETED = "⚠️ <b>{name}</b>, reklama xabarlari bu guruhda taqiqlangan!"
+MOD_BAD_WORD_DELETED = "⚠️ <b>{name}</b>, noo'rin so'z ishlatish taqiqlangan!"
+MOD_FLOOD_MUTED = "⚠️ <b>{name}</b>, juda ko'p xabar yozdingiz! 1 daqiqa kuting."
+MOD_NIGHT_MODE = "🌙 Tungi rejim yoqilgan. {start} dan {end} gacha yozish taqiqlangan."
+MOD_WARN_TEXT = "⚠️ <b>{name}</b> ogohlantirildi! ({count}/{limit})\nSabab: {reason}"
+MOD_BANNED_TEXT = "🚫 <b>{name}</b> guruhdan chiqarildi! (ogohlantirishlar tugadi)"
+
+MOD_CAPTCHA_MSG = (
+    "👋 Xush kelibsiz, <b>{name}</b>!\n\n"
+    "Robot emasligingizni tasdiqlash uchun quyidagi tugmani bosing 👇"
+)
+
+MOD_CAPTCHA_VERIFIED = "✅ {name}, tasdiqlandi! Guruhga xush kelibsiz."
+MOD_CAPTCHA_BOT_START = "✅ CAPTCHA tasdiqlandi! Endi guruhga yozishingiz mumkin."
+
+MOD_WORDS_LIST = "🚫 <b>Ta'qiqlangan so'zlar ({count}):</b>\n\n{words}"
+MOD_WORDS_EMPTY = "🚫 Ta'qiqlangan so'zlar ro'yxati bo'sh.\nQo'shish uchun so'z yozing."
+MOD_WORD_ADDED = "✅ <b>{word}</b> ta'qiqlangan so'zlarga qo'shildi."
+MOD_WORD_REMOVED = "❌ <b>{word}</b> ta'qiqlangan so'zlardan olib tashlandi."
+

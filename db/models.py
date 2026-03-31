@@ -342,3 +342,68 @@ class JobVacancy(Base):
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     approved_at = Column(DateTime, nullable=True)
+
+
+# ──────────────────────────────────────────────
+# Moderated Groups (Nazoratchi Bot)
+# ──────────────────────────────────────────────
+class ModeratedGroup(Base):
+    __tablename__ = "moderated_groups"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    group_id = Column(BigInteger, unique=True, nullable=False, index=True)
+    group_title = Column(String(255), nullable=True)
+    added_by = Column(BigInteger, nullable=False)  # admin telegram_id
+
+    # Features on/off
+    anti_spam = Column(Boolean, default=True)           # URL, @, forward filter
+    bad_words_filter = Column(Boolean, default=True)    # So'kinish filtri
+    captcha_enabled = Column(Boolean, default=True)     # CAPTCHA for new members
+    flood_limit = Column(Integer, default=10)           # Max messages/min per user (0=off)
+    night_mode = Column(Boolean, default=False)         # Tungi rejim
+    night_start = Column(String(5), default="00:00")    # Tungi rejim boshlanishi
+    night_end = Column(String(5), default="08:00")      # Tungi rejim tugashi
+    welcome_message = Column(Text, nullable=True)       # Xush kelibsiz xabar
+    warn_limit = Column(Integer, default=3)             # Max ogohlantirishlar before ban
+
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class BannedWord(Base):
+    __tablename__ = "banned_words"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    group_id = Column(BigInteger, nullable=False, index=True)  # Telegram group_id
+    word = Column(String(255), nullable=False)
+    added_by = Column(BigInteger, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    __table_args__ = (
+        UniqueConstraint("group_id", "word", name="uq_group_word"),
+    )
+
+
+class GroupWarning(Base):
+    __tablename__ = "group_warnings"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    group_id = Column(BigInteger, nullable=False, index=True)
+    user_id = Column(BigInteger, nullable=False, index=True)
+    warned_by = Column(BigInteger, nullable=False)
+    reason = Column(String(500), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class CaptchaVerification(Base):
+    __tablename__ = "captcha_verifications"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    group_id = Column(BigInteger, nullable=False, index=True)
+    user_id = Column(BigInteger, nullable=False, index=True)
+    verified = Column(Boolean, default=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    __table_args__ = (
+        UniqueConstraint("group_id", "user_id", name="uq_captcha_group_user"),
+    )

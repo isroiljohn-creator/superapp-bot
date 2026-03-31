@@ -23,6 +23,54 @@ from services.referral import ReferralService
 router = Router(name="registration")
 
 
+async def _handle_captcha_verify(message: Message, deep_link: str):
+    """Verify CAPTCHA when user clicks group link and starts bot."""
+    try:
+        parts = deep_link.split("_")
+        if len(parts) < 3:
+            return
+        group_id = int(parts[1])
+        user_id = int(parts[2])
+
+        if user_id != message.from_user.id:
+            return
+
+        from sqlalchemy import select
+        from db.models import CaptchaVerification
+        from aiogram.types import ChatPermissions
+
+        async with async_session() as session:
+            result = await session.execute(
+                select(CaptchaVerification).where(
+                    CaptchaVerification.group_id == group_id,
+                    CaptchaVerification.user_id == user_id,
+                )
+            )
+            captcha = result.scalar_one_or_none()
+
+            if captcha and not captcha.verified:
+                captcha.verified = True
+                await session.commit()
+
+                # Unrestrict user in group
+                try:
+                    await message.bot.restrict_chat_member(
+                        chat_id=group_id,
+                        user_id=user_id,
+                        permissions=ChatPermissions(
+                            can_send_messages=True,
+                            can_send_media_messages=True,
+                            can_send_other_messages=True,
+                            can_add_web_page_previews=True,
+                        ),
+                    )
+                except Exception:
+                    pass
+
+                await message.answer(uz.MOD_CAPTCHA_BOT_START, parse_mode="HTML")
+    except Exception:
+        pass
+
 # ──────────────────────────────────────────────
 # 1. /start
 # ──────────────────────────────────────────────
@@ -39,6 +87,11 @@ async def cmd_start(message: Message, state: FSMContext):
     campaign = None
 
     if deep_link:
+        # ── CAPTCHA verification from group ──
+        if deep_link.startswith("captcha_"):
+            await _handle_captcha_verify(message, deep_link)
+            # Continue with normal flow (don't return — let user also register/see menu)
+
         if deep_link.startswith("ref_"):
             try:
                 referer_id = int(deep_link.replace("ref_", ""))
@@ -48,7 +101,7 @@ async def cmd_start(message: Message, state: FSMContext):
         elif deep_link.startswith("campaign_"):
             campaign = deep_link.replace("campaign_", "")
             source = "campaign"
-        else:
+        elif not deep_link.startswith("captcha_"):
             source = deep_link
 
     async with async_session() as session:
