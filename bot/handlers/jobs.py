@@ -94,17 +94,56 @@ def _job_type_keyboard() -> InlineKeyboardMarkup:
 
 
 # ──────────────────────────────────────────────────
-# 💼 Menu button → Jobs hub
+# 💼 Menu button → Jobs hub (branched by user type)
 # ──────────────────────────────────────────────────
 @router.message(F.text == uz.MENU_BTN_JOBS)
 async def menu_jobs(message: Message, state: FSMContext):
-    """Show NUVI Jobs hub."""
+    """Show NUVI Jobs — business owners see posting, regular users see channel info."""
     await state.clear()
-    await message.answer(
-        uz.JOBS_MENU_TEXT,
-        parse_mode="HTML",
-        reply_markup=_jobs_menu_keyboard(message.from_user.id),
-    )
+
+    # Check if user is a business owner
+    is_business = False
+    try:
+        from sqlalchemy import select
+        from db.models import User
+        async with async_session() as session:
+            result = await session.execute(
+                select(User).where(User.telegram_id == message.from_user.id)
+            )
+            user = result.scalar_one_or_none()
+            if user and user.level_tag == "business":
+                is_business = True
+    except Exception:
+        pass
+
+    if is_business or _is_admin(message.from_user.id):
+        # Business owner / admin — show posting menu
+        await message.answer(
+            uz.JOBS_MENU_TEXT,
+            parse_mode="HTML",
+            reply_markup=_jobs_menu_keyboard(message.from_user.id),
+        )
+    else:
+        # Regular user — show channel info with link
+        channel_id = await _get_jobs_channel_id("jobs_channel_id")
+        buttons = []
+        if channel_id:
+            # Try to get channel username for link
+            try:
+                chat = await message.bot.get_chat(channel_id)
+                if chat.username:
+                    buttons.append([InlineKeyboardButton(
+                        text="\ud83d\udcce Vakansiyalar kanalga o'tish",
+                        url=f"https://t.me/{chat.username}",
+                    )])
+            except Exception:
+                pass
+        kb = InlineKeyboardMarkup(inline_keyboard=buttons) if buttons else None
+        await message.answer(
+            uz.JOBS_CHANNEL_INFO,
+            parse_mode="HTML",
+            reply_markup=kb,
+        )
 
 
 # ──────────────────────────────────────────────────

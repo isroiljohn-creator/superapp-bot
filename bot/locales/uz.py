@@ -580,6 +580,15 @@ JOBS_MENU_TEXT = (
     "Quyidan kerakli amalni tanlang 👇"
 )
 
+JOBS_CHANNEL_INFO = (
+    "💼 <b>NUVI Jobs — Vakansiyalar kanali</b>\n\n"
+    "Eng so'nggi vakansiyalarni bizning kanalda topishingiz mumkin!\n\n"
+    "✅ IT, AI, Marketing, Dizayn va boshqa sohalar\n"
+    "✅ Har kuni yangi ish o'rinlari\n"
+    "✅ Bepul ro'yxatdan o'tish\n\n"
+    "Kanalga obuna bo'ling va o'zingizga mos ish toping 👇"
+)
+
 JOBS_LIST_EMPTY = (
     "💼 <b>Vakansiyalar</b>\n\n"
     "Hozircha aktiv vakansiyalar yo'q.\n"
