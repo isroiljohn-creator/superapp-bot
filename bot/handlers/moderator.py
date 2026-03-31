@@ -138,12 +138,19 @@ async def moderator_menu(callback: CallbackQuery, state: FSMContext):
         await callback.answer()
         return
 
+    from aiogram.types import WebAppInfo
+    from bot.config import settings as bot_settings
+    
+    base_url = bot_settings.WEBAPP_URL or f"https://{bot_settings.RAILWAY_PUBLIC_DOMAIN}"
+    
     buttons = []
     for g in groups:
         title = g.group_title or str(g.group_id)
+        # Barcha routing slash bilan tugashini ta'minlash va query param qo'shish
+        app_url = f"{base_url.rstrip('/')}/moderator/?group_id={g.group_id}"
         buttons.append([InlineKeyboardButton(
             text=f"\u2699\ufe0f {title}",
-            callback_data=f"mod:settings:{g.group_id}",
+            web_app=WebAppInfo(url=app_url),
         )])
 
     bot_info = await callback.bot.get_me()
