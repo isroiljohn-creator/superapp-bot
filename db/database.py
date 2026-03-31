@@ -66,6 +66,10 @@ async def _auto_migrate(engine):
         ("course_modules", "channel_message_id", "INTEGER"),
         ("users", "tokens", "INTEGER DEFAULT 2000"),
         ("users", "last_daily_claim", "TIMESTAMP"),
+        # Moderated groups
+        ("moderated_groups", "plan", "VARCHAR(10) DEFAULT 'free'"),
+        ("moderated_groups", "plan_expires_at", "TIMESTAMP"),
+        ("moderated_groups", "last_ad_sent_at", "TIMESTAMP"),
     ]
     async with engine.begin() as conn:
         for table, column, col_type in migrations:
