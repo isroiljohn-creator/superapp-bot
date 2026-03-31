@@ -412,6 +412,10 @@ async def process_phone(message: Message, state: FSMContext):
         safe_name = html_mod.escape(name)
         safe_phone = html_mod.escape(phone)
         safe_username = html_mod.escape(message.from_user.username or "—")
+        
+        safe_utm = html_mod.escape(user.campaign or user.source or "Organik")
+        # Biznes emas bo'lsa maqsad ko'rsatilmaydi yoki "O'rganish" deb olinadi
+        maqsad = need_label if (is_business and need_label) else "—"
 
         admin_text = (
             f"🔔 <b>Yangi ro'yxat!</b>\n\n"
@@ -419,9 +423,9 @@ async def process_phone(message: Message, state: FSMContext):
             f"📱 {safe_phone}\n"
             f"🔗 @{safe_username}\n"
             f"🏢 Turi: {user_type}\n"
+            f"🎯 Maqsad: {maqsad}\n"
+            f"📍 UTM: {safe_utm}\n"
         )
-        if is_business and need_label:
-            admin_text += f"🎯 Kerakli: {need_label}\n"
 
         for aid in settings.ADMIN_IDS:
             try:
