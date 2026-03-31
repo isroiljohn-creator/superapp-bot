@@ -31,11 +31,15 @@ def main_menu_keyboard(user_id: int = None) -> ReplyKeyboardMarkup:
 def superapp_keyboard(user_id: int = None) -> ReplyKeyboardMarkup:
     """Superapp menu."""
     from bot.config import settings
+    
+    base_url = settings.WEBAPP_URL or f"https://{settings.RAILWAY_PUBLIC_DOMAIN}"
+    app_url = f"{base_url.rstrip('/')}/nuviteam/"
+    
     buttons = [
         [KeyboardButton(text=uz.SUPERAPP_BTN_MODERATOR)]
     ]
     if user_id and user_id in settings.ADMIN_IDS:
-        buttons[0].append(KeyboardButton(text=uz.SUPERAPP_BTN_TEAM, web_app=WebAppInfo(url="https://nuvi-ish-team.lovable.app")))
+        buttons[0].append(KeyboardButton(text=uz.SUPERAPP_BTN_TEAM, web_app=WebAppInfo(url=app_url)))
         
     buttons.append([KeyboardButton(text=uz.MENU_BTN_BACK)])
     return ReplyKeyboardMarkup(keyboard=buttons, resize_keyboard=True)

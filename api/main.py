@@ -21,7 +21,7 @@ from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 from bot.config import settings
 
-from api.routers import user, payment, referral, course, admin, moderator_api
+from api.routers import user, payment, referral, course, admin, moderator_api, team_api
 
 from typing import Optional
 
@@ -192,6 +192,7 @@ app.include_router(referral.router)
 app.include_router(course.router)
 app.include_router(admin.router)
 app.include_router(moderator_api.router)
+app.include_router(team_api.router)
 
 
 @app.get("/health")
@@ -256,12 +257,16 @@ mod_dist = os.path.join(os.path.dirname(os.path.dirname(__file__)), "static", "m
 if os.path.exists(mod_dist):
     app.mount("/moderator", StaticFiles(directory=mod_dist, html=True), name="moderator_dashboard")
 
+team_dist = os.path.join(os.path.dirname(os.path.dirname(__file__)), "static", "nuviteam")
+if os.path.exists(team_dist):
+    app.mount("/nuviteam", StaticFiles(directory=team_dist, html=True), name="nuviteam_dashboard")
+
 # No-cache middleware for admin HTML — defeats Telegram WebView caching
 @app.middleware("http")
 async def add_no_cache_headers(request, call_next):
     response = await call_next(request)
     path = request.url.path
-    if path.startswith("/admin") or path.startswith("/panel") or path.startswith("/moderator"):
+    if path.startswith("/admin") or path.startswith("/panel") or path.startswith("/moderator") or path.startswith("/nuviteam"):
         # JS/CSS are hash-named (cache-safe), but HTML must never be cached
         if not path.endswith(".js") and not path.endswith(".css"):
             response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
@@ -278,5 +283,8 @@ async def custom_404_handler(request, __):
     # If requesting moderator path, serve moderator index
     if request.url.path.startswith("/moderator/") and os.path.exists(os.path.join(mod_dist, "index.html")):
         return FileResponse(os.path.join(mod_dist, "index.html"))
+    # If requesting nuviteam path, serve nuviteam index
+    if request.url.path.startswith("/nuviteam/") and os.path.exists(os.path.join(team_dist, "index.html")):
+        return FileResponse(os.path.join(team_dist, "index.html"))
     # Otherwise, return a valid JSONResponse (Starlette stringently requires Response objects here)
     return JSONResponse(status_code=404, content={"detail": "Not Found"})
