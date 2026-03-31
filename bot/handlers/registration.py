@@ -79,29 +79,8 @@ async def cmd_start(message: Message, state: FSMContext):
     """Handle /start with optional deep link."""
     await state.clear()
     
+    # We ignore groups here, they are handled in moderator_group.py
     if message.chat.type in ("group", "supergroup"):
-        from bot.config import settings
-        from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo
-        
-        base_url = settings.WEBAPP_URL or f"https://{settings.RAILWAY_PUBLIC_DOMAIN}"
-        app_url = f"{base_url.rstrip('/')}/moderator/?group_id={message.chat.id}"
-        
-        kb = InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="⚙️ Guruhni sozlash", web_app=WebAppInfo(url=app_url))]
-        ])
-        
-        text = (
-            f"👋 Assalomu alaykum, <b>{message.chat.title}</b> guruhi a'zolari!\n\n"
-            f"Men <b>Nazoratchi Bot</b>man. Guruhdagi tartibni saqlash, spam va so'kinishlarni "
-            f"o'chirish hamda qoidalarni boshqarish mening vazifam!"
-        )
-        await message.answer(text, parse_mode="HTML")
-        
-        pm_text = f"⚙️ <b>{message.chat.title}</b> guruhini sozlash uchun quyidagi tugmani bosing:"
-        try:
-            await message.bot.send_message(message.from_user.id, pm_text, reply_markup=kb, parse_mode="HTML")
-        except Exception:
-            await message.answer("ℹ️ <b>Guruh adminlari</b>, sozlamalarni o'zgartirish uchun avval menga (shaxsiy xabarda) /start deb yozing.", parse_mode="HTML")
         return
 
     args = message.text.split(maxsplit=1)
