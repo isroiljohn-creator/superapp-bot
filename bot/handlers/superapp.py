@@ -26,13 +26,16 @@ async def nuvi_team_fallback(message: Message):
     # to'g'ridan to'g'ri mini-app ni ochib yuboradi. Agar desktop/old version bo'lsa
     # shu yerga tushadi.
     from bot.config import settings
+    from bot.keyboards.buttons import nuvi_team_inline_keyboard
     
     # We ideally would check DB for is_team_member here, but since this is just a fallback,
     # we can allow it for admins and our specific user.
     if message.from_user.id in settings.ADMIN_IDS or message.from_user.id == 1392501306:
-        await message.answer("💼 Nuvi Team ilovasini ochish uchun menyudagi tugmani bosing va Web App ga ruxsat bering.")
+        base_url = settings.WEBAPP_URL or f"https://{settings.RAILWAY_PUBLIC_DOMAIN}"
+        app_url = f"{base_url.rstrip('/')}/nuviteam/?v=5"
+        await message.answer("💼 Nuvi Team ilovasini ochish uchun quyidagi tugmani bosing:", reply_markup=nuvi_team_inline_keyboard(app_url))
     else:
-        await message.answer("Siz Nuvi jamoasi ro'yxatida yo'qsiz (yopiq).")
+        await message.answer("Siz Nuvi jamoasi ro'yxatida yo'qsiz (Muhim qism yopiq).")
 
 @router.callback_query(F.data == "superapp:back")
 async def superapp_back(callback: CallbackQuery):

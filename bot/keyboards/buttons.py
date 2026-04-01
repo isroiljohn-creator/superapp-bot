@@ -37,14 +37,23 @@ async def get_main_menu(user_id: int = None) -> ReplyKeyboardMarkup:
         [KeyboardButton(text=uz.MENU_BTN_SUPERAPP), KeyboardButton(text=uz.MENU_BTN_PROFILE)],
     ]
     
-    # 🌟 Ko'rsatma asosida Asosiy menyuda "NUVI TEAM" chiqadi
+    # Insert Nuvi Team button dynamically ONLY if user is in team
     if is_team_member or is_admin:
-        buttons.insert(0, [KeyboardButton(text=uz.SUPERAPP_BTN_TEAM, web_app=WebAppInfo(url=app_url))])
+        buttons.insert(0, [KeyboardButton(text=uz.SUPERAPP_BTN_TEAM)])
     
     if is_admin:
         buttons.append([KeyboardButton(text=uz.MENU_BTN_ADMIN)])
         
     return ReplyKeyboardMarkup(keyboard=buttons, resize_keyboard=True)
+
+
+def nuvi_team_inline_keyboard(app_url: str) -> InlineKeyboardMarkup:
+    """Inline button to launch Nuvi Team Web App."""
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="🏢 Ilovaga kirish", web_app=WebAppInfo(url=app_url))]
+        ]
+    )
 
 
 def superapp_keyboard() -> ReplyKeyboardMarkup:
