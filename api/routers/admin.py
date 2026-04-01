@@ -298,6 +298,7 @@ async def get_users_list(
             "campaign": user.campaign or "",
             "leadScore": user.lead_score or 0,
             "tokens": user.tokens or 0,
+            "isTeamMember": user.is_team_member or False,
             "registeredAt": user.registered_at.strftime("%d.%m.%Y") if user.registered_at else "—",
             "createdAt": user.created_at.strftime("%d.%m.%Y %H:%M") if user.created_at else "—",
             "events": []
@@ -308,6 +309,27 @@ async def get_users_list(
 class BalanceAdjustment(BaseModel):
     amount: int  # positive = add, negative = subtract
     reason: str = ""
+
+class TeamAccessAdjustment(BaseModel):
+    is_team_member: bool
+
+
+@router.put("/users/{telegram_id}/team-access")
+async def toggle_team_access(
+    telegram_id: int,
+    body: TeamAccessAdjustment,
+    admin_id: int = Depends(check_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Admin: toggle Nuvi Team access for a user."""
+    result = await db.execute(select(User).where(User.telegram_id == telegram_id))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=404, detail="Foydalanuvchi topilmadi")
+
+    user.is_team_member = body.is_team_member
+    await db.commit()
+    return {"telegram_id": telegram_id, "is_team_member": user.is_team_member}
 
 
 @router.put("/users/{telegram_id}/balance")

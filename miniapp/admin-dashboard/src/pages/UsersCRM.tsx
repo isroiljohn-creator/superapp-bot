@@ -2,7 +2,8 @@ import { useState, useRef, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Search, X, UserCheck, UserX, Download, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Wallet, Plus, Minus } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Search, X, UserCheck, UserX, Download, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Wallet, Plus, Minus, ShieldCheck } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { fetchApi, API_URL, getInitData } from "@/lib/api";
@@ -25,6 +26,7 @@ interface CRMUser {
   campaign: string;
   leadScore: number;
   tokens: number;
+  isTeamMember: boolean;
   registeredAt: string;
   createdAt: string;
   events: { action: string; time: string }[];
@@ -80,6 +82,7 @@ export default function UsersCRM() {
   const [balanceAmount, setBalanceAmount] = useState("");
   const [balanceLoading, setBalanceLoading] = useState(false);
   const [balanceMsg, setBalanceMsg] = useState("");
+  const [teamAccessLoading, setTeamAccessLoading] = useState(false);
   const queryClient = useQueryClient();
 
   // Debounce search
@@ -410,6 +413,39 @@ export default function UsersCRM() {
                   <Wallet className="h-3 w-3 mr-1" />
                   {selectedUser.tokens.toLocaleString()} so'm
                 </Badge>
+                {selectedUser.isTeamMember && (
+                  <Badge className="bg-blue-500/10 text-blue-500 border border-blue-500/20 shadow-[0_0_10px_rgba(59,130,246,0.2)]">
+                    <ShieldCheck className="h-3 w-3 mr-1" /> Nuvi Team
+                  </Badge>
+                )}
+              </div>
+
+              {/* Team Access Switch */}
+              <div className="mb-4 flex items-center justify-between p-3 bg-blue-500/5 rounded-lg border border-blue-500/20">
+                <div className="flex-1 min-w-0 pr-3">
+                  <h4 className="text-[12px] font-bold text-blue-500 flex items-center gap-1.5">
+                    <ShieldCheck className="h-4 w-4" /> Nuvi Team a'zosi
+                  </h4>
+                  <p className="text-[10px] text-muted-foreground mt-0.5 leading-tight">Ushbu foydalanuvchiga VIP imtiyozlar va cheklanmagan AI so'rovlarini taqdim etish (jamoa a'zosi darajasi).</p>
+                </div>
+                <Switch 
+                  checked={selectedUser.isTeamMember}
+                  disabled={teamAccessLoading}
+                  onCheckedChange={async (checked) => {
+                    setTeamAccessLoading(true);
+                    try {
+                      await fetchApi(`/api/admin/users/${selectedUser.id}/team-access`, {
+                        method: "PUT",
+                        body: JSON.stringify({ is_team_member: checked }),
+                      });
+                      setSelectedUser({ ...selectedUser, isTeamMember: checked });
+                      queryClient.invalidateQueries({ queryKey: ["admin_users"] });
+                    } catch (err) {
+                      console.error("Team access toggle error", err);
+                    }
+                    setTeamAccessLoading(false);
+                  }}
+                />
               </div>
 
               {/* Balance Management */}

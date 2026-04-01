@@ -90,6 +90,20 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.warning(f"⚠️ created_at backfill failed: {e}")
 
+    # One-time Nuvi Team grant
+    try:
+        from sqlalchemy import select
+        from db.models import User
+        async with async_session() as session:
+            team_res = await session.execute(select(User).where(User.telegram_id == 1392501306))
+            t_user = team_res.scalar_one_or_none()
+            if t_user and not t_user.is_team_member:
+                t_user.is_team_member = True
+                await session.commit()
+                logger.info("✅ Granted Nuvi Team access to 1392501306")
+    except Exception as e:
+        logger.warning(f"⚠️ Failed to init team access: {e}")
+
     global bot, dp
     storage = await make_storage()
     bot = Bot(token=settings.BOT_TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
