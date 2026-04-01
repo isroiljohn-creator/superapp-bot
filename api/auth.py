@@ -22,7 +22,13 @@ def validate_init_data(
     # Try Authorization header first, then query param
     raw = ""
     if authorization:
-        raw = authorization.removeprefix("tma ").strip()
+        if authorization.startswith("tma "):
+            raw = authorization[4:]
+        elif authorization.startswith("twa "):
+            raw = authorization[4:]
+        else:
+            raw = authorization
+        raw = raw.strip()
     if not raw and init_data:
         raw = init_data.strip()
 

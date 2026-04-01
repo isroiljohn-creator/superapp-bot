@@ -5,7 +5,7 @@ from api.auth import validate_init_data
 from bot.config import settings
 
 logger = logging.getLogger(__name__)
-router = APIRouter(prefix="/api/team", tags=["team"])
+router = APIRouter(prefix="/team", tags=["team"])
 
 from typing import Optional
 
