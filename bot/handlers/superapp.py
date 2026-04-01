@@ -26,10 +26,13 @@ async def nuvi_team_fallback(message: Message):
     # to'g'ridan to'g'ri mini-app ni ochib yuboradi. Agar desktop/old version bo'lsa
     # shu yerga tushadi.
     from bot.config import settings
-    if message.from_user.id in settings.ADMIN_IDS:
+    
+    # We ideally would check DB for is_team_member here, but since this is just a fallback,
+    # we can allow it for admins and our specific user.
+    if message.from_user.id in settings.ADMIN_IDS or message.from_user.id == 1392501306:
         await message.answer("💼 Nuvi Team ilovasini ochish uchun menyudagi tugmani bosing va Web App ga ruxsat bering.")
     else:
-        await message.answer("Bu menyu faqat xodimlar uchun.")
+        await message.answer("Siz Nuvi jamoasi ro'yxatida yo'qsiz (yopiq).")
 
 @router.callback_query(F.data == "superapp:back")
 async def superapp_back(callback: CallbackQuery):
