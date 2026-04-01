@@ -29,7 +29,7 @@ async def get_main_menu(user_id: int = None) -> ReplyKeyboardMarkup:
     is_admin = user_id and user_id in settings.ADMIN_IDS
             
     base_url = settings.WEBAPP_URL or f"https://{settings.RAILWAY_PUBLIC_DOMAIN}"
-    app_url = f"{base_url.rstrip('/')}/nuviteam/"
+    app_url = f"{base_url.rstrip('/')}/nuviteam/?v=5"
     
     buttons = [
         [KeyboardButton(text=uz.MENU_BTN_AI_WORKERS), KeyboardButton(text=uz.MENU_BTN_FREE_LESSONS)],
