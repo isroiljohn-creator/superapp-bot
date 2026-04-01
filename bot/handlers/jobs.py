@@ -306,12 +306,11 @@ async def close_my_job(callback: CallbackQuery):
 
         # Try to edit channel message
         if job.channel_msg_id and job.status == "approved":
-            from bot.main import bot
             channel_id = await _get_target_channel(job.title)
             if channel_id:
                 try:
                     curr_text = f"<s>{job.title}</s>\n\n🔴 <b>BU VAKANSIYA YOPILDI</b>"
-                    await bot.edit_message_text(
+                    await callback.bot.edit_message_text(
                         chat_id=channel_id,
                         message_id=job.channel_msg_id,
                         text=curr_text,

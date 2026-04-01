@@ -1459,10 +1459,15 @@ async def delete_job(job_id: int, admin_id: int = Depends(check_admin), db: Asyn
     # Or simply set it to inactive? The prompt requested to delete ("o'chirish imkoni").
     # We will delete from DB. Let's try to delete the message in the channel first if possible.
     if job.channel_msg_id and job.status == "approved" and job.is_active:
-        from bot.main import bot
+        from aiogram import Bot
+        from aiogram.client.default import DefaultBotProperties
+        from aiogram.enums import ParseMode
+        from bot.config import settings
         from bot.handlers.jobs import _get_target_channel
+
         channel_id = await _get_target_channel(job.title)
         if channel_id:
+            bot = Bot(token=settings.BOT_TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
             try:
                 # Try to edit the message to [🔴 YOPILGAN] instead of deleting
                 # to avoid 48 hours deletion limit issues.
@@ -1477,6 +1482,8 @@ async def delete_job(job_id: int, admin_id: int = Depends(check_admin), db: Asyn
             except Exception as e:
                 import logging
                 logging.getLogger("admin.jobs").warning(f"Failed to edit channel msg {job.channel_msg_id}: {e}")
+            finally:
+                await bot.session.close()
                 
     await db.delete(job)
     await db.commit()
