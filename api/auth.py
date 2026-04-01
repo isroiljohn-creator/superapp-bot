@@ -42,7 +42,7 @@ def validate_init_data(
 
     # In development, allow bypass with a special token
     dev_bypass = os.environ.get("ADMIN_DEV_BYPASS", "")
-    if dev_bypass and raw == dev_bypass:
+    if dev_bypass and raw == dev_bypass and settings.ENVIRONMENT != "production":
         # Return a fake admin user for testing
         admin_ids = settings.ADMIN_IDS
         return {"id": admin_ids[0] if admin_ids else 0, "first_name": "Admin"}

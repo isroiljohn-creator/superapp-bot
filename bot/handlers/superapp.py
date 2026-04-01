@@ -29,8 +29,8 @@ async def nuvi_team_fallback(message: Message):
     from bot.keyboards.buttons import nuvi_team_inline_keyboard
     
     # We ideally would check DB for is_team_member here, but since this is just a fallback,
-    # we can allow it for admins and our specific user.
-    if message.from_user.id in settings.ADMIN_IDS or message.from_user.id == 1392501306:
+    # we can allow it for admins.
+    if message.from_user.id in settings.ADMIN_IDS:
         base_url = settings.WEBAPP_URL or f"https://{settings.RAILWAY_PUBLIC_DOMAIN}"
         app_url = f"{base_url.rstrip('/')}/nuviteam/?v=5"
         await message.answer("💼 Nuvi Team ilovasini ochish uchun quyidagi tugmani bosing:", reply_markup=nuvi_team_inline_keyboard(app_url))

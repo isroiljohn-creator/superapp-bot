@@ -50,59 +50,7 @@ async def lifespan(app: FastAPI):
     from db.database import init_db, async_session
     await init_db()
 
-    # One-time backfill: fix users with NULL created_at
-    try:
-        from sqlalchemy import update, select, func
-        from db.models import User
-        async with async_session() as session:
-            null_count_q = await session.execute(
-                select(func.count(User.id)).where(User.created_at.is_(None))
-            )
-            null_count = null_count_q.scalar() or 0
-            if null_count > 0:
-                logger.info(f"⏳ Backfilling created_at for {null_count} users...")
-                # Use registered_at where available
-                await session.execute(
-                    update(User)
-                    .where(User.created_at.is_(None), User.registered_at.isnot(None))
-                    .values(created_at=User.registered_at)
-                )
-                # For remaining NULLs, use earliest known created_at or a fixed date
-                earliest_q = await session.execute(
-                    select(func.min(User.created_at))
-                )
-                earliest = earliest_q.scalar()
-                if earliest:
-                    await session.execute(
-                        update(User)
-                        .where(User.created_at.is_(None))
-                        .values(created_at=earliest)
-                    )
-                else:
-                    from datetime import datetime, timezone
-                    await session.execute(
-                        update(User)
-                        .where(User.created_at.is_(None))
-                        .values(created_at=datetime(2025, 1, 1, tzinfo=timezone.utc))
-                    )
-                await session.commit()
-                logger.info(f"✅ Backfilled created_at for {null_count} users")
-    except Exception as e:
-        logger.warning(f"⚠️ created_at backfill failed: {e}")
-
-    # One-time Nuvi Team grant
-    try:
-        from sqlalchemy import select
-        from db.models import User
-        async with async_session() as session:
-            team_res = await session.execute(select(User).where(User.telegram_id == 1392501306))
-            t_user = team_res.scalar_one_or_none()
-            if t_user and not t_user.is_team_member:
-                t_user.is_team_member = True
-                await session.commit()
-                logger.info("✅ Granted Nuvi Team access to 1392501306")
-    except Exception as e:
-        logger.warning(f"⚠️ Failed to init team access: {e}")
+    # (No redundant DB backfills)
 
     global bot, dp
     storage = await make_storage()

@@ -53,7 +53,7 @@ async def check_team_auth(user: dict = Depends(validate_init_data)):
     except Exception as e:
         logger.error(f"DB Error fetching team member: {e}")
         
-    if user_id not in settings.ADMIN_IDS and user_id != 1392501306 and not is_team_member:
+    if user_id not in settings.ADMIN_IDS and not is_team_member:
         err = f"Unauthorized access attempt to Nuvi Team App by User ID: {user_id}"
         logger.warning(err)
         last_auth_attempt["error"] = err
