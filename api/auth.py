@@ -9,6 +9,8 @@ from typing import Optional
 from fastapi import Header, HTTPException, Query
 from bot.config import settings
 
+# Global variables for debugging
+last_auth_errors = []
 
 def validate_init_data(
     authorization: str = Header(default=""),
@@ -33,6 +35,9 @@ def validate_init_data(
         raw = init_data.strip()
 
     if not raw:
+        err = f"initData missing. Auth: {authorization}, Query: {init_data}"
+        print(f"[AUTH DEBUG] {err}")
+        last_auth_errors.append(err)
         raise HTTPException(status_code=401, detail="initData header missing")
 
     # In development, allow bypass with a special token
@@ -44,6 +49,9 @@ def validate_init_data(
 
     parsed_data = _validate(raw)
     if parsed_data is None:
+        err = f"HMAC validation failed. raw: {raw}"
+        print(f"[AUTH DEBUG] {err}")
+        last_auth_errors.append(err)
         # Try to give more details about why it failed
         raise HTTPException(
             status_code=401,
