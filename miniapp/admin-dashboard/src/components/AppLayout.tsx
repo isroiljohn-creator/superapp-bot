@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Home, Users, BarChart3, Send, FolderOpen, Settings as SettingsIcon } from "lucide-react";
+import { Home, Users, BarChart3, Send, FolderOpen, Settings as SettingsIcon, Briefcase } from "lucide-react";
 import { ThemeToggle } from "./ThemeToggle";
 import DashboardHome from "@/pages/DashboardHome";
 import FunnelAnalytics from "@/pages/FunnelAnalytics";
@@ -11,6 +11,7 @@ import CourseManager from "@/pages/CourseManager";
 import GuidesManager from "@/pages/GuidesManager";
 import LeadMagnetManager from "@/pages/LeadMagnetManager";
 import Settings from "@/pages/Settings";
+import JobsManager from "@/pages/JobsManager";
 import ABTests from "@/pages/ABTests";
 import ScheduledMessages from "@/pages/ScheduledMessages";
 import PromptManager from "@/pages/PromptManager";
@@ -21,6 +22,7 @@ const tabs = [
   { id: "analytics", label: "Tahlil", icon: BarChart3 },
   { id: "broadcast", label: "Xabarlar", icon: Send },
   { id: "material", label: "Material", icon: FolderOpen },
+  { id: "jobs", label: "Vakansiya", icon: Briefcase },
   { id: "settings", label: "Sozlama", icon: SettingsIcon },
 ] as const;
 
@@ -74,6 +76,8 @@ export default function AppLayout() {
               materialTab === "guides" ? <GuidesManager /> : <LeadMagnetManager />}
           </div>
         );
+      case "jobs":
+        return <JobsManager />;
       case "settings":
         return (
           <div className="space-y-3">

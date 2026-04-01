@@ -1420,3 +1420,66 @@ async def reset_prompt(key: str, admin_id: int = Depends(check_admin), db: Async
         await db.commit()
     return {"key": key, "status": "reset", "value": DEFAULT_PROMPTS[key]}
 
+
+# ── Jobs (Vacancies) Management ──────────────────
+from db.models import JobVacancy
+
+@router.get("/jobs")
+async def get_all_jobs(admin_id: int = Depends(check_admin), db: AsyncSession = Depends(get_db)):
+    """Admin: get all vacancies."""
+    result = await db.execute(select(JobVacancy).order_by(JobVacancy.created_at.desc()))
+    jobs = result.scalars().all()
+    
+    res = []
+    for j in jobs:
+        res.append({
+            "id": j.id,
+            "title": j.title,
+            "company": j.company or "",
+            "salary": j.salary or "",
+            "job_type": j.job_type or "",
+            "status": j.status,
+            "is_active": j.is_active,
+            "submitted_by": j.submitted_by,
+            "channel_msg_id": j.channel_msg_id,
+            "created_at": j.created_at.isoformat() if j.created_at else ""
+        })
+    return res
+
+@router.delete("/jobs/{job_id}")
+async def delete_job(job_id: int, admin_id: int = Depends(check_admin), db: AsyncSession = Depends(get_db)):
+    """Admin: complete deletion or making a job inactive."""
+    result = await db.execute(select(JobVacancy).where(JobVacancy.id == job_id))
+    job = result.scalar_one_or_none()
+    
+    if not job:
+        raise HTTPException(status_code=404, detail="Vakansiya topilmadi")
+        
+    # We choose to fully delete from DB for Admin. 
+    # Or simply set it to inactive? The prompt requested to delete ("o'chirish imkoni").
+    # We will delete from DB. Let's try to delete the message in the channel first if possible.
+    if job.channel_msg_id and job.status == "approved" and job.is_active:
+        from bot.main import bot
+        from bot.handlers.jobs import _get_target_channel
+        channel_id = await _get_target_channel(job.title)
+        if channel_id:
+            try:
+                # Try to edit the message to [🔴 YOPILGAN] instead of deleting
+                # to avoid 48 hours deletion limit issues.
+                curr_text = f"<s>{job.title}</s>\n\n🔴 <b>BU VAKANSIYA ADMIN TOMONIDAN O'CHIRILDI / YOPILDI</b>"
+                await bot.edit_message_text(
+                    chat_id=channel_id,
+                    message_id=job.channel_msg_id,
+                    text=curr_text,
+                    parse_mode="HTML",
+                    reply_markup=None
+                )
+            except Exception as e:
+                import logging
+                logging.getLogger("admin.jobs").warning(f"Failed to edit channel msg {job.channel_msg_id}: {e}")
+                
+    await db.delete(job)
+    await db.commit()
+    return {"status": "deleted", "id": job_id}
+
+

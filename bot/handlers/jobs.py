@@ -71,6 +71,7 @@ def _jobs_menu_keyboard(user_id: int = None) -> InlineKeyboardMarkup:
     """Jobs menu: post a vacancy + view active jobs."""
     buttons = [
         [InlineKeyboardButton(text="📝 Vakansiya berish", callback_data="jobs:post")],
+        [InlineKeyboardButton(text="📥 Mening vakansiyalarim", callback_data="jobs:my")],
         [InlineKeyboardButton(text="📋 Aktiv vakansiyalar", callback_data="jobs:list")],
     ]
     if user_id and _is_admin(user_id):
@@ -187,6 +188,54 @@ async def list_active_jobs(callback: CallbackQuery):
     await callback.answer()
 
 
+@router.callback_query(F.data == "jobs:my")
+async def list_my_jobs(callback: CallbackQuery):
+    """Show jobs submitted by this user."""
+    from sqlalchemy import select
+    from db.models import JobVacancy
+
+    async with async_session() as session:
+        result = await session.execute(
+            select(JobVacancy)
+            .where(JobVacancy.submitted_by == callback.from_user.id)
+            .order_by(JobVacancy.created_at.desc())
+            .limit(20)
+        )
+        jobs = result.scalars().all()
+
+    if not jobs:
+        await callback.message.edit_text(
+            "📭 Sizda hozircha hech qanday vakansiya yo'q.\n\nYangi vakansiya berish uchun 'Vakansiya berish' tugmasidan foydalaning.",
+            parse_mode="HTML",
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+                [InlineKeyboardButton(text="🔙 Orqaga", callback_data="jobs:back")]
+            ])
+        )
+        await callback.answer()
+        return
+
+    text = "📥 <b>Mening vakansiyalarim</b>\n\n"
+    buttons = []
+    for i, job in enumerate(jobs, 1):
+        status_emoji = "🟢" if job.is_active else "🔴"
+        status_text = "Tasdiqlangan" if job.status == "approved" else ("Kutmoqda" if job.status == "pending" else "Rad etilgan")
+        state_label = "Aktiv" if job.is_active else "Yopilgan"
+        
+        text += f"<b>{i}.</b> {status_emoji} {html_mod.escape(job.title)}\nHolat: {status_text} | {state_label}\n\n"
+        
+        buttons.append([InlineKeyboardButton(
+            text=f"👁 Ko'rish: {job.title[:20]}",
+            callback_data=f"job_view:{job.id}",
+        )])
+
+    buttons.append([InlineKeyboardButton(text="🔙 Orqaga", callback_data="jobs:back")])
+    await callback.message.edit_text(
+        text, parse_mode="HTML",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=buttons),
+    )
+    await callback.answer()
+
+
 @router.callback_query(F.data.startswith("job_view:"))
 async def view_job(callback: CallbackQuery):
     """View a single vacancy in detail."""
@@ -217,11 +266,67 @@ async def view_job(callback: CallbackQuery):
         contact=html_mod.escape(job.contact_info or "—"),
     )
 
-    kb = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="🔙 Orqaga", callback_data="jobs:list")],
-    ])
+    kb_buttons = []
+    if job.submitted_by == callback.from_user.id and job.is_active and job.status == "approved":
+        kb_buttons.append([InlineKeyboardButton(text="🔴 Vakansiyani yopish", callback_data=f"job_close:{job.id}")])
+        
+    kb_buttons.append([InlineKeyboardButton(text="🔙 Orqaga", callback_data="jobs:back")])
+    kb = InlineKeyboardMarkup(inline_keyboard=kb_buttons)
     await callback.message.edit_text(text, parse_mode="HTML", reply_markup=kb)
     await callback.answer()
+
+
+@router.callback_query(F.data.startswith("job_close:"))
+async def close_my_job(callback: CallbackQuery):
+    """Close an active job created by the user."""
+    try:
+        job_id = int(callback.data.split(":")[1])
+    except (ValueError, IndexError):
+        await callback.answer("Xatolik. Qaytadan urinib ko'ring.", show_alert=True)
+        return
+
+    from sqlalchemy import select
+    from db.models import JobVacancy
+
+    async with async_session() as session:
+        result = await session.execute(select(JobVacancy).where(JobVacancy.id == job_id))
+        job = result.scalar_one_or_none()
+
+        if not job:
+            await callback.answer("Vakansiya topilmadi.", show_alert=True)
+            return
+
+        if job.submitted_by != callback.from_user.id and not _is_admin(callback.from_user.id):
+            await callback.answer("Bu vakansiyani yopish huquqingiz yo'q.", show_alert=True)
+            return
+
+        if not job.is_active:
+            await callback.answer("Bu vakansiya allaqachon yopilgan.", show_alert=True)
+            return
+
+        # Try to edit channel message
+        if job.channel_msg_id and job.status == "approved":
+            from bot.main import bot
+            channel_id = await _get_target_channel(job.title)
+            if channel_id:
+                try:
+                    curr_text = f"<s>{job.title}</s>\n\n🔴 <b>BU VAKANSIYA YOPILDI</b>"
+                    await bot.edit_message_text(
+                        chat_id=channel_id,
+                        message_id=job.channel_msg_id,
+                        text=curr_text,
+                        parse_mode="HTML",
+                        reply_markup=None
+                    )
+                except Exception as e:
+                    logger.warning(f"Failed to edit channel msg {job.channel_msg_id} on close: {e}")
+
+        job.is_active = False
+        await session.commit()
+
+    await callback.answer("Vakansiyangiz yopildi! Kanal va asosiy menyudan olib tashlandi.", show_alert=True)
+    # Refresh 'jobs:my' handler simply
+    await list_my_jobs(callback)
 
 
 @router.callback_query(F.data == "jobs:back")
