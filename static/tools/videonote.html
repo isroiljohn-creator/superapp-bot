@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+<title>Dumaloq Video — NUVI Tools</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --bg-primary: #0f0f1a;
+    --bg-card: rgba(255,255,255,0.04);
+    --bg-card-border: rgba(255,255,255,0.08);
+    --accent: #7c5cfc;
+    --accent-glow: rgba(124,92,252,0.4);
+    --accent-light: #a78bfa;
+    --success: #22c55e;
+    --success-glow: rgba(34,197,94,0.3);
+    --error: #ef4444;
+    --text-primary: #f1f5f9;
+    --text-secondary: #94a3b8;
+    --text-muted: #64748b;
+    --radius: 16px;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    font-family: 'Inter', -apple-system, sans-serif;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+  /* Animated gradient background */
+  body::before {
+    content: '';
+    position: fixed;
+    top: -50%; left: -50%;
+    width: 200%; height: 200%;
+    background: radial-gradient(circle at 30% 50%, rgba(124,92,252,0.08) 0%, transparent 50%),
+                radial-gradient(circle at 70% 80%, rgba(99,102,241,0.06) 0%, transparent 50%);
+    animation: bgFloat 20s ease-in-out infinite;
+    z-index: 0;
+  }
+  @keyframes bgFloat {
+    0%,100% { transform: translate(0,0); }
+    50% { transform: translate(-3%,-3%); }
+  }
+
+  .container {
+    position: relative;
+    z-index: 1;
+    max-width: 420px;
+    margin: 0 auto;
+    padding: 24px 20px 40px;
+  }
+
+  /* Header */
+  .header {
+    text-align: center;
+    margin-bottom: 28px;
+  }
+  .header-icon {
+    width: 64px; height: 64px;
+    background: linear-gradient(135deg, var(--accent), #6366f1);
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 32px;
+    margin: 0 auto 14px;
+    box-shadow: 0 8px 32px var(--accent-glow);
+    animation: iconPulse 3s ease-in-out infinite;
+  }
+  @keyframes iconPulse {
+    0%,100% { box-shadow: 0 8px 32px var(--accent-glow); }
+    50% { box-shadow: 0 12px 48px var(--accent-glow); }
+  }
+  .header h1 {
+    font-size: 22px;
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+  .header p {
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.5;
+  }
+
+  /* Upload zone */
+  .upload-zone {
+    border: 2px dashed var(--bg-card-border);
+    border-radius: var(--radius);
+    background: var(--bg-card);
+    backdrop-filter: blur(20px);
+    padding: 40px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+  }
+  .upload-zone:hover, .upload-zone.dragover {
+    border-color: var(--accent);
+    background: rgba(124,92,252,0.06);
+    transform: translateY(-2px);
+  }
+  .upload-zone::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: var(--radius);
+    background: linear-gradient(135deg, rgba(124,92,252,0.08), transparent);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+  .upload-zone:hover::before { opacity: 1; }
+
+  .upload-icon {
+    font-size: 48px;
+    margin-bottom: 12px;
+    display: block;
+  }
+  .upload-title {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+  .upload-subtitle {
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+  .upload-zone input { display: none; }
+
+  /* File info card */
+  .file-info {
+    display: none;
+    background: var(--bg-card);
+    border: 1px solid var(--bg-card-border);
+    backdrop-filter: blur(20px);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-top: 16px;
+    animation: slideUp 0.3s ease;
+  }
+  .file-info.show { display: block; }
+  @keyframes slideUp {
+    from { opacity:0; transform: translateY(12px); }
+    to { opacity:1; transform: translateY(0); }
+  }
+  .file-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .file-icon {
+    width: 44px; height: 44px;
+    background: linear-gradient(135deg, var(--accent), #6366f1);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    flex-shrink: 0;
+  }
+  .file-details { flex: 1; min-width: 0; }
+  .file-name {
+    font-size: 14px;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .file-size {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 2px;
+  }
+  .file-remove {
+    background: none; border: none;
+    color: var(--text-muted);
+    font-size: 20px;
+    cursor: pointer;
+    padding: 4px;
+    transition: color 0.2s;
+  }
+  .file-remove:hover { color: var(--error); }
+
+  /* Progress */
+  .progress-box {
+    display: none;
+    margin-top: 16px;
+    animation: slideUp 0.3s ease;
+  }
+  .progress-box.show { display: block; }
+  .progress-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 13px;
+    margin-bottom: 8px;
+  }
+  .progress-label span:first-child { color: var(--text-secondary); }
+  .progress-label span:last-child { color: var(--accent-light); font-weight: 600; }
+  .progress-track {
+    height: 8px;
+    background: rgba(255,255,255,0.06);
+    border-radius: 4px;
+    overflow: hidden;
+    position: relative;
+  }
+  .progress-fill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, var(--accent), #818cf8);
+    border-radius: 4px;
+    transition: width 0.3s ease;
+    position: relative;
+  }
+  .progress-fill::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+    animation: shimmer 1.5s infinite;
+  }
+  @keyframes shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+  }
+
+  /* Status message */
+  .status-msg {
+    display: none;
+    text-align: center;
+    margin-top: 16px;
+    font-size: 13px;
+    color: var(--text-secondary);
+    animation: slideUp 0.3s ease;
+  }
+  .status-msg.show { display: block; }
+  .status-msg.processing .spinner {
+    display: inline-block;
+    width: 16px; height: 16px;
+    border: 2px solid rgba(124,92,252,0.3);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    vertical-align: middle;
+    margin-right: 6px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Result card */
+  .result-card {
+    display: none;
+    text-align: center;
+    padding: 32px 20px;
+    margin-top: 16px;
+    background: var(--bg-card);
+    border: 1px solid var(--bg-card-border);
+    backdrop-filter: blur(20px);
+    border-radius: var(--radius);
+    animation: slideUp 0.4s ease;
+  }
+  .result-card.show { display: block; }
+  .result-card.success { border-color: rgba(34,197,94,0.3); }
+  .result-card.error { border-color: rgba(239,68,68,0.3); }
+  .result-icon {
+    font-size: 56px;
+    margin-bottom: 12px;
+    display: block;
+  }
+  .result-title {
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+  .result-desc {
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.5;
+  }
+
+  /* Upload button */
+  .upload-btn {
+    display: none;
+    width: 100%;
+    padding: 16px;
+    margin-top: 20px;
+    background: linear-gradient(135deg, var(--accent), #6366f1);
+    border: none;
+    border-radius: 14px;
+    color: white;
+    font-size: 16px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 24px var(--accent-glow);
+    animation: slideUp 0.3s ease;
+  }
+  .upload-btn.show { display: block; }
+  .upload-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 32px var(--accent-glow);
+  }
+  .upload-btn:active { transform: translateY(0); }
+  .upload-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  /* Limits info */
+  .info-box {
+    margin-top: 20px;
+    padding: 14px 16px;
+    background: rgba(124,92,252,0.06);
+    border: 1px solid rgba(124,92,252,0.12);
+    border-radius: 12px;
+    font-size: 12px;
+    color: var(--text-secondary);
+    line-height: 1.6;
+  }
+  .info-box b { color: var(--text-primary); }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <div class="header-icon">⏺</div>
+    <h1>Dumaloq Video</h1>
+    <p>Katta hajmdagi videolarni dumaloq (Video Note) formatiga aylantiring</p>
+  </div>
+
+  <div class="upload-zone" id="dropZone">
+    <span class="upload-icon">📤</span>
+    <div class="upload-title">Videoni tanlang</div>
+    <div class="upload-subtitle">yoki shu yerga tashlang • 100 MB gacha</div>
+    <input type="file" id="fileInput" accept="video/*"/>
+  </div>
+
+  <div class="file-info" id="fileInfo">
+    <div class="file-row">
+      <div class="file-icon">🎬</div>
+      <div class="file-details">
+        <div class="file-name" id="fileName">—</div>
+        <div class="file-size" id="fileSize">—</div>
+      </div>
+      <button class="file-remove" id="fileRemove">✕</button>
+    </div>
+  </div>
+
+  <div class="progress-box" id="progressBox">
+    <div class="progress-label">
+      <span id="progressLabel">Yuklanmoqda...</span>
+      <span id="progressPct">0%</span>
+    </div>
+    <div class="progress-track">
+      <div class="progress-fill" id="progressFill"></div>
+    </div>
+  </div>
+
+  <div class="status-msg" id="statusMsg"></div>
+
+  <div class="result-card" id="resultCard">
+    <span class="result-icon" id="resultIcon"></span>
+    <div class="result-title" id="resultTitle"></div>
+    <div class="result-desc" id="resultDesc"></div>
+  </div>
+
+  <button class="upload-btn" id="uploadBtn">🚀 Dumaloq qilish</button>
+
+  <div class="info-box">
+    ℹ️ <b>Qanday ishlaydi?</b><br/>
+    1. Videoni tanlang (100 MB gacha).<br/>
+    2. "Dumaloq qilish" tugmasini bosing.<br/>
+    3. Server videoni qayta ishlaydi va Telegram chatga dumaloq qilib yuborib beradi!
+  </div>
+</div>
+
+<script>
+const tg = window.Telegram?.WebApp;
+if (tg) {
+  tg.ready();
+  tg.expand();
+  tg.setHeaderColor('#0f0f1a');
+  tg.setBackgroundColor('#0f0f1a');
+}
+
+const MAX_SIZE = 100 * 1024 * 1024; // 100MB
+let selectedFile = null;
+
+const dropZone = document.getElementById('dropZone');
+const fileInput = document.getElementById('fileInput');
+const fileInfo = document.getElementById('fileInfo');
+const fileName = document.getElementById('fileName');
+const fileSize = document.getElementById('fileSize');
+const fileRemove = document.getElementById('fileRemove');
+const progressBox = document.getElementById('progressBox');
+const progressLabel = document.getElementById('progressLabel');
+const progressPct = document.getElementById('progressPct');
+const progressFill = document.getElementById('progressFill');
+const statusMsg = document.getElementById('statusMsg');
+const resultCard = document.getElementById('resultCard');
+const resultIcon = document.getElementById('resultIcon');
+const resultTitle = document.getElementById('resultTitle');
+const resultDesc = document.getElementById('resultDesc');
+const uploadBtn = document.getElementById('uploadBtn');
+
+function formatSize(bytes) {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024*1024) return (bytes/1024).toFixed(1) + ' KB';
+  return (bytes/(1024*1024)).toFixed(1) + ' MB';
+}
+
+function selectFile(file) {
+  if (!file || !file.type.startsWith('video/')) {
+    showResult('error', '❌', 'Noto\'g\'ri format', 'Iltimos, faqat video fayl tanlang.');
+    return;
+  }
+  if (file.size > MAX_SIZE) {
+    showResult('error', '❌', 'Hajm juda katta', '100 MB dan katta video qabul qilinmaydi.');
+    return;
+  }
+  selectedFile = file;
+  fileName.textContent = file.name;
+  fileSize.textContent = formatSize(file.size);
+  fileInfo.classList.add('show');
+  uploadBtn.classList.add('show');
+  resultCard.classList.remove('show');
+}
+
+function resetUI() {
+  selectedFile = null;
+  fileInfo.classList.remove('show');
+  uploadBtn.classList.remove('show');
+  progressBox.classList.remove('show');
+  statusMsg.classList.remove('show');
+  resultCard.classList.remove('show');
+  uploadBtn.disabled = false;
+  progressFill.style.width = '0%';
+}
+
+function showResult(type, icon, title, desc) {
+  resultCard.className = 'result-card show ' + type;
+  resultIcon.textContent = icon;
+  resultTitle.textContent = title;
+  resultDesc.textContent = desc;
+}
+
+// Drag & drop
+dropZone.addEventListener('click', () => fileInput.click());
+dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('dragover'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+dropZone.addEventListener('drop', (e) => {
+  e.preventDefault();
+  dropZone.classList.remove('dragover');
+  if (e.dataTransfer.files.length) selectFile(e.dataTransfer.files[0]);
+});
+fileInput.addEventListener('change', () => {
+  if (fileInput.files.length) selectFile(fileInput.files[0]);
+});
+fileRemove.addEventListener('click', resetUI);
+
+// Upload
+uploadBtn.addEventListener('click', async () => {
+  if (!selectedFile) return;
+
+  uploadBtn.disabled = true;
+  progressBox.classList.add('show');
+  statusMsg.classList.remove('show');
+  resultCard.classList.remove('show');
+
+  const formData = new FormData();
+  formData.append('video', selectedFile);
+
+  const xhr = new XMLHttpRequest();
+
+  // Get current base URL (same origin)
+  const baseUrl = window.location.origin;
+
+  xhr.open('POST', baseUrl + '/api/tools/videonote');
+  
+  // Add Telegram initData for auth
+  if (tg && tg.initData) {
+    xhr.setRequestHeader('Authorization', 'tma ' + tg.initData);
+  }
+
+  xhr.upload.addEventListener('progress', (e) => {
+    if (e.lengthComputable) {
+      const pct = Math.round((e.loaded / e.total) * 100);
+      progressFill.style.width = pct + '%';
+      progressPct.textContent = pct + '%';
+      if (pct >= 100) {
+        progressLabel.textContent = 'Serverda qayta ishlanmoqda...';
+      }
+    }
+  });
+
+  xhr.addEventListener('load', () => {
+    progressBox.classList.remove('show');
+    if (xhr.status === 200) {
+      showResult('success', '✅', 'Tayyor!', 'Dumaloq video Telegram chatga yuborildi. Iltimos chat oynasini tekshiring!');
+      uploadBtn.classList.remove('show');
+      fileInfo.classList.remove('show');
+      // Auto close after 3 sec
+      setTimeout(() => { if (tg) tg.close(); }, 3000);
+    } else {
+      let msg = 'Noma\'lum xatolik';
+      try {
+        const res = JSON.parse(xhr.responseText);
+        msg = res.detail || msg;
+      } catch(e) {}
+      showResult('error', '❌', 'Xatolik', msg);
+      uploadBtn.disabled = false;
+    }
+  });
+
+  xhr.addEventListener('error', () => {
+    progressBox.classList.remove('show');
+    showResult('error', '❌', 'Tarmoq xatoligi', 'Internetga ulanishni tekshiring va qayta urinib ko\'ring.');
+    uploadBtn.disabled = false;
+  });
+
+  xhr.send(formData);
+
+  // Show processing status after upload completes
+  setTimeout(() => {
+    if (progressFill.style.width === '100%') {
+      statusMsg.innerHTML = '<span class="spinner"></span> Video serverda dumaloq qilinmoqda...';
+      statusMsg.className = 'status-msg show processing';
+    }
+  }, 2000);
+});
+</script>
+</body>
+</html>

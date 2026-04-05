@@ -27,7 +27,26 @@ async def process_video_to_note(message: Message, state: FSMContext):
     
     # Telegram Cloud bot API limit is 20MB for downloads
     if file_obj.file_size and file_obj.file_size > 20 * 1024 * 1024:
-        await message.answer("❌ Kechirasiz, bu video hajmi juda katta. Telegram botlar faqat 20 Megabaytgacha bo'lgan videolarni yuklab ola biladi.\n\nIltimos, sal kichikroq yoki qisqaroq video yuboring.")
+        from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo
+        from bot.config import settings
+
+        base_url = settings.WEBAPP_URL or f"https://{settings.RAILWAY_PUBLIC_DOMAIN}"
+        app_url = f"{base_url.rstrip('/')}/tools/videonote.html"
+
+        kb = InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(
+                text="🎥 Mini ilovada yuklash",
+                web_app=WebAppInfo(url=app_url),
+            )]
+        ])
+        await message.answer(
+            "⚠️ Bu video hajmi <b>20 MB</b> dan katta ekan.\n"
+            "Telegram botlari chatda faqat 20 MB gacha fayllarni yuklay oladi.\n\n"
+            "Lekin tashvishlanmang! Quyidagi tugmani bosib, <b>Mini ilova</b> orqali "
+            "katta videoni ham dumaloq qilib olishingiz mumkin! 👇",
+            parse_mode="HTML",
+            reply_markup=kb,
+        )
         return
     
     # Send processing message

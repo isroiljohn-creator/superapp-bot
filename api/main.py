@@ -21,7 +21,7 @@ from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 from bot.config import settings
 
-from api.routers import user, payment, referral, course, admin, moderator_api, team_api
+from api.routers import user, payment, referral, course, admin, moderator_api, team_api, tools_api
 
 from typing import Optional
 
@@ -157,6 +157,7 @@ app.include_router(course.router)
 app.include_router(admin.router)
 app.include_router(moderator_api.router)
 app.include_router(team_api.router)
+app.include_router(tools_api.router)
 
 
 @app.get("/health")
@@ -224,6 +225,10 @@ if os.path.exists(mod_dist):
 team_dist = os.path.join(os.path.dirname(os.path.dirname(__file__)), "static", "nuviteam")
 if os.path.exists(team_dist):
     app.mount("/nuviteam", StaticFiles(directory=team_dist, html=True), name="nuviteam_dashboard")
+
+tools_dist = os.path.join(os.path.dirname(os.path.dirname(__file__)), "static", "tools")
+if os.path.exists(tools_dist):
+    app.mount("/tools", StaticFiles(directory=tools_dist, html=True), name="tools_static")
 
 # No-cache middleware for admin HTML — defeats Telegram WebView caching
 @app.middleware("http")
