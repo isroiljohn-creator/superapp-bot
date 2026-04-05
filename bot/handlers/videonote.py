@@ -35,15 +35,23 @@ async def process_video_to_note(message: Message, state: FSMContext):
     output_path = os.path.join(temp_dir, f"{uuid.uuid4()}_note.mp4")
     
     try:
-        if not shutil.which("ffmpeg"):
+        try:
+            import imageio_ffmpeg
+            ffmpeg_exe = imageio_ffmpeg.get_ffmpeg_exe()
+        except ImportError:
+            import shutil
+            ffmpeg_exe = shutil.which("ffmpeg")
+            
+        if not ffmpeg_exe:
             raise RuntimeError("ffmpeg dasturi serverda o'rnatilmagan (yoki topilmadi).")
+            
         # Download the file from Telegram
         await message.bot.download(file_obj, destination=input_path)
         
         # FFmpeg command to crop exactly 1:1, max 640x640, duration max 60s
         # Telegram expects video notes to be square and max 1 minute length
         cmd = [
-            "ffmpeg", "-y", "-i", input_path,
+            ffmpeg_exe, "-y", "-i", input_path,
             "-t", "60", # enforce 60s max length
             "-vf", "crop='min(iw,ih)':'min(iw,ih)',scale=640:640",
             "-c:v", "libx264", "-crf", "26", "-preset", "veryfast",
