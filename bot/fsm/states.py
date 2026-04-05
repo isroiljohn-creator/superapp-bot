@@ -57,3 +57,8 @@ class JobPostFSM(StatesGroup):
 class WalletTopUpFSM(StatesGroup):
     """User wallet top up amount flow."""
     waiting_for_amount = State()
+
+
+class VideoNoteFSM(StatesGroup):
+    """Circular video processing flow."""
+    waiting_for_video = State()

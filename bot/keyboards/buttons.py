@@ -59,6 +59,7 @@ def nuvi_team_inline_keyboard(app_url: str) -> InlineKeyboardMarkup:
 def superapp_keyboard() -> ReplyKeyboardMarkup:
     """Superapp menu (without Nuvi Team as requested)."""
     buttons = [
+        [KeyboardButton(text=uz.SUPERAPP_BTN_VIDEONOTE)],
         [KeyboardButton(text=uz.SUPERAPP_BTN_MODERATOR)],
         [KeyboardButton(text=uz.MENU_BTN_BACK)]
     ]

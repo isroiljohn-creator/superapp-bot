@@ -54,13 +54,16 @@ def _is_ai_vacancy(title: str) -> bool:
     return any(kw in title_lower for kw in ai_keywords)
 
 
-async def _get_target_channel(title: str) -> "int | None":
-    """Get appropriate channel: AI channel for AI jobs, main channel for others."""
+async def _get_target_channel(title: str) -> "tuple[int | None, int | None]":
+    """Get appropriate channel: AI channel for AI jobs, main channel for others. Returns (chat_id, message_thread_id)."""
     if _is_ai_vacancy(title):
         ai_channel = await _get_jobs_channel_id("ai_jobs_channel_id")
         if ai_channel:
-            return ai_channel
-    return await _get_jobs_channel_id("jobs_channel_id")
+            topic_id = await _get_jobs_channel_id("ai_jobs_channel_id_topic")
+            return ai_channel, topic_id
+    channel_id = await _get_jobs_channel_id("jobs_channel_id")
+    topic_id = await _get_jobs_channel_id("jobs_channel_id_topic")
+    return channel_id, topic_id
 
 
 def _job_type_label(tag: str) -> str:
@@ -306,7 +309,7 @@ async def close_my_job(callback: CallbackQuery):
 
         # Try to edit channel message
         if job.channel_msg_id and job.status == "approved":
-            channel_id = await _get_target_channel(job.title)
+            channel_id, _ = await _get_target_channel(job.title)
             if channel_id:
                 try:
                     curr_text = f"<s>{job.title}</s>\n\n🔴 <b>BU VAKANSIYA YOPILDI</b>"
@@ -702,7 +705,7 @@ async def approve_job(callback: CallbackQuery):
         await session.commit()
 
         # Publish to channel — AI vacancies go to AI channel
-        channel_id = await _get_target_channel(job.title)
+        channel_id, topic_id = await _get_target_channel(job.title)
         if channel_id:
             channel_text = uz.JOBS_CHANNEL_POST.format(
                 title=html_mod.escape(job.title),
@@ -730,6 +733,7 @@ async def approve_job(callback: CallbackQuery):
 
                 sent_msg = await callback.bot.send_photo(
                     chat_id=channel_id,
+                    message_thread_id=topic_id,
                     photo=photo,
                     caption=channel_text,
                     parse_mode="HTML",
@@ -864,12 +868,16 @@ async def set_channel_prompt(callback: CallbackQuery, state: FSMContext):
     label = "🤖 AI vakansiya" if is_ai else "💼 Asosiy vakansiya"
 
     current = await _get_jobs_channel_id(setting_key)
+    current_topic = await _get_jobs_channel_id(f"{setting_key}_topic")
     current_text = f"<code>{current}</code>" if current else "o'rnatilmagan"
+    if current_topic:
+        current_text += f" (Topic: {current_topic})"
 
     await callback.message.answer(
         f"⚙️ <b>{label} kanali sozlash</b>\n\n"
         f"Hozirgi kanal ID: {current_text}\n\n"
-        f"Yangi kanal ID ni yuboring (masalan: <code>-1001234567890</code>)\n\n"
+        f"Yangi kanal ID ni yuboring (masalan: <code>-1001234567890</code>).\n"
+        f"Agar maxsus guruh topigiga yubormoqchi bo'lsangiz, ID dan keyin probel tashlab Topik ID ni yozing (masalan: <code>-1001234567890 54</code>).\n\n"
         f"💡 Kanal ID ni olish uchun kanalga @userinfobot ni qo'shing va /start bosing.\n"
         f"Botni kanalga admin qilib qo'shishni unutmang!",
         parse_mode="HTML",
@@ -890,10 +898,12 @@ async def process_channel_or_confirm(message: Message, state: FSMContext):
         return
 
     text = message.text.strip()
+    parts = text.split()
     try:
-        channel_id = int(text)
+        channel_id = int(parts[0])
+        topic_id = int(parts[1]) if len(parts) > 1 else None
     except ValueError:
-        await message.answer("❌ Noto'g'ri format. Raqam yuboring (masalan: -1001234567890)")
+        await message.answer("❌ Noto'g'ri format. Raqam yuboring (masalan: -1001234567890 54)")
         return
 
     # Save to admin_settings
@@ -901,16 +911,19 @@ async def process_channel_or_confirm(message: Message, state: FSMContext):
     from db.models import AdminSetting
 
     setting_key = data.get("_channel_key", "jobs_channel_id")
+    topic_key = f"{setting_key}_topic"
+
+    async def _save_setting(session, k, v):
+        res = await session.execute(select(AdminSetting).where(AdminSetting.key == k))
+        existing = res.scalar_one_or_none()
+        if existing:
+            existing.value = str(v) if v is not None else ""
+        elif v is not None:
+            session.add(AdminSetting(key=k, value=str(v)))
 
     async with async_session() as session:
-        result = await session.execute(
-            select(AdminSetting).where(AdminSetting.key == setting_key)
-        )
-        existing = result.scalar_one_or_none()
-        if existing:
-            existing.value = str(channel_id)
-        else:
-            session.add(AdminSetting(key=setting_key, value=str(channel_id)))
+        await _save_setting(session, setting_key, channel_id)
+        await _save_setting(session, topic_key, topic_id)
         await session.commit()
 
     await state.clear()
@@ -919,6 +932,7 @@ async def process_channel_or_confirm(message: Message, state: FSMContext):
     try:
         test_msg = await message.bot.send_message(
             chat_id=channel_id,
+            message_thread_id=topic_id,
             text="✅ NUVI Jobs kanali muvaffaqiyatli ulandi!",
         )
         await message.bot.delete_message(chat_id=channel_id, message_id=test_msg.message_id)

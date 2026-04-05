@@ -20,6 +20,17 @@ async def menu_superapp(message: Message, state: FSMContext):
         reply_markup=superapp_keyboard()
     )
 
+@router.message(F.text == uz.SUPERAPP_BTN_VIDEONOTE)
+async def prompt_videonote(message: Message, state: FSMContext):
+    from bot.fsm.states import VideoNoteFSM
+    await state.set_state(VideoNoteFSM.waiting_for_video)
+    await message.answer(
+        "🎥 Iltimos, menga dumaloq qilmoqchi bo'lgan videongizni yuboring.\n\n"
+        "Eslatma: Video eng yaxshisi kvadrat shaklga yaqin bo'lishi va asosiy obyekt o'rtada bo'lishi tavsiya qilinadi!\n\n"
+        "(Chiqish uchun Asosiy menyu yoki Orqaga tugmasini bosing)"
+    )
+
+
 @router.message(F.text == uz.SUPERAPP_BTN_TEAM)
 async def nuvi_team_fallback(message: Message):
     # Bu handler asosan fallback uchun xizmat qiladi, chunki web_app tugmasi 
