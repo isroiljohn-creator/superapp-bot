@@ -79,7 +79,17 @@ async def process_video_to_note(message: Message, state: FSMContext):
         import traceback
         err = traceback.format_exc()
         if "VOICE_MESSAGES_FORBIDDEN" in str(e):
-            await msg.edit_text("❌ Yuborib bo'lmadi: Sizning Telegram sozlamalaringizda (Privacy) Begonalardan Ovozli va Video xabarlar (Video Note) qabul qilish taqiqlangan. Iltimos botga ruxsat bering va qayta urinib ko'ring.")
+            tutorial_text = (
+                "❌ <b>Yuborib bo'lmadi!</b>\n\n"
+                "Sizning Telegram akkauntingizda botlardan <b>Ovozli va Video xabarlar</b> qabul qilish bloklangan ekan.\n\n"
+                "⚙️ <b>Buni qanday to'g'rilash mumkin?</b>\n"
+                "1. Telegram sozlamalariga (Settings) kiring.\n"
+                "2. Maxfiylik va Xavfsizlik (Privacy and Security) bo'limini tanlang.\n"
+                "3. <b>Voice Messages</b> (Ovozli xabarlar) qatorini bosing.\n"
+                "4. Pastdagi <i>Always Allow</i> (Doim ruxsat beriladiganlar) ro'yxatiga ushbu botni qo'shing yoki 'Everyone' ni belgilang.\n\n"
+                "Shundan so'ng bot bemalol sizga dumaloq video yubora oladi!"
+            )
+            await msg.edit_text(tutorial_text, parse_mode="HTML")
         else:
             await msg.edit_text(f"❌ Kutilmagan server xatoligi yuz berdi:\n<pre>{str(e)[:500]}</pre>", parse_mode="HTML")
     finally:
