@@ -95,10 +95,11 @@
   }
 
   .upload-icon {
-    font-size: 48px;
-    margin-bottom: 12px;
+    margin: 0 auto 12px;
     display: block;
+    width: 48px; height: 48px;
   }
+  .upload-icon svg { width: 48px; height: 48px; }
   .upload-title {
     font-size: 16px;
     font-weight: 600;
@@ -246,10 +247,13 @@
   .result-card.success { border-color: rgba(34,197,94,0.4); background: rgba(34,197,94,0.03); }
   .result-card.error { border-color: rgba(239,68,68,0.4); background: rgba(239,68,68,0.03); }
   .result-icon {
-    font-size: 56px;
-    margin-bottom: 12px;
-    display: block;
+    margin: 0 auto 12px;
+    width: 56px; height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
+  .result-icon svg { width: 56px; height: 56px; }
   .result-title {
     font-size: 18px;
     font-weight: 700;
@@ -309,13 +313,17 @@
 <body>
 <div class="container">
   <div class="header">
-    <div class="header-icon">⏺</div>
+    <div class="header-icon">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8" fill="white" stroke="none"/></svg>
+    </div>
     <h1>Dumaloq Video</h1>
     <p>Katta hajmdagi videolarni dumaloq (Video Note) formatiga aylantiring</p>
   </div>
 
   <div class="upload-zone" id="dropZone">
-    <span class="upload-icon">📤</span>
+    <div class="upload-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+    </div>
     <div class="upload-title">Videoni tanlang</div>
     <div class="upload-subtitle">yoki shu yerga tashlang • 100 MB gacha</div>
     <input type="file" id="fileInput" accept="video/*"/>
@@ -323,12 +331,16 @@
 
   <div class="file-info" id="fileInfo">
     <div class="file-row">
-      <div class="file-icon">🎬</div>
+      <div class="file-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"/><line x1="7" y1="2" x2="7" y2="22"/><line x1="17" y1="2" x2="17" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="2" y1="7" x2="7" y2="7"/><line x1="2" y1="17" x2="7" y2="17"/><line x1="17" y1="7" x2="22" y2="7"/><line x1="17" y1="17" x2="22" y2="17"/></svg>
+      </div>
       <div class="file-details">
         <div class="file-name" id="fileName">—</div>
         <div class="file-size" id="fileSize">—</div>
       </div>
-      <button class="file-remove" id="fileRemove">✕</button>
+      <button class="file-remove" id="fileRemove">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
     </div>
   </div>
 
@@ -350,10 +362,14 @@
     <div class="result-desc" id="resultDesc"></div>
   </div>
 
-  <button class="upload-btn" id="uploadBtn">🚀 Dumaloq qilish</button>
+  <button class="upload-btn" id="uploadBtn">
+    <svg style="width:18px;height:18px;vertical-align:middle;margin-right:6px;margin-top:-2px" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8" fill="white" stroke="none"/></svg>
+    Dumaloq qilish
+  </button>
 
   <div class="info-box">
-    ℹ️ <b>Qanday ishlaydi?</b><br/>
+    <svg style="width:14px;height:14px;vertical-align:middle;margin-right:4px;margin-top:-2px" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+    <b>Qanday ishlaydi?</b><br/>
     1. Videoni tanlang (100 MB gacha).<br/>
     2. "Dumaloq qilish" tugmasini bosing.<br/>
     3. Server videoni qayta ishlaydi va Telegram chatga dumaloq qilib yuborib beradi!
@@ -397,11 +413,11 @@ function formatSize(bytes) {
 
 function selectFile(file) {
   if (!file || !file.type.startsWith('video/')) {
-    showResult('error', '❌', 'Noto\'g\'ri format', 'Iltimos, faqat video fayl tanlang.');
+    showResult('error', 'error', 'Noto\'g\'ri format', 'Iltimos, faqat video fayl tanlang.');
     return;
   }
   if (file.size > MAX_SIZE) {
-    showResult('error', '❌', 'Hajm juda katta', '100 MB dan katta video qabul qilinmaydi.');
+    showResult('error', 'error', 'Hajm juda katta', '100 MB dan katta video qabul qilinmaydi.');
     return;
   }
   selectedFile = file;
@@ -425,7 +441,11 @@ function resetUI() {
 
 function showResult(type, icon, title, desc) {
   resultCard.className = 'result-card show ' + type;
-  resultIcon.textContent = icon;
+  if (icon === 'success') {
+    resultIcon.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>';
+  } else {
+    resultIcon.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>';
+  }
   resultTitle.textContent = title;
   resultDesc.textContent = desc;
 }
@@ -482,7 +502,7 @@ uploadBtn.addEventListener('click', async () => {
   xhr.addEventListener('load', () => {
     progressBox.classList.remove('show');
     if (xhr.status === 200) {
-      showResult('success', '✅', 'Tayyor!', 'Dumaloq video Telegram chatga yuborildi. Iltimos chat oynasini tekshiring!');
+      showResult('success', 'success', 'Tayyor!', 'Dumaloq video Telegram chatga yuborildi. Iltimos chat oynasini tekshiring!');
       uploadBtn.classList.remove('show');
       fileInfo.classList.remove('show');
       // Auto close after 3 sec
@@ -493,14 +513,14 @@ uploadBtn.addEventListener('click', async () => {
         const res = JSON.parse(xhr.responseText);
         msg = res.detail || msg;
       } catch(e) {}
-      showResult('error', '❌', 'Xatolik', msg);
+      showResult('error', 'error', 'Xatolik', msg);
       uploadBtn.disabled = false;
     }
   });
 
   xhr.addEventListener('error', () => {
     progressBox.classList.remove('show');
-    showResult('error', '❌', 'Tarmoq xatoligi', 'Internetga ulanishni tekshiring va qayta urinib ko\'ring.');
+    showResult('error', 'error', 'Tarmoq xatoligi', 'Internetga ulanishni tekshiring va qayta urinib ko\'ring.');
     uploadBtn.disabled = false;
   });
 
