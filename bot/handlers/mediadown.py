@@ -85,14 +85,14 @@ async def handle_media_url(message: Message, state: FSMContext):
         return
 
     platform = _get_platform_name(text)
-    msg = await message.answer(f"⏳ {platform} dan yuklab olinmoqda... Iltimos kuting.")
+    msg = await message.answer(f"⏳ {platform} dan yuklab olinmoqda... Iltimos kuting.\n\n💡 Katta videolar yuklanishi va siqilishi bir necha daqiqa vaqt olishi mumkin.")
 
     temp_dir = os.path.join(os.getcwd(), "temp")
     os.makedirs(temp_dir, exist_ok=True)
     output_template = os.path.join(temp_dir, f"{uuid.uuid4()}.%(ext)s")
 
     try:
-        # Use yt-dlp to download
+        # Use yt-dlp to download (up to 5GB)
         cmd = [
             "yt-dlp",
             "--no-playlist",
@@ -154,8 +154,13 @@ async def handle_media_url(message: Message, state: FSMContext):
 
         # If file exceeds Telegram 50MB limit, compress with FFmpeg
         if file_size > 49 * 1024 * 1024:
+            size_mb = file_size // (1024*1024)
             try:
-                await msg.edit_text(f"🗜 Fayl hajmi {file_size // (1024*1024)} MB. Siqilmoqda...")
+                await msg.edit_text(
+                    f"🗜 Fayl hajmi <b>{size_mb} MB</b>. Telegram limitiga (50 MB) moslashtirish uchun siqilmoqda...\n\n"
+                    f"⏳ Bu jarayon {max(1, size_mb // 50)}-{max(2, size_mb // 25)} daqiqa davom etishi mumkin.",
+                    parse_mode="HTML"
+                )
             except Exception:
                 pass
 
