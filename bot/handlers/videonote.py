@@ -2,6 +2,7 @@
 import os
 import uuid
 import asyncio
+import shutil
 from aiogram import Router, F
 from aiogram.types import Message, FSInputFile
 from aiogram.fsm.context import FSMContext
@@ -26,11 +27,16 @@ async def process_video_to_note(message: Message, state: FSMContext):
     
     # Send processing message
     msg = await message.answer("🔄 Videongiz dumaloq qilib tayyorlanmoqda... Iltimos kuting (1-2 daqiqa vaqt olishi mumkin).")
+    # Using local temp folder to avoid /tmp permission issues
+    temp_dir = os.path.join(os.getcwd(), "temp")
+    os.makedirs(temp_dir, exist_ok=True)
     
-    input_path = f"/tmp/{uuid.uuid4()}.mp4"
-    output_path = f"/tmp/{uuid.uuid4()}_note.mp4"
+    input_path = os.path.join(temp_dir, f"{uuid.uuid4()}.mp4")
+    output_path = os.path.join(temp_dir, f"{uuid.uuid4()}_note.mp4")
     
     try:
+        if not shutil.which("ffmpeg"):
+            raise RuntimeError("ffmpeg dasturi serverda o'rnatilmagan (yoki topilmadi).")
         # Download the file from Telegram
         await message.bot.download(file_obj, destination=input_path)
         
