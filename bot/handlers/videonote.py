@@ -25,6 +25,11 @@ async def process_video_to_note(message: Message, state: FSMContext):
     
     file_obj = message.video or message.document
     
+    # Telegram Cloud bot API limit is 20MB for downloads
+    if file_obj.file_size and file_obj.file_size > 20 * 1024 * 1024:
+        await message.answer("❌ Kechirasiz, bu video hajmi juda katta. Telegram botlar faqat 20 Megabaytgacha bo'lgan videolarni yuklab ola biladi.\n\nIltimos, sal kichikroq yoki qisqaroq video yuboring.")
+        return
+    
     # Send processing message
     msg = await message.answer("🔄 Videongiz dumaloq qilib tayyorlanmoqda... Iltimos kuting (1-2 daqiqa vaqt olishi mumkin).")
     # Using local temp folder to avoid /tmp permission issues
