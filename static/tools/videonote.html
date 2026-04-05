@@ -8,22 +8,56 @@
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
 <style>
+  /* ── Light theme (default) ── */
   :root {
     --bg-primary: #f3f4f6;
     --bg-card: #ffffff;
     --bg-card-border: #e5e7eb;
+    --bg-card-shadow: rgba(0,0,0,0.04);
     --accent: #42a5f5;
     --accent-dark: #1e88e5;
     --accent-glow: rgba(66,165,245,0.25);
-    --accent-light: #90caf9;
+    --accent-bg: rgba(66,165,245,0.04);
+    --accent-info-bg: rgba(66,165,245,0.06);
+    --accent-info-border: rgba(66,165,245,0.15);
     --success: #22c55e;
-    --success-glow: rgba(34,197,94,0.15);
+    --success-bg: rgba(34,197,94,0.03);
+    --success-border: rgba(34,197,94,0.4);
     --error: #ef4444;
+    --error-bg: rgba(239,68,68,0.03);
+    --error-border: rgba(239,68,68,0.4);
     --text-primary: #1e1e1e;
     --text-secondary: #6b7280;
     --text-muted: #9ca3af;
+    --upload-dash: #d1d5db;
+    --progress-track: #e5e7eb;
+    --shimmer: rgba(255,255,255,0.4);
+    --spinner-bg: rgba(66,165,245,0.3);
     --radius: 16px;
   }
+
+  /* ── Dark theme ── */
+  [data-theme="dark"] {
+    --bg-primary: #0f0f1a;
+    --bg-card: rgba(255,255,255,0.05);
+    --bg-card-border: rgba(255,255,255,0.08);
+    --bg-card-shadow: rgba(0,0,0,0.2);
+    --accent-bg: rgba(66,165,245,0.08);
+    --accent-info-bg: rgba(66,165,245,0.08);
+    --accent-info-border: rgba(66,165,245,0.2);
+    --success-bg: rgba(34,197,94,0.08);
+    --success-border: rgba(34,197,94,0.3);
+    --error-bg: rgba(239,68,68,0.08);
+    --error-border: rgba(239,68,68,0.3);
+    --text-primary: #f1f5f9;
+    --text-secondary: #94a3b8;
+    --text-muted: #64748b;
+    --upload-dash: rgba(255,255,255,0.15);
+    --progress-track: rgba(255,255,255,0.08);
+    --shimmer: rgba(255,255,255,0.2);
+    --spinner-bg: rgba(66,165,245,0.2);
+  }
+
   * { margin:0; padding:0; box-sizing:border-box; }
   body {
     font-family: 'Inter', -apple-system, sans-serif;
@@ -31,29 +65,22 @@
     color: var(--text-primary);
     min-height: 100vh;
     overflow-x: hidden;
+    transition: background 0.3s, color 0.3s;
   }
 
   .container {
     position: relative;
-    z-index: 1;
     max-width: 420px;
     margin: 0 auto;
     padding: 24px 20px 40px;
   }
 
-  /* Header */
-  .header {
-    text-align: center;
-    margin-bottom: 28px;
-  }
+  .header { text-align: center; margin-bottom: 28px; }
   .header-icon {
     width: 64px; height: 64px;
     background: linear-gradient(135deg, var(--accent), var(--accent-dark));
     border-radius: 20px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 32px;
+    display: flex; align-items: center; justify-content: center;
     margin: 0 auto 14px;
     box-shadow: 0 8px 32px var(--accent-glow);
     animation: iconPulse 3s ease-in-out infinite;
@@ -62,250 +89,107 @@
     0%,100% { box-shadow: 0 8px 32px var(--accent-glow); }
     50% { box-shadow: 0 12px 48px var(--accent-glow); }
   }
-  .header h1 {
-    font-size: 22px;
-    font-weight: 700;
-    margin-bottom: 6px;
-    color: var(--text-primary);
-  }
-  .header p {
-    font-size: 13px;
-    color: var(--text-secondary);
-    line-height: 1.5;
-  }
+  .header h1 { font-size: 22px; font-weight: 700; margin-bottom: 6px; color: var(--text-primary); }
+  .header p { font-size: 13px; color: var(--text-secondary); line-height: 1.5; }
 
-  /* Upload zone */
   .upload-zone {
-    border: 2px dashed #d1d5db;
+    border: 2px dashed var(--upload-dash);
     border-radius: var(--radius);
     background: var(--bg-card);
     padding: 40px 20px;
     text-align: center;
     cursor: pointer;
     transition: all 0.3s ease;
-    position: relative;
-    overflow: hidden;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    box-shadow: 0 1px 3px var(--bg-card-shadow);
   }
   .upload-zone:hover, .upload-zone.dragover {
     border-color: var(--accent);
-    background: rgba(66,165,245,0.04);
+    background: var(--accent-bg);
     transform: translateY(-2px);
     box-shadow: 0 4px 12px var(--accent-glow);
   }
-
-  .upload-icon {
-    margin: 0 auto 12px;
-    display: block;
-    width: 48px; height: 48px;
-  }
+  .upload-icon { margin: 0 auto 12px; display: block; width: 48px; height: 48px; }
   .upload-icon svg { width: 48px; height: 48px; }
-  .upload-title {
-    font-size: 16px;
-    font-weight: 600;
-    margin-bottom: 6px;
-    color: var(--text-primary);
-  }
-  .upload-subtitle {
-    font-size: 12px;
-    color: var(--text-muted);
-  }
+  .upload-title { font-size: 16px; font-weight: 600; margin-bottom: 6px; color: var(--text-primary); }
+  .upload-subtitle { font-size: 12px; color: var(--text-muted); }
   .upload-zone input { display: none; }
 
-  /* File info card */
   .file-info {
-    display: none;
-    background: var(--bg-card);
-    border: 1px solid var(--bg-card-border);
-    border-radius: var(--radius);
-    padding: 16px;
-    margin-top: 16px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
-    animation: slideUp 0.3s ease;
+    display: none; background: var(--bg-card); border: 1px solid var(--bg-card-border);
+    border-radius: var(--radius); padding: 16px; margin-top: 16px;
+    box-shadow: 0 1px 3px var(--bg-card-shadow); animation: slideUp 0.3s ease;
   }
   .file-info.show { display: block; }
-  @keyframes slideUp {
-    from { opacity:0; transform: translateY(12px); }
-    to { opacity:1; transform: translateY(0); }
-  }
-  .file-row {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-  }
+  @keyframes slideUp { from { opacity:0; transform: translateY(12px); } to { opacity:1; transform: translateY(0); } }
+  .file-row { display: flex; align-items: center; gap: 12px; }
   .file-icon {
     width: 44px; height: 44px;
     background: linear-gradient(135deg, var(--accent), var(--accent-dark));
-    border-radius: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 22px;
-    flex-shrink: 0;
+    border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
   }
   .file-details { flex: 1; min-width: 0; }
-  .file-name {
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--text-primary);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  .file-size {
-    font-size: 12px;
-    color: var(--text-muted);
-    margin-top: 2px;
-  }
-  .file-remove {
-    background: none; border: none;
-    color: var(--text-muted);
-    font-size: 20px;
-    cursor: pointer;
-    padding: 4px;
-    transition: color 0.2s;
-  }
+  .file-name { font-size: 14px; font-weight: 600; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .file-size { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+  .file-remove { background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 4px; transition: color 0.2s; }
   .file-remove:hover { color: var(--error); }
 
-  /* Progress */
-  .progress-box {
-    display: none;
-    margin-top: 16px;
-    animation: slideUp 0.3s ease;
-  }
+  .progress-box { display: none; margin-top: 16px; animation: slideUp 0.3s ease; }
   .progress-box.show { display: block; }
-  .progress-label {
-    display: flex;
-    justify-content: space-between;
-    font-size: 13px;
-    margin-bottom: 8px;
-  }
+  .progress-label { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 8px; }
   .progress-label span:first-child { color: var(--text-secondary); }
   .progress-label span:last-child { color: var(--accent-dark); font-weight: 600; }
-  .progress-track {
-    height: 8px;
-    background: #e5e7eb;
-    border-radius: 4px;
-    overflow: hidden;
-    position: relative;
-  }
+  .progress-track { height: 8px; background: var(--progress-track); border-radius: 4px; overflow: hidden; }
   .progress-fill {
-    height: 100%;
-    width: 0%;
+    height: 100%; width: 0%;
     background: linear-gradient(90deg, var(--accent), var(--accent-dark));
-    border-radius: 4px;
-    transition: width 0.3s ease;
-    position: relative;
+    border-radius: 4px; transition: width 0.3s ease; position: relative;
   }
   .progress-fill::after {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0; bottom: 0;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+    content: ''; position: absolute; inset: 0;
+    background: linear-gradient(90deg, transparent, var(--shimmer), transparent);
     animation: shimmer 1.5s infinite;
   }
-  @keyframes shimmer {
-    0% { transform: translateX(-100%); }
-    100% { transform: translateX(100%); }
-  }
+  @keyframes shimmer { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
 
-  /* Status message */
-  .status-msg {
-    display: none;
-    text-align: center;
-    margin-top: 16px;
-    font-size: 13px;
-    color: var(--text-secondary);
-    animation: slideUp 0.3s ease;
-  }
+  .status-msg { display: none; text-align: center; margin-top: 16px; font-size: 13px; color: var(--text-secondary); animation: slideUp 0.3s ease; }
   .status-msg.show { display: block; }
   .status-msg.processing .spinner {
-    display: inline-block;
-    width: 16px; height: 16px;
-    border: 2px solid rgba(66,165,245,0.3);
-    border-top-color: var(--accent);
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
-    vertical-align: middle;
-    margin-right: 6px;
+    display: inline-block; width: 16px; height: 16px;
+    border: 2px solid var(--spinner-bg); border-top-color: var(--accent);
+    border-radius: 50%; animation: spin 0.8s linear infinite;
+    vertical-align: middle; margin-right: 6px;
   }
   @keyframes spin { to { transform: rotate(360deg); } }
 
-  /* Result card */
   .result-card {
-    display: none;
-    text-align: center;
-    padding: 32px 20px;
-    margin-top: 16px;
-    background: var(--bg-card);
-    border: 1px solid var(--bg-card-border);
-    border-radius: var(--radius);
-    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
-    animation: slideUp 0.4s ease;
+    display: none; text-align: center; padding: 32px 20px; margin-top: 16px;
+    background: var(--bg-card); border: 1px solid var(--bg-card-border);
+    border-radius: var(--radius); box-shadow: 0 1px 3px var(--bg-card-shadow); animation: slideUp 0.4s ease;
   }
   .result-card.show { display: block; }
-  .result-card.success { border-color: rgba(34,197,94,0.4); background: rgba(34,197,94,0.03); }
-  .result-card.error { border-color: rgba(239,68,68,0.4); background: rgba(239,68,68,0.03); }
-  .result-icon {
-    margin: 0 auto 12px;
-    width: 56px; height: 56px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
+  .result-card.success { border-color: var(--success-border); background: var(--success-bg); }
+  .result-card.error { border-color: var(--error-border); background: var(--error-bg); }
+  .result-icon { margin: 0 auto 12px; width: 56px; height: 56px; display: flex; align-items: center; justify-content: center; }
   .result-icon svg { width: 56px; height: 56px; }
-  .result-title {
-    font-size: 18px;
-    font-weight: 700;
-    margin-bottom: 6px;
-    color: var(--text-primary);
-  }
-  .result-desc {
-    font-size: 13px;
-    color: var(--text-secondary);
-    line-height: 1.5;
-  }
+  .result-title { font-size: 18px; font-weight: 700; margin-bottom: 6px; color: var(--text-primary); }
+  .result-desc { font-size: 13px; color: var(--text-secondary); line-height: 1.5; }
 
-  /* Upload button */
   .upload-btn {
-    display: none;
-    width: 100%;
-    padding: 16px;
-    margin-top: 20px;
+    display: none; width: 100%; padding: 16px; margin-top: 20px;
     background: linear-gradient(135deg, var(--accent), var(--accent-dark));
-    border: none;
-    border-radius: 14px;
-    color: white;
-    font-size: 16px;
-    font-weight: 600;
-    font-family: inherit;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    box-shadow: 0 4px 24px var(--accent-glow);
-    animation: slideUp 0.3s ease;
+    border: none; border-radius: 14px; color: white; font-size: 16px; font-weight: 600;
+    font-family: inherit; cursor: pointer; transition: all 0.3s ease;
+    box-shadow: 0 4px 24px var(--accent-glow); animation: slideUp 0.3s ease;
   }
-  .upload-btn.show { display: block; }
-  .upload-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 32px var(--accent-glow);
-  }
+  .upload-btn.show { display: flex; align-items: center; justify-content: center; gap: 8px; }
+  .upload-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 32px var(--accent-glow); }
   .upload-btn:active { transform: translateY(0); }
-  .upload-btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-    transform: none;
-  }
+  .upload-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
 
-  /* Limits info */
   .info-box {
-    margin-top: 20px;
-    padding: 14px 16px;
-    background: rgba(66,165,245,0.06);
-    border: 1px solid rgba(66,165,245,0.15);
-    border-radius: 12px;
-    font-size: 12px;
-    color: var(--text-secondary);
-    line-height: 1.6;
+    margin-top: 20px; padding: 14px 16px;
+    background: var(--accent-info-bg); border: 1px solid var(--accent-info-border);
+    border-radius: 12px; font-size: 12px; color: var(--text-secondary); line-height: 1.6;
   }
   .info-box b { color: var(--text-primary); }
 </style>
@@ -316,16 +200,16 @@
     <div class="header-icon">
       <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8" fill="white" stroke="none"/></svg>
     </div>
-    <h1>Dumaloq Video</h1>
-    <p>Katta hajmdagi videolarni dumaloq (Video Note) formatiga aylantiring</p>
+    <h1 id="t_title"></h1>
+    <p id="t_subtitle"></p>
   </div>
 
   <div class="upload-zone" id="dropZone">
     <div class="upload-icon">
-      <svg viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+      <svg viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
     </div>
-    <div class="upload-title">Videoni tanlang</div>
-    <div class="upload-subtitle">yoki shu yerga tashlang • 100 MB gacha</div>
+    <div class="upload-title" id="t_selectVideo"></div>
+    <div class="upload-subtitle" id="t_dragDrop"></div>
     <input type="file" id="fileInput" accept="video/*"/>
   </div>
 
@@ -346,7 +230,7 @@
 
   <div class="progress-box" id="progressBox">
     <div class="progress-label">
-      <span id="progressLabel">Yuklanmoqda...</span>
+      <span id="progressLabel"></span>
       <span id="progressPct">0%</span>
     </div>
     <div class="progress-track">
@@ -363,29 +247,93 @@
   </div>
 
   <button class="upload-btn" id="uploadBtn">
-    <svg style="width:18px;height:18px;vertical-align:middle;margin-right:6px;margin-top:-2px" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8" fill="white" stroke="none"/></svg>
-    Dumaloq qilish
+    <svg style="width:18px;height:18px" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8" fill="white" stroke="none"/></svg>
+    <span id="t_btnConvert"></span>
   </button>
 
-  <div class="info-box">
-    <svg style="width:14px;height:14px;vertical-align:middle;margin-right:4px;margin-top:-2px" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-    <b>Qanday ishlaydi?</b><br/>
-    1. Videoni tanlang (100 MB gacha).<br/>
-    2. "Dumaloq qilish" tugmasini bosing.<br/>
-    3. Server videoni qayta ishlaydi va Telegram chatga dumaloq qilib yuborib beradi!
-  </div>
+  <div class="info-box" id="t_infoBox"></div>
 </div>
 
 <script>
 const tg = window.Telegram?.WebApp;
+
+// ── i18n ──
+const i18n = {
+  uz: {
+    title: "Dumaloq Video",
+    subtitle: "Katta hajmdagi videolarni dumaloq (Video Note) formatiga aylantiring",
+    selectVideo: "Videoni tanlang",
+    dragDrop: "yoki shu yerga tashlang • 100 MB gacha",
+    btnConvert: "Dumaloq qilish",
+    uploading: "Yuklanmoqda...",
+    processing: "Serverda qayta ishlanmoqda...",
+    processingSpinner: "Video serverda dumaloq qilinmoqda...",
+    successTitle: "Tayyor!",
+    successDesc: "Dumaloq video Telegram chatga yuborildi. Iltimos chat oynasini tekshiring!",
+    errorFormat: "Noto'g'ri format",
+    errorFormatDesc: "Iltimos, faqat video fayl yuboring.",
+    errorSize: "Hajm juda katta",
+    errorSizeDesc: "100 MB dan katta video qabul qilinmaydi.",
+    errorTitle: "Xatolik",
+    errorNetwork: "Tarmoq xatoligi",
+    errorNetworkDesc: "Internetga ulanishni tekshiring va qayta urinib ko'ring.",
+    errorUnknown: "Noma'lum xatolik",
+    infoBox: '<svg style="width:14px;height:14px;vertical-align:middle;margin-right:4px;margin-top:-2px" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg> <b>Qanday ishlaydi?</b><br/>1. Videoni tanlang (100 MB gacha).<br/>2. "Dumaloq qilish" tugmasini bosing.<br/>3. Server videoni qayta ishlaydi va Telegram chatga dumaloq qilib yuborib beradi!',
+  },
+  ru: {
+    title: "Круглое видео",
+    subtitle: "Конвертируйте видео большого размера в круглое (Video Note) сообщение",
+    selectVideo: "Выберите видео",
+    dragDrop: "или перетащите сюда • до 100 МБ",
+    btnConvert: "Сделать круглым",
+    uploading: "Загружается...",
+    processing: "Обработка на сервере...",
+    processingSpinner: "Видео обрабатывается на сервере...",
+    successTitle: "Готово!",
+    successDesc: "Круглое видео отправлено в Telegram чат. Проверьте окно чата!",
+    errorFormat: "Неверный формат",
+    errorFormatDesc: "Пожалуйста, отправьте только видеофайл.",
+    errorSize: "Слишком большой размер",
+    errorSizeDesc: "Видео больше 100 МБ не принимается.",
+    errorTitle: "Ошибка",
+    errorNetwork: "Ошибка сети",
+    errorNetworkDesc: "Проверьте подключение к интернету и попробуйте снова.",
+    errorUnknown: "Неизвестная ошибка",
+    infoBox: '<svg style="width:14px;height:14px;vertical-align:middle;margin-right:4px;margin-top:-2px" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg> <b>Как это работает?</b><br/>1. Выберите видео (до 100 МБ).<br/>2. Нажмите кнопку "Сделать круглым".<br/>3. Сервер обработает видео и отправит его круглым в Telegram чат!',
+  }
+};
+
+// ── Detect language & theme ──
+let lang = 'uz';
+if (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
+  const lc = tg.initDataUnsafe.user.language_code || '';
+  if (lc === 'ru' || lc === 'uk' || lc === 'be' || lc === 'kk') lang = 'ru';
+}
+const t = i18n[lang];
+
+// Apply theme
+const isDark = tg ? tg.colorScheme === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
+if (isDark) document.documentElement.setAttribute('data-theme', 'dark');
+
 if (tg) {
   tg.ready();
   tg.expand();
-  tg.setHeaderColor('#f3f4f6');
-  tg.setBackgroundColor('#f3f4f6');
+  const bgColor = isDark ? '#0f0f1a' : '#f3f4f6';
+  tg.setHeaderColor(bgColor);
+  tg.setBackgroundColor(bgColor);
 }
 
-const MAX_SIZE = 100 * 1024 * 1024; // 100MB
+// ── Apply translations ──
+document.getElementById('t_title').textContent = t.title;
+document.getElementById('t_subtitle').textContent = t.subtitle;
+document.getElementById('t_selectVideo').textContent = t.selectVideo;
+document.getElementById('t_dragDrop').textContent = t.dragDrop;
+document.getElementById('t_btnConvert').textContent = t.btnConvert;
+document.getElementById('progressLabel').textContent = t.uploading;
+document.getElementById('t_infoBox').innerHTML = t.infoBox;
+
+// ── App Logic ──
+const MAX_SIZE = 100 * 1024 * 1024;
 let selectedFile = null;
 
 const dropZone = document.getElementById('dropZone');
@@ -408,16 +356,16 @@ const uploadBtn = document.getElementById('uploadBtn');
 function formatSize(bytes) {
   if (bytes < 1024) return bytes + ' B';
   if (bytes < 1024*1024) return (bytes/1024).toFixed(1) + ' KB';
-  return (bytes/(1024*1024)).toFixed(1) + ' MB';
+  return (bytes/(1024*1024)).toFixed(1) + (lang === 'ru' ? ' МБ' : ' MB');
 }
 
 function selectFile(file) {
   if (!file || !file.type.startsWith('video/')) {
-    showResult('error', 'error', 'Noto\'g\'ri format', 'Iltimos, faqat video fayl tanlang.');
+    showResult('error', 'error', t.errorFormat, t.errorFormatDesc);
     return;
   }
   if (file.size > MAX_SIZE) {
-    showResult('error', 'error', 'Hajm juda katta', '100 MB dan katta video qabul qilinmaydi.');
+    showResult('error', 'error', t.errorSize, t.errorSizeDesc);
     return;
   }
   selectedFile = file;
@@ -450,7 +398,6 @@ function showResult(type, icon, title, desc) {
   resultDesc.textContent = desc;
 }
 
-// Drag & drop
 dropZone.addEventListener('click', () => fileInput.click());
 dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('dragover'); });
 dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
@@ -459,77 +406,60 @@ dropZone.addEventListener('drop', (e) => {
   dropZone.classList.remove('dragover');
   if (e.dataTransfer.files.length) selectFile(e.dataTransfer.files[0]);
 });
-fileInput.addEventListener('change', () => {
-  if (fileInput.files.length) selectFile(fileInput.files[0]);
-});
+fileInput.addEventListener('change', () => { if (fileInput.files.length) selectFile(fileInput.files[0]); });
 fileRemove.addEventListener('click', resetUI);
 
-// Upload
 uploadBtn.addEventListener('click', async () => {
   if (!selectedFile) return;
-
   uploadBtn.disabled = true;
   progressBox.classList.add('show');
+  progressLabel.textContent = t.uploading;
   statusMsg.classList.remove('show');
   resultCard.classList.remove('show');
 
   const formData = new FormData();
   formData.append('video', selectedFile);
-
   const xhr = new XMLHttpRequest();
-
-  // Get current base URL (same origin)
-  const baseUrl = window.location.origin;
-
-  xhr.open('POST', baseUrl + '/api/tools/videonote');
-  
-  // Add Telegram initData for auth
-  if (tg && tg.initData) {
-    xhr.setRequestHeader('Authorization', 'tma ' + tg.initData);
-  }
+  xhr.open('POST', window.location.origin + '/api/tools/videonote');
+  if (tg && tg.initData) xhr.setRequestHeader('Authorization', 'tma ' + tg.initData);
 
   xhr.upload.addEventListener('progress', (e) => {
     if (e.lengthComputable) {
       const pct = Math.round((e.loaded / e.total) * 100);
       progressFill.style.width = pct + '%';
       progressPct.textContent = pct + '%';
-      if (pct >= 100) {
-        progressLabel.textContent = 'Serverda qayta ishlanmoqda...';
-      }
+      if (pct >= 100) progressLabel.textContent = t.processing;
     }
   });
 
   xhr.addEventListener('load', () => {
     progressBox.classList.remove('show');
+    statusMsg.classList.remove('show');
     if (xhr.status === 200) {
-      showResult('success', 'success', 'Tayyor!', 'Dumaloq video Telegram chatga yuborildi. Iltimos chat oynasini tekshiring!');
+      showResult('success', 'success', t.successTitle, t.successDesc);
       uploadBtn.classList.remove('show');
       fileInfo.classList.remove('show');
-      // Auto close after 3 sec
       setTimeout(() => { if (tg) tg.close(); }, 3000);
     } else {
-      let msg = 'Noma\'lum xatolik';
-      try {
-        const res = JSON.parse(xhr.responseText);
-        msg = res.detail || msg;
-      } catch(e) {}
-      showResult('error', 'error', 'Xatolik', msg);
+      let msg = t.errorUnknown;
+      try { msg = JSON.parse(xhr.responseText).detail || msg; } catch(e) {}
+      showResult('error', 'error', t.errorTitle, msg);
       uploadBtn.disabled = false;
     }
   });
 
   xhr.addEventListener('error', () => {
     progressBox.classList.remove('show');
-    showResult('error', 'error', 'Tarmoq xatoligi', 'Internetga ulanishni tekshiring va qayta urinib ko\'ring.');
+    statusMsg.classList.remove('show');
+    showResult('error', 'error', t.errorNetwork, t.errorNetworkDesc);
     uploadBtn.disabled = false;
   });
 
   xhr.send(formData);
 
-  // Show processing status after upload completes
   setTimeout(() => {
     if (progressFill.style.width === '100%') {
-      statusMsg.innerHTML = '<span class="spinner"></span> Video serverda dumaloq qilinmoqda...';
+      statusMsg.innerHTML = '<span class="spinner"></span> ' + t.processingSpinner;
       statusMsg.className = 'status-msg show processing';
     }
   }, 2000);
