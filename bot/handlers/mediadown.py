@@ -99,8 +99,8 @@ async def handle_media_url(message: Message, state: FSMContext):
             "-o", output_template,
             "--merge-output-format", "mp4",
             "--recode-video", "mp4",
-            # Best quality up to 720p to stay within Telegram 50MB limit
-            "-f", "bestvideo[height<=720]+bestaudio/best[height<=720]/best",
+            # Best available quality — if too big, FFmpeg will compress to fit
+            "-f", "bestvideo+bestaudio/best",
             "--no-warnings",
             "--no-check-certificates",
             "--socket-timeout", "30",
@@ -152,15 +152,73 @@ async def handle_media_url(message: Message, state: FSMContext):
 
         file_size = os.path.getsize(downloaded)
 
-        # Check Telegram limit (50MB for bots sending)
-        if file_size > 50 * 1024 * 1024:
-            await msg.edit_text(
-                f"⚠️ Fayl hajmi juda katta ({file_size // (1024*1024)} MB). "
-                "Telegram botlari 50 MB gacha fayl yubora oladi.\n\n"
-                "Iltimos, kichikroq videoni sinab ko'ring."
-            )
-            os.remove(downloaded)
-            return
+        # If file exceeds Telegram 50MB limit, compress with FFmpeg
+        if file_size > 49 * 1024 * 1024:
+            try:
+                await msg.edit_text(f"🗜 Fayl hajmi {file_size // (1024*1024)} MB. Siqilmoqda...")
+            except Exception:
+                pass
+
+            try:
+                import imageio_ffmpeg
+                ffmpeg_exe = imageio_ffmpeg.get_ffmpeg_exe()
+            except ImportError:
+                import shutil
+                ffmpeg_exe = shutil.which("ffmpeg")
+
+            if ffmpeg_exe:
+                compressed_path = downloaded.rsplit(".", 1)[0] + "_compressed.mp4"
+
+                # Get video duration first
+                probe_cmd = [
+                    ffmpeg_exe, "-i", downloaded,
+                    "-f", "null", "-"
+                ]
+                probe = await asyncio.create_subprocess_exec(
+                    *probe_cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
+                )
+                _, probe_err = await probe.communicate()
+                
+                # Parse duration from stderr
+                duration = 60  # default fallback
+                probe_text = probe_err.decode()
+                import re as re2
+                dur_match = re2.search(r"Duration:\s*(\d+):(\d+):(\d+)", probe_text)
+                if dur_match:
+                    h, m, s = int(dur_match.group(1)), int(dur_match.group(2)), int(dur_match.group(3))
+                    duration = max(h * 3600 + m * 60 + s, 1)
+
+                # Target ~45MB to be safe (45 * 8 * 1024 kbit / duration)
+                target_bitrate = int((45 * 8 * 1024) / duration)
+                audio_bitrate = 96
+                video_bitrate = max(target_bitrate - audio_bitrate, 200)
+
+                compress_cmd = [
+                    ffmpeg_exe, "-y", "-i", downloaded,
+                    "-c:v", "libx264", "-b:v", f"{video_bitrate}k",
+                    "-preset", "fast", "-crf", "28",
+                    "-c:a", "aac", "-b:a", f"{audio_bitrate}k",
+                    "-movflags", "+faststart",
+                    compressed_path
+                ]
+                comp = await asyncio.create_subprocess_exec(
+                    *compress_cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
+                )
+                await comp.communicate()
+
+                if comp.returncode == 0 and os.path.exists(compressed_path):
+                    os.remove(downloaded)
+                    downloaded = compressed_path
+                    file_size = os.path.getsize(downloaded)
+            
+            # Final check after compression
+            if file_size > 50 * 1024 * 1024:
+                await msg.edit_text(
+                    f"⚠️ Siqishdan keyin ham fayl {file_size // (1024*1024)} MB. "
+                    "Iltimos, kichikroq video sinab ko'ring."
+                )
+                os.remove(downloaded)
+                return
 
         file = FSInputFile(downloaded)
         ext = downloaded.rsplit(".", 1)[-1].lower()
