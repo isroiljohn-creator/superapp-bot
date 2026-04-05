@@ -22,7 +22,7 @@ async def process_video_to_note(message: Message, state: FSMContext):
     if message.chat.type != "private":
         return
     
-    file_id = message.video.file_id if message.video else message.document.file_id
+    file_obj = message.video or message.document
     
     # Send processing message
     msg = await message.answer("🔄 Videongiz dumaloq qilib tayyorlanmoqda... Iltimos kuting (1-2 daqiqa vaqt olishi mumkin).")
@@ -32,7 +32,7 @@ async def process_video_to_note(message: Message, state: FSMContext):
     
     try:
         # Download the file from Telegram
-        await message.bot.download(file_id, destination=input_path)
+        await message.bot.download(file_obj, destination=input_path)
         
         # FFmpeg command to crop exactly 1:1, max 640x640, duration max 60s
         # Telegram expects video notes to be square and max 1 minute length
@@ -62,7 +62,9 @@ async def process_video_to_note(message: Message, state: FSMContext):
         await msg.delete()
         
     except Exception as e:
-        await msg.edit_text("❌ Kutilmagan server xatoligi yuz berdi.")
+        import traceback
+        err = traceback.format_exc()
+        await msg.edit_text(f"❌ Kutilmagan server xatoligi yuz berdi:\n<pre>{str(e)[:500]}</pre>", parse_mode="HTML")
     finally:
         if os.path.exists(input_path):
             os.remove(input_path)
