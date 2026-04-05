@@ -96,13 +96,14 @@ async def handle_media_url(message: Message, state: FSMContext):
         cmd = [
             "yt-dlp",
             "--no-playlist",
-            "--max-filesize", "50m",
             "-o", output_template,
             "--merge-output-format", "mp4",
-            # Try best quality that fits within Telegram limits
-            "-f", "bestvideo[filesize<50M]+bestaudio/best[filesize<50M]/best",
+            # Best quality up to 720p to stay within Telegram 50MB limit
+            "-f", "bestvideo[height<=720]+bestaudio/best[height<=720]/best",
             "--no-warnings",
             "--no-check-certificates",
+            "--socket-timeout", "30",
+            "--retries", "3",
             text,
         ]
 
@@ -114,15 +115,17 @@ async def handle_media_url(message: Message, state: FSMContext):
         stdout, stderr = await process.communicate()
 
         if process.returncode != 0:
-            error_text = stderr.decode()[:300]
-            logger.error(f"yt-dlp error: {error_text}")
+            error_text = (stderr.decode() + stdout.decode())[:500]
+            logger.error(f"yt-dlp error for {text}: {error_text}")
 
             if "Private" in error_text or "login" in error_text.lower():
                 await msg.edit_text(f"🔒 Bu {platform} kontent yopiq (private). Faqat ochiq (public) kontentlarni yuklab olish mumkin.")
             elif "not found" in error_text.lower() or "404" in error_text:
                 await msg.edit_text(f"❌ Kontent topilmadi. Havola to'g'riligini tekshiring.")
+            elif "Unsupported URL" in error_text:
+                await msg.edit_text(f"❌ Bu turdagi havola qo'llab-quvvatlanmaydi.")
             else:
-                await msg.edit_text(f"❌ {platform} dan yuklab bo'lmadi. Havola to'g'ri va kontent ochiq ekanligini tekshiring.")
+                await msg.edit_text(f"❌ {platform} dan yuklab bo'lmadi.\n\n<pre>{error_text[:300]}</pre>", parse_mode="HTML")
             return
 
         # Find downloaded file
