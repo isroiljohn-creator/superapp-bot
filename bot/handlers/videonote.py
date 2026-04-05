@@ -78,7 +78,10 @@ async def process_video_to_note(message: Message, state: FSMContext):
     except Exception as e:
         import traceback
         err = traceback.format_exc()
-        await msg.edit_text(f"❌ Kutilmagan server xatoligi yuz berdi:\n<pre>{str(e)[:500]}</pre>", parse_mode="HTML")
+        if "VOICE_MESSAGES_FORBIDDEN" in str(e):
+            await msg.edit_text("❌ Yuborib bo'lmadi: Sizning Telegram sozlamalaringizda (Privacy) Begonalardan Ovozli va Video xabarlar (Video Note) qabul qilish taqiqlangan. Iltimos botga ruxsat bering va qayta urinib ko'ring.")
+        else:
+            await msg.edit_text(f"❌ Kutilmagan server xatoligi yuz berdi:\n<pre>{str(e)[:500]}</pre>", parse_mode="HTML")
     finally:
         if os.path.exists(input_path):
             os.remove(input_path)
