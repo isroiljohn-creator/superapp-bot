@@ -75,7 +75,7 @@ async def main():
     dp = Dispatcher(storage=storage)
 
     # Register routers
-    from bot.handlers import registration, segmentation, lead_magnet, funnel, subscription, referral, admin, ai_workers, imagegen, copywriter, chatbot, moderation, menu, presentation, lyrics, lifecycle, jobs, wallet, videonote
+    from bot.handlers import registration, segmentation, lead_magnet, funnel, subscription, referral, admin, ai_workers, imagegen, copywriter, chatbot, moderation, menu, presentation, lyrics, lifecycle, jobs, wallet, videonote, mediadown
     dp.include_routers(
         lifecycle.router,    # Bot block/unblock tracking — must be first
         registration.router,
@@ -94,6 +94,7 @@ async def main():
         presentation.router, # Presentation generator (FSM)
         lyrics.router,       # Lyrics/poem generator (FSM)
         videonote.router,    # Video to video note converter
+        mediadown.router,    # Social media downloader
         moderation.router,   # Auto-moderation for groups
         menu.router,         # Must be last — catches menu button text
     )

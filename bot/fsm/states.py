@@ -62,3 +62,8 @@ class WalletTopUpFSM(StatesGroup):
 class VideoNoteFSM(StatesGroup):
     """Circular video processing flow."""
     waiting_for_video = State()
+
+
+class MediaDownloadFSM(StatesGroup):
+    """Social media download flow."""
+    waiting_for_url = State()

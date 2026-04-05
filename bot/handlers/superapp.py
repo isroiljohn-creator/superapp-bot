@@ -31,6 +31,26 @@ async def prompt_videonote(message: Message, state: FSMContext):
     )
 
 
+@router.message(F.text == uz.SUPERAPP_BTN_MEDIADOWN)
+async def prompt_mediadown(message: Message, state: FSMContext):
+    from bot.fsm.states import MediaDownloadFSM
+    await state.set_state(MediaDownloadFSM.waiting_for_url)
+    await message.answer(
+        "📥 <b>Media yuklab olish</b>\n\n"
+        "Quyidagi platformalardan video yoki rasm havolasini yuboring:\n\n"
+        "• Instagram (Reels, Post, Story)\n"
+        "• TikTok\n"
+        "• YouTube / YouTube Shorts\n"
+        "• Pinterest\n"
+        "• Snapchat\n"
+        "• Twitter / X\n"
+        "• Facebook\n"
+        "• Reddit, LinkedIn va boshqalar\n\n"
+        "Havola yuboring va bot sizga eng sifatli formatda yuklaydi! 👇",
+        parse_mode="HTML",
+    )
+
+
 @router.message(F.text == uz.SUPERAPP_BTN_TEAM)
 async def nuvi_team_fallback(message: Message):
     # Bu handler asosan fallback uchun xizmat qiladi, chunki web_app tugmasi 

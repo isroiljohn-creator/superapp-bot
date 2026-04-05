@@ -258,6 +258,7 @@ MENU_BTN_WALLET = "💳 Balans"
 SUPERAPP_BTN_MODERATOR = "🛡 Nazoratchi bot"
 SUPERAPP_BTN_TEAM = "💼 Nuvi Team"
 SUPERAPP_BTN_VIDEONOTE = "⏺ Dumaloq video"
+SUPERAPP_BTN_MEDIADOWN = "📥 Media yuklab olish"
 
 # Bepul darslar sub-menu
 FREE_LESSONS_BTN_VIDEO = "🎬 Videodarslar"
