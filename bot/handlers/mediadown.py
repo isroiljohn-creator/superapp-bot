@@ -98,6 +98,7 @@ async def handle_media_url(message: Message, state: FSMContext):
             "--no-playlist",
             "-o", output_template,
             "--merge-output-format", "mp4",
+            "--recode-video", "mp4",
             # Best quality up to 720p to stay within Telegram 50MB limit
             "-f", "bestvideo[height<=720]+bestaudio/best[height<=720]/best",
             "--no-warnings",
