@@ -51,6 +51,22 @@ async def prompt_mediadown(message: Message, state: FSMContext):
     )
 
 
+@router.message(F.text == uz.SUPERAPP_BTN_CONVERT)
+async def prompt_fileconvert(message: Message, state: FSMContext):
+    from bot.fsm.states import FileConvertFSM
+    await state.set_state(FileConvertFSM.waiting_for_file)
+    await message.answer(
+        "🔄 <b>Fayl konvertatsiya</b>\n\n"
+        "Istalgan faylni boshqa formatga o'giring:\n\n"
+        "🖼 <b>Rasm:</b> JPG, PNG, WebP, BMP, GIF, ICO, TIFF, PDF\n"
+        "🎵 <b>Audio:</b> MP3, WAV, OGG, M4A, FLAC, AAC\n"
+        "🎬 <b>Video:</b> MP4, AVI, MKV, WebM, MOV, GIF, MP3\n"
+        "📄 <b>Hujjat:</b> PDF, TXT, HTML\n\n"
+        "Faylni yuboring va bot formatlarni ko'rsatadi! 👇",
+        parse_mode="HTML",
+    )
+
+
 @router.message(F.text == uz.SUPERAPP_BTN_TEAM)
 async def nuvi_team_fallback(message: Message):
     # Bu handler asosan fallback uchun xizmat qiladi, chunki web_app tugmasi 

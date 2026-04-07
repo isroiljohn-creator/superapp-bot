@@ -67,3 +67,9 @@ class VideoNoteFSM(StatesGroup):
 class MediaDownloadFSM(StatesGroup):
     """Social media download flow."""
     waiting_for_url = State()
+
+
+class FileConvertFSM(StatesGroup):
+    """File conversion flow."""
+    waiting_for_file = State()
+    waiting_for_format = State()
