@@ -123,6 +123,30 @@ async def process_video_to_note(message: Message, state: FSMContext):
             os.remove(output_path)
 
 
+@router.message(VideoNoteFSM.waiting_for_video, F.text)
+async def handle_videonote_text(message: Message, state: FSMContext):
+    """Handle text messages (including back button) during video note FSM."""
+    from bot.locales import uz
+    from bot.keyboards.buttons import get_main_menu, superapp_keyboard
+    text = message.text.strip()
+
+    if text == uz.MENU_BTN_BACK:
+        await state.clear()
+        await message.answer(uz.SUPERAPP_MENU, parse_mode="HTML", reply_markup=superapp_keyboard())
+        return
+    if text == uz.MENU_BTN_SUPERAPP:
+        await state.clear()
+        await message.answer(uz.SUPERAPP_MENU, parse_mode="HTML", reply_markup=superapp_keyboard())
+        return
+    # Any other main menu button
+    menu_buttons = [uz.MENU_BTN_AI_WORKERS, uz.MENU_BTN_FREE_LESSONS, uz.MENU_BTN_COURSE, uz.MENU_BTN_PROFILE]
+    if text in menu_buttons:
+        await state.clear()
+        return  # Let menu.py handle it
+
+    await message.answer("❌ Iltimos, video fayl yuboring. Chiqish uchun '🔙 Orqaga' tugmasini bosing.")
+
+
 @router.message(VideoNoteFSM.waiting_for_video)
 async def fallback_videonote(message: Message):
-    await message.answer("❌ Iltimos, kutilgan forma bo'yicha video fayl yuboring. Chiqish uchun Asosiy menyu yoki '🔙 Orqaga' tugmasini bosing.")
+    await message.answer("❌ Iltimos, kutilgan forma bo'yicha video fayl yuboring. Chiqish uchun '🔙 Orqaga' tugmasini bosing.")

@@ -65,14 +65,20 @@ async def handle_media_url(message: Message, state: FSMContext):
     text = message.text.strip()
 
     # Check for menu/back buttons
+    if text == uz.MENU_BTN_BACK or text == uz.MENU_BTN_SUPERAPP:
+        await state.clear()
+        from bot.keyboards.buttons import superapp_keyboard
+        await message.answer(uz.SUPERAPP_MENU, parse_mode="HTML", reply_markup=superapp_keyboard())
+        return
+
     menu_buttons = [
-        uz.MENU_BTN_BACK, uz.MENU_BTN_AI_WORKERS, uz.MENU_BTN_FREE_LESSONS,
-        uz.MENU_BTN_COURSE, uz.MENU_BTN_PROFILE, uz.MENU_BTN_SUPERAPP,
+        uz.MENU_BTN_AI_WORKERS, uz.MENU_BTN_FREE_LESSONS,
+        uz.MENU_BTN_COURSE, uz.MENU_BTN_PROFILE,
         uz.SUPERAPP_BTN_VIDEONOTE, uz.SUPERAPP_BTN_MODERATOR,
     ]
     if text in menu_buttons:
         await state.clear()
-        return
+        return  # Let other handlers process
 
     # Validate URL
     if not _is_supported_url(text):
