@@ -75,7 +75,7 @@ async def main():
     dp = Dispatcher(storage=storage)
 
     # Register routers
-    from bot.handlers import registration, segmentation, lead_magnet, funnel, subscription, referral, admin, ai_workers, imagegen, copywriter, chatbot, moderation, menu, presentation, lyrics, lifecycle, jobs, wallet, videonote, mediadown, fileconvert
+    from bot.handlers import registration, segmentation, lead_magnet, funnel, subscription, referral, admin, ai_workers, imagegen, copywriter, chatbot, moderation, menu, presentation, lyrics, lifecycle, jobs, wallet, videonote, mediadown, fileconvert, bg_remover, transcriber, scanner, voicer, compressor
     dp.include_routers(
         lifecycle.router,    # Bot block/unblock tracking — must be first
         registration.router,
@@ -96,6 +96,11 @@ async def main():
         videonote.router,    # Video to video note converter
         mediadown.router,    # Social media downloader
         fileconvert.router,  # Universal file converter
+        bg_remover.router,   # Background remover
+        transcriber.router,  # Speech to text
+        scanner.router,      # Document scanner
+        voicer.router,       # Text to speech
+        compressor.router,   # File size compressor
         moderation.router,   # Auto-moderation for groups
         menu.router,         # Must be last — catches menu button text
     )

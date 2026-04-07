@@ -73,3 +73,18 @@ class FileConvertFSM(StatesGroup):
     """File conversion flow."""
     waiting_for_file = State()
     waiting_for_format = State()
+
+class AIRemoveBGFSM(StatesGroup):
+    waiting_for_photo = State()
+
+class AITranscribeFSM(StatesGroup):
+    waiting_for_audio = State()
+
+class AIScannerFSM(StatesGroup):
+    waiting_for_photos = State()
+    
+class AIVoicerFSM(StatesGroup):
+    waiting_for_text = State()
+    
+class AICompressorFSM(StatesGroup):
+    waiting_for_file = State()

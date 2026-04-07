@@ -260,6 +260,11 @@ SUPERAPP_BTN_TEAM = "💼 Nuvi Team"
 SUPERAPP_BTN_VIDEONOTE = "⏺ Dumaloq video"
 SUPERAPP_BTN_MEDIADOWN = "📥 Media yuklab olish"
 SUPERAPP_BTN_CONVERT = "🔄 Konvertatsiya"
+SUPERAPP_BTN_BG_REMOVER = "✂️ Orqafonni tozalash"
+SUPERAPP_BTN_TRANSCRIBE = "🎙 Ovozdan matnga"
+SUPERAPP_BTN_SCANNER = "📄 Hujjat skaner"
+SUPERAPP_BTN_VOICER = "🗣 Matndan ovoz"
+SUPERAPP_BTN_COMPRESSOR = "🗜 Hajmni qisqartirish"
 
 # Bepul darslar sub-menu
 FREE_LESSONS_BTN_VIDEO = "🎬 Videodarslar"

@@ -67,6 +67,38 @@ async def prompt_fileconvert(message: Message, state: FSMContext):
     )
 
 
+@router.message(F.text == uz.SUPERAPP_BTN_BG_REMOVER)
+async def prompt_bg_remover(message: Message, state: FSMContext):
+    from bot.fsm.states import AIRemoveBGFSM
+    await state.set_state(AIRemoveBGFSM.waiting_for_photo)
+    await message.answer("✂️ <b>Orqafonni o'chirish</b>\n\nIltimos, orqa fonini o'chirib tashlamoqchi bo'lgan rasmingizni yuboring:", parse_mode="HTML")
+
+@router.message(F.text == uz.SUPERAPP_BTN_TRANSCRIBE)
+async def prompt_transcribe(message: Message, state: FSMContext):
+    from bot.fsm.states import AITranscribeFSM
+    await state.set_state(AITranscribeFSM.waiting_for_audio)
+    await message.answer("🎙 <b>Ovozdan matnga</b>\n\nAudio yoki ovozli xabar (voice) yuboring. Men uni matnga aylantirib beraman:", parse_mode="HTML")
+
+@router.message(F.text == uz.SUPERAPP_BTN_SCANNER)
+async def prompt_scanner(message: Message, state: FSMContext):
+    from bot.fsm.states import AIScannerFSM
+    await state.set_state(AIScannerFSM.waiting_for_photos)
+    from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
+    kb = ReplyKeyboardMarkup(keyboard=[[KeyboardButton(text="✅ Tayyor, PDF yaratish")], [KeyboardButton(text=uz.MENU_BTN_BACK)]], resize_keyboard=True)
+    await message.answer("📄 <b>Hujjat skaneri</b>\n\nSkaner qilmoqchi bo'lgan sahifalaringizni ketma-ket yuboring. Barchasini yuborib bo'lgach, «✅ Tayyor» tugmasini bosing:", parse_mode="HTML", reply_markup=kb)
+
+@router.message(F.text == uz.SUPERAPP_BTN_VOICER)
+async def prompt_voicer(message: Message, state: FSMContext):
+    from bot.fsm.states import AIVoicerFSM
+    await state.set_state(AIVoicerFSM.waiting_for_text)
+    await message.answer("🗣 <b>Matndan ovozga</b>\n\nOvozga aylantirmoqchi bo'lgan matningizni yuboring:", parse_mode="HTML")
+
+@router.message(F.text == uz.SUPERAPP_BTN_COMPRESSOR)
+async def prompt_compressor(message: Message, state: FSMContext):
+    from bot.fsm.states import AICompressorFSM
+    await state.set_state(AICompressorFSM.waiting_for_file)
+    await message.answer("🗜 <b>Hajmni qisqartirish</b>\n\nHajmini kichraytirmoqchi bo'lgan Video, Rasm yoki PDF faylini yuboring:", parse_mode="HTML")
+
 @router.message(F.text == uz.SUPERAPP_BTN_TEAM)
 async def nuvi_team_fallback(message: Message):
     # Bu handler asosan fallback uchun xizmat qiladi, chunki web_app tugmasi 

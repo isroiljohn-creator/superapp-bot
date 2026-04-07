@@ -60,7 +60,10 @@ def superapp_keyboard() -> ReplyKeyboardMarkup:
     """Superapp menu (without Nuvi Team as requested)."""
     buttons = [
         [KeyboardButton(text=uz.SUPERAPP_BTN_VIDEONOTE), KeyboardButton(text=uz.SUPERAPP_BTN_MEDIADOWN)],
-        [KeyboardButton(text=uz.SUPERAPP_BTN_CONVERT), KeyboardButton(text=uz.SUPERAPP_BTN_MODERATOR)],
+        [KeyboardButton(text=uz.SUPERAPP_BTN_CONVERT), KeyboardButton(text=uz.SUPERAPP_BTN_COMPRESSOR)],
+        [KeyboardButton(text=uz.SUPERAPP_BTN_BG_REMOVER), KeyboardButton(text=uz.SUPERAPP_BTN_SCANNER)],
+        [KeyboardButton(text=uz.SUPERAPP_BTN_TRANSCRIBE), KeyboardButton(text=uz.SUPERAPP_BTN_VOICER)],
+        [KeyboardButton(text=uz.SUPERAPP_BTN_MODERATOR)],
         [KeyboardButton(text=uz.MENU_BTN_BACK)]
     ]
     return ReplyKeyboardMarkup(keyboard=buttons, resize_keyboard=True)
