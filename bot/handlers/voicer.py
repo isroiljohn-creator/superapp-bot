@@ -119,13 +119,13 @@ async def process_voice_selection(callback: CallbackQuery, state: FSMContext):
 
 
 async def _generate_tts(text: str, voice: str, output_path: str) -> bool:
-    """Generate TTS using edge_tts CLI as it's the safest way to avoid event loop conflicts."""
+    """Generate TTS using edge_tts Python API natively."""
     try:
-        cmd = ["edge-tts", "--voice", voice, "--text", text, "--write-media", output_path]
-        process = await asyncio.create_subprocess_exec(*cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
-        await process.communicate()
-        return process.returncode == 0
+        import edge_tts
+        communicate = edge_tts.Communicate(text, voice)
+        await communicate.save(output_path)
+        return True
     except Exception as e:
         import logging
-        logging.getLogger("voicer").error(f"edge-tts error: {e}")
+        logging.getLogger("voicer").error(f"edge-tts Python API error: {e}")
         return False
