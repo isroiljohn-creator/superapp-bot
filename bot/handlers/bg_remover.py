@@ -84,33 +84,32 @@ async def process_bg_removal(message: Message, state: FSMContext):
 
 
 def _remove_background(input_path: str, output_path: str) -> tuple[bool, str]:
-    """Remove background using rembg with the lightweight u2netp model to prevent OOM API limit issues."""
+    """Remove background using free Hugging Face Space (BriaAI RMBG-1.4) via gradio_client."""
     try:
-        from rembg import remove, new_session
+        from gradio_client import Client, handle_file
+        import shutil
+        import tempfile
         
-        # Open image as bytes to prevent Image.open() memory locks 
-        with open(input_path, 'rb') as i:
-            input_data = i.read()
-            
-        # Use u2netp: it is a highly optimized miniature model (~4MB weights)
-        # Perfectly safe for 500MB RAM servers
-        session = new_session("u2netp")
+        # Connect to the Hugging Face Space
+        client = Client("briaai/BRIA-RMBG-1.4")
         
-        # Remove background
-        result_data = remove(input_data, session=session)
+        # Send prediction request
+        result_path = client.predict(
+            handle_file(input_path),
+            api_name="/predict"
+        )
         
-        # Write back transparency retained PNG
-        with open(output_path, 'wb') as o:
-            o.write(result_data)
-            
+        # Move generated file to the desired output path
+        shutil.copyfile(result_path, output_path)
+        
         return True, ""
     except ImportError as e:
-        err = f"rembg kutubxonasi o'rnatilmagan: {e}"
+        err = f"gradio_client kutubxonasi o'rnatilmagan: {e}"
         import logging
         logging.getLogger("bg_remover").error(err)
         return False, err
     except Exception as e:
         err = f"{type(e).__name__}: {str(e)[:300]}"
         import logging
-        logging.getLogger("bg_remover").error(f"rembg xatolik: {err}")
+        logging.getLogger("bg_remover").error(f"HF API xatolik: {err}")
         return False, err
