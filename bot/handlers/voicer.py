@@ -96,10 +96,10 @@ async def process_voice_selection(callback: CallbackQuery, state: FSMContext):
     
     try:
         # Run edge_tts
-        success = await _generate_tts(text, voice_idx, output_path)
+        success, error_msg = await _generate_tts(text, voice_idx, output_path)
         
         if not success or not os.path.exists(output_path):
-            await callback.message.edit_text("❌ Ovoz yaratishda xatolik yuz berdi. Balkim matn tarkibida xato belgilar bordir.")
+            await callback.message.edit_text(f"❌ Ovoz yaratishda xatolik:\n\n<code>{error_msg}</code>", parse_mode="HTML")
             return
             
         audio_file = FSInputFile(output_path)
@@ -120,47 +120,22 @@ async def process_voice_selection(callback: CallbackQuery, state: FSMContext):
             pass
 
 
-async def _generate_tts(text: str, voice: str, output_path: str) -> bool:
-    """Generate TTS using edge-tts CLI subprocess to avoid event loop conflicts."""
+async def _generate_tts(text: str, voice: str, output_path: str) -> tuple[bool, str]:
+    """Generate TTS using edge_tts Python API. Returns (success, error_message)."""
     try:
-        import tempfile
-        import asyncio
-        import sys
+        import edge_tts
+        communicate = edge_tts.Communicate(text, voice)
+        await communicate.save(output_path)
         
-        # Write text to a temp file to avoid shell injection and special char issues
-        text_file = output_path + ".txt"
-        with open(text_file, "w", encoding="utf-8") as f:
-            f.write(text)
-        
-        # Use sys.executable to find the correct Python binary (python3.11 on Railway)
-        cmd = [
-            sys.executable, "-m", "edge_tts",
-            "--voice", voice,
-            "--file", text_file,
-            "--write-media", output_path
-        ]
-        
-        process = await asyncio.create_subprocess_exec(
-            *cmd,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE
-        )
-        stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=30.0)
-        
-        # Cleanup text file
-        try:
-            os.remove(text_file)
-        except Exception:
-            pass
-        
-        if process.returncode != 0:
-            logger.error(f"edge-tts CLI failed: {stderr.decode()[:300]}")
-            return False
-            
-        return os.path.exists(output_path) and os.path.getsize(output_path) > 0
-    except asyncio.TimeoutError:
-        logger.error("edge-tts CLI timed out after 30s")
-        return False
+        if os.path.exists(output_path) and os.path.getsize(output_path) > 0:
+            return True, ""
+        else:
+            return False, "Fayl yaratilmadi yoki bo'sh"
+    except ImportError as e:
+        err = f"edge-tts kutubxonasi topilmadi: {e}"
+        logger.error(err)
+        return False, err
     except Exception as e:
-        logger.error(f"edge-tts subprocess error: {e}")
-        return False
+        err = f"{type(e).__name__}: {str(e)[:200]}"
+        logger.error(f"edge-tts error: {err}")
+        return False, err
