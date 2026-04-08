@@ -1,4 +1,4 @@
-"""Speech-to-Text Transcriber AI using faster-whisper."""
+"""Speech-to-Text Transcriber AI using Aisha Cloud API."""
 import os
 import uuid
 import logging
@@ -10,24 +10,6 @@ from bot.locales import uz
 
 router = Router(name="transcriber")
 logger = logging.getLogger("transcriber")
-
-# Global whisper model cache
-_whisper_model = None
-
-def get_whisper_model():
-    """Lazy load the Whisper model to save memory."""
-    global _whisper_model
-    if _whisper_model is None:
-        try:
-            from faster_whisper import WhisperModel
-            # Load small model for efficiency, supports multiple languages including ru and eng.
-            # Using cpu with int8 quantization for minimal memory usage.
-            _whisper_model = WhisperModel("tiny", device="cpu", compute_type="int8")
-            logger.info("Whisper model loaded successfully")
-        except Exception as e:
-            logger.error(f"Failed to load whisper model: {e}")
-            raise e
-    return _whisper_model
 
 
 @router.message(AITranscribeFSM.waiting_for_audio, F.text)
@@ -116,61 +98,55 @@ async def _transcribe_aisha_api(audio_path: str) -> str:
     if not api_key:
         logger.error("AISHA_API_KEY sozlanmagan!")
         return "❌ Tizim sozlari to'liq emas (API kaliti yo'q)."
-        
-    url = "https://back.aisha.group/api/v2/stt/post/"
     
-    # Using 'Api-Key' based on Django REST framework standard for Token/Api-key authentication,
-    # or Bearer if it's JWT. Aishai typically uses basic Api-Key or Bearer. Let's try Bearer.
-    headers = {
-        "Authorization": f"Bearer {api_key}"
-    }
-    # Some older implementations use Authorization: Api-Key xxx
-    if '.' in api_key and len(api_key) == 39: 
-        # Django API keys often look like XXXXXXXX.YYYYYYYYYYYYYYYYYYYYY
-        headers["Authorization"] = f"Api-Key {api_key}"
+    # Aisha uses Django REST Framework — Api-Key auth
+    headers = {"Authorization": f"Api-Key {api_key}"}
     
-    try:
-        timeout = aiohttp.ClientTimeout(total=45)
-        async with aiohttp.ClientSession(timeout=timeout) as session:
-            with open(audio_path, 'rb') as f:
-                # Need to use form-data
-                form = aiohttp.FormData()
-                form.add_field('file', f, filename='audio.ogg', content_type='audio/ogg')
-                
-                async with session.post(url, headers=headers, data=form) as response:
-                    res_text = await response.text()
+    # Try multiple possible endpoints
+    endpoints = [
+        ("https://back.aisha.group/api/v2/stt/post/", "file"),
+        ("https://back.aisha.group/api/v1/stt/post/", "file"),
+        ("https://back.aisha.group/api/v2/stt/", "file"),
+    ]
+    
+    for url, field_name in endpoints:
+        try:
+            timeout = aiohttp.ClientTimeout(total=60)
+            async with aiohttp.ClientSession(timeout=timeout) as session:
+                with open(audio_path, 'rb') as f:
+                    form = aiohttp.FormData()
+                    form.add_field(field_name, f, filename='audio.ogg', content_type='audio/ogg')
                     
-                    if response.status == 200:
-                        try:
-                            data = json.loads(res_text)
-                            return data.get("text", "") or data.get("result", "") or str(data)
-                        except json.JSONDecodeError:
-                            return res_text
-                    elif response.status in [401, 403]:
-                        logger.error(f"Aisha API authentication error: {res_text}")
-                        return "❌ API Kalit yaroqsiz yoki muddati o'tgan."
-                    else:
-                        logger.error(f"Aisha API xatosi {response.status}: {res_text}")
-                        # Fallback for alternative endpoints if v2/stt/post fails
-                        if response.status == 404:
-                            pass  # let it fallback
-                        return ""
-    except Exception as e:
-        logger.error(f"Aisha API request error: {e}")
-        
-    # Standard STT endpoint fallback
-    url_v1 = "https://backend.aisha.group/stt"
-    try:
-        async with aiohttp.ClientSession() as session:
-            with open(audio_path, 'rb') as f:
-                form = aiohttp.FormData()
-                form.add_field('audio', f, filename='audio.ogg', content_type='audio/ogg')
-                async with session.post(url_v1, headers=headers, data=form) as response:
-                    res_text = await response.text()
-                    if response.status == 200:
-                        data = json.loads(res_text)
-                        return data.get("text", "")
-    except Exception:
-        pass
+                    async with session.post(url, headers=headers, data=form) as response:
+                        res_text = await response.text()
+                        logger.info(f"Aisha API [{url}] status={response.status} body={res_text[:200]}")
+                        
+                        if response.status == 200:
+                            try:
+                                data = json.loads(res_text)
+                                # Try common response fields
+                                text = data.get("text") or data.get("result") or data.get("transcription") or ""
+                                if text:
+                                    return text
+                                # If response is a dict but no known field, return it stringified
+                                return str(data)
+                            except json.JSONDecodeError:
+                                if res_text.strip():
+                                    return res_text.strip()
+                        elif response.status in [401, 403]:
+                            logger.error(f"Aisha API auth error: {res_text[:200]}")
+                            return "❌ API kalit yaroqsiz yoki muddati o'tgan."
+                        elif response.status == 404:
+                            logger.warning(f"Aisha endpoint {url} not found, trying next...")
+                            continue
+                        else:
+                            logger.error(f"Aisha API error {response.status}: {res_text[:200]}")
+                            continue
+        except aiohttp.ClientError as e:
+            logger.error(f"Aisha API network error for {url}: {e}")
+            continue
+        except Exception as e:
+            logger.error(f"Aisha API unexpected error for {url}: {e}")
+            continue
         
     return ""

@@ -121,15 +121,45 @@ async def process_voice_selection(callback: CallbackQuery, state: FSMContext):
 
 
 async def _generate_tts(text: str, voice: str, output_path: str) -> bool:
-    """Generate TTS using edge_tts Python API natively."""
+    """Generate TTS using edge-tts CLI subprocess to avoid event loop conflicts."""
     try:
-        import edge_tts
+        import tempfile
         import asyncio
-        communicate = edge_tts.Communicate(text, voice)
-        # Timeout after 30 seconds if Microsoft edge-tts hangs
-        await asyncio.wait_for(communicate.save(output_path), timeout=30.0)
-        return True
+        
+        # Write text to a temp file to avoid shell injection and special char issues
+        text_file = output_path + ".txt"
+        with open(text_file, "w", encoding="utf-8") as f:
+            f.write(text)
+        
+        # Use python -m edge_tts for reliability
+        cmd = [
+            "python3", "-m", "edge_tts",
+            "--voice", voice,
+            "--file", text_file,
+            "--write-media", output_path
+        ]
+        
+        process = await asyncio.create_subprocess_exec(
+            *cmd,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE
+        )
+        stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=30.0)
+        
+        # Cleanup text file
+        try:
+            os.remove(text_file)
+        except Exception:
+            pass
+        
+        if process.returncode != 0:
+            logger.error(f"edge-tts CLI failed: {stderr.decode()[:300]}")
+            return False
+            
+        return os.path.exists(output_path) and os.path.getsize(output_path) > 0
+    except asyncio.TimeoutError:
+        logger.error("edge-tts CLI timed out after 30s")
+        return False
     except Exception as e:
-        import logging
-        logging.getLogger("voicer").error(f"edge-tts Python API error: {e}")
+        logger.error(f"edge-tts subprocess error: {e}")
         return False
