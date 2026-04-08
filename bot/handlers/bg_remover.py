@@ -57,7 +57,7 @@ async def process_bg_removal(message: Message, state: FSMContext):
         # Process image in a separate thread to unblock async loop
         import asyncio
         loop = asyncio.get_running_loop()
-        success = await loop.run_in_executor(None, _remove_background, input_path, output_path)
+        success, err_msg = await loop.run_in_executor(None, _remove_background, input_path, output_path)
         
         if success and os.path.exists(output_path):
             await msg.edit_text("📤 Natija yuborilmoqda...")
@@ -66,7 +66,7 @@ async def process_bg_removal(message: Message, state: FSMContext):
             await message.answer_document(document=output_file, caption="✅ Orqa fon muvaffaqiyatli o'chirildi! (Shaffof PNG)\n\nYana rasm yuborishingiz yoki chiqish uchun '🔙 Orqaga' tugmasini bosishingiz mumkin.")
             await msg.delete()
         else:
-            await msg.edit_text("⚠️ <b>Server Xotirasi (RAM) yetarli emas!</b>\n\nQattiq hajmli AI modellari o'rnatilganligi sababli bot tizimi qayta yuklandi. Yaqin kunlarda ushbu funksiya Bulutli API (tekin) orqali ulanadi va barqaror ishlaydi!", parse_mode="HTML")
+            await msg.edit_text(f"⚠️ <b>Xatolik yuz berdi:</b>\n\n<code>{err_msg}</code>", parse_mode="HTML")
         
     except Exception as e:
         logger.error(f"BG Remover error: {e}")
@@ -83,7 +83,7 @@ async def process_bg_removal(message: Message, state: FSMContext):
                 pass
 
 
-def _remove_background(input_path: str, output_path: str) -> bool:
+def _remove_background(input_path: str, output_path: str) -> tuple[bool, str]:
     """Remove background using rembg with the lightweight u2netp model to prevent OOM API limit issues."""
     try:
         from rembg import remove, new_session
@@ -103,12 +103,14 @@ def _remove_background(input_path: str, output_path: str) -> bool:
         with open(output_path, 'wb') as o:
             o.write(result_data)
             
-        return True
-    except ImportError:
+        return True, ""
+    except ImportError as e:
+        err = f"rembg kutubxonasi o'rnatilmagan: {e}"
         import logging
-        logging.getLogger("bg_remover").error("rembg kutubxonasi o'rnatilmagan")
-        return False
+        logging.getLogger("bg_remover").error(err)
+        return False, err
     except Exception as e:
+        err = f"{type(e).__name__}: {str(e)[:300]}"
         import logging
-        logging.getLogger("bg_remover").error(f"rembg xatolik: {e}")
-        return False
+        logging.getLogger("bg_remover").error(f"rembg xatolik: {err}")
+        return False, err
