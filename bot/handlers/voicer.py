@@ -125,15 +125,16 @@ async def _generate_tts(text: str, voice: str, output_path: str) -> bool:
     try:
         import tempfile
         import asyncio
+        import sys
         
         # Write text to a temp file to avoid shell injection and special char issues
         text_file = output_path + ".txt"
         with open(text_file, "w", encoding="utf-8") as f:
             f.write(text)
         
-        # Use python -m edge_tts for reliability
+        # Use sys.executable to find the correct Python binary (python3.11 on Railway)
         cmd = [
-            "python3", "-m", "edge_tts",
+            sys.executable, "-m", "edge_tts",
             "--voice", voice,
             "--file", text_file,
             "--write-media", output_path
