@@ -68,6 +68,8 @@ async def fallback_voicer(message: Message):
 @router.callback_query(AIVoicerFSM.waiting_for_text, F.data.startswith("tts_voice:"))
 async def process_voice_selection(callback: CallbackQuery, state: FSMContext):
     """Process selection and generate TTS."""
+    await callback.answer() # Prevent Telegram UI loading freeze
+    
     voice_idx = callback.data.split(":")[1]
     
     if voice_idx == "cancel":
@@ -122,8 +124,10 @@ async def _generate_tts(text: str, voice: str, output_path: str) -> bool:
     """Generate TTS using edge_tts Python API natively."""
     try:
         import edge_tts
+        import asyncio
         communicate = edge_tts.Communicate(text, voice)
-        await communicate.save(output_path)
+        # Timeout after 30 seconds if Microsoft edge-tts hangs
+        await asyncio.wait_for(communicate.save(output_path), timeout=30.0)
         return True
     except Exception as e:
         import logging

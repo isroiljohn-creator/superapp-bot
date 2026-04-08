@@ -130,7 +130,8 @@ async def _transcribe_aisha_api(audio_path: str) -> str:
         headers["Authorization"] = f"Api-Key {api_key}"
     
     try:
-        async with aiohttp.ClientSession() as session:
+        timeout = aiohttp.ClientTimeout(total=45)
+        async with aiohttp.ClientSession(timeout=timeout) as session:
             with open(audio_path, 'rb') as f:
                 # Need to use form-data
                 form = aiohttp.FormData()
