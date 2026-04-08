@@ -20,3 +20,4 @@ opencv-python-headless==4.9.0.80
 PyPDF2==3.0.1
 rembg==2.0.60
 onnxruntime==1.19.2
+numpy<2.0.0
