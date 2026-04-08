@@ -84,5 +84,31 @@ async def process_bg_removal(message: Message, state: FSMContext):
 
 
 def _remove_background(input_path: str, output_path: str) -> bool:
-    """Mock rembg to prevent crash."""
-    return False
+    """Remove background using rembg with the lightweight u2netp model to prevent OOM API limit issues."""
+    try:
+        from rembg import remove, new_session
+        
+        # Open image as bytes to prevent Image.open() memory locks 
+        with open(input_path, 'rb') as i:
+            input_data = i.read()
+            
+        # Use u2netp: it is a highly optimized miniature model (~4MB weights)
+        # Perfectly safe for 500MB RAM servers
+        session = new_session("u2netp")
+        
+        # Remove background
+        result_data = remove(input_data, session=session)
+        
+        # Write back transparency retained PNG
+        with open(output_path, 'wb') as o:
+            o.write(result_data)
+            
+        return True
+    except ImportError:
+        import logging
+        logging.getLogger("bg_remover").error("rembg kutubxonasi o'rnatilmagan")
+        return False
+    except Exception as e:
+        import logging
+        logging.getLogger("bg_remover").error(f"rembg xatolik: {e}")
+        return False

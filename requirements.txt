@@ -18,3 +18,5 @@ python-docx==1.1.0
 edge-tts>=7.2.8
 opencv-python-headless==4.9.0.80
 PyPDF2==3.0.1
+rembg==2.0.60
+onnxruntime==1.19.2
