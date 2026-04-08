@@ -59,15 +59,14 @@ async def process_bg_removal(message: Message, state: FSMContext):
         loop = asyncio.get_running_loop()
         success = await loop.run_in_executor(None, _remove_background, input_path, output_path)
         
-        if not success or not os.path.exists(output_path):
-            await msg.edit_text("❌ Rasmni qayta ishlashda xatolik yuz berdi. Boshqa rasm bilan sinab ko'ring.")
-            return
+        if success and os.path.exists(output_path):
+            await msg.edit_text("📤 Natija yuborilmoqda...")
             
-        await msg.edit_text("📤 Natija yuborilmoqda...")
-        
-        output_file = FSInputFile(output_path, filename="bg_removed.png")
-        await message.answer_document(document=output_file, caption="✅ Orqa fon muvaffaqiyatli o'chirildi! (Shaffof PNG)\n\nYana rasm yuborishingiz yoki chiqish uchun '🔙 Orqaga' tugmasini bosishingiz mumkin.")
-        await msg.delete()
+            output_file = FSInputFile(output_path, filename="bg_removed.png")
+            await message.answer_document(document=output_file, caption="✅ Orqa fon muvaffaqiyatli o'chirildi! (Shaffof PNG)\n\nYana rasm yuborishingiz yoki chiqish uchun '🔙 Orqaga' tugmasini bosishingiz mumkin.")
+            await msg.delete()
+        else:
+            await msg.edit_text("⚠️ <b>Server Xotirasi (RAM) yetarli emas!</b>\n\nQattiq hajmli AI modellari o'rnatilganligi sababli bot tizimi qayta yuklandi. Yaqin kunlarda ushbu funksiya Bulutli API (tekin) orqali ulanadi va barqaror ishlaydi!", parse_mode="HTML")
         
     except Exception as e:
         logger.error(f"BG Remover error: {e}")
@@ -85,16 +84,5 @@ async def process_bg_removal(message: Message, state: FSMContext):
 
 
 def _remove_background(input_path: str, output_path: str) -> bool:
-    """Run rembg to remove background."""
-    try:
-        from rembg import remove
-        from PIL import Image
-        
-        input_image = Image.open(input_path)
-        output_image = remove(input_image)
-        output_image.save(output_path)
-        return True
-    except Exception as e:
-        import logging
-        logging.getLogger("bg_remover").error(f"rembg processing error: {e}")
-        return False
+    """Mock rembg to prevent crash."""
+    return False

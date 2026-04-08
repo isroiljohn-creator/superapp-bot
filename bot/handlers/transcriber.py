@@ -86,12 +86,11 @@ async def process_audio_transcription(message: Message, state: FSMContext):
         text = await loop.run_in_executor(None, _transcribe_audio, input_path)
         
         if text:
-            # Send text chunks if too long (Telegram limit 4096)
             for i in range(0, len(text), 4000):
                 await message.answer(text[i:i+4000])
             await msg.delete()
         else:
-            await msg.edit_text("❌ Audiodan matn topilmadi yoki u tushunarsiz.")
+            await msg.edit_text("⚠️ <b>Server Xotirasi (RAM) yetarli emas!</b>\n\nQattiq hajmli AI modellari o'rnatilganligi sababli bot tizimi qayta yuklandi. Yaqin kunlarda ushbu funksiya Bulutli API (tekin) orqali ulanadi va barqaror ishlaydi!", parse_mode="HTML")
             
     except Exception as e:
         logger.error(f"Transcriber error: {e}")
@@ -108,17 +107,5 @@ async def process_audio_transcription(message: Message, state: FSMContext):
 
 
 def _transcribe_audio(audio_path: str) -> str:
-    """Run faster-whisper to transcribe audio."""
-    try:
-        model = get_whisper_model()
-        segments, info = model.transcribe(audio_path, beam_size=5)
-        
-        text = ""
-        for segment in segments:
-            text += segment.text + " "
-            
-        return text.strip()
-    except Exception as e:
-        import logging
-        logging.getLogger("transcriber").error(f"Whisper processing error: {e}")
-        return ""
+    """Mock faster-whisper to prevent crash."""
+    return ""
