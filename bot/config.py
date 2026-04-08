@@ -2,7 +2,7 @@
 import logging
 import sys
 from pydantic_settings import BaseSettings
-from typing import List
+from typing import List, Optional
 
 logger = logging.getLogger(__name__)
 
