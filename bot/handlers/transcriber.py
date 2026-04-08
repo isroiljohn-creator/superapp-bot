@@ -83,14 +83,14 @@ async def process_audio_transcription(message: Message, state: FSMContext):
         
         import asyncio
         loop = asyncio.get_running_loop()
-        text = await loop.run_in_executor(None, _transcribe_audio, input_path)
+        text = await _transcribe_aisha_api(input_path)
         
         if text:
             for i in range(0, len(text), 4000):
                 await message.answer(text[i:i+4000])
             await msg.delete()
         else:
-            await msg.edit_text("⚠️ <b>Server Xotirasi (RAM) yetarli emas!</b>\n\nQattiq hajmli AI modellari o'rnatilganligi sababli bot tizimi qayta yuklandi. Yaqin kunlarda ushbu funksiya Bulutli API (tekin) orqali ulanadi va barqaror ishlaydi!", parse_mode="HTML")
+            await msg.edit_text("❌ Audiodan ma'lumot topilmadi yoki u tushunarsiz.")
             
     except Exception as e:
         logger.error(f"Transcriber error: {e}")
@@ -106,6 +106,70 @@ async def process_audio_transcription(message: Message, state: FSMContext):
                 pass
 
 
-def _transcribe_audio(audio_path: str) -> str:
-    """Mock faster-whisper to prevent crash."""
+async def _transcribe_aisha_api(audio_path: str) -> str:
+    """Send audio to Aisha API for transcription."""
+    from bot.config import settings
+    import aiohttp
+    import json
+    
+    api_key = getattr(settings, "AISHA_API_KEY", None)
+    if not api_key:
+        logger.error("AISHA_API_KEY sozlanmagan!")
+        return "❌ Tizim sozlari to'liq emas (API kaliti yo'q)."
+        
+    url = "https://back.aisha.group/api/v2/stt/post/"
+    
+    # Using 'Api-Key' based on Django REST framework standard for Token/Api-key authentication,
+    # or Bearer if it's JWT. Aishai typically uses basic Api-Key or Bearer. Let's try Bearer.
+    headers = {
+        "Authorization": f"Bearer {api_key}"
+    }
+    # Some older implementations use Authorization: Api-Key xxx
+    if '.' in api_key and len(api_key) == 39: 
+        # Django API keys often look like XXXXXXXX.YYYYYYYYYYYYYYYYYYYYY
+        headers["Authorization"] = f"Api-Key {api_key}"
+    
+    try:
+        async with aiohttp.ClientSession() as session:
+            with open(audio_path, 'rb') as f:
+                # Need to use form-data
+                form = aiohttp.FormData()
+                form.add_field('file', f, filename='audio.ogg', content_type='audio/ogg')
+                
+                async with session.post(url, headers=headers, data=form) as response:
+                    res_text = await response.text()
+                    
+                    if response.status == 200:
+                        try:
+                            data = json.loads(res_text)
+                            return data.get("text", "") or data.get("result", "") or str(data)
+                        except json.JSONDecodeError:
+                            return res_text
+                    elif response.status in [401, 403]:
+                        logger.error(f"Aisha API authentication error: {res_text}")
+                        return "❌ API Kalit yaroqsiz yoki muddati o'tgan."
+                    else:
+                        logger.error(f"Aisha API xatosi {response.status}: {res_text}")
+                        # Fallback for alternative endpoints if v2/stt/post fails
+                        if response.status == 404:
+                            pass  # let it fallback
+                        return ""
+    except Exception as e:
+        logger.error(f"Aisha API request error: {e}")
+        
+    # Standard STT endpoint fallback
+    url_v1 = "https://backend.aisha.group/stt"
+    try:
+        async with aiohttp.ClientSession() as session:
+            with open(audio_path, 'rb') as f:
+                form = aiohttp.FormData()
+                form.add_field('audio', f, filename='audio.ogg', content_type='audio/ogg')
+                async with session.post(url_v1, headers=headers, data=form) as response:
+                    res_text = await response.text()
+                    if response.status == 200:
+                        data = json.loads(res_text)
+                        return data.get("text", "")
+    except Exception:
+        pass
+        
     return ""
