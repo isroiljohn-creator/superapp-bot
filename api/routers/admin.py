@@ -1,16 +1,49 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, Header, HTTPException
+from pydantic import BaseModel
+from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, text, update
 from datetime import datetime, timedelta, timezone
-from typing import List, Dict
+from typing import List, Dict, Optional
 
-from api.auth import validate_init_data
+from api.auth import validate_init_data, get_telegram_id_from_init_data
+from api.auth_jwt import get_current_admin, create_access_token
 from db.database import async_session
-from db.models import User, Event, Subscription, Payment, ReferralBalance, CourseModule
+from db.models import User, Event, Subscription, Payment, ReferralBalance, CourseModule, AdminUser
 from bot.config import settings
 
-from pydantic import BaseModel
-from typing import Optional
+router = APIRouter(prefix="/api/admin", tags=["admin"])
+
+class LoginRequest(BaseModel):
+    username: str
+    password: str
+
+@router.post("/auth/login")
+async def login_admin(req: LoginRequest):
+    """Web Admin login endpoint."""
+    import bcrypt
+    
+    async with async_session() as session:
+        res = await session.execute(select(AdminUser).where(AdminUser.username == req.username, AdminUser.is_active == True))
+        admin_user = res.scalar_one_or_none()
+        
+        if not admin_user:
+            raise HTTPException(status_code=401, detail="Noto'g'ri login yoki parol")
+            
+        if not bcrypt.checkpw(req.password.encode('utf-8'), admin_user.password_hash.encode('utf-8')):
+            raise HTTPException(status_code=401, detail="Noto'g'ri login yoki parol")
+            
+        admin_user.last_login = datetime.utcnow()
+        await session.commit()
+        
+        token = create_access_token({"sub": admin_user.username, "role": admin_user.role})
+        
+        return {
+            "status": "success",
+            "token": token,
+            "role": admin_user.role,
+            "username": admin_user.username
+        }
 
 class CourseModuleCreate(BaseModel):
     title: Optional[str] = ""
@@ -32,19 +65,30 @@ class CourseModuleUpdate(BaseModel):
     is_active: Optional[bool] = None
     unlock_condition: Optional[str] = None
 
-router = APIRouter(prefix="/api/admin", tags=["admin"])
-
 async def get_db():
     async with async_session() as session:
         yield session
 
-def check_admin(user_data: dict = Depends(validate_init_data)):
-    """Check if the requesting Telegram user is an admin."""
-    user_id = user_data["id"]
-    if user_id not in settings.ADMIN_IDS:
-        raise HTTPException(status_code=403, detail="Not authorized (Admins only)")
-    return user_id
-
+async def check_admin(
+    authorization: str = Header(default=""),
+    init_data: str = "",
+):
+    """Check if the requester is an admin, via Web JWT OR Telegram initData."""
+    if authorization.lower().startswith("bearer "):
+        # JWT Flow
+        try:
+            admin_data = await get_current_admin(authorization)
+            # Web admin ID representation (maybe 0 or tied to a real ID later)
+            return admin_data.get("id", 0)
+        except HTTPException as e:
+            raise e
+    else:
+        # Telegram WebApp Flow
+        user_data = validate_init_data(authorization, init_data)
+        user_id = user_data["id"]
+        if user_id not in settings.ADMIN_IDS:
+            raise HTTPException(status_code=403, detail="Not authorized (Admins only)")
+        return user_id
 
 @router.get("/debug")
 async def debug_endpoint(admin_id: int = Depends(check_admin), db: AsyncSession = Depends(get_db)):

@@ -413,3 +413,17 @@ class CaptchaVerification(Base):
     __table_args__ = (
         UniqueConstraint("group_id", "user_id", name="uq_captcha_group_user"),
     )
+
+# ──────────────────────────────────────────────
+# Admin Users (Web Panel Authentication)
+# ──────────────────────────────────────────────
+class AdminUser(Base):
+    __tablename__ = "admin_users"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    username = Column(String(100), unique=True, nullable=False, index=True)
+    password_hash = Column(String(255), nullable=False)
+    role = Column(String(50), default="admin", nullable=False)
+    is_active = Column(Boolean, default=True, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    last_login = Column(DateTime(timezone=True), nullable=True)

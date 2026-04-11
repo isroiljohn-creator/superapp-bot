@@ -52,11 +52,27 @@ async def init_db():
         # Auto-create missing tables (e.g., job_vacancies)
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
+        await _seed_admin()
         return
 
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     logger.info("✅ Barcha jadvallar yaratildi")
+    await _seed_admin()
+
+async def _seed_admin():
+    from db.models import AdminUser
+    import bcrypt
+    
+    async with async_session() as session:
+        from sqlalchemy import select
+        res = await session.execute(select(AdminUser).where(AdminUser.username == "admin"))
+        if not res.scalar_one_or_none():
+            pwd_hash = bcrypt.hashpw("admin123".encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+            new_admin = AdminUser(username="admin", password_hash=pwd_hash, role="admin")
+            session.add(new_admin)
+            await session.commit()
+            logger.info("✅ Default admin foydalanuvchi yaratildi (admin / admin123)")
 
 
 async def _auto_migrate(engine):

@@ -1,5 +1,5 @@
 import logging
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Header
 from pydantic import BaseModel
 from api.auth import validate_init_data
 from bot.config import settings
@@ -9,6 +9,7 @@ router = APIRouter(prefix="/team", tags=["team"])
 
 from typing import Optional
 from api.auth import last_auth_errors
+from api.auth_jwt import get_current_admin
 
 # Global variable to capture debug info
 last_auth_attempt = {"data": None, "error": None}
@@ -20,16 +21,32 @@ class UserProfile(BaseModel):
     username: Optional[str] = None
     role: str
 
-@router.get("/debug")
-async def get_team_debug():
-    return {
-        "auth_errors": last_auth_errors[-10:],
-        "team_api_errors": last_auth_attempt
-    }
-
 @router.get("/auth", response_model=UserProfile)
-async def check_team_auth(user: dict = Depends(validate_init_data)):
-    """Verifies that the incoming Telegram user is an Admin of Nuvi."""
+async def check_team_auth(
+    authorization: str = Header(default=""),
+    init_data: str = ""
+):
+    """Verifies that the incoming user is an Admin/Team member."""
+    
+    if authorization.lower().startswith("bearer "):
+        # JWT Flow
+        try:
+            admin_data = await get_current_admin(authorization)
+            return UserProfile(
+                id=admin_data.get("id", 0),
+                first_name=admin_data.get("username", "Admin"),
+                last_name="",
+                username=admin_data.get("username", "Admin"),
+                role="Admin/Xodim"
+            )
+        except Exception as e:
+            raise e
+            
+    # Telegram Auth Flow
+    try:
+        user = validate_init_data(authorization, init_data)
+    except Exception as e:
+        raise HTTPException(status_code=401, detail="Xizmatga kirish tasdiqlanmadi.")
     from db.database import async_session
     from db.models import User
     from sqlalchemy import select

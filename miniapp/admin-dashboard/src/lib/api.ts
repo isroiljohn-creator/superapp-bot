@@ -23,15 +23,20 @@ export function getInitData(): string {
  */
 export async function fetchApi(endpoint: string, options: RequestInit = {}) {
     const initData = getInitData();
+    const token = typeof window !== "undefined" ? localStorage.getItem("admin_token") : null;
     const headers = new Headers(options.headers || {});
 
     headers.set("Content-Type", "application/json");
-    if (initData) {
+    
+    // Priority: JWT Token first for direct browser access, then Telegram initData
+    if (token) {
+        headers.set("Authorization", `Bearer ${token}`);
+    } else if (initData) {
         headers.set("Authorization", `tma ${initData}`);
     }
 
     const url = `${API_URL}${endpoint}`;
-    console.log(`[API] ${options.method || "GET"} ${endpoint}`, initData ? "with auth" : "NO AUTH");
+    console.log(`[API] ${options.method || "GET"} ${endpoint}`, (token || initData) ? "with auth" : "NO AUTH");
 
     const response = await fetch(url, {
         ...options,
