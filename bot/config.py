@@ -60,6 +60,11 @@ class Settings(BaseSettings):
     PAYMENTS_ENABLED: bool = False
     ANALYTICS_ENABLED: bool = True
 
+    # AmoCRM Support
+    AMOCRM_DOMAIN: Optional[str] = None
+    AMOCRM_ACCESS_TOKEN: Optional[str] = None
+    AMOCRM_SALES_GROUP_ID: Optional[str] = None
+
     # ── Admin / Bot settings ───────────────────────────
     ADMIN_IDS_STR: str = ""
     ADMIN_API_KEY: str = ""   # Optional extra API key for admin endpoints

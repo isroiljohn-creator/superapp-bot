@@ -55,6 +55,10 @@ async def main():
         logger.error(f"❌ Ma'lumotlar bazasiga ulanib bo'lmadi: {e}")
         sys.exit(1)
 
+    # Start AmoCRM daily cron
+    from services.daily_cron import start_cron
+    start_cron()
+
     if settings.WEBHOOK_URL:
         logger.warning("=========================================================")
         logger.warning("⚠️ DIQQAT! WEBHOOK_URL sozlangan, lekin siz Pollingni ishga tushirdingiz.")

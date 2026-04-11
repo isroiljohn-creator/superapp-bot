@@ -427,3 +427,30 @@ class AdminUser(Base):
     is_active = Column(Boolean, default=True, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     last_login = Column(DateTime(timezone=True), nullable=True)
+
+# ──────────────────────────────────────────────
+# AmoCRM Daily Reports
+# ──────────────────────────────────────────────
+class DailyReport(Base):
+    __tablename__ = "daily_reports"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    amocrm_user_id = Column(Integer, nullable=False, index=True)
+    user_name = Column(String(255), nullable=True)  
+    report_date = Column(DateTime, nullable=False)   
+
+    arrival_time = Column(String(50), nullable=True)
+    start_time = Column(String(50), nullable=True)
+    amo_call_time = Column(String(50), nullable=True)
+    phone_call_time = Column(String(50), nullable=True)
+
+    leads_received = Column(Integer, default=0)
+    calls_answered = Column(Integer, default=0)
+    calls_missed = Column(Integer, default=0)
+    total_calls = Column(Integer, default=0)
+
+    sales_won = Column(Integer, default=0)
+    pre_payments = Column(Integer, default=0)
+    end_time = Column(String(50), nullable=True)
+
+    created_at = Column(DateTime(timezone=True), server_default=func.now())

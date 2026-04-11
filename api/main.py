@@ -50,6 +50,10 @@ async def lifespan(app: FastAPI):
     from db.database import init_db, async_session
     await init_db()
 
+    # Start AmoCRM daily cron
+    from services.daily_cron import start_cron
+    start_cron()
+
     # (No redundant DB backfills)
 
     global bot, dp

@@ -84,3 +84,61 @@ async def check_team_auth(
         username=user.get("username"),
         role="Admin/Xodim"
     )
+
+@router.get("/reports")
+async def get_team_reports(
+    days: int = 7,
+    # Depends on check_team_auth (we reuse logic or write a clean dependency)
+):
+    from db.database import async_session
+    from db.models import DailyReport
+    from sqlalchemy import select, func
+    from datetime import datetime, timedelta
+
+    target_date = datetime.now() - timedelta(days=days)
+    
+    async with async_session() as session:
+        # 1. Total Daily Calls & Leads over time
+        timeseries_q = await session.execute(
+            select(
+                func.date(DailyReport.report_date).label('day'),
+                func.sum(DailyReport.total_calls).label('calls'),
+                func.sum(DailyReport.sales_won).label('won')
+            )
+            .where(DailyReport.report_date >= target_date)
+            .group_by(func.date(DailyReport.report_date))
+            .order_by(func.date(DailyReport.report_date).asc())
+        )
+        timeseries = [
+            {"day": str(row.day), "calls": row.calls or 0, "won": row.won or 0} 
+            for row in timeseries_q.all()
+        ]
+
+        # 2. Per Employee Stats
+        emp_q = await session.execute(
+            select(
+                DailyReport.user_name,
+                func.sum(DailyReport.total_calls).label('calls'),
+                func.sum(DailyReport.sales_won).label('won'),
+                func.sum(DailyReport.calls_answered).label('answered')
+            )
+            .where(DailyReport.report_date >= target_date)
+            .group_by(DailyReport.user_name)
+        )
+        employees = []
+        for row in emp_q.all():
+            score = 0
+            if row.calls and row.calls > 0:
+                score = round((row.won / row.calls) * 100) # Basic conversion metric placeholder
+            employees.append({
+                "name": row.user_name or "Noma'lum",
+                "calls": row.calls or 0,
+                "won": row.won or 0,
+                "answered": row.answered or 0,
+                "score": score
+            })
+
+    return {
+        "timeseries": timeseries,
+        "employees": employees
+    }
