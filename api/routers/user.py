@@ -39,3 +39,37 @@ async def get_profile(x_telegram_init_data: str = Header(...)):
         subscription_status="active" if is_active else "inactive",
         registered_at=user.registered_at.isoformat() if user.registered_at else None,
     )
+
+from pydantic import BaseModel
+
+class LandingLeadRequest(BaseModel):
+    name: str
+    phone: str
+    referer_id: int | None = None
+
+@router.post("/landing-lead")
+async def register_landing_lead(req: LandingLeadRequest):
+    """Save a lead submitted from the external landing page."""
+    from db.models import User
+    import time
+    
+    async with async_session() as session:
+        # Create a mock telegram_id since they register outside of Telegram
+        # We use a negative timestamp ID to mark external web leads
+        ext_id = -int(time.time() * 1000)
+        
+        new_user = User(
+            telegram_id=ext_id,
+            name=req.name,
+            phone=req.phone,
+            source="landing_page",
+            campaign="ai_kurs",
+            referer_id=req.referer_id,
+            user_status="registered",
+            lead_segment="hot",
+            lead_score=50
+        )
+        session.add(new_user)
+        await session.commit()
+        
+    return {"status": "success", "message": "Ro'yxatdan o'tish muvaffaqiyatli"}

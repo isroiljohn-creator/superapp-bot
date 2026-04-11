@@ -66,6 +66,35 @@ async def rem_team_member(message: Message):
         
     await message.answer(f"✅ User ID {user_id} Nuvi Jamoasidan o'chirildi.")
 
+@router.message(Command("kurs"))
+async def cmd_kurs_link(message: Message):
+    """Provide the course landing page link to sellers (Team Members)."""
+    from sqlalchemy import select
+    user_id = message.from_user.id
+    
+    is_allowed = is_admin(user_id)
+    
+    if not is_allowed:
+        async with async_session() as session:
+            res = await session.execute(select(User.is_team_member).where(User.telegram_id == user_id))
+            is_allowed = res.scalar() or False
+            
+    if not is_allowed:
+        await message.answer("❌ Sizda ushbu havolaga ruxsat yo'q.")
+        return
+        
+    # Get base url
+    from bot.config import settings
+    base_url = settings.WEBAPP_URL or (f"https://{settings.RAILWAY_PUBLIC_DOMAIN}" if settings.RAILWAY_PUBLIC_DOMAIN else "nuvi.uz")
+    landing_url = f"{base_url.rstrip('/')}/ai-kurs/?ref={user_id}"
+    
+    await message.answer(
+        f"🔗 <b>Sotuvchilar uchun havolasi:</b>\n\n"
+        f"👉 {landing_url}\n\n"
+        f"<i>Ushbu havolani to'g'ridan to'g'ri o'quvchilarga / mijozlaringizga yuborishingiz mumkin.</i>",
+        parse_mode="HTML"
+    )
+
 # ── Content Management ───────────────────
 # ── Admin Menu Dashboard ─────────────────
 def admin_menu_keyboard() -> InlineKeyboardMarkup:
