@@ -58,22 +58,35 @@ def _build_english_prompt(prompt_text: str) -> str:
 # ══════════════════════════════════════════════
 def _generate_pollinations_image(prompt_text: str, width: int = 1024, height: int = 1024) -> bytes:
     """
-    Generate image via Pollinations.ai — completely free, uses FLUX model.
+    Generate image via Pollinations.ai — completely free, high quality models.
+    Tries models in order: flux-realism → turbo → flux
     Returns raw PNG/JPEG bytes.
     """
-    encoded = urllib.parse.quote(prompt_text)
-    url = (
-        f"https://image.pollinations.ai/prompt/{encoded}"
-        f"?width={width}&height={height}&model=flux&nologo=true&enhance=true&seed=-1"
-    )
-    req = urllib.request.Request(url, headers={
-        "User-Agent": "Mozilla/5.0 (compatible; TelegramBot/1.0)",
-    })
-    with urllib.request.urlopen(req, timeout=90) as resp:
-        data = resp.read()
-    if len(data) < 1000:
-        raise ValueError(f"Pollinations returned too small response: {len(data)} bytes")
-    return data
+    # Best quality models in priority order
+    models_to_try = ["flux-realism", "turbo", "flux"]
+
+    for model in models_to_try:
+        try:
+            encoded = urllib.parse.quote(prompt_text)
+            url = (
+                f"https://image.pollinations.ai/prompt/{encoded}"
+                f"?width={width}&height={height}&model={model}"
+                f"&nologo=true&enhance=true&seed=-1"
+            )
+            req = urllib.request.Request(url, headers={
+                "User-Agent": "Mozilla/5.0 (compatible; TelegramBot/1.0)",
+            })
+            with urllib.request.urlopen(req, timeout=90) as resp:
+                data = resp.read()
+            if len(data) < 1000:
+                raise ValueError(f"Too small response: {len(data)} bytes")
+            logger.info(f"Pollinations '{model}': {len(data):,} bytes")
+            return data
+        except Exception as e:
+            logger.warning(f"Pollinations model '{model}' failed: {str(e)[:80]}, trying next...")
+            continue
+
+    raise ValueError("All Pollinations models failed")
 
 
 # ══════════════════════════════════════════════
