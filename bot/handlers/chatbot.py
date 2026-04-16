@@ -94,6 +94,16 @@ async def handle_chat_message(message: Message, state: FSMContext):
     ]
     if text in menu_buttons:
         await state.clear()
+        if text in {uz.MENU_BTN_BACK, uz.AI_WORKERS_KB_BACK}:
+            from bot.keyboards.buttons import get_main_menu
+            await message.answer(uz.MENU_TEXT, reply_markup=await get_main_menu(user_id=message.from_user.id), parse_mode="HTML")
+        elif text == uz.MENU_BTN_AI_WORKERS:
+            from db.database import async_session
+            from services.token_service import get_tokens_async
+            from bot.keyboards.buttons import ai_workers_reply_keyboard
+            async with async_session() as session:
+                tokens = await get_tokens_async(session, message.from_user.id)
+            await message.answer(uz.AI_WORKERS_INTRO.format(tokens=tokens), parse_mode="HTML", reply_markup=ai_workers_reply_keyboard())
         return
 
     # Spend tokens
