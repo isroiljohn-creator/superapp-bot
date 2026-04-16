@@ -29,8 +29,31 @@ HORDE_KEY = "0000000000"  # Anonymous key
 _GEMINI_IMAGE_MODELS = [
     "gemini-2.0-flash-preview-image-generation",
     "gemini-2.0-flash-exp-image-generation",
-    "gemini-2.0-flash",
+    "imagen-3.0-generate-001",
 ]
+
+# ── Prompt language helpers ──────────
+_UZ_HINTS = {"o'", "g'", "o'z", "bo'", "va ", "bilan", "ham ", "uchun", "deb", "yoz"}
+
+def _build_english_prompt(prompt_text: str, template: str) -> str:
+    """Wrap user prompt in high quality instruction. Auto-translate CIS/Uzbek lang prompts."""
+    # Detect Cyrillic characters
+    has_cyrillic = any('\u0400' <= c <= '\u04ff' for c in prompt_text)
+    # Detect Uzbek Latin (common apostrophe combinations like o' g')
+    lower = prompt_text.lower()
+    has_uzbek_latin = any(hint in lower for hint in _UZ_HINTS)
+
+    if has_cyrillic or has_uzbek_latin:
+        return (
+            f"Generate a high-quality, detailed, photorealistic image. "
+            f"The subject is: '{prompt_text}' (this may be in Uzbek or Russian — interpret it correctly). "
+            f"Style: professional photography, sharp focus, vivid colors, 4K quality, no text."
+        )
+    try:
+        final = template.format(prompt=prompt_text)
+    except (KeyError, IndexError):
+        final = prompt_text
+    return final + ", high quality, detailed, photorealistic, 4K, sharp focus, no watermark"
 
 
 def _try_gemini_image_model(api_key: str, model_name: str, prompt_text: str) -> bytes:
@@ -67,10 +90,14 @@ def _try_gemini_image_model(api_key: str, model_name: str, prompt_text: str) -> 
 
 
 def _generate_gemini_image(prompt_text: str) -> bytes:
-    """Generate image via Gemini — tries multiple model names in sequence."""
-    api_key = settings.GEMINI_API_KEY
+    """Generate image via Gemini — tries GEMINIGEN_API_KEY first, then GEMINI_API_KEY."""
+    # Prefer GEMINIGEN_API_KEY (AIzaSy... format — real Google Gemini key)
+    api_key = settings.GEMINIGEN_API_KEY or settings.GEMINI_API_KEY
     if not api_key:
-        raise ValueError("GEMINI_API_KEY not configured")
+        raise ValueError("GEMINI API key not configured")
+    if api_key.startswith("AQ.") or "." in api_key[:4]:
+        # This is NOT a Google API key — skip Gemini
+        raise ValueError(f"API key format invalid for Gemini image generation (starts with '{api_key[:6]}')")
 
     last_error = None
     for model_name in _GEMINI_IMAGE_MODELS:
@@ -179,16 +206,28 @@ async def handle_imagegen_prompt(message: Message, state: FSMContext):
         except Exception:
             pass
 
+        # ── Build final prompt ────────────────────────────
+        prompt_template = "{prompt}"
         try:
-            final_prompt = prompt_template.format(prompt=prompt)
-        except (KeyError, IndexError):
-            final_prompt = f"{prompt}, high quality, detailed"
+            from db.models import AdminSetting
+            from sqlalchemy import select as sel
+            async with async_session() as db:
+                r = await db.execute(sel(AdminSetting.value).where(AdminSetting.key == "prompt_imagegen"))
+                custom_tmpl = r.scalar_one_or_none()
+                if custom_tmpl:
+                    prompt_template = custom_tmpl
+        except Exception:
+            pass
+
+        final_prompt = _build_english_prompt(prompt, prompt_template)
+        logger.info(f"imagegen final_prompt: {final_prompt[:120]}")
 
         image_data = None
         used_api = None
 
-        # Try Gemini first (primary — uses existing GEMINI_API_KEY)
-        if settings.GEMINI_API_KEY:
+        # Try Gemini first (primary — uses GEMINIGEN_API_KEY = AIzaSy... format)
+        gemini_key = settings.GEMINIGEN_API_KEY or settings.GEMINI_API_KEY
+        if gemini_key and not gemini_key.startswith("AQ."):
             try:
                 image_data = await asyncio.to_thread(_generate_gemini_image, final_prompt)
                 used_api = "Gemini"
