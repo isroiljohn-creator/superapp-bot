@@ -54,49 +54,15 @@ def _build_english_prompt(prompt_text: str) -> str:
 
 
 # ══════════════════════════════════════════════
-# 1. PRIMARY: Pollinations.ai (FREE, FLUX model)
-# ══════════════════════════════════════════════
-def _generate_pollinations_image(prompt_text: str, width: int = 1024, height: int = 1024) -> bytes:
-    """
-    Generate image via Pollinations.ai — completely free, high quality models.
-    Tries models in order: flux-realism → turbo → flux
-    Returns raw PNG/JPEG bytes.
-    """
-    # Best quality models in priority order
-    models_to_try = ["flux-realism", "turbo", "flux"]
-
-    for model in models_to_try:
-        try:
-            encoded = urllib.parse.quote(prompt_text)
-            url = (
-                f"https://image.pollinations.ai/prompt/{encoded}"
-                f"?width={width}&height={height}&model={model}"
-                f"&nologo=true&enhance=true&seed=-1"
-            )
-            req = urllib.request.Request(url, headers={
-                "User-Agent": "Mozilla/5.0 (compatible; TelegramBot/1.0)",
-            })
-            with urllib.request.urlopen(req, timeout=90) as resp:
-                data = resp.read()
-            if len(data) < 1000:
-                raise ValueError(f"Too small response: {len(data)} bytes")
-            logger.info(f"Pollinations '{model}': {len(data):,} bytes")
-            return data
-        except Exception as e:
-            logger.warning(f"Pollinations model '{model}' failed: {str(e)[:80]}, trying next...")
-            continue
-
-    raise ValueError("All Pollinations models failed")
-
-
-# ══════════════════════════════════════════════
-# 2. FALLBACK: Gemini Image Generation
+# 1. PRIMARY: Gemini Image Generation (Nano Banana)
 # ══════════════════════════════════════════════
 _GEMINI_IMAGE_MODELS = [
-    "gemini-2.0-flash-preview-image-generation",
+    "gemini-3.1-flash-image",
+    "gemini-3.1-flash-image-generation",
+    "gemini-3.0-flash-image",
     "gemini-2.0-flash-exp-image-generation",
+    "imagen-3.0-generate-001",
 ]
-
 
 def _try_gemini_image_model(api_key: str, model_name: str, prompt_text: str) -> bytes:
     url = (
@@ -131,11 +97,46 @@ def _generate_gemini_image(prompt_text: str) -> bytes:
             err = str(e)
             logger.warning(f"Gemini Image: '{model_name}' failed: {err[:100]}")
             last_error = e
-            if any(k in err for k in ("404", "not found", "invalid", "not supported")):
+            if any(k in err.lower() for k in ("404", "not found", "invalid", "not supported")):
                 continue
             raise
     raise ValueError(f"All Gemini models failed: {last_error}")
 
+
+# ══════════════════════════════════════════════
+# 2. FALLBACK: Pollinations.ai (FREE, FLUX model)
+# ══════════════════════════════════════════════
+def _generate_pollinations_image(prompt_text: str, width: int = 1024, height: int = 1024) -> bytes:
+    """
+    Generate image via Pollinations.ai — completely free, high quality models.
+    Tries models in order: flux-realism → turbo → flux
+    Returns raw PNG/JPEG bytes.
+    """
+    # Best quality models in priority order
+    models_to_try = ["flux-realism", "turbo", "flux"]
+
+    for model in models_to_try:
+        try:
+            encoded = urllib.parse.quote(prompt_text)
+            url = (
+                f"https://image.pollinations.ai/prompt/{encoded}"
+                f"?width={width}&height={height}&model={model}"
+                f"&nologo=true&enhance=true&seed=-1"
+            )
+            req = urllib.request.Request(url, headers={
+                "User-Agent": "Mozilla/5.0 (compatible; TelegramBot/1.0)",
+            })
+            with urllib.request.urlopen(req, timeout=45) as resp:
+                data = resp.read()
+            if len(data) < 1000:
+                raise ValueError(f"Too small response: {len(data)} bytes")
+            logger.info(f"Pollinations '{model}': {len(data):,} bytes")
+            return data
+        except Exception as e:
+            logger.warning(f"Pollinations model '{model}' failed: {str(e)[:80]}, trying next...")
+            continue
+
+    raise ValueError("All Pollinations models failed")
 
 # ══════════════════════════════════════════════
 # 3. LAST RESORT: AI Horde
@@ -223,30 +224,30 @@ async def handle_imagegen_prompt(message: Message, state: FSMContext):
         image_data: bytes | None = None
         used_api: str | None = None
 
-        # ── 1. Pollinations.ai (PRIMARY — FLUX, free, high quality)
+        # ── 1. Gemini (PRIMARY - Nano Banana)
         try:
             await status_msg.edit_text(
                 "🎨 Surat tayyorlanmoqda... ⏳\n"
-                "🔁 FLUX model bilan generatsiya qilinmoqda..."
+                "✨ Gemini (Nano Banana) orqali yasalmoqda..."
             )
-            image_data = await asyncio.to_thread(_generate_pollinations_image, final_prompt)
-            used_api = "Pollinations (FLUX)"
-            logger.info(f"Pollinations: success, {len(image_data)} bytes")
+            image_data = await asyncio.to_thread(_generate_gemini_image, final_prompt)
+            used_api = "Gemini"
+            logger.info(f"Gemini: success, {len(image_data)} bytes")
         except Exception as e:
-            logger.warning(f"Pollinations failed: {str(e)[:150]}, trying Gemini...")
+            logger.warning(f"Gemini failed: {str(e)[:150]}, trying Pollinations...")
 
-        # ── 2. Gemini (FALLBACK)
+        # ── 2. Pollinations.ai (FALLBACK)
         if not image_data:
             try:
                 await status_msg.edit_text(
                     "🎨 Surat tayyorlanmoqda... ⏳\n"
-                    "🤖 Gemini AI bilan urinib ko'rilmoqda..."
+                    "🔁 FLUX model bilan generatsiya qilinmoqda..."
                 )
-                image_data = await asyncio.to_thread(_generate_gemini_image, final_prompt)
-                used_api = "Gemini"
-                logger.info(f"Gemini: success, {len(image_data)} bytes")
+                image_data = await asyncio.to_thread(_generate_pollinations_image, final_prompt)
+                used_api = "Pollinations (FLUX)"
+                logger.info(f"Pollinations: success, {len(image_data)} bytes")
             except Exception as e:
-                logger.warning(f"Gemini failed: {str(e)[:150]}, trying AI Horde...")
+                logger.warning(f"Pollinations failed: {str(e)[:150]}, trying AI Horde...")
 
         # ── 3. AI Horde (LAST RESORT)
         if not image_data:
@@ -320,9 +321,13 @@ async def handle_imagegen_prompt(message: Message, state: FSMContext):
             pass
 
     except Exception as e:
-        async with async_session() as session:
-            await add_tokens_async(session, message.from_user.id, IMAGE_COST)
-            await session.commit()
+        try:
+            async with async_session() as session:
+                await add_tokens_async(session, message.from_user.id, IMAGE_COST)
+                await session.commit()
+        except Exception as db_err:
+            logger.error(f"Failed to refund tokens: {db_err}")
+            
         err_msg = str(e)[:200]
         logger.error(f"imagegen failed ({type(e).__name__}): {err_msg}")
         await state.clear()
