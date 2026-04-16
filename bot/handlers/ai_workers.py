@@ -57,7 +57,7 @@ async def start_image_gen_kb(message: Message, state: FSMContext):
             return
 
     from bot.handlers.imagegen import ImageGenStates
-    await state.set_state(ImageGenStates.waiting_prompt)
+    await state.set_state(ImageGenStates.waiting_prompt_or_image)
     await message.answer(uz.IMAGEGEN_INTRO, parse_mode="HTML")
 
 
@@ -155,7 +155,7 @@ async def start_image_gen(callback_query: CallbackQuery, state: FSMContext):
             await callback_query.answer()
             return
     from bot.handlers.imagegen import ImageGenStates
-    await state.set_state(ImageGenStates.waiting_prompt)
+    await state.set_state(ImageGenStates.waiting_prompt_or_image)
     await callback_query.message.edit_text(uz.IMAGEGEN_INTRO, parse_mode="HTML")
     await callback_query.answer()
 
