@@ -57,11 +57,11 @@ def _build_english_prompt(prompt_text: str) -> str:
 # 1. PRIMARY: Gemini Image Generation (Nano Banana)
 # ══════════════════════════════════════════════
 _GEMINI_IMAGE_MODELS = [
-    "gemini-3.1-flash-image",
-    "gemini-3.1-flash-image-generation",
-    "gemini-3.0-flash-image",
-    "gemini-2.0-flash-exp-image-generation",
-    "imagen-3.0-generate-001",
+    "nano-banana-pro-preview",
+    "gemini-3.1-flash-image-preview",
+    "gemini-2.5-flash-image",
+    "gemini-3-pro-image-preview",
+    "imagen-4.0-generate-001",
 ]
 
 def _try_gemini_image_model(api_key: str, model_name: str, prompt_text: str) -> bytes:
