@@ -24,16 +24,18 @@ HORDE_API = "https://stablehorde.net/api/v2"
 HORDE_KEY = "0000000000"  # Anonymous key
 
 
-# ── Gemini 2.0 Flash Image Generation ────────
-def _generate_gemini_image(prompt_text: str) -> bytes:
-    """Generate image via Gemini 2.0 Flash with native image generation.
-    Uses the Imagen model through Gemini API. Returns image bytes (PNG).
-    """
-    api_key = settings.GEMINI_API_KEY
-    if not api_key:
-        raise ValueError("GEMINI_API_KEY not configured")
+# ── Gemini Image Generation ────────
+# Model names to try in order (some may be deprecated/renamed)
+_GEMINI_IMAGE_MODELS = [
+    "gemini-2.0-flash-preview-image-generation",
+    "gemini-2.0-flash-exp-image-generation",
+    "gemini-2.0-flash",
+]
 
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp-image-generation:generateContent?key={api_key}"
+
+def _try_gemini_image_model(api_key: str, model_name: str, prompt_text: str) -> bytes:
+    """Try generating image with a specific Gemini model name."""
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={api_key}"
 
     payload = json.dumps({
         "contents": [{
@@ -61,7 +63,33 @@ def _generate_gemini_image(prompt_text: str) -> bytes:
                 if img_data.get("data"):
                     return base64.b64decode(img_data["data"])
 
-    raise ValueError("Gemini rasm generatsiya qilmadi")
+    raise ValueError(f"Model {model_name} rasm qaytarmadi")
+
+
+def _generate_gemini_image(prompt_text: str) -> bytes:
+    """Generate image via Gemini — tries multiple model names in sequence."""
+    api_key = settings.GEMINI_API_KEY
+    if not api_key:
+        raise ValueError("GEMINI_API_KEY not configured")
+
+    last_error = None
+    for model_name in _GEMINI_IMAGE_MODELS:
+        try:
+            logger.info(f"Gemini Image: trying model '{model_name}'")
+            result = _try_gemini_image_model(api_key, model_name, prompt_text)
+            logger.info(f"Gemini Image: success with model '{model_name}'")
+            return result
+        except Exception as e:
+            error_str = str(e)
+            logger.warning(f"Gemini Image: model '{model_name}' failed: {error_str[:100]}")
+            last_error = e
+            # Only continue if it's a model-not-found / not-supported error
+            if "404" in error_str or "not found" in error_str.lower() or "invalid" in error_str.lower() or "not supported" in error_str.lower():
+                continue
+            # For other errors (quota, auth, etc.) — re-raise immediately
+            raise
+
+    raise ValueError(f"Barcha Gemini modellari muvaffaqiyatsiz: {last_error}")
 
 
 # ── AI Horde Fallback ─────────────────────────
@@ -159,15 +187,14 @@ async def handle_imagegen_prompt(message: Message, state: FSMContext):
         image_data = None
         used_api = None
 
-        # Try Gemini 2.0 Flash first (primary — uses existing GEMINI_API_KEY)
+        # Try Gemini first (primary — uses existing GEMINI_API_KEY)
         if settings.GEMINI_API_KEY:
             try:
-                logger.info(f"Gemini Image: generating '{final_prompt[:50]}...'")
                 image_data = await asyncio.to_thread(_generate_gemini_image, final_prompt)
                 used_api = "Gemini"
                 logger.info(f"Gemini Image: success, {len(image_data)} bytes")
             except Exception as e:
-                logger.warning(f"Gemini Image failed: {e}, falling back to AI Horde")
+                logger.warning(f"Gemini Image failed: {str(e)[:150]}, falling back to AI Horde")
 
         # Fallback to AI Horde
         if not image_data:

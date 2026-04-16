@@ -8,6 +8,9 @@ logger = logging.getLogger(__name__)
 
 
 class Settings(BaseSettings):
+    # ── Environment ────────────────────────────────────
+    ENVIRONMENT: str = "development"  # "development" | "production"
+
     # ── Telegram ──────────────────────────────────────
     BOT_TOKEN: str
     WEBAPP_URL: str = ""
@@ -20,6 +23,10 @@ class Settings(BaseSettings):
     GEMINI_API_KEY: str = ""
     GEMINIGEN_API_KEY: str = ""  # GeminiGen.ai image generation API
     AISHA_API_KEY: Optional[str] = None
+
+    # ── YMove / VideoDB ───────────────────────────────
+    YMOVE_API_KEY: str = ""          # YMove video/streaming API key
+    VIDEO_DB_CHANNEL_ID: int = 0     # Telegram channel for video storage
 
     @property
     def get_webhook_url(self) -> str:
@@ -67,10 +74,11 @@ class Settings(BaseSettings):
 
     # ── Admin / Bot settings ───────────────────────────
     ADMIN_IDS_STR: str = ""
-    ADMIN_API_KEY: str = ""   # Optional extra API key for admin endpoints
-    PRIVATE_GROUP_ID: int = 0
-    CONTENT_CHANNEL_ID: int = 0  # Private channel for large video storage
-    CLUB_PRICE: int = 97_000  # UZS
+    ADMIN_API_KEY: str = ""          # Optional extra API key for admin endpoints
+    ADMIN_DEV_BYPASS: str = ""       # Dev bypass token for admin Mini App testing
+    PRIVATE_GROUP_ID: int = 0        # Private Telegram group ID (subscribers)
+    CONTENT_CHANNEL_ID: int = 0      # Private channel for large video storage
+    CLUB_PRICE: int = 97_000         # UZS
 
     @property
     def ADMIN_IDS(self) -> List[int]:

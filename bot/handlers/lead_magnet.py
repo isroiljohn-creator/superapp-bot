@@ -13,10 +13,57 @@ from services.lead_scoring import LeadScoringService
 router = Router(name="lead_magnet")
 
 
+async def _find_lead_magnet(funnel: FunnelService, user):
+    """Try to find a lead magnet by campaign, then source, then default."""
+    # 1. Try campaign first
+    if user.campaign:
+        lm = await funnel.get_lead_magnet(user.campaign)
+        if lm:
+            return lm
+
+    # 2. Try source as campaign key
+    if user.source and user.source not in ("referral", "campaign", "organik"):
+        lm = await funnel.get_lead_magnet(user.source)
+        if lm:
+            return lm
+
+    # 3. Default fallback
+    lm = await funnel.get_lead_magnet("lead_dars")
+    return lm
+
+
+async def _send_lead_magnet(message: Message, lead_magnet):
+    """Send the lead magnet content to the user."""
+    if lead_magnet.content_type == "video" and lead_magnet.file_id:
+        if uz.LEAD_MAGNET_INTRO:
+            await message.answer(uz.LEAD_MAGNET_INTRO)
+        await message.answer_video(lead_magnet.file_id, caption=lead_magnet.description or "", parse_mode="HTML")
+    elif lead_magnet.content_type == "pdf" and lead_magnet.file_id:
+        if uz.LEAD_MAGNET_INTRO:
+            await message.answer(uz.LEAD_MAGNET_INTRO)
+        await message.answer_document(lead_magnet.file_id)
+        if lead_magnet.description:
+            await message.answer(lead_magnet.description, parse_mode="HTML")
+    elif lead_magnet.content_type == "vsl" and lead_magnet.file_id:
+        if uz.LEAD_MAGNET_INTRO:
+            await message.answer(uz.LEAD_MAGNET_INTRO)
+        await message.answer_video(lead_magnet.file_id, caption=lead_magnet.description or "", parse_mode="HTML")
+    elif lead_magnet.content_type == "photo" and lead_magnet.file_id:
+        if uz.LEAD_MAGNET_INTRO:
+            await message.answer(uz.LEAD_MAGNET_INTRO)
+        await message.answer_photo(lead_magnet.file_id, caption=lead_magnet.description or "", parse_mode="HTML")
+    elif lead_magnet.description:
+        # Has description but no file — send as text
+        text = (uz.LEAD_MAGNET_INTRO + "\n\n" if uz.LEAD_MAGNET_INTRO else "") + lead_magnet.description
+        await message.answer(text, parse_mode="HTML")
+    # else: lead magnet exists but has no content — skip silently
+
+
 async def deliver_lead_magnet(message: Message, telegram_id: int):
     """
     Deliver lead magnet based on user's campaign.
     Called after segmentation is complete.
+    Skips if already delivered.
     """
     async with async_session() as session:
         crm = CRMService(session)
@@ -29,32 +76,12 @@ async def deliver_lead_magnet(message: Message, telegram_id: int):
             return
 
         funnel = FunnelService(session)
-        # For deep links like /start PROMO, the value is saved in source or campaign
-        campaign = user.campaign or user.source or "lead_dars"
-
-        lead_magnet = await funnel.get_lead_magnet(campaign)
+        lead_magnet = await _find_lead_magnet(funnel, user)
 
         if lead_magnet:
-            # Deliver based on content type — only send intro if we have actual content
-            if lead_magnet.content_type == "video" and lead_magnet.file_id:
-                if uz.LEAD_MAGNET_INTRO: await message.answer(uz.LEAD_MAGNET_INTRO)
-                await message.answer_video(lead_magnet.file_id)
-            elif lead_magnet.content_type == "pdf" and lead_magnet.file_id:
-                if uz.LEAD_MAGNET_INTRO: await message.answer(uz.LEAD_MAGNET_INTRO)
-                await message.answer_document(lead_magnet.file_id)
-                if lead_magnet.description:
-                    await message.answer(lead_magnet.description, parse_mode="HTML")
-            elif lead_magnet.content_type == "vsl" and lead_magnet.file_id:
-                if uz.LEAD_MAGNET_INTRO: await message.answer(uz.LEAD_MAGNET_INTRO)
-                await message.answer_video(lead_magnet.file_id)
-            elif lead_magnet.description:
-                # Has description but no file — send as text
-                text = (uz.LEAD_MAGNET_INTRO + "\n\n" if uz.LEAD_MAGNET_INTRO else "") + lead_magnet.description
-                await message.answer(text, parse_mode="HTML")
-            # else: lead magnet exists but has no content — skip silently
-        # else: no lead magnet for this campaign — skip silently (don't spam!)
+            await _send_lead_magnet(message, lead_magnet)
 
-        # Mark as opened
+        # Mark as opened regardless of whether content was found
         await crm.mark_lead_magnet_opened(telegram_id)
 
         # Track event & update lead score
@@ -72,7 +99,8 @@ async def deliver_lead_magnet(message: Message, telegram_id: int):
 
 async def deliver_lead_magnet_force(message: Message, telegram_id: int):
     """Like deliver_lead_magnet but forces re-delivery even if already opened.
-    Used when an existing user returns via a new campaign/source deep link.
+    Used when an existing user returns via a new campaign/source deep link,
+    or for a new user arriving via a campaign link.
     """
     async with async_session() as session:
         crm = CRMService(session)
@@ -81,26 +109,15 @@ async def deliver_lead_magnet_force(message: Message, telegram_id: int):
             return
 
         funnel = FunnelService(session)
-        campaign = user.campaign or user.source or "lead_dars"
-        lead_magnet = await funnel.get_lead_magnet(campaign)
+        lead_magnet = await _find_lead_magnet(funnel, user)
 
         if not lead_magnet:
             return  # No content for this campaign, skip silently
 
-        if lead_magnet.content_type == "video" and lead_magnet.file_id:
-            if uz.LEAD_MAGNET_INTRO: await message.answer(uz.LEAD_MAGNET_INTRO)
-            await message.answer_video(lead_magnet.file_id)
-        elif lead_magnet.content_type == "pdf" and lead_magnet.file_id:
-            if uz.LEAD_MAGNET_INTRO: await message.answer(uz.LEAD_MAGNET_INTRO)
-            await message.answer_document(lead_magnet.file_id)
-            if lead_magnet.description:
-                await message.answer(lead_magnet.description, parse_mode="HTML")
-        elif lead_magnet.content_type == "vsl" and lead_magnet.file_id:
-            if uz.LEAD_MAGNET_INTRO: await message.answer(uz.LEAD_MAGNET_INTRO)
-            await message.answer_video(lead_magnet.file_id)
-        elif lead_magnet.description:
-            text = (uz.LEAD_MAGNET_INTRO + "\n\n" if uz.LEAD_MAGNET_INTRO else "") + lead_magnet.description
-            await message.answer(text, parse_mode="HTML")
+        await _send_lead_magnet(message, lead_magnet)
+
+        # Mark as opened
+        await crm.mark_lead_magnet_opened(telegram_id)
 
         analytics = AnalyticsService(session)
         await analytics.track(user_id=user.id, event_type=EVT_LEAD_MAGNET_OPEN)

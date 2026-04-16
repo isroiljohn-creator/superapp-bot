@@ -239,7 +239,7 @@ COURSE_ALL_COMPLETE = "🎉 Tabriklaymiz! Barcha modullarni tugatdingiz."
 # ──────────────────────────────────────────────
 # Main menu
 # ──────────────────────────────────────────────
-MENU_BTN_AI_WORKERS = "🤖 AI hodimlar"
+MENU_BTN_AI_WORKERS = "🤖 AI xodimlar"
 MENU_BTN_CLUB = "🔐 Yopiq klub"
 MENU_BTN_COURSE = "📚 Nuvi kursi"
 MENU_BTN_LESSONS = "🎓 Darslar"
@@ -314,7 +314,7 @@ PROFILE_MENU_TEXT = (
 
 # AI Workers
 AI_WORKERS_INTRO = (
-    "🤖 <b>AI hodimlar</b>\n\n"
+    "🤖 <b>AI xodimlar</b>\n\n"
     "Sun'iy intellekt yordamchilari sizning xizmatingizda!\n"
     "Quyidagi xizmatlardan birini tanlang 👇\n\n"
     "💰 Balansingiz: <b>{tokens:,} so'm</b>"

@@ -30,13 +30,15 @@ async def menu_ai_workers(message: Message, state: FSMContext):
     """Show AI Workers sub-menu with reply keyboard."""
     await state.clear()
 
+    from services.token_service import get_tokens_async
+    async with async_session() as session:
+        tokens = await get_tokens_async(session, message.from_user.id)
+
+    from bot.keyboards.buttons import ai_workers_reply_keyboard
     await message.answer(
-        "🤖 <b>AI hodimlar</b>\n\n"
-        "Kechirasiz, hozirda bu menyu ishlab chiqish jarayonida.\n\n"
-        "Tez orada sizga qulay AI hodimlarni taqdim qilamiz, "
-        "biz bilan qolganingiz uchun rahmat! 🙏",
+        uz.AI_WORKERS_INTRO.format(tokens=tokens),
         parse_mode="HTML",
-        reply_markup=await get_main_menu(message.from_user.id),
+        reply_markup=ai_workers_reply_keyboard(),
     )
 
 

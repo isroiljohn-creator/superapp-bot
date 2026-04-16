@@ -1,13 +1,14 @@
-"""Registration handler — branched onboarding flow.
+"""Registration handler — simplified flow.
 
-Two paths:
-  Business owner (Ha):  /start → business_check → business_need → phone → menu
-  Regular user (Yo'q):  /start → business_check → goal → level → name → age → phone → complete
+New flow:
+  /start → create user → deliver lead magnet (if campaign) → show menu
+           → (once) show survey invite message
+  Survey button → onboarding FSM (business check → goal → level → name → age → phone)
 """
 from aiogram import Router, F
 from aiogram.filters import CommandStart
 from aiogram.fsm.context import FSMContext
-from aiogram.types import Message, CallbackQuery, ReplyKeyboardRemove
+from aiogram.types import Message, CallbackQuery, ReplyKeyboardRemove, InlineKeyboardMarkup, InlineKeyboardButton
 
 from bot.fsm.states import RegistrationFSM
 from bot.keyboards.buttons import (
@@ -21,6 +22,14 @@ from services.analytics import AnalyticsService, EVT_LEAD, EVT_REGISTRATION_COMP
 from services.referral import ReferralService
 
 router = Router(name="registration")
+
+
+def _survey_keyboard() -> InlineKeyboardMarkup:
+    """Inline keyboard for optional survey invite."""
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="📝 So'rovnomadan o'tish", callback_data="survey:start")],
+        [InlineKeyboardButton(text="❌ Keyinroq", callback_data="survey:skip")],
+    ])
 
 
 async def _handle_captcha_verify(message: Message, deep_link: str):
@@ -71,50 +80,53 @@ async def _handle_captcha_verify(message: Message, deep_link: str):
     except Exception:
         pass
 
+
 # ──────────────────────────────────────────────
 # 1. /start
 # ──────────────────────────────────────────────
 @router.message(CommandStart())
 async def cmd_start(message: Message, state: FSMContext):
-    """Handle /start with optional deep link."""
+    """Handle /start with optional deep link — no registration gate."""
     await state.clear()
-    
-    # We ignore groups here, they are handled in moderator_group.py
+
+    # Ignore /start in groups (handled by moderator_group.py)
     if message.chat.type in ("group", "supergroup"):
         return
 
     args = message.text.split(maxsplit=1)
     deep_link = args[1] if len(args) > 1 else None
 
-    # ── Handle Moderator Setup from Group Deep Link ──
+    # ── Moderator Setup deep link ──
     if deep_link and deep_link.startswith("setup_"):
         try:
             group_id = int(deep_link.replace("setup_", ""))
             from bot.config import settings
-            from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo
+            from aiogram.types import WebAppInfo
             from bot.handlers.moderator_group import _is_group_admin
-            
-            # 1. Verify access
+
             is_admin = False
             if message.from_user.id in settings.ADMIN_IDS:
                 is_admin = True
             else:
                 is_admin = await _is_group_admin(message.bot, group_id, message.from_user.id)
-                
+
             if not is_admin:
-                await message.answer("❌ <b>Siz ushbu guruhda admin emassiz!</b>\n\nFaqatgina guruh adminlari bot va guruh sozlamalarini o'zgartira oladi.", parse_mode="HTML")
+                await message.answer(
+                    "❌ <b>Siz ushbu guruhda admin emassiz!</b>\n\nFaqatgina guruh adminlari bot va guruh sozlamalarini o'zgartira oladi.",
+                    parse_mode="HTML"
+                )
                 return
-                
+
             base_url = settings.WEBAPP_URL or f"https://{settings.RAILWAY_PUBLIC_DOMAIN}"
             app_url = f"{base_url.rstrip('/')}/moderator/?group_id={group_id}"
-            
+
             kb = InlineKeyboardMarkup(inline_keyboard=[
                 [InlineKeyboardButton(text="⚙️ Guruhni sozlash", web_app=WebAppInfo(url=app_url))]
             ])
-            
+
             await message.answer(
-                "👥 <b>Guruhni sozlash!</b>\n\nQuyidagi tugma orqali guruh qoidalari va xabarlarini sozlashingiz mumkin:", 
-                reply_markup=kb, 
+                "👥 <b>Guruhni sozlash!</b>\n\nQuyidagi tugma orqali guruh qoidalari va xabarlarini sozlashingiz mumkin:",
+                reply_markup=kb,
                 parse_mode="HTML"
             )
         except Exception:
@@ -126,10 +138,9 @@ async def cmd_start(message: Message, state: FSMContext):
     campaign = None
 
     if deep_link:
-        # ── CAPTCHA verification from group ──
+        # ── CAPTCHA verification ──
         if deep_link.startswith("captcha_"):
             await _handle_captcha_verify(message, deep_link)
-            # Continue with normal flow (don't return — let user also register/see menu)
 
         if deep_link.startswith("ref_"):
             try:
@@ -142,6 +153,7 @@ async def cmd_start(message: Message, state: FSMContext):
             source = "campaign"
         elif not deep_link.startswith("captcha_"):
             source = deep_link
+            campaign = deep_link  # treat plain deep link as campaign name too
 
     async with async_session() as session:
         crm = CRMService(session)
@@ -159,46 +171,30 @@ async def cmd_start(message: Message, state: FSMContext):
             user.username = message.from_user.username
             await session.commit()
 
-        if not is_new and (user.user_status == "registered" or user.phone is not None):
-            # Re-activate user if they were previously blocked
-            if not user.is_active:
-                user.is_active = True
+        # Reactivate if was blocked
+        if not user.is_active:
+            user.is_active = True
+            await session.commit()
+
+        # Handle referral for existing users
+        if not is_new and deep_link:
+            if referer_id and not user.referer_id:
+                ref_service = ReferralService(session)
+                await ref_service.create_referral(
+                    referer_id=referer_id,
+                    referred_id=message.from_user.id,
+                )
+                user.referer_id = referer_id
                 await session.commit()
 
-            if user.user_status != "registered":
-                user.user_status = "registered"
+            if campaign or source:
+                if campaign:
+                    user.campaign = campaign
+                if source:
+                    user.source = source
                 await session.commit()
 
-            # ── Deep link processing for existing users ──
-            if deep_link:
-                if referer_id and not user.referer_id:
-                    ref_service = ReferralService(session)
-                    await ref_service.create_referral(
-                        referer_id=referer_id,
-                        referred_id=message.from_user.id,
-                    )
-                    user.referer_id = referer_id
-                    await session.commit()
-
-                if campaign or source:
-                    if campaign:
-                        user.campaign = campaign
-                    if source:
-                        user.source = source
-                    await session.commit()
-
-                if campaign or (source and source != "referral"):
-                    from bot.handlers.lead_magnet import deliver_lead_magnet_force
-                    await deliver_lead_magnet_force(message, user.telegram_id)
-
-            # Welcome back + main menu
-            await message.answer(
-                f"👋 Xush kelibsiz, {user.name or ''}!\n\n{uz.MENU_TEXT}",
-                parse_mode="HTML",
-                reply_markup=await get_main_menu(user_id=message.from_user.id),
-            )
-            return
-
+        # Track new user event
         if is_new:
             if referer_id:
                 ref_service = ReferralService(session)
@@ -206,21 +202,97 @@ async def cmd_start(message: Message, state: FSMContext):
                     referer_id=referer_id,
                     referred_id=message.from_user.id,
                 )
-
             analytics = AnalyticsService(session)
             await analytics.track(user_id=user.id, event_type=EVT_LEAD)
 
         await session.commit()
 
-    # 2. Welcome message
-    await message.answer(uz.WELCOME, reply_markup=ReplyKeyboardRemove())
+    # ── Deliver lead magnet if campaign/source deep link ──
+    lead_magnet_delivered = False
+    if deep_link and campaign:
+        try:
+            from bot.handlers.lead_magnet import deliver_lead_magnet_force
+            await deliver_lead_magnet_force(message, message.from_user.id)
+            lead_magnet_delivered = True
+        except Exception:
+            pass
+    elif deep_link and source and source not in ("referral",):
+        # Plain source deep link — also try as campaign
+        try:
+            from bot.handlers.lead_magnet import deliver_lead_magnet_force
+            await deliver_lead_magnet_force(message, message.from_user.id)
+            lead_magnet_delivered = True
+        except Exception:
+            pass
 
-    # 3. Business check question
-    await message.answer(
+    # ── Show main menu ──
+    if is_new:
+        await message.answer(
+            f"👋 Assalomu alaykum, <b>{message.from_user.first_name or 'Xush kelibsiz'}</b>!\n\n"
+            "Botga xush kelibsiz! Quyidagi bo'limlardan foydalanishingiz mumkin 👇",
+            parse_mode="HTML",
+            reply_markup=await get_main_menu(user_id=message.from_user.id),
+        )
+    else:
+        await message.answer(
+            f"👋 Xush kelibsiz, <b>{message.from_user.first_name or ''}</b>!\n\n{uz.MENU_TEXT}",
+            parse_mode="HTML",
+            reply_markup=await get_main_menu(user_id=message.from_user.id),
+        )
+
+    # ── Show survey invite ONCE (only for new users after lead magnet) ──
+    if is_new:
+        await _maybe_show_survey_invite(message, message.from_user.id, after_lead_magnet=lead_magnet_delivered)
+
+
+async def _maybe_show_survey_invite(message: Message, telegram_id: int, after_lead_magnet: bool = False):
+    """Show survey invite once to new users. Called after /start for new users."""
+    async with async_session() as session:
+        crm = CRMService(session)
+        user = await crm.get_user(telegram_id)
+        if not user:
+            return
+        # Only show if user hasn't filled out survey (no phone yet)
+        if user.phone:
+            return
+
+    if after_lead_magnet:
+        text = (
+            "🎁 Materialni oldingiz!\n\n"
+            "Sizga <b>bepul darslar</b> berishimiz va foydamiz tegishi uchun "
+            "iltimos qisqa <b>so'rovnomadan o'ting</b>.\n\n"
+            "Bu 2 daqiqa vaqtingizni oladi va sizga yanada mos kontent tayyorlaymiz 🙌"
+        )
+    else:
+        text = (
+            "📝 Sizga yanada mos kontent tayyorlashimiz uchun "
+            "iltimos qisqa <b>so'rovnomadan o'ting</b>.\n\n"
+            "Bu 2 daqiqa vaqtingizni oladi 🙌"
+        )
+    await message.answer(text, parse_mode="HTML", reply_markup=_survey_keyboard())
+
+
+# ──────────────────────────────────────────────
+# Survey invite callbacks
+# ──────────────────────────────────────────────
+@router.callback_query(F.data == "survey:start")
+async def survey_start(callback: CallbackQuery, state: FSMContext):
+    """User clicked 'So'rovnomadan o'tish' — start onboarding FSM."""
+    await callback.message.edit_reply_markup(reply_markup=None)
+    await callback.answer()
+
+    await callback.message.answer(
         uz.ASK_BUSINESS,
         reply_markup=business_check_keyboard(),
     )
     await state.set_state(RegistrationFSM.waiting_business_check)
+
+
+@router.callback_query(F.data == "survey:skip")
+async def survey_skip(callback: CallbackQuery):
+    """User declined survey — silently dismiss."""
+    await callback.message.edit_reply_markup(reply_markup=None)
+    await callback.answer("Keyinroq ham o'tishingiz mumkin! 👍")
 
 
 # ──────────────────────────────────────────────
@@ -267,9 +339,7 @@ async def process_business_need(callback: CallbackQuery, state: FSMContext):
             user.level_tag = "business"
             await session.commit()
 
-    await callback.message.edit_text(
-        f"✅ Tanlandi!\n\n{uz.ASK_PHONE}",
-    )
+    await callback.message.edit_text(f"✅ Tanlandi!\n\n{uz.ASK_PHONE}")
     await callback.message.answer(
         uz.ASK_PHONE,
         reply_markup=phone_keyboard(),
@@ -407,16 +477,10 @@ async def process_phone(message: Message, state: FSMContext):
         existing_user = await crm.get_user(message.from_user.id)
         if existing_user and existing_user.phone:
             await state.clear()
-            if is_business:
-                await message.answer(
-                    "✅ Rahmat! Siz bilan tez orada bog'lanamiz.",
-                    reply_markup=await get_main_menu(user_id=message.from_user.id),
-                )
-            else:
-                await message.answer(
-                    uz.REGISTRATION_COMPLETE.format(name=name),
-                    reply_markup=await get_main_menu(user_id=message.from_user.id),
-                )
+            await message.answer(
+                "✅ Ma'lumotlaringiz allaqachon saqlangan!",
+                reply_markup=await get_main_menu(user_id=message.from_user.id),
+            )
             return
 
         await crm.set_phone(message.from_user.id, phone)
@@ -434,6 +498,8 @@ async def process_phone(message: Message, state: FSMContext):
 
         # Mark as registered
         user.user_status = "registered"
+        if not name:
+            name = user.name or message.from_user.full_name or ""
         await session.commit()
 
     # ── Notify admins ──
@@ -451,9 +517,12 @@ async def process_phone(message: Message, state: FSMContext):
         safe_name = html_mod.escape(name)
         safe_phone = html_mod.escape(phone)
         safe_username = html_mod.escape(message.from_user.username or "—")
-        
-        safe_utm = html_mod.escape(user.campaign or user.source or "Organik")
-        # Biznes emas bo'lsa maqsad ko'rsatilmaydi yoki "O'rganish" deb olinadi
+
+        async with async_session() as _s:
+            _crm = CRMService(_s)
+            _u = await _crm.get_user(message.from_user.id)
+            safe_utm = html_mod.escape((_u.campaign or _u.source or "Organik") if _u else "Organik")
+
         maqsad = need_label if (is_business and need_label) else "—"
 
         admin_text = (
@@ -479,24 +548,20 @@ async def process_phone(message: Message, state: FSMContext):
     await state.clear()
 
     if is_business:
-        # ── BUSINESS OWNER: show business menu ──
+        # ── BUSINESS OWNER: done ──
         await message.answer(
             "✅ Rahmat! Siz bilan tez orada bog'lanamiz.\n\n"
             "Quyidagi bo'limlardan foydalanishingiz mumkin 👇",
             reply_markup=await get_main_menu(user_id=message.from_user.id),
         )
     else:
-        # ── REGULAR USER: registration complete + lead magnet ──
+        # ── REGULAR USER: registration complete ──
         await message.answer(
-            uz.REGISTRATION_COMPLETE.format(name=name),
+            f"✅ <b>{name}</b>, ma'lumotlaringiz saqlandi! Rahmat 🙏\n\n"
+            "Siz uchun bepul darslar va foydali materiallar tayyorlayapmiz 👇",
+            parse_mode="HTML",
             reply_markup=await get_main_menu(user_id=message.from_user.id),
         )
-        # Deliver lead magnet
-        try:
-            from bot.handlers.lead_magnet import deliver_lead_magnet
-            await deliver_lead_magnet(message, message.from_user.id)
-        except Exception:
-            pass
 
 
 @router.message(RegistrationFSM.waiting_phone)
