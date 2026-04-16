@@ -1,9 +1,16 @@
-"""Image generation handler — Gemini 2.0 Flash (primary) with AI Horde fallback."""
+"""Image generation handler.
+
+Priority:
+  1. Pollinations.ai  — FREE, FLUX model, HIGH quality (no API key needed)
+  2. Gemini 2.0 Flash — Google AI (fallback)
+  3. AI Horde         — Last resort (very slow & low quality)
+"""
 import logging
 import asyncio
 import json
 import base64
 import urllib.request
+import urllib.parse
 
 from aiogram import Router, F
 from aiogram.types import Message, BufferedInputFile
@@ -19,129 +26,127 @@ from services.token_service import spend_tokens_async, get_tokens_async, add_tok
 router = Router(name="imagegen")
 logger = logging.getLogger("imagegen")
 
-# ── AI Horde Fallback Config ──────────────────
+# ── AI Horde Last-Resort Config ───────────────
 HORDE_API = "https://stablehorde.net/api/v2"
 HORDE_KEY = "0000000000"  # Anonymous key
 
-
-# ── Gemini Image Generation ────────
-# Model names to try in order (some may be deprecated/renamed)
-_GEMINI_IMAGE_MODELS = [
-    "gemini-2.0-flash-preview-image-generation",
-    "gemini-2.0-flash-exp-image-generation",
-    "imagen-3.0-generate-001",
-]
-
-# ── Prompt language helpers ──────────
+# ── Language detection helpers ────────────────
 _UZ_HINTS = {"o'", "g'", "o'z", "bo'", "va ", "bilan", "ham ", "uchun", "deb", "yoz"}
 
-def _build_english_prompt(prompt_text: str, template: str) -> str:
-    """Wrap user prompt in high quality instruction. Auto-translate CIS/Uzbek lang prompts."""
-    # Detect Cyrillic characters
+
+def _build_english_prompt(prompt_text: str) -> str:
+    """Convert Uzbek/Russian prompt into a clean English generation prompt."""
     has_cyrillic = any('\u0400' <= c <= '\u04ff' for c in prompt_text)
-    # Detect Uzbek Latin (common apostrophe combinations like o' g')
     lower = prompt_text.lower()
     has_uzbek_latin = any(hint in lower for hint in _UZ_HINTS)
 
     if has_cyrillic or has_uzbek_latin:
+        # Wrap with explicit translation instruction
         return (
-            f"Generate a high-quality, detailed, photorealistic image. "
-            f"The subject is: '{prompt_text}' (this may be in Uzbek or Russian — interpret it correctly). "
-            f"Style: professional photography, sharp focus, vivid colors, 4K quality, no text."
+            f"photorealistic image of: {prompt_text} "
+            f"(subject described in Uzbek or Russian, render visually), "
+            f"ultra detailed, 4K, sharp focus, professional photography, vivid colors, no text"
         )
-    try:
-        final = template.format(prompt=prompt_text)
-    except (KeyError, IndexError):
-        final = prompt_text
-    return final + ", high quality, detailed, photorealistic, 4K, sharp focus, no watermark"
+    return (
+        f"{prompt_text}, ultra detailed, 4K, sharp focus, "
+        f"professional photography, vivid colors, photorealistic, no text, no watermark"
+    )
+
+
+# ══════════════════════════════════════════════
+# 1. PRIMARY: Pollinations.ai (FREE, FLUX model)
+# ══════════════════════════════════════════════
+def _generate_pollinations_image(prompt_text: str, width: int = 1024, height: int = 1024) -> bytes:
+    """
+    Generate image via Pollinations.ai — completely free, uses FLUX model.
+    Returns raw PNG/JPEG bytes.
+    """
+    encoded = urllib.parse.quote(prompt_text)
+    url = (
+        f"https://image.pollinations.ai/prompt/{encoded}"
+        f"?width={width}&height={height}&model=flux&nologo=true&enhance=true&seed=-1"
+    )
+    req = urllib.request.Request(url, headers={
+        "User-Agent": "Mozilla/5.0 (compatible; TelegramBot/1.0)",
+    })
+    with urllib.request.urlopen(req, timeout=90) as resp:
+        data = resp.read()
+    if len(data) < 1000:
+        raise ValueError(f"Pollinations returned too small response: {len(data)} bytes")
+    return data
+
+
+# ══════════════════════════════════════════════
+# 2. FALLBACK: Gemini Image Generation
+# ══════════════════════════════════════════════
+_GEMINI_IMAGE_MODELS = [
+    "gemini-2.0-flash-preview-image-generation",
+    "gemini-2.0-flash-exp-image-generation",
+]
 
 
 def _try_gemini_image_model(api_key: str, model_name: str, prompt_text: str) -> bytes:
-    """Try generating image with a specific Gemini model name."""
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={api_key}"
-
+    url = (
+        f"https://generativelanguage.googleapis.com/v1beta/models/"
+        f"{model_name}:generateContent?key={api_key}"
+    )
     payload = json.dumps({
-        "contents": [{
-            "parts": [{"text": f"Generate an image: {prompt_text}"}]
-        }],
-        "generationConfig": {
-            "responseModalities": ["TEXT", "IMAGE"],
-        }
+        "contents": [{"parts": [{"text": f"Generate an image: {prompt_text}"}]}],
+        "generationConfig": {"responseModalities": ["TEXT", "IMAGE"]},
     }).encode("utf-8")
-
-    req = urllib.request.Request(url, data=payload, headers={
-        "Content-Type": "application/json",
-    })
-
+    req = urllib.request.Request(url, data=payload, headers={"Content-Type": "application/json"})
     with urllib.request.urlopen(req, timeout=60) as resp:
         data = json.loads(resp.read())
-
-    # Extract image from response
-    candidates = data.get("candidates", [])
-    if candidates:
-        parts = candidates[0].get("content", {}).get("parts", [])
-        for part in parts:
-            if "inlineData" in part:
-                img_data = part["inlineData"]
-                if img_data.get("data"):
-                    return base64.b64decode(img_data["data"])
-
-    raise ValueError(f"Model {model_name} rasm qaytarmadi")
+    for part in data.get("candidates", [{}])[0].get("content", {}).get("parts", []):
+        if "inlineData" in part and part["inlineData"].get("data"):
+            return base64.b64decode(part["inlineData"]["data"])
+    raise ValueError(f"Model {model_name} returned no image")
 
 
 def _generate_gemini_image(prompt_text: str) -> bytes:
-    """Generate image via Gemini — tries GEMINIGEN_API_KEY first, then GEMINI_API_KEY."""
-    # Prefer GEMINIGEN_API_KEY (AIzaSy... format — real Google Gemini key)
     api_key = settings.GEMINIGEN_API_KEY or settings.GEMINI_API_KEY
-    if not api_key:
-        raise ValueError("GEMINI API key not configured")
-    if api_key.startswith("AQ.") or "." in api_key[:4]:
-        # This is NOT a Google API key — skip Gemini
-        raise ValueError(f"API key format invalid for Gemini image generation (starts with '{api_key[:6]}')")
-
+    if not api_key or not api_key.startswith("AIza"):
+        raise ValueError("Valid Google Gemini API key (AIzaSy...) not configured")
     last_error = None
     for model_name in _GEMINI_IMAGE_MODELS:
         try:
-            logger.info(f"Gemini Image: trying model '{model_name}'")
+            logger.info(f"Gemini Image: trying '{model_name}'")
             result = _try_gemini_image_model(api_key, model_name, prompt_text)
-            logger.info(f"Gemini Image: success with model '{model_name}'")
+            logger.info(f"Gemini Image: success with '{model_name}'")
             return result
         except Exception as e:
-            error_str = str(e)
-            logger.warning(f"Gemini Image: model '{model_name}' failed: {error_str[:100]}")
+            err = str(e)
+            logger.warning(f"Gemini Image: '{model_name}' failed: {err[:100]}")
             last_error = e
-            # Only continue if it's a model-not-found / not-supported error
-            if "404" in error_str or "not found" in error_str.lower() or "invalid" in error_str.lower() or "not supported" in error_str.lower():
+            if any(k in err for k in ("404", "not found", "invalid", "not supported")):
                 continue
-            # For other errors (quota, auth, etc.) — re-raise immediately
             raise
+    raise ValueError(f"All Gemini models failed: {last_error}")
 
-    raise ValueError(f"Barcha Gemini modellari muvaffaqiyatsiz: {last_error}")
 
-
-# ── AI Horde Fallback ─────────────────────────
+# ══════════════════════════════════════════════
+# 3. LAST RESORT: AI Horde
+# ══════════════════════════════════════════════
 def _submit_horde_job(prompt_text: str) -> str:
-    """Submit image generation job to AI Horde. Returns job ID."""
     url = f"{HORDE_API}/generate/async"
     payload = json.dumps({
         "prompt": prompt_text,
-        "params": {"width": 512, "height": 512, "steps": 25, "cfg_scale": 7},
-        "nsfw": False,
-        "censor_nsfw": False,
-        "models": ["stable_diffusion"],
+        "params": {"width": 512, "height": 512, "steps": 30, "cfg_scale": 7},
+        "nsfw": False, "censor_nsfw": False,
+        "models": ["Deliberate"],
     }).encode("utf-8")
     req = urllib.request.Request(url, data=payload, headers={
-        "Content-Type": "application/json",
-        "apikey": HORDE_KEY,
+        "Content-Type": "application/json", "apikey": HORDE_KEY,
     })
     with urllib.request.urlopen(req, timeout=15) as resp:
-        data = json.loads(resp.read())
-        return data["id"]
+        return json.loads(resp.read())["id"]
 
 
 def _check_horde_job(job_id: str) -> dict:
-    url = f"{HORDE_API}/generate/status/{job_id}"
-    req = urllib.request.Request(url, headers={"User-Agent": "TelegramBot/1.0"})
+    req = urllib.request.Request(
+        f"{HORDE_API}/generate/status/{job_id}",
+        headers={"User-Agent": "TelegramBot/1.0"},
+    )
     with urllib.request.urlopen(req, timeout=10) as resp:
         return json.loads(resp.read())
 
@@ -152,12 +157,16 @@ def _download_url(img_url: str) -> bytes:
         return resp.read()
 
 
-# ── FSM States ────────────────────────────────
+# ══════════════════════════════════════════════
+# FSM States
+# ══════════════════════════════════════════════
 class ImageGenStates(StatesGroup):
     waiting_prompt = State()
 
 
-# ── Prompt handler ────────────────────────────
+# ══════════════════════════════════════════════
+# Main handler
+# ══════════════════════════════════════════════
 @router.message(ImageGenStates.waiting_prompt, F.text)
 async def handle_imagegen_prompt(message: Message, state: FSMContext):
     prompt = message.text.strip()
@@ -188,86 +197,74 @@ async def handle_imagegen_prompt(message: Message, state: FSMContext):
         await session.commit()
 
     status_msg = await message.answer(
-        "🎨 Surat tayyorlanmoqda... ⏳\nBu 10-30 soniya vaqt olishi mumkin.",
+        "🎨 Surat tayyorlanmoqda... ⏳\n"
+        "Bu 10-30 soniya vaqt olishi mumkin.",
         parse_mode="HTML",
     )
 
     try:
-        # Load custom prompt suffix from DB
-        prompt_template = "{prompt}, high quality, detailed, photorealistic"
+        # Build optimized English prompt
+        final_prompt = _build_english_prompt(prompt)
+        logger.info(f"imagegen prompt: {final_prompt[:120]}")
+
+        image_data: bytes | None = None
+        used_api: str | None = None
+
+        # ── 1. Pollinations.ai (PRIMARY — FLUX, free, high quality)
         try:
-            from db.models import AdminSetting
-            from sqlalchemy import select as sel
-            async with async_session() as db:
-                r = await db.execute(sel(AdminSetting.value).where(AdminSetting.key == "prompt_imagegen"))
-                custom_tmpl = r.scalar_one_or_none()
-                if custom_tmpl:
-                    prompt_template = custom_tmpl
-        except Exception:
-            pass
+            await status_msg.edit_text(
+                "🎨 Surat tayyorlanmoqda... ⏳\n"
+                "🔁 FLUX model bilan generatsiya qilinmoqda..."
+            )
+            image_data = await asyncio.to_thread(_generate_pollinations_image, final_prompt)
+            used_api = "Pollinations (FLUX)"
+            logger.info(f"Pollinations: success, {len(image_data)} bytes")
+        except Exception as e:
+            logger.warning(f"Pollinations failed: {str(e)[:150]}, trying Gemini...")
 
-        # ── Build final prompt ────────────────────────────
-        prompt_template = "{prompt}"
-        try:
-            from db.models import AdminSetting
-            from sqlalchemy import select as sel
-            async with async_session() as db:
-                r = await db.execute(sel(AdminSetting.value).where(AdminSetting.key == "prompt_imagegen"))
-                custom_tmpl = r.scalar_one_or_none()
-                if custom_tmpl:
-                    prompt_template = custom_tmpl
-        except Exception:
-            pass
-
-        final_prompt = _build_english_prompt(prompt, prompt_template)
-        logger.info(f"imagegen final_prompt: {final_prompt[:120]}")
-
-        image_data = None
-        used_api = None
-
-        # Try Gemini first (primary — uses GEMINIGEN_API_KEY = AIzaSy... format)
-        gemini_key = settings.GEMINIGEN_API_KEY or settings.GEMINI_API_KEY
-        if gemini_key and not gemini_key.startswith("AQ."):
+        # ── 2. Gemini (FALLBACK)
+        if not image_data:
             try:
+                await status_msg.edit_text(
+                    "🎨 Surat tayyorlanmoqda... ⏳\n"
+                    "🤖 Gemini AI bilan urinib ko'rilmoqda..."
+                )
                 image_data = await asyncio.to_thread(_generate_gemini_image, final_prompt)
                 used_api = "Gemini"
-                logger.info(f"Gemini Image: success, {len(image_data)} bytes")
+                logger.info(f"Gemini: success, {len(image_data)} bytes")
             except Exception as e:
-                logger.warning(f"Gemini Image failed: {str(e)[:150]}, falling back to AI Horde")
+                logger.warning(f"Gemini failed: {str(e)[:150]}, trying AI Horde...")
 
-        # Fallback to AI Horde
+        # ── 3. AI Horde (LAST RESORT)
         if not image_data:
-            logger.info(f"AI Horde: submitting '{final_prompt[:50]}...'")
+            await status_msg.edit_text(
+                "🎨 Surat tayyorlanmoqda... ⏳\n"
+                "🐢 Navbat kutilmoqda (1-2 daqiqa)..."
+            )
             used_api = "AI Horde"
             job_id = await asyncio.to_thread(_submit_horde_job, final_prompt)
-
-            for i in range(24):  # max 2 min
+            for i in range(30):
                 await asyncio.sleep(5)
                 result = await asyncio.to_thread(_check_horde_job, job_id)
-
                 if result.get("done"):
                     generations = result.get("generations", [])
                     if generations and generations[0].get("img"):
-                        img_url = generations[0]["img"]
-                        image_data = await asyncio.to_thread(_download_url, img_url)
+                        image_data = await asyncio.to_thread(_download_url, generations[0]["img"])
                         break
-                    else:
-                        raise Exception("Surat generatsiya bo'lmadi")
-
-                # Update wait info
-                wait = result.get("wait_time", 0)
-                queue = result.get("queue_position", 0)
+                    raise Exception("AI Horde: no image in response")
                 if i % 3 == 2:
                     try:
+                        wait = result.get("wait_time", 0)
+                        queue = result.get("queue_position", 0)
                         await status_msg.edit_text(
                             f"🎨 Surat tayyorlanmoqda... ⏳\n"
-                            f"⏱ Kutish: ~{wait}s | 📊 Navbat: {queue}"
+                            f"⏱ ~{wait}s | 📊 Navbat: {queue}"
                         )
                     except Exception:
                         pass
 
+        # ── Timeout
         if not image_data:
-            # Timeout — refund
             async with async_session() as session:
                 await add_tokens_async(session, message.from_user.id, IMAGE_COST)
                 await session.commit()
@@ -278,16 +275,13 @@ async def handle_imagegen_prompt(message: Message, state: FSMContext):
                 pass
             return
 
-        # Success! Send the image
+        # ── SUCCESS — send image
         photo = BufferedInputFile(image_data, filename="image.png")
         async with async_session() as session:
             tokens = await get_tokens_async(session, message.from_user.id)
         await message.answer_photo(
             photo=photo,
-            caption=uz.IMAGEGEN_SUCCESS.format(
-                prompt=prompt[:200],
-                tokens=tokens,
-            ),
+            caption=uz.IMAGEGEN_SUCCESS.format(prompt=prompt[:200], tokens=tokens),
             parse_mode="HTML",
         )
         try:
@@ -296,12 +290,7 @@ async def handle_imagegen_prompt(message: Message, state: FSMContext):
             pass
 
         await state.clear()
-
-        # Ask for more
-        await message.answer(
-            "Yana xizmat kerakmi? 👇",
-            reply_markup=ai_workers_reply_keyboard(),
-        )
+        await message.answer("Yana xizmat kerakmi? 👇", reply_markup=ai_workers_reply_keyboard())
 
         # Analytics
         try:
@@ -318,17 +307,15 @@ async def handle_imagegen_prompt(message: Message, state: FSMContext):
             pass
 
     except Exception as e:
-        # Refund tokens on error
         async with async_session() as session:
             await add_tokens_async(session, message.from_user.id, IMAGE_COST)
             await session.commit()
-        error_name = type(e).__name__
-        error_msg = str(e)[:200]
-        logger.error(f"imagegen failed: {error_name}: {error_msg}")
+        err_msg = str(e)[:200]
+        logger.error(f"imagegen failed ({type(e).__name__}): {err_msg}")
         await state.clear()
         try:
             await status_msg.edit_text(
-                f"❌ Xatolik: {error_name}: {error_msg}\n\nToken qaytarildi."
+                f"❌ Xatolik yuz berdi: {err_msg}\n\nToken qaytarildi. Qayta urinib ko'ring."
             )
         except Exception:
             pass
