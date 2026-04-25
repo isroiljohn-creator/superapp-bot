@@ -664,3 +664,36 @@ async def cmd_set_setting(message: Message):
         await session.commit()
 
     await message.answer(f"✅ <code>{key}</code> = <code>{value}</code>", parse_mode="HTML")
+
+
+@router.message(F.document | F.video | F.photo | F.audio | F.voice | F.video_note)
+async def admin_get_file_id(message: Message, state: FSMContext):
+    """Utility for admins to easily get a file_id by just sending a file to the bot."""
+    if not is_admin(message.from_user.id):
+        return
+        
+    # Don't intercept if admin is in the middle of a broadcast or registration
+    current_state = await state.get_state()
+    if current_state:
+        return 
+
+    file_id = None
+    if message.photo:
+        file_id = message.photo[-1].file_id
+    elif message.video:
+        file_id = message.video.file_id
+    elif message.document:
+        file_id = message.document.file_id
+    elif message.audio:
+        file_id = message.audio.file_id
+    elif message.voice:
+        file_id = message.voice.file_id
+    elif message.video_note:
+        file_id = message.video_note.file_id
+
+    if file_id:
+        await message.reply(
+            f"📁 <b>Fayl ID:</b>\n\n<code>{file_id}</code>\n\n"
+            f"<i>(ID ustiga bossangiz nusxa oladi. Endi uni admin paneldagi joyga yopishtiring)</i>", 
+            parse_mode="HTML"
+        )

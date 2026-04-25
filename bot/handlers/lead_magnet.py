@@ -38,7 +38,7 @@ async def _send_lead_magnet(message: Message, lead_magnet):
         if uz.LEAD_MAGNET_INTRO:
             await message.answer(uz.LEAD_MAGNET_INTRO)
         await message.answer_video(lead_magnet.file_id, caption=lead_magnet.description or "", parse_mode="HTML")
-    elif lead_magnet.content_type == "pdf" and lead_magnet.file_id:
+    elif lead_magnet.content_type in ("pdf", "document") and lead_magnet.file_id:
         if uz.LEAD_MAGNET_INTRO:
             await message.answer(uz.LEAD_MAGNET_INTRO)
         await message.answer_document(lead_magnet.file_id)
