@@ -147,10 +147,18 @@ class ImageGenStates(StatesGroup):
 
 @router.message(ImageGenStates.waiting_prompt_or_image, F.text | F.photo)
 async def process_prompt_or_image(message: Message, state: FSMContext, bot: Bot):
-    # Skip standard menus
     menu_buttons = [uz.MENU_BTN_AI_WORKERS, uz.MENU_BTN_FREE_LESSONS, uz.MENU_BTN_CLUB, uz.MENU_BTN_COURSE, uz.MENU_BTN_BACK]
     if message.text and message.text in menu_buttons:
         await state.clear()
+        if message.text == uz.MENU_BTN_BACK:
+            await message.answer(uz.MENU_TEXT, reply_markup=await get_main_menu(user_id=message.from_user.id), parse_mode="HTML")
+        elif message.text == uz.MENU_BTN_AI_WORKERS:
+            async with async_session() as session:
+                tokens = await get_tokens_async(session, message.from_user.id)
+            await message.answer(uz.AI_WORKERS_INTRO.format(tokens=tokens), parse_mode="HTML", reply_markup=ai_workers_reply_keyboard())
+        elif message.text == uz.MENU_BTN_CLUB or message.text == uz.MENU_BTN_COURSE:
+            # Simple fallback to main menu to not duplicate logic
+            await message.answer(uz.MENU_TEXT, reply_markup=await get_main_menu(user_id=message.from_user.id), parse_mode="HTML")
         return
 
     prompt = message.caption if message.photo else message.text

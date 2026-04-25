@@ -34,29 +34,29 @@ async def _find_lead_magnet(funnel: FunnelService, user):
 
 async def _send_lead_magnet(message: Message, lead_magnet):
     """Send the lead magnet content to the user."""
-    if lead_magnet.content_type == "video" and lead_magnet.file_id:
-        if uz.LEAD_MAGNET_INTRO:
-            await message.answer(uz.LEAD_MAGNET_INTRO)
-        await message.answer_video(lead_magnet.file_id, caption=lead_magnet.description or "", parse_mode="HTML")
-    elif lead_magnet.content_type in ("pdf", "document") and lead_magnet.file_id:
-        if uz.LEAD_MAGNET_INTRO:
-            await message.answer(uz.LEAD_MAGNET_INTRO)
-        await message.answer_document(lead_magnet.file_id)
-        if lead_magnet.description:
-            await message.answer(lead_magnet.description, parse_mode="HTML")
-    elif lead_magnet.content_type == "vsl" and lead_magnet.file_id:
-        if uz.LEAD_MAGNET_INTRO:
-            await message.answer(uz.LEAD_MAGNET_INTRO)
-        await message.answer_video(lead_magnet.file_id, caption=lead_magnet.description or "", parse_mode="HTML")
-    elif lead_magnet.content_type == "photo" and lead_magnet.file_id:
-        if uz.LEAD_MAGNET_INTRO:
-            await message.answer(uz.LEAD_MAGNET_INTRO)
-        await message.answer_photo(lead_magnet.file_id, caption=lead_magnet.description or "", parse_mode="HTML")
+    if uz.LEAD_MAGNET_INTRO and (lead_magnet.file_id or lead_magnet.description):
+        await message.answer(uz.LEAD_MAGNET_INTRO)
+
+    if lead_magnet.file_id:
+        try:
+            if lead_magnet.content_type in ("video", "vsl"):
+                await message.answer_video(lead_magnet.file_id, caption=lead_magnet.description or "", parse_mode="HTML")
+            elif lead_magnet.content_type == "photo":
+                await message.answer_photo(lead_magnet.file_id, caption=lead_magnet.description or "", parse_mode="HTML")
+            elif lead_magnet.content_type in ("audio", "voice"):
+                await message.answer_audio(lead_magnet.file_id, caption=lead_magnet.description or "", parse_mode="HTML")
+            else:
+                # Fallback: assume it's a document/pdf if file_id is present
+                await message.answer_document(lead_magnet.file_id)
+                if lead_magnet.description:
+                    await message.answer(lead_magnet.description, parse_mode="HTML")
+        except Exception as e:
+            # Re-raise so registration.py can catch it and notify the admin
+            raise Exception(f"Fayl jo'natishda xatolik ({lead_magnet.content_type}): {e}")
+            
     elif lead_magnet.description:
         # Has description but no file — send as text
-        text = (uz.LEAD_MAGNET_INTRO + "\n\n" if uz.LEAD_MAGNET_INTRO else "") + lead_magnet.description
-        await message.answer(text, parse_mode="HTML")
-    # else: lead magnet exists but has no content — skip silently
+        await message.answer(lead_magnet.description, parse_mode="HTML")
 
 
 async def deliver_lead_magnet(message: Message, telegram_id: int):
