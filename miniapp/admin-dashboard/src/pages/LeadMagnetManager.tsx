@@ -189,13 +189,74 @@ export default function LeadMagnetManager() {
 
                             <div className="space-y-2 p-3 bg-secondary/20 rounded-lg border border-border">
                                 <label className="text-sm font-medium flex items-center gap-2">
-                                    <LinkIcon className="h-4 w-4" /> Telegram File ID
+                                    <LinkIcon className="h-4 w-4" /> Fayl biriktirish
                                 </label>
-                                <Input
-                                    value={formData.file_id}
-                                    onChange={(e) => setFormData({ ...formData, file_id: e.target.value, file_url: "" })}
-                                    placeholder="BQACAgIAAxkBA..."
-                                />
+                                
+                                {/* File Upload Button */}
+                                <div className="flex gap-2">
+                                    <label className="flex-1 cursor-pointer">
+                                        <div className="flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-primary/30 rounded-lg hover:border-primary/60 hover:bg-primary/5 transition-colors text-sm text-primary">
+                                            📤 PDF yoki fayl tanlang
+                                        </div>
+                                        <input
+                                            type="file"
+                                            className="hidden"
+                                            accept=".pdf,.doc,.docx,.mp4,.png,.jpg,.jpeg"
+                                            onChange={async (e) => {
+                                                const file = e.target.files?.[0];
+                                                if (!file) return;
+                                                
+                                                toast.info(`"${file.name}" yuklanmoqda...`);
+                                                
+                                                try {
+                                                    const fd = new FormData();
+                                                    fd.append("file", file);
+                                                    
+                                                    const token = localStorage.getItem("admin_token") || "";
+                                                    const baseUrl = import.meta.env.VITE_API_URL || "";
+                                                    const resp = await fetch(`${baseUrl}/api/admin/upload-media-form`, {
+                                                        method: "POST",
+                                                        headers: { "Authorization": `Bearer ${token}` },
+                                                        body: fd,
+                                                    });
+                                                    
+                                                    if (!resp.ok) throw new Error("Yuklab bo'lmadi");
+                                                    
+                                                    const result = await resp.json();
+                                                    setFormData({
+                                                        ...formData,
+                                                        file_id: result.file_id,
+                                                        content_type: result.content_type === "document" ? "pdf" : result.content_type,
+                                                        file_url: "",
+                                                    });
+                                                    toast.success(`✅ Fayl yuklandi! (${result.content_type})`);
+                                                } catch (err: any) {
+                                                    toast.error("Faylni yuklashda xatolik: " + (err.message || ""));
+                                                }
+                                                
+                                                // Reset file input
+                                                e.target.value = "";
+                                            }}
+                                        />
+                                    </label>
+                                </div>
+                                
+                                {formData.file_id && (
+                                    <div className="flex items-center gap-2 p-2 bg-green-500/10 border border-green-500/20 rounded-lg text-xs text-green-400">
+                                        ✅ Fayl biriktirildi
+                                        <code className="text-[10px] truncate flex-1 opacity-60">{formData.file_id.slice(0, 30)}...</code>
+                                    </div>
+                                )}
+
+                                <details className="text-xs">
+                                    <summary className="text-muted-foreground cursor-pointer hover:text-foreground">Yoki Telegram File ID qo'lda kiriting</summary>
+                                    <Input
+                                        className="mt-2"
+                                        value={formData.file_id}
+                                        onChange={(e) => setFormData({ ...formData, file_id: e.target.value, file_url: "" })}
+                                        placeholder="BQACAgIAAxkBA..."
+                                    />
+                                </details>
                             </div>
 
                             <div className="flex items-center gap-2 pt-2">
