@@ -214,16 +214,20 @@ async def cmd_start(message: Message, state: FSMContext):
             from bot.handlers.lead_magnet import deliver_lead_magnet_force
             await deliver_lead_magnet_force(message, message.from_user.id)
             lead_magnet_delivered = True
-        except Exception:
-            pass
+        except Exception as e:
+            from bot.config import settings
+            if message.from_user.id in settings.ADMIN_IDS:
+                await message.answer(f"⚠️ <b>Admin uchun xatolik:</b> Qo'llanma faylini jo'natishda Telegram xato berdi. Ehtimol Fayl ID xato yoki muddati o'tgan:\n\n<code>{e}</code>", parse_mode="HTML")
     elif deep_link and source and source not in ("referral",):
         # Plain source deep link — also try as campaign
         try:
             from bot.handlers.lead_magnet import deliver_lead_magnet_force
             await deliver_lead_magnet_force(message, message.from_user.id)
             lead_magnet_delivered = True
-        except Exception:
-            pass
+        except Exception as e:
+            from bot.config import settings
+            if message.from_user.id in settings.ADMIN_IDS:
+                await message.answer(f"⚠️ <b>Admin uchun xatolik:</b> Qo'llanma faylini jo'natishda Telegram xato berdi:\n\n<code>{e}</code>", parse_mode="HTML")
 
     # ── Show main menu ──
     if is_new:
