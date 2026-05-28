@@ -8,6 +8,8 @@ from bot.config import settings
 logger = logging.getLogger(__name__)
 
 db_url = settings.DATABASE_URL
+if db_url.startswith("postgresql://"):
+    db_url = db_url.replace("postgresql://", "postgresql+asyncpg://", 1)
 is_sqlite = db_url.startswith("sqlite")
 
 # --- Async Engine ---
