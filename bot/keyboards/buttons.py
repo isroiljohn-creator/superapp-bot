@@ -13,47 +13,21 @@ from bot.locales import uz
 # Main menu
 # ──────────────────────────────────────────────
 async def get_main_menu(user_id: int = None) -> ReplyKeyboardMarkup:
-    """Main menu — restructured layout with async DB check for Nuvi Team."""
+    """Main menu — restructured layout."""
     from bot.config import settings
-    from db.database import async_session
-    from db.models import User
-    from sqlalchemy import select
     
-    # Check is_team_member from DB
-    is_team_member = False
-    if user_id:
-        async with async_session() as session:
-            res = await session.execute(select(User.is_team_member).where(User.telegram_id == user_id))
-            is_team_member = res.scalar() or False
-            
     is_admin = user_id and user_id in settings.ADMIN_IDS
             
-    base_url = settings.WEBAPP_URL or f"https://{settings.RAILWAY_PUBLIC_DOMAIN}"
-    app_url = f"{base_url.rstrip('/')}/nuviteam/?v=5"
-    
     buttons = [
         [KeyboardButton(text=uz.MENU_BTN_AI_WORKERS), KeyboardButton(text=uz.MENU_BTN_FREE_LESSONS)],
         [KeyboardButton(text=uz.MENU_BTN_COURSE), KeyboardButton(text=uz.MENU_BTN_JOBS)],
         [KeyboardButton(text=uz.MENU_BTN_SUPERAPP), KeyboardButton(text=uz.MENU_BTN_PROFILE)],
     ]
     
-    # Insert Nuvi Team button dynamically ONLY if user is in team
-    if is_team_member or is_admin:
-        buttons.insert(0, [KeyboardButton(text=uz.SUPERAPP_BTN_TEAM)])
-    
     if is_admin:
         buttons.append([KeyboardButton(text=uz.MENU_BTN_ADMIN)])
         
     return ReplyKeyboardMarkup(keyboard=buttons, resize_keyboard=True)
-
-
-def nuvi_team_inline_keyboard(app_url: str) -> InlineKeyboardMarkup:
-    """Inline button to launch Nuvi Team Web App."""
-    return InlineKeyboardMarkup(
-        inline_keyboard=[
-            [InlineKeyboardButton(text="🏢 Ilovaga kirish", web_app=WebAppInfo(url=app_url))]
-        ]
-    )
 
 
 def superapp_keyboard() -> ReplyKeyboardMarkup:

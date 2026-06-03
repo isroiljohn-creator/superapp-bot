@@ -99,22 +99,6 @@ async def prompt_compressor(message: Message, state: FSMContext):
     await state.set_state(AICompressorFSM.waiting_for_file)
     await message.answer("🗜 <b>Hajmni qisqartirish</b>\n\nHajmini kichraytirmoqchi bo'lgan Video, Rasm yoki PDF faylini yuboring:", parse_mode="HTML")
 
-@router.message(F.text == uz.SUPERAPP_BTN_TEAM)
-async def nuvi_team_fallback(message: Message):
-    # Bu handler asosan fallback uchun xizmat qiladi, chunki web_app tugmasi 
-    # to'g'ridan to'g'ri mini-app ni ochib yuboradi. Agar desktop/old version bo'lsa
-    # shu yerga tushadi.
-    from bot.config import settings
-    from bot.keyboards.buttons import nuvi_team_inline_keyboard
-    
-    # We ideally would check DB for is_team_member here, but since this is just a fallback,
-    # we can allow it for admins.
-    if message.from_user.id in settings.ADMIN_IDS:
-        base_url = settings.WEBAPP_URL or f"https://{settings.RAILWAY_PUBLIC_DOMAIN}"
-        app_url = f"{base_url.rstrip('/')}/nuviteam/?v=5"
-        await message.answer("💼 Nuvi Team ilovasini ochish uchun quyidagi tugmani bosing:", reply_markup=nuvi_team_inline_keyboard(app_url))
-    else:
-        await message.answer("Siz Nuvi jamoasi ro'yxatida yo'qsiz (Muhim qism yopiq).")
 
 @router.callback_query(F.data == "superapp:back")
 async def superapp_back(callback: CallbackQuery):
