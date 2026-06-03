@@ -93,58 +93,6 @@ async def cmd_stats(message: Message, user_id_override: int = None):
         await message.answer(uz.ADMIN_ONLY)
         return
 
-@router.message(Command("admin_dupes"))
-async def cmd_admin_dupes(message: Message):
-    """Temporary command to query duplicate users in the live database."""
-    if not is_admin(message.from_user.id):
-        return
-        
-    async with async_session() as session:
-        from sqlalchemy import text
-        lines = ["🔍 <b>Baza Chuqur Tahlili (Dublikatlar)</b>\n"]
-
-        # 1. Check duplicate telegram_ids
-        res_tg = await session.execute(text("""
-            SELECT telegram_id, COUNT(*) as c
-            FROM users 
-            GROUP BY telegram_id 
-            HAVING COUNT(*) > 1
-        """))
-        dupes_tg = res_tg.fetchall()
-        if dupes_tg:
-            lines.append(f"❌ <b>Telegram ID dublikatlari topildi: {len(dupes_tg)} ta!</b>")
-            for row in dupes_tg[:30]:
-                lines.append(f"  ID: <code>{row[0]}</code> - {row[1]} ta")
-        else:
-            lines.append("✅ <b>Telegram ID bo'yicha:</b> Baza top-toza! Bitta Telegram ID dan 2 ta ochiq profil umuman yo'q.")
-
-        # 2. Check duplicate phone numbers (ignoring nulls)
-        res_phone = await session.execute(text("""
-            SELECT phone, COUNT(*) as c
-            FROM users 
-            WHERE phone IS NOT NULL AND phone != ''
-            GROUP BY phone 
-            HAVING COUNT(*) > 1
-        """))
-        dupes_phone = res_phone.fetchall()
-        if dupes_phone:
-            lines.append(f"\n⚠️ <b>Bir xil Telefon raqam ishlatganlar: {len(dupes_phone)} xil raqam!</b> (Boshqa odam orqali o'z raqamini saqlagan bo'lishi mumkin)")
-            for row in dupes_phone[:30]:
-                lines.append(f"  Raqam: <code>{row[0]}</code> - {row[1]} marta")
-        else:
-            lines.append("\n✅ <b>Telefon raqam bo'yicha:</b> Hamma raqamlar unikal. Bitta raqamdan bir necha kishi foydalanmagan.")
-
-        # 3. DB Row count
-        res_count = await session.execute(text("SELECT COUNT(*) FROM users"))
-        total_rows_db = res_count.scalar()
-        lines.append(f"\n📊 <b>Bazada saqlanayotgan jami foydalanuvchilar qatori (Rows):</b> {total_rows_db} ta.")
-        
-        out_text = "\n".join(lines)
-        if len(out_text) > 4000:
-            out_text = out_text[:4000] + "\n... (davomi bor)"
-            
-        await message.answer(out_text, parse_mode="HTML")
-
     async with async_session() as session:
         crm = CRMService(session)
         analytics = AnalyticsService(session)
@@ -201,6 +149,59 @@ async def cmd_admin_dupes(message: Message):
     )
 
     await message.answer(text, parse_mode="HTML")
+
+
+@router.message(Command("admin_dupes"))
+async def cmd_admin_dupes(message: Message):
+    """Temporary command to query duplicate users in the live database."""
+    if not is_admin(message.from_user.id):
+        return
+        
+    async with async_session() as session:
+        from sqlalchemy import text
+        lines = ["🔍 <b>Baza Chuqur Tahlili (Dublikatlar)</b>\n"]
+
+        # 1. Check duplicate telegram_ids
+        res_tg = await session.execute(text("""
+            SELECT telegram_id, COUNT(*) as c
+            FROM users 
+            GROUP BY telegram_id 
+            HAVING COUNT(*) > 1
+        """))
+        dupes_tg = res_tg.fetchall()
+        if dupes_tg:
+            lines.append(f"❌ <b>Telegram ID dublikatlari topildi: {len(dupes_tg)} ta!</b>")
+            for row in dupes_tg[:30]:
+                lines.append(f"  ID: <code>{row[0]}</code> - {row[1]} ta")
+        else:
+            lines.append("✅ <b>Telegram ID bo'yicha:</b> Baza top-toza! Bitta Telegram ID dan 2 ta ochiq profil umuman yo'q.")
+
+        # 2. Check duplicate phone numbers (ignoring nulls)
+        res_phone = await session.execute(text("""
+            SELECT phone, COUNT(*) as c
+            FROM users 
+            WHERE phone IS NOT NULL AND phone != ''
+            GROUP BY phone 
+            HAVING COUNT(*) > 1
+        """))
+        dupes_phone = res_phone.fetchall()
+        if dupes_phone:
+            lines.append(f"\n⚠️ <b>Bir xil Telefon raqam ishlatganlar: {len(dupes_phone)} xil raqam!</b> (Boshqa odam orqali o'z raqamini saqlagan bo'lishi mumkin)")
+            for row in dupes_phone[:30]:
+                lines.append(f"  Raqam: <code>{row[0]}</code> - {row[1]} marta")
+        else:
+            lines.append("\n✅ <b>Telefon raqam bo'yicha:</b> Hamma raqamlar unikal. Bitta raqamdan bir necha kishi foydalanmagan.")
+
+        # 3. DB Row count
+        res_count = await session.execute(text("SELECT COUNT(*) FROM users"))
+        total_rows_db = res_count.scalar()
+        lines.append(f"\n📊 <b>Bazada saqlanayotgan jami foydalanuvchilar qatori (Rows):</b> {total_rows_db} ta.")
+        
+        out_text = "\n".join(lines)
+        if len(out_text) > 4000:
+            out_text = out_text[:4000] + "\n... (davomi bor)"
+            
+        await message.answer(out_text, parse_mode="HTML")
 
 
 # ── /broadcast — Mass messaging ──────────
