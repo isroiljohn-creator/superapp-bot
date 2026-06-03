@@ -31,7 +31,7 @@ def upgrade() -> None:
             sa.Column('id', sa.Integer(), nullable=False),
             sa.Column('telegram_id', sa.BigInteger(), nullable=True),
             sa.Column('username', sa.String(), nullable=True),
-            sa.Column('full_name', sa.String(), nullable=True),
+            sa.Column('name', sa.String(), nullable=True),
             sa.Column('phone', sa.String(), nullable=True),
             sa.Column('age', sa.Integer(), nullable=True),
             sa.Column('gender', sa.String(), nullable=True),
