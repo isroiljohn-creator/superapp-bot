@@ -218,7 +218,19 @@ async def process_update_in_background(update: types.Update):
     """Background helper to process update, measure duration, and log exceptions."""
     start_time = time.perf_counter()
     update_id = update.update_id
-    logger.info(f"⏳ Processing update {update_id} in background...")
+    
+    # Extract update info for diagnostics
+    info = "unknown update type"
+    if update.message:
+        info = f"Message (text: {update.message.text!r}, from: {update.message.from_user.id if update.message.from_user else 'unknown'})"
+    elif update.callback_query:
+        info = f"CallbackQuery (data: {update.callback_query.data!r}, from: {update.callback_query.from_user.id if update.callback_query.from_user else 'unknown'})"
+    elif update.my_chat_member:
+        info = f"MyChatMember (new_status: {update.my_chat_member.new_chat_member.status!r})"
+    elif update.chat_member:
+        info = f"ChatMember (new_status: {update.chat_member.new_chat_member.status!r})"
+        
+    logger.info(f"⏳ Processing update {update_id} ({info}) in background...")
     try:
         await dp.feed_update(bot=bot, update=update)
         elapsed = (time.perf_counter() - start_time) * 1000
