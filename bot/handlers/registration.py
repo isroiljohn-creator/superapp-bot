@@ -458,9 +458,10 @@ async def process_phone(message: Message, state: FSMContext):
         )
         return
 
-    phone = message.contact.phone_number
-    if not phone.startswith("+"):
-        phone = "+" + phone
+    # Clean phone number: keep only digits
+    raw_phone = message.contact.phone_number or ""
+    digits = "".join(c for c in raw_phone if c.isdigit())
+    phone = "+" + digits
 
     if not phone.startswith("+998") or len(phone) != 13:
         await message.answer(
@@ -487,7 +488,14 @@ async def process_phone(message: Message, state: FSMContext):
             )
             return
 
-        await crm.set_phone(message.from_user.id, phone)
+        phone_saved = await crm.set_phone(message.from_user.id, phone)
+        if not phone_saved:
+            await message.answer(
+                "❌ Bu telefon raqami allaqachon boshqa hisobga ro'yxatdan o'tkazilgan.\n"
+                "Iltimos, o'zingizning shaxsiy raqamingizni yuboring.",
+                reply_markup=phone_keyboard(),
+            )
+            return
 
         user = await crm.get_user(message.from_user.id)
         analytics = AnalyticsService(session)

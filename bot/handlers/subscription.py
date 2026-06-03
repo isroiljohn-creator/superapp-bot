@@ -51,15 +51,18 @@ async def handle_payment_success(bot: Bot, telegram_id: int, card_token: str = N
         await session.commit()
 
     if amount_added > 0:
-        await bot.send_message(
-            chat_id=telegram_id,
-            text=(
-                f"✅ <b>To'lov muvaffaqiyatli!</b>\n\n"
-                f"💰 Hamyoningizga <b>{amount_added:,.0f} so'm</b> qo'shildi.\n"
-                f"Endi siz ushbu mablag'dan qulay narxlarda barcha xizmatlarimiz (Moderator bot, AI xodimlar) uchun foydalanishingiz mumkin."
-            ),
-            parse_mode="HTML",
-        )
+        try:
+            await bot.send_message(
+                chat_id=telegram_id,
+                text=(
+                    f"✅ <b>To'lov muvaffaqiyatli!</b>\n\n"
+                    f"💰 Hamyoningizga <b>{amount_added:,.0f} so'm</b> qo'shildi.\n"
+                    f"Endi siz ushbu mablag'dan qulay narxlarda barcha xizmatlarimiz (Moderator bot, AI xodimlar) uchun foydalanishingiz mumkin."
+                ),
+                parse_mode="HTML",
+            )
+        except Exception as e:
+            logger.warning(f"Failed to send payment success Telegram message to {telegram_id}: {e}")
 
 
 async def handle_payment_failed(bot: Bot, telegram_id: int):
@@ -74,10 +77,13 @@ async def handle_payment_failed(bot: Bot, telegram_id: int):
         await analytics.track(user_id=user.id, event_type=EVT_PAYMENT_FAIL)
         await session.commit()
 
-    await bot.send_message(
-        chat_id=telegram_id,
-        text=uz.PAYMENT_FAILED,
-    )
+    try:
+        await bot.send_message(
+            chat_id=telegram_id,
+            text=uz.PAYMENT_FAILED,
+        )
+    except Exception as e:
+        logger.warning(f"Failed to send payment failed Telegram message to {telegram_id}: {e}")
 
     # Schedule smart reminders
     try:

@@ -1,6 +1,5 @@
-"""Payment API router — init, Click/Payme webhooks."""
 from datetime import datetime, timezone
-from fastapi import APIRouter, Header, HTTPException, Request
+from fastapi import APIRouter, Header, HTTPException, Request, BackgroundTasks
 
 from api.auth import get_telegram_id_from_init_data
 from api.schemas import PaymentInitRequest, PaymentInitResponse
@@ -65,7 +64,7 @@ async def init_payment(
 
 
 @router.post("/webhook/click")
-async def click_webhook(request: Request):
+async def click_webhook(request: Request, background_tasks: BackgroundTasks):
     """Handle Click.uz payment webhook."""
     data = await request.form()
     data_dict = dict(data)
@@ -89,6 +88,15 @@ async def click_webhook(request: Request):
         if not payment:
             return {"error": -5, "error_note": "Transaction not found"}
 
+        # Anti-fraud: Verify click amount matches expected payment amount
+        try:
+            amount_received = float(data_dict.get("amount", 0))
+        except (ValueError, TypeError):
+            return {"error": -2, "error_note": "Incorrect amount"}
+
+        if abs(payment.amount - amount_received) > 0.01:
+            return {"error": -2, "error_note": "Incorrect amount"}
+
         if action == 0:
             # Prepare — check if order exists
             return {
@@ -107,15 +115,14 @@ async def click_webhook(request: Request):
                 )
                 await session.commit()
 
-                # Notify bot
+                # Notify bot asynchronously
                 from bot.handlers.subscription import handle_payment_failed
                 from api.main import bot as global_bot
                 
-                if not global_bot:
+                bot_instance = global_bot
+                if not bot_instance:
                     from aiogram import Bot
                     bot_instance = Bot(token=settings.BOT_TOKEN)
-                else:
-                    bot_instance = global_bot
                 
                 try:
                     from db.models import User
@@ -125,10 +132,9 @@ async def click_webhook(request: Request):
                     )
                     user = user_result.scalar_one_or_none()
                     if user:
-                        await handle_payment_failed(bot_instance, user.telegram_id)
+                        background_tasks.add_task(handle_payment_failed, bot_instance, user.telegram_id)
                 finally:
-                    if not global_bot:
-                        await bot_instance.session.close()
+                    pass
 
                 return {"error": error, "error_note": "Payment failed"}
 
@@ -140,13 +146,12 @@ async def click_webhook(request: Request):
             )
             await session.commit()
 
-            # Activate subscription via bot
+            # Activate subscription via bot asynchronously
             from api.main import bot as global_bot
-            if not global_bot:
+            bot_instance = global_bot
+            if not bot_instance:
                 from aiogram import Bot
                 bot_instance = Bot(token=settings.BOT_TOKEN)
-            else:
-                bot_instance = global_bot
 
             try:
                 from db.models import User
@@ -156,10 +161,9 @@ async def click_webhook(request: Request):
                 )
                 user = user_result.scalar_one_or_none()
                 if user:
-                    await handle_payment_success(bot_instance, user.telegram_id, payment_id=payment.id)
+                    background_tasks.add_task(handle_payment_success, bot_instance, user.telegram_id, payment_id=payment.id)
             finally:
-                if not global_bot:
-                    await bot_instance.session.close()
+                pass
 
             return {
                 "error": 0,
@@ -172,7 +176,7 @@ async def click_webhook(request: Request):
 
 
 @router.post("/webhook/payme")
-async def payme_webhook(request: Request):
+async def payme_webhook(request: Request, background_tasks: BackgroundTasks):
     """Handle Payme payment webhook (JSON-RPC)."""
     auth = request.headers.get("Authorization", "")
     if not PaymentService.verify_payme_token(auth):
@@ -198,6 +202,17 @@ async def payme_webhook(request: Request):
             payment = await payment_service.get_payment(int(order_id))
             if not payment:
                 return {"error": {"code": -31050, "message": "Order not found"}, "id": rpc_id}
+            
+            # Anti-fraud: Verify Payme amount matches expected payment amount
+            # Payme amount is sent in tiyin (1 UZS = 100 tiyin)
+            try:
+                amount_received = float(params.get("amount", 0)) / 100.0
+            except (ValueError, TypeError):
+                return {"error": {"code": -31001, "message": "Incorrect amount"}, "id": rpc_id}
+
+            if abs(payment.amount - amount_received) > 0.01:
+                return {"error": {"code": -31001, "message": "Incorrect amount"}, "id": rpc_id}
+
             return {"result": {"allow": True}, "id": rpc_id}
 
         elif method == "CreateTransaction":
@@ -237,16 +252,15 @@ async def payme_webhook(request: Request):
             await payment_service.update_status(payment.id, "success")
             await session.commit()
 
-            # Activate subscription
+            # Activate subscription asynchronously
             from bot.handlers.subscription import handle_payment_success
             from api.main import bot as global_bot
             from db.models import User
             
-            if not global_bot:
+            bot_instance = global_bot
+            if not bot_instance:
                 from aiogram import Bot
                 bot_instance = Bot(token=settings.BOT_TOKEN)
-            else:
-                bot_instance = global_bot
             
             try:
                 user_result = await session.execute(
@@ -254,10 +268,9 @@ async def payme_webhook(request: Request):
                 )
                 user = user_result.scalar_one_or_none()
                 if user:
-                    await handle_payment_success(bot_instance, user.telegram_id, payment_id=payment.id)
+                    background_tasks.add_task(handle_payment_success, bot_instance, user.telegram_id, payment_id=payment.id)
             finally:
-                if not global_bot:
-                    await bot_instance.session.close()
+                pass
 
             return {
                 "result": {

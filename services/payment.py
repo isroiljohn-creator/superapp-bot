@@ -64,15 +64,30 @@ class PaymentService:
     @staticmethod
     def verify_click_signature(data: dict) -> bool:
         """Verify Click.uz webhook signature."""
-        sign_string = "{click_trans_id}{service_id}{secret_key}{merchant_trans_id}{amount}{action}{sign_time}".format(
-            click_trans_id=data.get("click_trans_id", ""),
-            service_id=data.get("service_id", ""),
-            secret_key=settings.CLICK_SECRET_KEY,
-            merchant_trans_id=data.get("merchant_trans_id", ""),
-            amount=data.get("amount", ""),
-            action=data.get("action", ""),
-            sign_time=data.get("sign_time", ""),
-        )
+        action = int(data.get("action", 0))
+        if action == 1:
+            # Complete action contains merchant_prepare_id
+            sign_string = "{click_trans_id}{service_id}{secret_key}{merchant_trans_id}{merchant_prepare_id}{amount}{action}{sign_time}".format(
+                click_trans_id=data.get("click_trans_id", ""),
+                service_id=data.get("service_id", ""),
+                secret_key=settings.CLICK_SECRET_KEY,
+                merchant_trans_id=data.get("merchant_trans_id", ""),
+                merchant_prepare_id=data.get("merchant_prepare_id", ""),
+                amount=data.get("amount", ""),
+                action=data.get("action", ""),
+                sign_time=data.get("sign_time", ""),
+            )
+        else:
+            # Prepare action signature
+            sign_string = "{click_trans_id}{service_id}{secret_key}{merchant_trans_id}{amount}{action}{sign_time}".format(
+                click_trans_id=data.get("click_trans_id", ""),
+                service_id=data.get("service_id", ""),
+                secret_key=settings.CLICK_SECRET_KEY,
+                merchant_trans_id=data.get("merchant_trans_id", ""),
+                amount=data.get("amount", ""),
+                action=data.get("action", ""),
+                sign_time=data.get("sign_time", ""),
+            )
         expected_sign = hashlib.md5(sign_string.encode()).hexdigest()
         return data.get("sign_string", data.get("sign", "")) == expected_sign
 

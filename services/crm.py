@@ -118,8 +118,14 @@ class CRMService:
             update(User).where(User.telegram_id == telegram_id).values(age=age)
         )
 
-    async def set_phone(self, telegram_id: int, phone: str):
+    async def set_phone(self, telegram_id: int, phone: str) -> bool:
         phone_hash = hashlib.sha256(phone.encode()).hexdigest()
+        # Check if phone_hash is already registered by another user
+        dup_query = select(User).where(User.phone_hash == phone_hash, User.telegram_id != telegram_id)
+        dup_res = await self.session.execute(dup_query)
+        if dup_res.scalar_one_or_none():
+            return False  # phone already in use
+
         await self.session.execute(
             update(User)
             .where(User.telegram_id == telegram_id)
@@ -129,6 +135,7 @@ class CRMService:
                 registered_at=datetime.now(timezone.utc).replace(tzinfo=None),
             )
         )
+        return True
 
     # ── Segmentation ─────────────────────────
     async def set_goal(self, telegram_id: int, goal: str):

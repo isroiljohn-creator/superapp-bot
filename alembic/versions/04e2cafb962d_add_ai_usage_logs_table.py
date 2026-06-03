@@ -37,16 +37,34 @@ def upgrade() -> None:
     op.alter_column('admin_events', 'event_type',
                existing_type=sa.VARCHAR(),
                nullable=True)
-    op.drop_index(op.f('idx_admin_events_created_at'), table_name='admin_events')
-    op.drop_index(op.f('idx_admin_events_type_created'), table_name='admin_events')
-    op.drop_index(op.f('idx_admin_events_user_created'), table_name='admin_events')
+               
+    def safe_drop_index(name, table_name):
+        conn = op.get_bind()
+        res = conn.execute(sa.text("SELECT 1 FROM pg_indexes WHERE indexname = :indexname"), {"indexname": name})
+        if res.scalar() is not None:
+            op.drop_index(name, table_name=table_name)
+
+    def safe_drop_column(table_name, column_name):
+        conn = op.get_bind()
+        res = conn.execute(sa.text(
+            "SELECT 1 FROM information_schema.columns "
+            "WHERE table_name = :table_name AND column_name = :column_name"
+        ), {"table_name": table_name, "column_name": column_name})
+        if res.scalar() is not None:
+            op.drop_column(table_name, column_name)
+
+    safe_drop_index('idx_admin_events_created_at', 'admin_events')
+    safe_drop_index('idx_admin_events_type_created', 'admin_events')
+    safe_drop_index('idx_admin_events_user_created', 'admin_events')
+    
     op.create_index(op.f('ix_admin_events_created_at'), 'admin_events', ['created_at'], unique=False)
     op.create_index(op.f('ix_admin_events_event_type'), 'admin_events', ['event_type'], unique=False)
     op.create_index(op.f('ix_admin_events_id'), 'admin_events', ['id'], unique=False)
     op.create_index(op.f('ix_admin_events_user_id'), 'admin_events', ['user_id'], unique=False)
-    op.drop_column('bot_content', 'category')
-    op.drop_index(op.f('idx_daily_logs_user_date'), table_name='daily_logs')
-    op.drop_index(op.f('idx_users_active_points'), table_name='users')
+    
+    safe_drop_column('bot_content', 'category')
+    safe_drop_index('idx_daily_logs_user_date', 'daily_logs')
+    safe_drop_index('idx_users_active_points', 'users')
     # ### end Alembic commands ###
 
 

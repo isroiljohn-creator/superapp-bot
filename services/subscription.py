@@ -82,8 +82,6 @@ class SubscriptionService:
             # Make expires_at timezone-aware for comparison
             expires = sub.expires_at.replace(tzinfo=None)
             if expires < datetime.now(timezone.utc).replace(tzinfo=None):
-                await self.expire(user_id)
-                # Note: caller must commit() — we don't commit inside a read-like method
                 return False
         return True
 

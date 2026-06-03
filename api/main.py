@@ -32,7 +32,7 @@ bot: Optional[Bot] = None
 dp: Optional[Dispatcher] = None
 
 async def make_storage():
-    """Create Redis FSM storage with fallback to MemoryStorage."""
+    """Create Redis FSM storage with fallback to MemoryStorage only in development."""
     try:
         from aiogram.fsm.storage.redis import RedisStorage
         storage = RedisStorage.from_url(settings.get_redis_url)
@@ -40,7 +40,10 @@ async def make_storage():
         logger.info("✅ Redis FSM storage connected")
         return storage
     except Exception as e:
-        logger.warning(f"⚠️ Redis FSM unavailable ({e}), falling back to MemoryStorage")
+        if settings.ENVIRONMENT == "production":
+            logger.critical(f"❌ Redis FSM connection failed in production! Bot will NOT start: {e}")
+            raise e
+        logger.warning(f"⚠️ Redis FSM unavailable ({e}), falling back to MemoryStorage for development")
         from aiogram.fsm.storage.memory import MemoryStorage
         return MemoryStorage()
 

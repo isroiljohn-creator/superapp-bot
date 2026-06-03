@@ -7,7 +7,7 @@ from alembic import op
 import sqlalchemy as sa
 
 revision = '008_add_ab_tests'
-down_revision = None
+down_revision = '001_initial'
 branch_labels = None
 depends_on = None
 

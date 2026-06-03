@@ -97,8 +97,8 @@ class Referral(Base):
     __tablename__ = "referrals"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    referer_id = Column(BigInteger, nullable=False, index=True)      # telegram_id of who referred
-    referred_id = Column(BigInteger, nullable=False, unique=True)    # telegram_id of referred user
+    referer_id = Column(BigInteger, ForeignKey("users.telegram_id", ondelete="CASCADE"), nullable=False, index=True)      # telegram_id of who referred
+    referred_id = Column(BigInteger, ForeignKey("users.telegram_id", ondelete="CASCADE"), nullable=False, unique=True)    # telegram_id of referred user
     status = Column(String(20), default="pending")  # pending | valid | paid | flagged
     reward_amount = Column(Integer, default=0)
     phone_hash = Column(String(64), nullable=True)
