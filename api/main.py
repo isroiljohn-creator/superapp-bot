@@ -215,13 +215,11 @@ async def bot_webhook(request: Request):
     if bot is None or dp is None:
         logger.warning("Webhook received before bot initialized — skipping")
         return {"ok": True}
-    await dp.feed_update(bot=bot, update=update)
+    import asyncio
+    asyncio.create_task(dp.feed_update(bot=bot, update=update))
     
     elapsed = (time.perf_counter() - start_time) * 1000
-    if elapsed > 1000:
-        logger.warning(f"⚠️ WEBHOOK sekin ishladi! Vaqt: {elapsed:.2f} ms")
-    else:
-        logger.info(f"⚡️ Webhook tezligi: {elapsed:.2f} ms")
+    logger.info(f"⚡️ Webhook qabul qilindi. Tezlik: {elapsed:.2f} ms")
         
     return {"ok": True}
 
