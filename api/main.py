@@ -25,6 +25,12 @@ from api.routers import user, payment, referral, course, admin, moderator_api, t
 
 from typing import Optional
 
+# Configure root logging for production container stdout/stderr
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+    stream=sys.stdout,
+)
 logger = logging.getLogger(__name__)
 
 # Global bot and dispatcher
@@ -53,9 +59,12 @@ async def lifespan(app: FastAPI):
     from db.database import init_db, async_session
     await init_db()
 
-    # Start AmoCRM daily cron
-    from services.daily_cron import start_cron
-    start_cron()
+    service_name = os.getenv("RAILWAY_SERVICE_NAME", "web")
+
+    # Start AmoCRM daily cron (ONLY on web service)
+    if service_name == "web":
+        from services.daily_cron import start_cron
+        start_cron()
 
     # (No redundant DB backfills)
 
@@ -99,32 +108,36 @@ async def lifespan(app: FastAPI):
     )
     logger.info("✅ Barcha bot handlerlar ro'yxatdan o'tkazildi")
 
-    # Set webhook if configured
+    # Set webhook if configured (ONLY on web service to prevent service conflicts)
     actual_webhook = settings.get_webhook_url
     if actual_webhook:
-        webhook_url = f"{actual_webhook}{settings.WEBHOOK_PATH}"
-        await bot.set_webhook(
-            url=webhook_url,
-            allowed_updates=dp.resolve_used_update_types(),
-            drop_pending_updates=True,
-            secret_token=settings.WEBHOOK_SECRET
-        )
-        logger.info(f"✅ Webhook o'rnatildi: {webhook_url}")
+        if service_name == "web":
+            webhook_url = f"{actual_webhook}{settings.WEBHOOK_PATH}"
+            await bot.set_webhook(
+                url=webhook_url,
+                allowed_updates=dp.resolve_used_update_types(),
+                drop_pending_updates=True,
+                secret_token=settings.WEBHOOK_SECRET
+            )
+            logger.info(f"✅ Webhook o'rnatildi: {webhook_url}")
+        else:
+            logger.info(f"ℹ️ Webhook registration skipped on non-web service: {service_name}")
     else:
         logger.warning("⚠️ WEBHOOK_URL yo'q. Bot webhook orqali ishlamaydi (faqat polling)")
 
-    # Start background services
-    try:
-        from taskqueue import start_scheduled_message_checker
-        await start_scheduled_message_checker()
-        logger.info("✅ Scheduled message checker started")
-    except Exception as e:
-        logger.warning(f"Scheduled message checker failed to start: {e}")
+    # Start background services (ONLY on web service)
+    if service_name == "web":
+        try:
+            from taskqueue import start_scheduled_message_checker
+            await start_scheduled_message_checker()
+            logger.info("✅ Scheduled message checker started")
+        except Exception as e:
+            logger.warning(f"Scheduled message checker failed to start: {e}")
 
     yield
 
     # Shutdown
-    if actual_webhook:
+    if actual_webhook and service_name == "web":
         try:
             # DO NOT delete webhook here, because in Railway blue-green deployments,
             # the old container shutting down will delete the webhook the new container just set!
@@ -201,10 +214,31 @@ async def root():
 <body><p>Redirecting to <a href="/admin/">Admin Dashboard</a>...</p></body>
 </html>""")
 
+async def process_update_in_background(update: types.Update):
+    """Background helper to process update, measure duration, and log exceptions."""
+    start_time = time.perf_counter()
+    update_id = update.update_id
+    logger.info(f"⏳ Processing update {update_id} in background...")
+    try:
+        await dp.feed_update(bot=bot, update=update)
+        elapsed = (time.perf_counter() - start_time) * 1000
+        logger.info(f"✅ Finished update {update_id} in {elapsed:.2f} ms")
+    except Exception as e:
+        elapsed = (time.perf_counter() - start_time) * 1000
+        logger.error(f"❌ Error processing update {update_id} after {elapsed:.2f} ms: {e}", exc_info=True)
+
+
 @app.post(settings.WEBHOOK_PATH)
 async def bot_webhook(request: Request):
     """Telegram webhook endpoint."""
     start_time = time.perf_counter()
+    
+    # Guard against non-web services handling webhook traffic
+    service_name = os.getenv("RAILWAY_SERVICE_NAME", "web")
+    if service_name != "web":
+        logger.warning(f"⚠️ Webhook update received on non-web service ({service_name}) — discarding")
+        return {"ok": True}
+
     if settings.WEBHOOK_SECRET:
         secret_header = request.headers.get("X-Telegram-Bot-Api-Secret-Token")
         if secret_header != settings.WEBHOOK_SECRET:
@@ -216,10 +250,10 @@ async def bot_webhook(request: Request):
         logger.warning("Webhook received before bot initialized — skipping")
         return {"ok": True}
     import asyncio
-    asyncio.create_task(dp.feed_update(bot=bot, update=update))
+    asyncio.create_task(process_update_in_background(update))
     
     elapsed = (time.perf_counter() - start_time) * 1000
-    logger.info(f"⚡️ Webhook qabul qilindi. Tezlik: {elapsed:.2f} ms")
+    logger.info(f"⚡️ Webhook HTTP response completed in {elapsed:.2f} ms")
         
     return {"ok": True}
 
