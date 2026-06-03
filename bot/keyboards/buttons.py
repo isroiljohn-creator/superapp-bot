@@ -20,8 +20,7 @@ async def get_main_menu(user_id: int = None) -> ReplyKeyboardMarkup:
             
     buttons = [
         [KeyboardButton(text=uz.MENU_BTN_AI_WORKERS), KeyboardButton(text=uz.MENU_BTN_FREE_LESSONS)],
-        [KeyboardButton(text=uz.MENU_BTN_COURSE), KeyboardButton(text=uz.MENU_BTN_SUPERAPP)],
-        [KeyboardButton(text=uz.MENU_BTN_PROFILE)],
+        [KeyboardButton(text=uz.MENU_BTN_SUPERAPP), KeyboardButton(text=uz.MENU_BTN_PROFILE)],
     ]
     
     if is_admin:
@@ -45,9 +44,10 @@ def superapp_keyboard() -> ReplyKeyboardMarkup:
 
 # ──────────────────────────────────────────────
 def free_lessons_keyboard() -> ReplyKeyboardMarkup:
-    """Free lessons sub-menu: Videodarslar, Qo'llanmalar, Promtlar, AI ro'yxati."""
+    """Free lessons sub-menu: Videodarslar, Qo'llanmalar, Promtlar, AI ro'yxati, Kurs."""
     return ReplyKeyboardMarkup(
         keyboard=[
+            [KeyboardButton(text=uz.MENU_BTN_COURSE)],
             [KeyboardButton(text=uz.FREE_LESSONS_BTN_VIDEO), KeyboardButton(text=uz.FREE_LESSONS_BTN_GUIDES)],
             [KeyboardButton(text=uz.FREE_LESSONS_BTN_PROMPTS), KeyboardButton(text=uz.FREE_LESSONS_BTN_AI_LIST)],
             [KeyboardButton(text=uz.MENU_BTN_BACK)],
