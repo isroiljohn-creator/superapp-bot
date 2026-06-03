@@ -608,7 +608,7 @@ JOBS_LIST_EMPTY = (
     "Tez orada yangi ish o'rinlari qo'shiladi! 🔔"
 )
 
-JOBS_ASK_TITLE = "✍️ Lavozim nomini kiriting:\n\n<i>Masalan: SMM mutaxassisi, Dizayner, Dasturchi</i>"
+JOBS_ASK_TITLE = "✍️ Lavozim nomini kiriting:\n\n<i>Masalan: AI mutaxassisi, Prompt Engineer, Machine Learning Developer\n\n⚠️ Eslatma: Faqat Sun'iy Intellekt (AI) ga tegishli vakansiyalarni joylashtirish mumkin.</i>"
 
 JOBS_ASK_COMPANY = "🏢 Kompaniya nomini kiriting:\n\n<i>Masalan: NUVI Academy, IT Park</i>"
 

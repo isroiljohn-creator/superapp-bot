@@ -47,11 +47,38 @@ async def _get_jobs_channel_id(key: str = "jobs_channel_id") -> "int | None":
 
 
 def _is_ai_vacancy(title: str) -> bool:
-    """Check if vacancy is AI-related."""
-    ai_keywords = ["ai", "sun'iy intellekt", "ai mutaxassisi", "machine learning",
-                   "ml", "data scientist", "deep learning", "neyroset"]
+    """Check if vacancy is AI-related using robust keyword/phrase matching."""
+    import re
     title_lower = title.lower().strip()
-    return any(kw in title_lower for kw in ai_keywords)
+    
+    # 1. Check exact phrase matches (multi-word phrases)
+    ai_phrases = [
+        "sun'iy intellekt", "suniy intellekt", "sun'iy intelekt", "suniy intelekt",
+        "machine learning", "data scientist", "data science", "deep learning",
+        "neyron to'r", "neyron tor", "neural network", "computer vision",
+        "sun'iy ong", "suniy ong", "ai mutaxassisi"
+    ]
+    if any(phrase in title_lower for phrase in ai_phrases):
+        return True
+        
+    # 2. Tokenize into words
+    words = re.findall(r'[a-z0-9\'’`ʼ]+', title_lower)
+    
+    # 3. Check individual word matches
+    ai_exact_words = {"ai", "ml", "llm", "gpt", "nlp"}
+    for word in words:
+        # Check exact word matches
+        if word in ai_exact_words:
+            return True
+        # Check if the word contains AI-specific substrings
+        if "gpt" in word or "llm" in word or "chatbot" in word:
+            return True
+        # Check prefixes
+        if word.startswith("neyro") or word.startswith("neuro") or word.startswith("prompt"):
+            return True
+            
+    return False
+
 
 
 async def _get_target_channel(title: str) -> "tuple[int | None, int | None]":
@@ -392,14 +419,14 @@ def _job_categories_keyboard() -> InlineKeyboardMarkup:
 
 @router.callback_query(F.data == "jobs:post")
 async def start_job_post(callback: CallbackQuery, state: FSMContext):
-    """Start vacancy posting FSM — show category selection."""
+    """Start vacancy posting FSM — show AI category selection."""
     await state.clear()
     await state.set_state(JobPostFSM.waiting_title)
-    await callback.message.answer(
-        "💼 <b>Vakansiya sohasi</b>\n\n"
-        "Quyidan sohani tanlang yoki o'zingiz yozing 👇",
+    await callback.message.edit_text(
+        "🤖 <b>AI vakansiya yo'nalishi</b>\n\n"
+        "Qaysi AI yo'nalishi bo'yicha mutaxassis kerak? Quyidan tanlang yoki o'zingiz yozing 👇",
         parse_mode="HTML",
-        reply_markup=_job_categories_keyboard(),
+        reply_markup=_ai_subcategories_keyboard(),
     )
     await callback.answer()
 
@@ -434,33 +461,29 @@ def _ai_subcategories_keyboard() -> InlineKeyboardMarkup:
             ))
         buttons.append(row)
     buttons.append([InlineKeyboardButton(text="✍️ O'zim yozaman", callback_data="jaisub:custom")])
-    buttons.append([InlineKeyboardButton(text="🔙 Orqaga", callback_data="jaisub:back")])
+    buttons.append([InlineKeyboardButton(text="🔙 Orqaga", callback_data="jobs:back")])
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 
 @router.callback_query(F.data.startswith("jcat:"), JobPostFSM.waiting_title)
 async def process_job_category(callback: CallbackQuery, state: FSMContext):
-    """Handle category selection from inline buttons."""
+    """Handle category selection from inline buttons (legacy fallback)."""
     category = callback.data.split(":", 1)[1]
-
-    if category == "custom":
-        # User wants to type custom title
-        await callback.message.answer(uz.JOBS_ASK_TITLE, parse_mode="HTML")
-        await callback.answer()
-        return  # Stay in waiting_title state for text input
-
-    if category == "AI mutaxassisi":
-        # Show AI sub-categories
+    if category == "custom" or category == "AI mutaxassisi":
         await callback.message.edit_text(
-            "🤖 <b>AI hizmat turini tanlang</b>\n\n"
-            "Qaysi AI yo'nalishi bo'yicha mutaxassis kerak? 👇",
+            "🤖 <b>AI vakansiya yo'nalishi</b>\n\n"
+            "Qaysi AI yo'nalishi bo'yicha mutaxassis kerak? Quyidan tanlang yoki o'zingiz yozing 👇",
             parse_mode="HTML",
             reply_markup=_ai_subcategories_keyboard(),
         )
         await callback.answer()
-        return  # Stay in waiting_title state
+        return
 
-    # Category selected — save and move to next step
+    # Check if category is AI-related (should not happen normally)
+    if not _is_ai_vacancy(category):
+        await callback.answer("❌ Faqat AI ga taaluqli vakansiyalarni joylash mumkin.", show_alert=True)
+        return
+
     await state.update_data(title=category)
     await state.set_state(JobPostFSM.waiting_company)
     await callback.message.answer(uz.JOBS_ASK_COMPANY, parse_mode="HTML")
@@ -473,14 +496,8 @@ async def process_ai_subcategory(callback: CallbackQuery, state: FSMContext):
     value = callback.data.split(":", 1)[1]
 
     if value == "back":
-        # Go back to main categories
-        await callback.message.edit_text(
-            "💼 <b>Vakansiya sohasi</b>\n\n"
-            "Quyidan sohani tanlang yoki o'zingiz yozing 👇",
-            parse_mode="HTML",
-            reply_markup=_job_categories_keyboard(),
-        )
-        await callback.answer()
+        # Fallback to main jobs hub
+        await jobs_back(callback)
         return
 
     if value == "custom":
@@ -503,11 +520,21 @@ async def process_ai_subcategory(callback: CallbackQuery, state: FSMContext):
 
 @router.message(JobPostFSM.waiting_title)
 async def process_job_title(message: Message, state: FSMContext):
-    """Handle custom title text input."""
+    """Handle custom title text input with validation for AI relatedness."""
     if not message.text or len(message.text.strip()) < 2:
         await message.answer(uz.JOBS_ASK_TITLE, parse_mode="HTML")
         return
-    await state.update_data(title=message.text.strip()[:255])
+        
+    title = message.text.strip()
+    if not _is_ai_vacancy(title):
+        await message.answer(
+            "❌ <b>Kechirasiz, faqat AI (Sun'iy intellekt) ga tegishli vakansiyalarni joylashtirish mumkin.</b>\n\n"
+            "Iltimos, AI ga tegishli sohani kiriting (masalan, <i>AI mutaxassisi, Prompt Engineer, Machine Learning Developer</i>):",
+            parse_mode="HTML"
+        )
+        return
+
+    await state.update_data(title=title[:255])
     await state.set_state(JobPostFSM.waiting_company)
     await message.answer(uz.JOBS_ASK_COMPANY, parse_mode="HTML")
 
