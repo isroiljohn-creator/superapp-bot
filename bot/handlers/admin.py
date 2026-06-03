@@ -597,7 +597,11 @@ async def cmd_set_setting(message: Message):
     await message.answer(f"✅ <code>{key}</code> = <code>{value}</code>", parse_mode="HTML")
 
 
-@router.message(F.document | F.video | F.photo | F.audio | F.voice | F.video_note)
+def is_admin_msg(message: Message) -> bool:
+    return message.from_user is not None and is_admin(message.from_user.id)
+
+
+@router.message(is_admin_msg, F.document | F.video | F.photo | F.audio | F.voice | F.video_note)
 async def admin_get_file_id(message: Message, state: FSMContext):
     """Utility for admins to easily get a file_id by just sending a file to the bot."""
     if not is_admin(message.from_user.id):
