@@ -21,13 +21,12 @@ class UserProfile(BaseModel):
     username: Optional[str] = None
     role: str
 
-@router.get("/auth", response_model=UserProfile)
-async def check_team_auth(
+async def _verify_team_auth(
     authorization: str = Header(default=""),
     init_data: str = ""
-):
+) -> UserProfile:
     """Verifies that the incoming user is an Admin/Team member."""
-    
+
     if authorization.lower().startswith("bearer "):
         # JWT Flow
         try:
@@ -85,10 +84,16 @@ async def check_team_auth(
         role="Admin/Xodim"
     )
 
+
+@router.get("/auth", response_model=UserProfile)
+async def check_team_auth(profile: UserProfile = Depends(_verify_team_auth)):
+    return profile
+
+
 @router.get("/reports")
 async def get_team_reports(
     days: int = 7,
-    # Depends on check_team_auth (we reuse logic or write a clean dependency)
+    _profile: UserProfile = Depends(_verify_team_auth),
 ):
     from db.database import async_session
     from db.models import DailyReport

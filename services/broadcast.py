@@ -247,6 +247,15 @@ async def send_broadcast(
         if total == 0:
             await service.mark_completed(broadcast_id)
             await session.commit()
+            if progress_chat_id and bot_instance:
+                try:
+                    await bot_instance.send_message(
+                        chat_id=progress_chat_id,
+                        text=f"⚠️ <b>Broadcast #{broadcast_id}</b>: mos keluvchi qabul qiluvchi topilmadi (0 ta). Hech kimga yuborilmadi.",
+                        parse_mode="HTML",
+                    )
+                except Exception:
+                    pass
             return
 
         await service.mark_sending(broadcast_id, total)

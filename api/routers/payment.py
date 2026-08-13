@@ -109,6 +109,16 @@ async def click_webhook(request: Request, background_tasks: BackgroundTasks):
             # Complete
             from bot.handlers.subscription import handle_payment_success
             error = int(data_dict.get("error", 0))
+
+            # Idempotency: Click retries webhook delivery — don't double-credit
+            if payment.status == "success":
+                return {
+                    "error": 0,
+                    "click_trans_id": data_dict.get("click_trans_id"),
+                    "merchant_trans_id": merchant_trans_id,
+                    "merchant_confirm_id": payment.id,
+                }
+
             if error < 0:
                 await payment_service.update_status(
                     payment_id, "failed", webhook_data=data_dict
@@ -248,6 +258,17 @@ async def payme_webhook(request: Request, background_tasks: BackgroundTasks):
             payment = result.scalar_one_or_none()
             if not payment:
                 return {"error": {"code": -31003, "message": "Transaction not found"}, "id": rpc_id}
+
+            # Idempotency: Payme retries webhook delivery — don't double-credit
+            if payment.status == "success":
+                return {
+                    "result": {
+                        "transaction": str(payment.id),
+                        "perform_time": int(datetime.now(timezone.utc).timestamp() * 1000),
+                        "state": 2,
+                    },
+                    "id": rpc_id,
+                }
 
             await payment_service.update_status(payment.id, "success")
             await session.commit()

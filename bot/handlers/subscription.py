@@ -1,4 +1,5 @@
 """Subscription handler — payment webhooks & group management."""
+import logging
 from aiogram import Router, Bot
 from aiogram.types import Message
 
@@ -11,6 +12,56 @@ from services.referral import ReferralService
 from services.analytics import AnalyticsService, EVT_PAYMENT_SUCCESS, EVT_PAYMENT_FAIL
 
 router = Router(name="subscription")
+logger = logging.getLogger(__name__)
+
+
+async def handle_club_payment_success(bot: Bot, telegram_id: int, card_token: str = None):
+    """
+    Called when a "Yopiq Klub" subscription payment succeeds (Telegram Payments
+    or Click/Payme). Activates the subscription, applies referral rewards, and
+    sends the user an invite link to the private group.
+    """
+    async with async_session() as session:
+        crm = CRMService(session)
+        user = await crm.get_user(telegram_id)
+        if not user:
+            return
+
+        sub_service = SubscriptionService(session)
+        await sub_service.activate(user.id, card_token=card_token)
+
+        ref_service = ReferralService(session)
+        await ref_service.process_paid_referral(telegram_id)
+
+        analytics = AnalyticsService(session)
+        await analytics.track(user_id=user.id, event_type=EVT_PAYMENT_SUCCESS)
+
+        await session.commit()
+
+    invite_link = ""
+    if settings.PRIVATE_GROUP_ID:
+        try:
+            link_obj = await bot.create_chat_invite_link(
+                chat_id=settings.PRIVATE_GROUP_ID,
+                member_limit=1,
+            )
+            invite_link = link_obj.invite_link
+        except Exception as e:
+            logger.error(f"Failed to create invite link for {telegram_id}: {e}")
+
+    try:
+        if invite_link:
+            await bot.send_message(
+                chat_id=telegram_id,
+                text=uz.PAYMENT_SUCCESS.format(invite_link=invite_link),
+            )
+        else:
+            await bot.send_message(
+                chat_id=telegram_id,
+                text="🎉 To'lov muvaffaqiyatli! Obunangiz faollashtirildi.",
+            )
+    except Exception as e:
+        logger.warning(f"Failed to send club payment success message to {telegram_id}: {e}")
 
 
 async def handle_payment_success(bot: Bot, telegram_id: int, card_token: str = None, payment_id: int = None):
@@ -25,7 +76,7 @@ async def handle_payment_success(bot: Bot, telegram_id: int, card_token: str = N
         if not user:
             return
 
-        # Increment User balance (tokens)
+        # Increment User balance (tokens) and activate the club subscription
         if payment_id:
             from db.models import Payment
             from sqlalchemy import select, update
@@ -38,6 +89,8 @@ async def handle_payment_success(bot: Bot, telegram_id: int, card_token: str = N
                     .where(user.__class__.id == user.id)
                     .values(tokens=user.__class__.tokens + amount_added)
                 )
+                sub_service = SubscriptionService(session)
+                await sub_service.activate(user.id, card_token=card_token)
 
         # Apply referral rewards (if applicable for top-ups)
         # We can keep process_paid_referral to reward the inviter when someone tops up
