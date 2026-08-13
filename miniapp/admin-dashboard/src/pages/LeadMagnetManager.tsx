@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, Trash2, Pencil, Link as LinkIcon, FileText, Video, File, Copy } from "lucide-react";
+import { Plus, Trash2, Pencil, Link as LinkIcon, FileText, Video, File, Copy, Target, CircleAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import {
     Select,
@@ -26,10 +27,24 @@ interface LeadMagnet {
     created_at: string;
 }
 
+// The new funnel's 5 segmentation goals — bot/keyboards/buttons.py::goal_keyboard()
+// tags a user with one of these, then bot/handlers/lead_magnet.py looks up a
+// LeadMagnet by campaign="goal_{tag}" first. "lead_dars" is the final fallback
+// used when nothing else matches (services/funnel.py default).
+const FUNNEL_SEGMENTS: { key: string; label: string; hint: string }[] = [
+    { key: "goal_pul_topish", label: "Pul topish", hint: "AI orqali pul topish yo'llari haqida material" },
+    { key: "goal_tezlashtirish", label: "Ishni tezlashtirish", hint: "Ish jarayonini AI bilan tezlashtirish bo'yicha material" },
+    { key: "goal_kontent", label: "Kontent", hint: "Kontent yaratish uchun AI vositalari haqida material" },
+    { key: "goal_oqish", label: "O'qish", hint: "O'qish/o'rganishda AI yordamchisi haqida material" },
+    { key: "goal_biznes", label: "Biznes", hint: "Biznesga AI integratsiyasi haqida material" },
+    { key: "lead_dars", label: "Standart (agar segment topilmasa)", hint: "Hech qaysi segmentga mos material topilmasa, shu yuboriladi" },
+];
+
 export default function LeadMagnetManager() {
     const queryClient = useQueryClient();
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [editingMagnet, setEditingMagnet] = useState<LeadMagnet | null>(null);
+    const [campaignLocked, setCampaignLocked] = useState(false);
 
     // Form state
     const [formData, setFormData] = useState({
@@ -85,6 +100,7 @@ export default function LeadMagnetManager() {
 
     const resetForm = () => {
         setEditingMagnet(null);
+        setCampaignLocked(false);
         setFormData({
             campaign: "",
             content_type: "pdf",
@@ -95,8 +111,9 @@ export default function LeadMagnetManager() {
         });
     };
 
-    const handleEdit = (lm: LeadMagnet) => {
+    const handleEdit = (lm: LeadMagnet, locked = false) => {
         setEditingMagnet(lm);
+        setCampaignLocked(locked);
         setFormData({
             campaign: lm.campaign,
             content_type: lm.content_type,
@@ -104,6 +121,20 @@ export default function LeadMagnetManager() {
             file_url: lm.file_url || "",
             description: lm.description || "",
             is_active: lm.is_active,
+        });
+        setIsDialogOpen(true);
+    };
+
+    const handleAddSegment = (segment: { key: string; hint: string }) => {
+        setEditingMagnet(null);
+        setCampaignLocked(true);
+        setFormData({
+            campaign: segment.key,
+            content_type: "pdf",
+            file_id: "",
+            file_url: "",
+            description: segment.hint,
+            is_active: true,
         });
         setIsDialogOpen(true);
     };
@@ -154,10 +185,15 @@ export default function LeadMagnetManager() {
                                 <label className="text-sm font-medium">Havola nomi (inglizcha, probelsiz)</label>
                                 <Input
                                     value={formData.campaign}
+                                    disabled={campaignLocked}
                                     onChange={(e) => setFormData({ ...formData, campaign: e.target.value.replace(/\s+/g, '_').toLowerCase() })}
                                     placeholder="masalan: dars1, bonus_video"
                                 />
-                                <p className="text-xs text-muted-foreground">Bot linki shunday bo'ladi: t.me/Isroil_AIBot?start=<b>{formData.campaign || 'kampaniya'}</b></p>
+                                {campaignLocked ? (
+                                    <p className="text-xs text-muted-foreground">Bu — voronka segmenti, nomi o'zgartirilmaydi.</p>
+                                ) : (
+                                    <p className="text-xs text-muted-foreground">Bot linki shunday bo'ladi: t.me/Isroil_AIBot?start=<b>{formData.campaign || 'kampaniya'}</b></p>
+                                )}
                             </div>
 
                             <div className="space-y-2">
@@ -283,25 +319,76 @@ export default function LeadMagnetManager() {
                 </Dialog>
             </div>
 
-            <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3 text-sm flex gap-3 text-blue-200">
-                <LinkIcon className="h-5 w-5 shrink-0 text-blue-400" />
-                <p>
-                    Ushbu sahifada siz maxsus <b>/start</b> linklarini yaratishingiz mumkin. Bu havola orqali kiritilgan foydalanuvchilarga avtomat tarzda kerakli resurs (video, dokument) beriladi va ular ro'yxatdan o'tkaziladi.
+            <div>
+                <div className="flex items-center gap-2 mb-3">
+                    <Target className="h-4 w-4 text-primary" />
+                    <h3 className="text-sm font-semibold">Voronka segmentlari</h3>
+                </div>
+                <p className="text-xs text-muted-foreground mb-3">
+                    Foydalanuvchi /start bosib, 5 ta segmentdan birini tanlaganda, shu segmentga bog'langan material avtomatik yuboriladi. Har biriga bitta material biriktiring.
                 </p>
+                {isLoading ? (
+                    <div className="flex justify-center p-6">
+                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+                    </div>
+                ) : (
+                    <div className="grid gap-2 sm:grid-cols-2">
+                        {FUNNEL_SEGMENTS.map((segment) => {
+                            const existing = magnets.find((m) => m.campaign === segment.key);
+                            return (
+                                <div key={segment.key} className="glass-card p-3 rounded-xl flex items-center justify-between gap-3">
+                                    <div className="flex items-center gap-3 min-w-0">
+                                        <div className={"p-2 rounded-lg shrink-0 " + (existing ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground")}>
+                                            {existing ? getFileIcon(existing.content_type) : <CircleAlert className="h-4 w-4" />}
+                                        </div>
+                                        <div className="min-w-0">
+                                            <p className="text-sm font-medium truncate">{segment.label}</p>
+                                            {existing ? (
+                                                <p className="text-xs text-muted-foreground truncate">
+                                                    {existing.description || existing.content_type}
+                                                </p>
+                                            ) : (
+                                                <Badge variant="outline" className="text-[10px] mt-0.5">Material biriktirilmagan</Badge>
+                                            )}
+                                        </div>
+                                    </div>
+                                    <Button
+                                        size="sm"
+                                        variant={existing ? "secondary" : "default"}
+                                        className="shrink-0"
+                                        onClick={() => existing ? handleEdit(existing, true) : handleAddSegment(segment)}
+                                    >
+                                        {existing ? <Pencil className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}
+                                    </Button>
+                                </div>
+                            );
+                        })}
+                    </div>
+                )}
             </div>
 
-            {isLoading ? (
-                <div className="flex justify-center p-8">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                </div>
-            ) : magnets.length === 0 ? (
-                <div className="text-center p-8 border rounded-lg border-dashed text-muted-foreground">
-                    <FileText className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                    <p>Hozircha havolalar yo'q.</p>
-                </div>
-            ) : (
+            <div className="flex items-center gap-2 pt-2">
+                <LinkIcon className="h-4 w-4 text-muted-foreground" />
+                <h3 className="text-sm font-semibold">Boshqa havolalar</h3>
+            </div>
+            <p className="text-xs text-muted-foreground -mt-2">
+                Segmentlardan tashqari, o'zingiz xohlagan har qanday maxsus <b>/start</b> havolasi (masalan Instagram reels uchun) shu yerda yaratiladi.
+            </p>
+
+            {(() => {
+                const otherMagnets = magnets.filter((m) => !FUNNEL_SEGMENTS.some((s) => s.key === m.campaign));
+                if (isLoading) return null;
+                if (otherMagnets.length === 0) {
+                    return (
+                        <div className="text-center p-8 border rounded-lg border-dashed text-muted-foreground">
+                            <FileText className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                            <p>Hozircha boshqa havolalar yo'q.</p>
+                        </div>
+                    );
+                }
+                return (
                 <div className="grid gap-3">
-                    {magnets.map((magnet) => (
+                    {otherMagnets.map((magnet) => (
                         <div key={magnet.id} className="glass-card p-4 rounded-xl flex items-center justify-between gap-4">
                             <div className="flex gap-4 items-start flex-1 min-w-0">
                                 <div className={"p-2 rounded-lg shrink-0 " + (magnet.is_active ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground")}>
@@ -354,7 +441,8 @@ export default function LeadMagnetManager() {
                         </div>
                     ))}
                 </div>
-            )}
+                );
+            })()}
         </div>
     );
 }

@@ -26,18 +26,31 @@ _DAY_FALLBACK = {
 
 
 async def handle_warmup_day(bot: Bot, telegram_id: int, day: int):
-    """Send the warmup message for the given day (1-7)."""
+    """Send the warmup message for the given day (1-7).
+
+    Days 1/2/5/6 reference showing something visual ("ko'rsataman"); if the
+    admin has attached a photo/video for that day via AdminSetting keys
+    "warmup_day_{day}_media"/"warmup_day_{day}_media_type", it's sent with
+    the text as caption. Otherwise falls back to a plain text message —
+    nothing breaks if no media was ever configured.
+    """
     from db.database import async_session
     from db.models import AdminSetting
     from sqlalchemy import select
 
     async with async_session() as session:
         result = await session.execute(
-            select(AdminSetting.value).where(AdminSetting.key == f"warmup_day_{day}")
+            select(AdminSetting.key, AdminSetting.value).where(
+                AdminSetting.key.in_([
+                    f"warmup_day_{day}",
+                    f"warmup_day_{day}_media",
+                    f"warmup_day_{day}_media_type",
+                ])
+            )
         )
-        custom_text = result.scalar_one_or_none()
+        rows = dict(result.all())
 
-    text = custom_text or _DAY_FALLBACK.get(day, "")
+    text = rows.get(f"warmup_day_{day}") or _DAY_FALLBACK.get(day, "")
     if not text:
         return
 
@@ -46,5 +59,18 @@ async def handle_warmup_day(bot: Bot, telegram_id: int, day: int):
         kb = InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="🚀 AI START — 149,000 so'm", callback_data="tripwire:buy")]
         ])
+
+    media_file_id = rows.get(f"warmup_day_{day}_media")
+    media_type = rows.get(f"warmup_day_{day}_media_type") or "photo"
+
+    if media_file_id:
+        try:
+            if media_type == "video":
+                await bot.send_video(chat_id=telegram_id, video=media_file_id, caption=text, parse_mode="HTML", reply_markup=kb)
+            else:
+                await bot.send_photo(chat_id=telegram_id, photo=media_file_id, caption=text, parse_mode="HTML", reply_markup=kb)
+            return
+        except Exception as e:
+            logger.warning(f"Warmup day {day} media send failed, falling back to text: {e}")
 
     await bot.send_message(chat_id=telegram_id, text=text, parse_mode="HTML", reply_markup=kb)

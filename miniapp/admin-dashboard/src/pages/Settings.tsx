@@ -4,6 +4,18 @@ import { fetchApi } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 
 const SETTING_KEYS = [
+    { key: "warmup_day_1", label: "Progrev 1-kun (tanishuv)", placeholder: "Kodda tayyor matn bor — bu yerda o'zgartirsangiz, o'sha ishlatiladi" },
+    { key: "warmup_day_2", label: "Progrev 2-kun (talaba tajribasi)", placeholder: "Kodda tayyor matn bor — bu yerda o'zgartirsangiz, o'sha ishlatiladi" },
+    { key: "warmup_day_3", label: "Progrev 3-kun (amaliy dars)", placeholder: "Kodda tayyor matn bor — bu yerda o'zgartirsangiz, o'sha ishlatiladi" },
+    { key: "warmup_day_4", label: "Progrev 4-kun (keng tarqalgan xato)", placeholder: "Kodda tayyor matn bor — bu yerda o'zgartirsangiz, o'sha ishlatiladi" },
+    { key: "warmup_day_5", label: "Progrev 5-kun (kulisa ortida)", placeholder: "Kodda tayyor matn bor — bu yerda o'zgartirsangiz, o'sha ishlatiladi" },
+    { key: "warmup_day_6", label: "Progrev 6-kun (case breakdown)", placeholder: "Kodda tayyor matn bor — bu yerda o'zgartirsangiz, o'sha ishlatiladi" },
+    { key: "warmup_day_7", label: "Progrev 7-kun (taklif)", placeholder: "Kodda tayyor matn bor — bu yerda o'zgartirsangiz, o'sha ishlatiladi" },
+    { key: "warmup_day_1_media", label: "1-kun rasm/video file_id (ixtiyoriy)", placeholder: "Telegram file_id" },
+    { key: "warmup_day_5_media", label: "5-kun rasm/video file_id (ixtiyoriy)", placeholder: "Telegram file_id" },
+    { key: "warmup_day_6_media", label: "6-kun rasm/video file_id (ixtiyoriy)", placeholder: "Telegram file_id" },
+    { key: "masterclass_video_file_id", label: "Masterclass video file_id", placeholder: "Telegram file_id (tripwire xariddan keyin yuboriladi)" },
+    { key: "masterclass_delay_seconds", label: "Masterclass kechikishi (soniya)", placeholder: "3600" },
     { key: "churn_day_1", label: "Churn Day 1 (reminder)", placeholder: "Salom {name}! Sizni sog'indik..." },
     { key: "churn_day_3", label: "Churn Day 3 (value video)", placeholder: "{name}, sizga maxsus video tayyorladik..." },
     { key: "churn_day_5", label: "Churn Day 5 (discount)", placeholder: "{name}, 30% chegirma! Narx: {discounted_price}" },
@@ -53,7 +65,7 @@ export default function Settings() {
                 {SETTING_KEYS.map(({ key, label, placeholder }) => (
                     <div key={key} className="bg-card border border-border/30 rounded-lg p-4 space-y-2">
                         <label className="text-sm font-medium text-foreground">{label}</label>
-                        {key.startsWith("churn_") ? (
+                        {key.startsWith("churn_") || (key.startsWith("warmup_") && !key.includes("_media")) ? (
                             <textarea
                                 className="w-full bg-secondary/50 border border-border/30 rounded-md p-2 text-sm min-h-[80px] resize-y"
                                 placeholder={placeholder}
