@@ -47,10 +47,13 @@ INVALID_PHONE = "❌ Iltimos, pastdagi tugmani bosib telefon raqamingizni yubori
 # ──────────────────────────────────────────────
 ASK_GOAL = "🎯 Asosiy maqsadingiz nima?"
 
+# 5-option funnel segmentation (goal_tag values: pul_topish|tezlashtirish|kontent|oqish|biznes)
 GOAL_MAKE_MONEY = "💰 Pul topish"
-GOAL_GET_CLIENTS = "👥 Mijoz olish"
-GOAL_LEARN_AI = "📚 AI'ni o'rganish"
-GOAL_AUTOMATE = "⚙️ Biznesni avtomatlashtirish"
+GOAL_SPEED_UP_WORK = "⚡ Ishni tezlashtirish"
+GOAL_CONTENT = "🎬 Kontent"
+GOAL_STUDY = "📚 O'qish"
+GOAL_BUSINESS = "🏢 Biznes"
+
 
 ASK_LEVEL = "📊 Hozirgi darajangiz qanday?"
 
@@ -157,6 +160,51 @@ CHURN_DAY_7 = (
     "😔 {name}, afsuski obunangiz yakunlandi.\n"
     "Istalgan vaqt qaytib kelishingiz mumkin!\n\n"
     "Qayta obuna bo'lish 👇"
+)
+
+# ──────────────────────────────────────────────
+# 7-day warmup / progrev sequence (pre-tripwire nurture)
+# Admin can override any day via AdminSetting key "warmup_day_{N}"
+# ──────────────────────────────────────────────
+WARMUP_DAY_1 = (
+    "👋 Salom! Bugun sizga o'zim haqimda qisqacha aytib bermoqchiman.\n\n"
+    "13 yoshimda internetdan birinchi pulimni topganman. Shundan beri dizayn, "
+    "SMM va endi sun'iy intellekt orqali natijalar yaratib kelaman. "
+    "Shu yo'lda orttirgan tajribamni sizga ham o'rgataman 🚀"
+)
+
+WARMUP_DAY_2 = (
+    "🎓 Bugungi mavzu — talaba case'i.\n\n"
+    "AI'ni umuman bilmagan bir talabam bor edi. 30 kunlik amaliyotdan so'ng "
+    "u birinchi natijasini oldi. Bu tasodif emas — tizimli yondashuv natijasi."
+)
+
+WARMUP_DAY_3 = (
+    "⚡ Amaliy dars: AI orqali pul topishning 5 ta yo'li.\n\n"
+    "Bugun sizga real ishlaydigan 5 ta usulni qisqacha tushuntiraman — "
+    "har biri hoziroq qo'llash mumkin bo'lgan usullar."
+)
+
+WARMUP_DAY_4 = (
+    "⚠️ Ko'pchilik qiladigan bitta katta xato: faqat AI vositalarini yig'ish, "
+    "ulardan malaka sifatida foydalanmaslik.\n\n"
+    "Vosita yig'ish — ko'nikma emas. Ko'nikma — tizimli qo'llash."
+)
+
+WARMUP_DAY_5 = (
+    "🎬 Kulisa ortida: haqiqiy mijoz loyihasi ustida qanday ishlayotganimni ko'rsataman.\n\n"
+    "Bu — nazariya emas, real jarayon."
+)
+
+WARMUP_DAY_6 = (
+    "📊 Case breakdown: muammo → AI yechimi → natija.\n\n"
+    "Qancha vaqt tejalgani, qancha qiymat yaratilgani — barchasini raqamlarda ko'rsataman."
+)
+
+WARMUP_DAY_7 = (
+    "🎯 Bugun — taklif kuni.\n\n"
+    "AI'ni shunchaki ishlatish emas, undan kasb va daromad qilish vaqti keldi. "
+    "Sizni 90 daqiqalik amaliy intensivga taklif qilaman 👇"
 )
 
 # ──────────────────────────────────────────────
@@ -531,6 +579,13 @@ PROFILE_TEXT = (
 
 # Mappers from DB tags to Uzbek text for Profile
 GOAL_NAMES = {
+    # 5-option funnel segmentation (current)
+    "pul_topish": "Pul topish",
+    "tezlashtirish": "Ishni tezlashtirish",
+    "kontent": "Kontent",
+    "oqish": "O'qish",
+    "biznes": "Biznes",
+    # legacy values (pre-funnel-rebuild users) — kept so old tags still render
     "make_money": "Pul topish",
     "get_clients": "Mijoz olish",
     "learn_ai": "AI'ni o'rganish",

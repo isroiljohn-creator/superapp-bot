@@ -262,9 +262,11 @@ async def pedit_age(callback_query: CallbackQuery, state: FSMContext):
 async def pedit_goal(callback_query: CallbackQuery):
     """Show goal selection for profile editing."""
     kb = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text=uz.GOAL_MAKE_MONEY, callback_data="pedit_goal:make_money")],
-        [InlineKeyboardButton(text=uz.GOAL_GET_CLIENTS, callback_data="pedit_goal:get_clients")],
-        [InlineKeyboardButton(text=uz.GOAL_AUTOMATE, callback_data="pedit_goal:automate_business")],
+        [InlineKeyboardButton(text=uz.GOAL_MAKE_MONEY, callback_data="pedit_goal:pul_topish")],
+        [InlineKeyboardButton(text=uz.GOAL_SPEED_UP_WORK, callback_data="pedit_goal:tezlashtirish")],
+        [InlineKeyboardButton(text=uz.GOAL_CONTENT, callback_data="pedit_goal:kontent")],
+        [InlineKeyboardButton(text=uz.GOAL_STUDY, callback_data="pedit_goal:oqish")],
+        [InlineKeyboardButton(text=uz.GOAL_BUSINESS, callback_data="pedit_goal:biznes")],
     ])
     await callback_query.message.answer(uz.PROFILE_ASK_GOAL, parse_mode="HTML", reply_markup=kb)
     await callback_query.answer()
@@ -682,6 +684,25 @@ async def process_successful_payment(message: Message):
             bot=message.bot,
             telegram_id=message.from_user.id,
             card_token=charge_id,
+        )
+    elif payload.startswith("tripwire_ai_start"):
+        from bot.handlers.tripwire import handle_tripwire_payment_success
+        charge_id = payment_info.telegram_payment_charge_id or payment_info.provider_payment_charge_id
+        await handle_tripwire_payment_success(
+            bot=message.bot,
+            telegram_id=message.from_user.id,
+            card_token=charge_id,
+            currency=payment_info.currency,
+        )
+    elif payload.startswith("full_course"):
+        from bot.handlers.deals import handle_course_payment_success
+        charge_id = payment_info.telegram_payment_charge_id or payment_info.provider_payment_charge_id
+        await handle_course_payment_success(
+            bot=message.bot,
+            telegram_id=message.from_user.id,
+            payload=payload,
+            card_token=charge_id,
+            currency=payment_info.currency,
         )
     else:
         # Traditional payment (Click/Payme)

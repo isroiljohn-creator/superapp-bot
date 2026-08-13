@@ -4,6 +4,8 @@ from taskqueue import (
     schedule_broadcast,
     schedule_payment_reminders,
     schedule_churn_check,
+    schedule_warmup_sequence,
+    schedule_masterclass_send,
 )
 
 __all__ = [
@@ -11,4 +13,6 @@ __all__ = [
     "schedule_broadcast",
     "schedule_payment_reminders",
     "schedule_churn_check",
+    "schedule_warmup_sequence",
+    "schedule_masterclass_send",
 ]

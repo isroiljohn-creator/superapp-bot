@@ -14,7 +14,14 @@ router = Router(name="lead_magnet")
 
 
 async def _find_lead_magnet(funnel: FunnelService, user):
-    """Try to find a lead magnet by campaign, then source, then default."""
+    """Try to find a lead magnet by goal segment, then campaign, then source, then default."""
+    # 0. Try goal-tailored magnet first (admin creates a LeadMagnet per goal,
+    #    campaign key = "goal_{goal_tag}", e.g. "goal_pul_topish")
+    if user.goal_tag:
+        lm = await funnel.get_lead_magnet(f"goal_{user.goal_tag}")
+        if lm:
+            return lm
+
     # 1. Try campaign first
     if user.campaign:
         lm = await funnel.get_lead_magnet(user.campaign)

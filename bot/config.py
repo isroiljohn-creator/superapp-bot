@@ -78,7 +78,12 @@ class Settings(BaseSettings):
     ADMIN_DEV_BYPASS: str = ""       # Dev bypass token for admin Mini App testing
     PRIVATE_GROUP_ID: int = 0        # Private Telegram group ID (subscribers)
     CONTENT_CHANNEL_ID: int = 0      # Private channel for large video storage
-    CLUB_PRICE: int = 97_000         # UZS
+    CLUB_PRICE: int = 97_000         # UZS — legacy recurring club subscription, no longer sold
+
+    # ── New funnel: tripwire → masterclass → application → full course ──
+    TRIPWIRE_PRICE: int = 149_000        # UZS — "AI START" one-time product
+    FULL_COURSE_PRICE: int = 4_000_000   # UZS — full course, closed by sales manager
+    MASTERCLASS_DELAY_SECONDS: int = 3600  # default delay before auto-sending the masterclass video
 
     @property
     def ADMIN_IDS(self) -> List[int]:

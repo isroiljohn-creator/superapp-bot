@@ -101,7 +101,7 @@ export default function JobsManager() {
                                     <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground mt-1">
                                         <span className="font-semibold">{job.company || 'Kompaniya raqamsiz'}</span>
                                         <span>•</span>
-                                        <span>💰 {job.salary || 'Maosh aytilmagan'}</span>
+                                        <span>{job.salary || 'Maosh aytilmagan'}</span>
                                         <span>•</span>
                                         <span className="uppercase">{job.job_type}</span>
                                     </div>

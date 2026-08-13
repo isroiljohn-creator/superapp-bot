@@ -468,9 +468,9 @@ export default function UsersCRM() {
                               body: JSON.stringify({ amount: amt, reason: "Admin qo'shdi" }),
                             });
                             setSelectedUser({ ...selectedUser, tokens: res.new_balance });
-                            setBalanceMsg(`✅ +${amt.toLocaleString()}`);
+                            setBalanceMsg(`+${amt.toLocaleString()}`);
                             queryClient.invalidateQueries({ queryKey: ["admin_users"] });
-                          } catch { setBalanceMsg("❌ Xatolik"); }
+                          } catch { setBalanceMsg("Xatolik"); }
                           setBalanceLoading(false);
                         }}
                         className="px-2 py-1 text-[10px] font-medium bg-green-500/10 text-green-500 rounded hover:bg-green-500/20 transition-colors disabled:opacity-50"
@@ -493,9 +493,9 @@ export default function UsersCRM() {
                               body: JSON.stringify({ amount: -amt, reason: "Admin olib tashladi" }),
                             });
                             setSelectedUser({ ...selectedUser, tokens: res.new_balance });
-                            setBalanceMsg(`✅ -${amt.toLocaleString()}`);
+                            setBalanceMsg(`-${amt.toLocaleString()}`);
                             queryClient.invalidateQueries({ queryKey: ["admin_users"] });
-                          } catch { setBalanceMsg("❌ Xatolik"); }
+                          } catch { setBalanceMsg("Xatolik"); }
                           setBalanceLoading(false);
                         }}
                         className="px-2 py-1 text-[10px] font-medium bg-red-500/10 text-red-500 rounded hover:bg-red-500/20 transition-colors disabled:opacity-50"
@@ -527,10 +527,10 @@ export default function UsersCRM() {
                           body: JSON.stringify({ amount: amt, reason: `Admin: ${amt > 0 ? 'qo\'shdi' : 'olib tashladi'}` }),
                         });
                         setSelectedUser({ ...selectedUser, tokens: res.new_balance });
-                        setBalanceMsg(`✅ ${amt > 0 ? '+' : ''}${amt.toLocaleString()}`);
+                        setBalanceMsg(`${amt > 0 ? '+' : ''}${amt.toLocaleString()}`);
                         setBalanceAmount("");
                         queryClient.invalidateQueries({ queryKey: ["admin_users"] });
-                      } catch { setBalanceMsg("❌ Xatolik"); }
+                      } catch { setBalanceMsg("Xatolik"); }
                       setBalanceLoading(false);
                     }}
                     className="px-3 py-1 text-xs font-medium bg-primary text-primary-foreground rounded hover:bg-primary/90 transition-colors disabled:opacity-50"

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Home, Users, BarChart3, Send, FolderOpen, Settings as SettingsIcon, Briefcase } from "lucide-react";
+import { Home, Users, BarChart3, Send, FolderOpen, Settings as SettingsIcon, Briefcase, Kanban } from "lucide-react";
 import { ThemeToggle } from "./ThemeToggle";
 import DashboardHome from "@/pages/DashboardHome";
 import FunnelAnalytics from "@/pages/FunnelAnalytics";
@@ -15,10 +15,15 @@ import JobsManager from "@/pages/JobsManager";
 import ABTests from "@/pages/ABTests";
 import ScheduledMessages from "@/pages/ScheduledMessages";
 import PromptManager from "@/pages/PromptManager";
+import Pipeline from "@/pages/Pipeline";
+import Applications from "@/pages/Applications";
+import StaffManager from "@/pages/StaffManager";
+import FinanceReports from "@/pages/FinanceReports";
 
 const tabs = [
   { id: "home", label: "Asosiy", icon: Home },
   { id: "users", label: "Userlar", icon: Users },
+  { id: "crm", label: "CRM", icon: Kanban },
   { id: "analytics", label: "Tahlil", icon: BarChart3 },
   { id: "broadcast", label: "Xabarlar", icon: Send },
   { id: "material", label: "Material", icon: FolderOpen },
@@ -42,12 +47,21 @@ const materialSubTabs = [
 ] as const;
 type MaterialSubTab = (typeof materialSubTabs)[number]["id"];
 
+const crmSubTabs = [
+  { id: "pipeline", label: "Pipeline" },
+  { id: "applications", label: "Arizalar" },
+  { id: "staff", label: "Xodimlar" },
+  { id: "finance", label: "Moliya" },
+] as const;
+type CrmSubTab = (typeof crmSubTabs)[number]["id"];
+
 export default function AppLayout() {
   const [activeTab, setActiveTab] = useState<TabId>("home");
   const [analyticsTab, setAnalyticsTab] = useState<AnalyticsSubTab>("funnel");
   const [materialTab, setMaterialTab] = useState<MaterialSubTab>("courses");
   const [broadcastTab, setBroadcastTab] = useState<"broadcast" | "scheduled">("broadcast");
   const [settingsTab, setSettingsTab] = useState<"settings" | "prompts">("settings");
+  const [crmTab, setCrmTab] = useState<CrmSubTab>("pipeline");
 
   const renderScreen = () => {
     switch (activeTab) {
@@ -74,6 +88,15 @@ export default function AppLayout() {
             <SubTabBar tabs={materialSubTabs} active={materialTab} onChange={(id) => setMaterialTab(id as MaterialSubTab)} />
             {materialTab === "courses" ? <CourseManager /> :
               materialTab === "guides" ? <GuidesManager /> : <LeadMagnetManager />}
+          </div>
+        );
+      case "crm":
+        return (
+          <div className="space-y-3">
+            <SubTabBar tabs={crmSubTabs} active={crmTab} onChange={(id) => setCrmTab(id as CrmSubTab)} />
+            {crmTab === "pipeline" ? <Pipeline /> :
+              crmTab === "applications" ? <Applications /> :
+                crmTab === "staff" ? <StaffManager /> : <FinanceReports />}
           </div>
         );
       case "jobs":

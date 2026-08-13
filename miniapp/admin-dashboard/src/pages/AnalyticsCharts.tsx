@@ -24,11 +24,11 @@ export default function AnalyticsCharts() {
 
   return (
     <div className="space-y-6">
-      <h2 className="text-lg font-bold">📊 Tahlil</h2>
+      <h2 className="text-lg font-bold">Tahlil</h2>
 
       {/* Funnel */}
       <div className="bg-card border border-border/30 rounded-lg p-4">
-        <h3 className="text-sm font-semibold mb-3">🔄 Konversiya Funnel</h3>
+        <h3 className="text-sm font-semibold mb-3">Konversiya Funnel</h3>
         {funnel.length === 0 ? (
           <p className="text-xs text-muted-foreground">Ma'lumot yo'q</p>
         ) : (

@@ -134,7 +134,7 @@ export default function LeadMagnetManager() {
     return (
         <div className="space-y-4">
             <div className="flex items-center justify-between">
-                <h2 className="text-xl font-bold">🔗 Havolalar</h2>
+                <h2 className="text-xl font-bold">Havolalar</h2>
 
                 <Dialog open={isDialogOpen} onOpenChange={(open) => {
                     setIsDialogOpen(open);
@@ -196,7 +196,7 @@ export default function LeadMagnetManager() {
                                 <div className="flex gap-2">
                                     <label className="flex-1 cursor-pointer">
                                         <div className="flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-primary/30 rounded-lg hover:border-primary/60 hover:bg-primary/5 transition-colors text-sm text-primary">
-                                            📤 PDF yoki fayl tanlang
+                                            PDF yoki fayl tanlang
                                         </div>
                                         <input
                                             type="file"
@@ -229,7 +229,7 @@ export default function LeadMagnetManager() {
                                                         content_type: result.content_type === "document" ? "pdf" : result.content_type,
                                                         file_url: "",
                                                     });
-                                                    toast.success(`✅ Fayl yuklandi! (${result.content_type})`);
+                                                    toast.success(`Fayl yuklandi (${result.content_type})`);
                                                 } catch (err: any) {
                                                     toast.error("Faylni yuklashda xatolik: " + (err.message || ""));
                                                 }
@@ -243,7 +243,7 @@ export default function LeadMagnetManager() {
                                 
                                 {formData.file_id && (
                                     <div className="flex items-center gap-2 p-2 bg-green-500/10 border border-green-500/20 rounded-lg text-xs text-green-400">
-                                        ✅ Fayl biriktirildi
+                                        Fayl biriktirildi
                                         <code className="text-[10px] truncate flex-1 opacity-60">{formData.file_id.slice(0, 30)}...</code>
                                     </div>
                                 )}
@@ -266,7 +266,7 @@ export default function LeadMagnetManager() {
                                     className="w-full"
                                     onClick={() => setFormData({ ...formData, is_active: !formData.is_active })}
                                 >
-                                    Holati: {formData.is_active ? "🟢 Aktiv" : "🔴 Aktiv emas"}
+                                    Holati: {formData.is_active ? "Aktiv" : "Aktiv emas"}
                                 </Button>
                             </div>
 

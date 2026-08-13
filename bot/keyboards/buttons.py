@@ -111,12 +111,14 @@ def business_need_keyboard() -> InlineKeyboardMarkup:
 
 
 def goal_keyboard() -> InlineKeyboardMarkup:
-    """Goal selection buttons (regular users)."""
+    """Goal selection buttons (5-option funnel segmentation)."""
     return InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text=uz.GOAL_MAKE_MONEY, callback_data="goal:make_money")],
-            [InlineKeyboardButton(text=uz.GOAL_GET_CLIENTS, callback_data="goal:get_clients")],
-            [InlineKeyboardButton(text=uz.GOAL_LEARN_AI, callback_data="goal:learn_ai")],
+            [InlineKeyboardButton(text=uz.GOAL_MAKE_MONEY, callback_data="goal:pul_topish")],
+            [InlineKeyboardButton(text=uz.GOAL_SPEED_UP_WORK, callback_data="goal:tezlashtirish")],
+            [InlineKeyboardButton(text=uz.GOAL_CONTENT, callback_data="goal:kontent")],
+            [InlineKeyboardButton(text=uz.GOAL_STUDY, callback_data="goal:oqish")],
+            [InlineKeyboardButton(text=uz.GOAL_BUSINESS, callback_data="goal:biznes")],
         ]
     )
 

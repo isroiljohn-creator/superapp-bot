@@ -45,6 +45,7 @@ class User(Base):
     # Flags
     lead_magnet_opened = Column(Boolean, default=False)
     is_active = Column(Boolean, default=True, nullable=False)
+    is_team_member = Column(Boolean, default=False, nullable=False, server_default="false")
 
     # AI balance (so'm)
     tokens = Column(Integer, default=2000, nullable=False, server_default="2000")
@@ -451,5 +452,147 @@ class DailyReport(Base):
     sales_won = Column(Integer, default=0)
     pre_payments = Column(Integer, default=0)
     end_time = Column(String(50), nullable=True)
+
+
+# ──────────────────────────────────────────────
+# Products / one-time purchases (tripwire, full course)
+# ──────────────────────────────────────────────
+class Product(Base):
+    __tablename__ = "products"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    code = Column(String(50), unique=True, nullable=False)   # tripwire_ai_start | full_course | club_legacy
+    name = Column(String(255), nullable=False)
+    price = Column(Integer, nullable=False)                  # UZS
+    is_active = Column(Boolean, default=True, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class Purchase(Base):
+    """Product-level purchase record — distinct from Payment (provider-webhook-level log)."""
+    __tablename__ = "purchases"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    product_id = Column(Integer, ForeignKey("products.id"), nullable=False)
+    amount = Column(Integer, nullable=False)                 # UZS actually charged
+    provider = Column(String(30), nullable=False)            # click | payme | telegram_stars
+    status = Column(String(20), default="pending", nullable=False)  # pending | success | failed | refunded
+    payment_id = Column(Integer, ForeignKey("payments.id"), nullable=True)
+    telegram_charge_id = Column(String(255), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    paid_at = Column(DateTime, nullable=True)
+
+    user = relationship("User")
+    product = relationship("Product")
+
+    __table_args__ = (
+        Index("ix_purchases_status", "status"),
+        Index("ix_purchases_user_product", "user_id", "product_id"),
+    )
+
+
+# ──────────────────────────────────────────────
+# Application (Ariza) — post-masterclass qualification form
+# ──────────────────────────────────────────────
+class Application(Base):
+    __tablename__ = "applications"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    answers = Column(JSON, nullable=True)          # {question_key: answer_value}
+    score = Column(Integer, default=0, nullable=False)      # independent 0-100+ scale
+    tier = Column(String(20), nullable=True)        # cold | warm | hot | ready
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    user = relationship("User")
+
+    __table_args__ = (
+        Index("ix_applications_tier", "tier"),
+    )
+
+
+# ──────────────────────────────────────────────
+# Sales pipeline (Deals / CRM)
+# ──────────────────────────────────────────────
+class Deal(Base):
+    __tablename__ = "deals"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    application_id = Column(Integer, ForeignKey("applications.id"), nullable=True)
+    product_id = Column(Integer, ForeignKey("products.id"), nullable=True)
+    stage = Column(String(30), default="new", nullable=False)   # new | contacted | offer | won | lost
+    amount = Column(Integer, nullable=True)
+    assigned_to = Column(Integer, ForeignKey("admin_users.id"), nullable=True, index=True)
+    lost_reason = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    closed_at = Column(DateTime, nullable=True)
+
+    user = relationship("User")
+    application = relationship("Application")
+    product = relationship("Product")
+    assignee = relationship("AdminUser")
+    notes = relationship("DealNote", back_populates="deal")
+    tasks = relationship("DealTask", back_populates="deal")
+
+    __table_args__ = (
+        Index("ix_deals_stage", "stage"),
+    )
+
+
+class DealNote(Base):
+    __tablename__ = "deal_notes"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    deal_id = Column(Integer, ForeignKey("deals.id", ondelete="CASCADE"), nullable=False, index=True)
+    admin_id = Column(Integer, ForeignKey("admin_users.id"), nullable=True)
+    text = Column(Text, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    deal = relationship("Deal", back_populates="notes")
+
+
+class DealTask(Base):
+    __tablename__ = "deal_tasks"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    deal_id = Column(Integer, ForeignKey("deals.id", ondelete="CASCADE"), nullable=False, index=True)
+    admin_id = Column(Integer, ForeignKey("admin_users.id"), nullable=True)
+    task_type = Column(String(20), default="task", nullable=False)   # task | call | reminder
+    title = Column(String(255), nullable=False)
+    due_at = Column(DateTime, nullable=True)
+    status = Column(String(20), default="pending", nullable=False)   # pending | done | cancelled
+    outcome = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    completed_at = Column(DateTime, nullable=True)
+
+    deal = relationship("Deal", back_populates="tasks")
+
+    __table_args__ = (
+        Index("ix_deal_tasks_status", "status"),
+        Index("ix_deal_tasks_due_at", "due_at"),
+    )
+
+
+# ──────────────────────────────────────────────
+# Expenses (finance reporting)
+# ──────────────────────────────────────────────
+class Expense(Base):
+    __tablename__ = "expenses"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    category = Column(String(50), nullable=False)   # ads | salary | tools | other
+    amount = Column(Integer, nullable=False)         # UZS
+    description = Column(Text, nullable=True)
+    admin_id = Column(Integer, ForeignKey("admin_users.id"), nullable=True)
+    expense_date = Column(DateTime, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    __table_args__ = (
+        Index("ix_expenses_date", "expense_date"),
+        Index("ix_expenses_category", "category"),
+    )
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())

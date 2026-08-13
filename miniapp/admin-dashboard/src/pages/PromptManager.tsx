@@ -29,7 +29,7 @@ export default function PromptManager() {
                 body: JSON.stringify({ key, value }),
             }),
         onSuccess: () => {
-            toast({ title: "✅ Prompt saqlandi" });
+            toast({ title: "Prompt saqlandi" });
             setEditingKey(null);
             queryClient.invalidateQueries({ queryKey: ["admin_prompts"] });
         },
@@ -40,7 +40,7 @@ export default function PromptManager() {
         mutationFn: (key: string) =>
             fetchApi(`/api/admin/prompts/${key}`, { method: "DELETE" }),
         onSuccess: () => {
-            toast({ title: "🔄 Standart qiymatga qaytarildi" });
+            toast({ title: "Standart qiymatga qaytarildi" });
             setEditingKey(null);
             queryClient.invalidateQueries({ queryKey: ["admin_prompts"] });
         },
@@ -52,7 +52,7 @@ export default function PromptManager() {
     return (
         <div className="space-y-4">
             <div className="flex items-center justify-between">
-                <h2 className="text-lg font-bold">🧠 AI Promtlar</h2>
+                <h2 className="text-lg font-bold">AI Promtlar</h2>
             </div>
             <p className="text-xs text-muted-foreground">
                 Chatbot, kopirayter va rasm yaratish uchun system promptlarni boshqaring.
@@ -75,7 +75,7 @@ export default function PromptManager() {
                                         onClick={() => { setEditingKey(p.key); setEditValue(p.value); }}
                                         className="text-xs px-2 py-1 rounded-md bg-primary/20 text-primary hover:bg-primary/30"
                                     >
-                                        ✏️ Tahrirlash
+                                        Tahrirlash
                                     </button>
                                 ) : null}
                             </div>
@@ -104,7 +104,7 @@ export default function PromptManager() {
                                         disabled={saveMutation.isPending}
                                         className="flex-1 py-2 bg-primary text-primary-foreground text-xs rounded-md hover:opacity-90 disabled:opacity-50"
                                     >
-                                        {saveMutation.isPending ? "Saqlanmoqda..." : "💾 Saqlash"}
+                                        {saveMutation.isPending ? "Saqlanmoqda..." : "Saqlash"}
                                     </button>
                                     {p.is_custom && (
                                         <button
@@ -112,7 +112,7 @@ export default function PromptManager() {
                                             disabled={resetMutation.isPending}
                                             className="px-3 py-2 bg-red-500/20 text-red-400 text-xs rounded-md hover:bg-red-500/30 disabled:opacity-50"
                                         >
-                                            🔄 Standart
+                                            Standart
                                         </button>
                                     )}
                                     <button

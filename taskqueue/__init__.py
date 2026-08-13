@@ -123,6 +123,95 @@ async def schedule_churn_check(telegram_id: int):
     logger.info(f"Churn check scheduled for {telegram_id}")
 
 
+async def schedule_warmup_sequence(telegram_id: int):
+    """Schedule the 7-day warmup/progrev content sequence (pre-tripwire nurture)."""
+
+    async def _warmup_flow():
+        from bot.config import settings
+        from aiogram import Bot
+        from bot.handlers.warmup import handle_warmup_day
+
+        bot = Bot(token=settings.BOT_TOKEN)
+        try:
+            # Delays are ABSOLUTE from task start (not cumulative)
+            prev_delay = 0
+            for day, abs_delay in [
+                (1, 86400), (2, 172800), (3, 259200), (4, 345600),
+                (5, 432000), (6, 518400), (7, 604800),
+            ]:
+                await asyncio.sleep(abs_delay - prev_delay)
+                prev_delay = abs_delay
+                try:
+                    await handle_warmup_day(bot, telegram_id, day)
+                    logger.info(f"Warmup day {day} sent to {telegram_id}")
+                except Exception as e:
+                    logger.warning(f"Warmup day {day} failed for {telegram_id}: {e}")
+        finally:
+            await bot.session.close()
+
+    _fire_and_forget(_warmup_flow())
+    logger.info(f"Warmup sequence scheduled for {telegram_id}")
+
+
+async def schedule_masterclass_send(telegram_id: int, delay_seconds: int = None):
+    """Schedule the pre-recorded masterclass video after a tripwire purchase.
+
+    Video file_id and delay are overridable via AdminSetting
+    ("masterclass_video_file_id", "masterclass_delay_seconds"); falls back to
+    settings.MASTERCLASS_DELAY_SECONDS and a text-only message if no video is set.
+    """
+
+    async def _send_masterclass():
+        from bot.config import settings
+        from aiogram import Bot
+        from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+        from db.database import async_session
+        from db.models import AdminSetting
+        from sqlalchemy import select
+
+        async with async_session() as session:
+            result = await session.execute(
+                select(AdminSetting.key, AdminSetting.value).where(
+                    AdminSetting.key.in_(["masterclass_video_file_id", "masterclass_delay_seconds"])
+                )
+            )
+            rows = dict(result.all())
+
+        actual_delay = delay_seconds
+        if actual_delay is None:
+            try:
+                actual_delay = int(rows.get("masterclass_delay_seconds") or settings.MASTERCLASS_DELAY_SECONDS)
+            except (TypeError, ValueError):
+                actual_delay = settings.MASTERCLASS_DELAY_SECONDS
+
+        await asyncio.sleep(actual_delay)
+
+        video_file_id = rows.get("masterclass_video_file_id")
+        kb = InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="📝 Arizani to'ldirish", callback_data="application:start")]
+        ])
+
+        bot = Bot(token=settings.BOT_TOKEN)
+        try:
+            caption = (
+                "🎬 <b>Masterclass tayyor!</b>\n\n"
+                "Videoni ko'rib chiqing, so'ng qisqa arizani to'ldiring — "
+                "shunda sizga eng mos yo'nalishni tanlab beramiz."
+            )
+            if video_file_id:
+                await bot.send_video(chat_id=telegram_id, video=video_file_id, caption=caption, parse_mode="HTML", reply_markup=kb)
+            else:
+                await bot.send_message(chat_id=telegram_id, text=caption, parse_mode="HTML", reply_markup=kb)
+            logger.info(f"Masterclass sent to {telegram_id}")
+        except Exception as e:
+            logger.error(f"Failed to send masterclass to {telegram_id}: {e}")
+        finally:
+            await bot.session.close()
+
+    _fire_and_forget(_send_masterclass())
+    logger.info(f"Masterclass scheduled for {telegram_id}")
+
+
 async def start_scheduled_message_checker():
     """Background loop: checks for pending scheduled messages every 60s."""
     SCHED_CONCURRENCY = 28

@@ -72,7 +72,7 @@ export default function CourseManager() {
         }),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["adminCourses"] });
-            toast({ title: "✅ Muvaffaqiyatli", description: "Dars qo'shildi" });
+            toast({ title: "Muvaffaqiyatli", description: "Dars qo'shildi" });
             setIsModalOpen(false);
         },
         onError: (error: any) => {
@@ -87,7 +87,7 @@ export default function CourseManager() {
         }),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["adminCourses"] });
-            toast({ title: "✅ Muvaffaqiyatli", description: "Dars yangilandi" });
+            toast({ title: "Muvaffaqiyatli", description: "Dars yangilandi" });
             setIsModalOpen(false);
         },
         onError: (error: any) => {
@@ -101,7 +101,7 @@ export default function CourseManager() {
         }),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["adminCourses"] });
-            toast({ title: "✅ Muvaffaqiyatli", description: "Dars o'chirildi" });
+            toast({ title: "Muvaffaqiyatli", description: "Dars o'chirildi" });
         },
         onError: (error: any) => {
             toast({ title: "Xatolik", description: error.message, variant: "destructive" });
@@ -130,7 +130,7 @@ export default function CourseManager() {
             }
             const data = await res.json();
             setFormData(prev => ({ ...prev, video_file_id: data.file_id }));
-            toast({ title: "✅ Video yuklandi", description: "Telegram file_id olindi." });
+            toast({ title: "Video yuklandi", description: "Telegram file_id olindi." });
         } catch (err: any) {
             toast({ title: "Video yuklash xatosi", description: err.message, variant: "destructive" });
             setVideoPreviewName(null);
@@ -202,7 +202,7 @@ export default function CourseManager() {
     return (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="flex items-center justify-between">
-                <h2 className="text-2xl font-bold tracking-tight">📚 Bepul Darslar</h2>
+                <h2 className="text-2xl font-bold tracking-tight">Bepul Darslar</h2>
                 <Button onClick={() => handleOpenModal()} className="gap-2">
                     <Plus className="w-4 h-4" /> Yangi Dars
                 </Button>
@@ -210,7 +210,9 @@ export default function CourseManager() {
 
             <div className="grid gap-4">
                 {isLoading ? (
-                    <div className="flex justify-center p-8"><span className="animate-spin text-2xl">⏳</span></div>
+                    <div className="flex justify-center p-8">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                    </div>
                 ) : courses && courses.length > 0 ? (
                     courses.map((course) => (
                         <Card key={course.id} className={`transition-all duration-200 ${!course.is_active ? 'opacity-60' : ''}`}>
@@ -232,7 +234,7 @@ export default function CourseManager() {
                                             ) : course.video_url ? (
                                                 <span className="flex items-center gap-1 text-purple-500"><PlayCircle className="w-3 h-3" /> Tashqi Havola</span>
                                             ) : (
-                                                <span className="text-destructive">⚠️ Video yo'q</span>
+                                                <span className="text-destructive">Video yo'q</span>
                                             )}
                                             {!course.is_active && <span className="text-destructive font-semibold px-2">Yashirilgan</span>}
                                         </div>
@@ -269,7 +271,7 @@ export default function CourseManager() {
 
                         {/* Video Upload Section */}
                         <div className="space-y-2">
-                            <Label>🎬 Video Darslik</Label>
+                            <Label>Video Darslik</Label>
                             <input
                                 ref={fileInputRef}
                                 type="file"
@@ -280,7 +282,7 @@ export default function CourseManager() {
                                     if (file) {
                                         if (file.size > 50 * 1024 * 1024) {
                                             toast({
-                                                title: "⚠️ Fayl juda katta",
+                                                title: "Fayl juda katta",
                                                 description: "Telegram limiti: 50MB. Katta videolar uchun URL ishlating.",
                                                 variant: "destructive"
                                             });
@@ -341,7 +343,7 @@ export default function CourseManager() {
                                         <Input
                                             value={formData.video_url}
                                             onChange={e => setFormData({ ...formData, video_url: e.target.value })}
-                                            placeholder="🔗 Video URL (YouTube, Drive, Telegram...)"
+                                            placeholder="Video URL (YouTube, Drive, Telegram...)"
                                             className="text-sm"
                                         />
                                         {formData.video_url && (
@@ -349,7 +351,7 @@ export default function CourseManager() {
                                         )}
                                     </div>
                                     <p className="text-[10px] text-muted-foreground">
-                                        💡 50MB dan katta videolar uchun yopiq kanaldan foydalaning
+                                        50MB dan katta videolar uchun yopiq kanaldan foydalaning
                                     </p>
                                 </div>
                             )}
@@ -357,7 +359,7 @@ export default function CourseManager() {
 
                         {/* Channel Message ID — for private channel videos */}
                         <div className="space-y-2">
-                            <Label>📺 Kanal xabar ID (2GB gacha)</Label>
+                            <Label>Kanal xabar ID (2GB gacha)</Label>
                             <Input
                                 type="number"
                                 value={formData.channel_message_id}
@@ -365,7 +367,7 @@ export default function CourseManager() {
                                 placeholder="Masalan: 5"
                             />
                             <p className="text-[10px] text-muted-foreground">
-                                💡 Yopiq kanalga video yuklang → xabarni forward qiling → ID raqamini bu yerga yozing
+                                Yopiq kanalga video yuklang, xabarni forward qiling, ID raqamini bu yerga yozing
                             </p>
                         </div>
 

@@ -10,7 +10,7 @@ from aiogram.filters import CommandStart
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message, CallbackQuery, ReplyKeyboardRemove, InlineKeyboardMarkup, InlineKeyboardButton
 
-from bot.fsm.states import RegistrationFSM
+from bot.fsm.states import RegistrationFSM, SegmentationFSM
 from bot.keyboards.buttons import (
     phone_keyboard, goal_keyboard, level_keyboard, get_main_menu,
     business_check_keyboard, business_need_keyboard,
@@ -207,7 +207,20 @@ async def cmd_start(message: Message, state: FSMContext):
 
         await session.commit()
 
-    # ── Deliver lead magnet if campaign/source deep link ──
+    # ── New funnel entry: 5-option segmentation BEFORE the lead magnet ──
+    # Only for brand-new users arriving via a campaign/source deep link — the
+    # goal question tailors which magnet gets delivered next. Returning users
+    # already have a goal_tag (or skipped it once), so they keep the old
+    # immediate-delivery behavior below.
+    has_campaign_entry = bool(
+        deep_link and (campaign or (source and source not in ("referral",)))
+    )
+    if is_new and has_campaign_entry:
+        await message.answer(uz.ASK_GOAL, reply_markup=goal_keyboard())
+        await state.set_state(SegmentationFSM.waiting_goal)
+        return
+
+    # ── Deliver lead magnet if campaign/source deep link (returning users) ──
     lead_magnet_delivered = False
     if deep_link and campaign:
         try:

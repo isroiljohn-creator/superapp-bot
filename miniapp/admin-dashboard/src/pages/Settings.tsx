@@ -38,7 +38,7 @@ export default function Settings() {
                 body: JSON.stringify({ value }),
             }),
         onSuccess: (_, { key }) => {
-            toast({ title: "✅ Saqlandi", description: `${key} yangilandi` });
+            toast({ title: "Saqlandi", description: `${key} yangilandi` });
         },
         onError: (err: Error) => toast({ title: "Xatolik", description: err.message, variant: "destructive" }),
     });
@@ -47,7 +47,7 @@ export default function Settings() {
 
     return (
         <div className="space-y-6">
-            <h2 className="text-lg font-bold">⚙️ Sozlamalar</h2>
+            <h2 className="text-lg font-bold">Sozlamalar</h2>
 
             <div className="space-y-4">
                 {SETTING_KEYS.map(({ key, label, placeholder }) => (
@@ -74,7 +74,7 @@ export default function Settings() {
                             disabled={saveMutation.isPending && saveMutation.variables?.key === key}
                             className="px-3 py-1.5 bg-primary text-primary-foreground text-xs rounded-md hover:opacity-90 disabled:opacity-50"
                         >
-                            {saveMutation.isPending && saveMutation.variables?.key === key ? "Saqlanmoqda..." : "💾 Saqlash"}
+                            {saveMutation.isPending && saveMutation.variables?.key === key ? "Saqlanmoqda..." : "Saqlash"}
                         </button>
                     </div>
                 ))}

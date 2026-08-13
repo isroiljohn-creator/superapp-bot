@@ -32,7 +32,7 @@ export default function ScheduledMessages() {
                 body: JSON.stringify({ content, send_at: new Date(sendAt).toISOString() }),
             }),
         onSuccess: () => {
-            toast({ title: "✅ Xabar rejalashtirildi" });
+            toast({ title: "Xabar rejalashtirildi" });
             setShowCreate(false);
             setContent("");
             setSendAt("");
@@ -45,7 +45,7 @@ export default function ScheduledMessages() {
         mutationFn: (id: number) =>
             fetchApi(`/api/admin/scheduled-messages/${id}`, { method: "DELETE" }),
         onSuccess: () => {
-            toast({ title: "❌ Bekor qilindi" });
+            toast({ title: "Bekor qilindi" });
             queryClient.invalidateQueries({ queryKey: ["admin_scheduled_messages"] });
         },
         onError: (err: Error) => toast({ title: "Xatolik", description: err.message, variant: "destructive" }),
@@ -59,10 +59,10 @@ export default function ScheduledMessages() {
             sending: "bg-blue-500/20 text-blue-400",
         };
         const labels: Record<string, string> = {
-            pending: "⏳ Kutilmoqda",
-            sent: "✅ Yuborilgan",
-            cancelled: "❌ Bekor",
-            sending: "📤 Yuborilmoqda",
+            pending: "Kutilmoqda",
+            sent: "Yuborilgan",
+            cancelled: "Bekor qilindi",
+            sending: "Yuborilmoqda",
         };
         return (
             <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${colors[status] || ""}`}>
@@ -76,12 +76,12 @@ export default function ScheduledMessages() {
     return (
         <div className="space-y-4">
             <div className="flex items-center justify-between">
-                <h2 className="text-lg font-bold">🔔 Rejali Xabarlar</h2>
+                <h2 className="text-lg font-bold">Rejali Xabarlar</h2>
                 <button
                     onClick={() => setShowCreate(!showCreate)}
                     className="px-3 py-1.5 bg-primary text-primary-foreground text-xs rounded-md hover:opacity-90"
                 >
-                    {showCreate ? "✕ Yopish" : "+ Yangi xabar"}
+                    {showCreate ? "Yopish" : "Yangi xabar"}
                 </button>
             </div>
 
@@ -107,7 +107,7 @@ export default function ScheduledMessages() {
                         disabled={!content.trim() || !sendAt || createMutation.isPending}
                         className="w-full py-2 bg-primary text-primary-foreground text-sm rounded-md hover:opacity-90 disabled:opacity-50"
                     >
-                        {createMutation.isPending ? "Saqlanmoqda..." : "📅 Rejalash"}
+                        {createMutation.isPending ? "Saqlanmoqda..." : "Rejalash"}
                     </button>
                 </div>
             )}
@@ -133,14 +133,14 @@ export default function ScheduledMessages() {
                                         disabled={cancelMutation.isPending}
                                         className="text-xs px-2 py-1 rounded-md bg-red-500/20 text-red-400 hover:bg-red-500/30 disabled:opacity-50"
                                     >
-                                        ❌ Bekor
+                                        Bekor qilish
                                     </button>
                                 )}
                             </div>
                             <p className="text-sm">{msg.content}</p>
                             {msg.sent_count > 0 && (
                                 <p className="text-xs text-muted-foreground mt-1">
-                                    📤 {msg.sent_count} ta yuborildi
+                                    {msg.sent_count} ta yuborildi
                                 </p>
                             )}
                         </div>

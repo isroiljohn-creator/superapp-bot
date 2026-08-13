@@ -1,9 +1,9 @@
 """Sales funnel handler — VSL delivery, benefits, case studies, CTA."""
 from aiogram import Router, F
-from aiogram.types import CallbackQuery, Message
+from aiogram.types import CallbackQuery, Message, InlineKeyboardMarkup, InlineKeyboardButton
 
 from bot.config import settings
-from bot.keyboards.buttons import subscribe_keyboard, learn_more_keyboard
+from bot.keyboards.buttons import learn_more_keyboard
 from bot.locales import uz
 from db.database import async_session
 from services.crm import CRMService
@@ -58,11 +58,14 @@ async def handle_learn_more(callback: CallbackQuery):
     # 3. Case studies
     await callback.message.answer(uz.CASE_STUDIES_TEXT, parse_mode="HTML")
 
-    # 4. CTA — Subscribe
-    price_formatted = f"{settings.CLUB_PRICE:,}".replace(",", " ")
+    # 4. CTA — tripwire offer (AI START, 149,000 so'm)
+    price_formatted = f"{settings.TRIPWIRE_PRICE:,}".replace(",", " ")
+    tripwire_kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text=f"🚀 AI START — {price_formatted} so'm", callback_data="tripwire:buy")]
+    ])
     await callback.message.answer(
         uz.CTA_SUBSCRIBE_TEXT.format(price=price_formatted),
-        reply_markup=subscribe_keyboard(settings.WEBAPP_URL),
+        reply_markup=tripwire_kb,
     )
 
     await callback.answer()

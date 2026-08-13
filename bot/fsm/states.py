@@ -14,9 +14,19 @@ class RegistrationFSM(StatesGroup):
 
 
 class SegmentationFSM(StatesGroup):
-    """Legacy segmentation — kept for backward compatibility."""
+    """Immediate post-/start segmentation (5-option goal question) — fires
+    before the lead magnet is delivered so the magnet can be goal-tailored."""
     waiting_goal = State()
     waiting_level = State()
+
+
+class ApplicationFSM(StatesGroup):
+    """Post-masterclass qualifying questionnaire (ariza)."""
+    waiting_q1 = State()   # budget readiness
+    waiting_q2 = State()   # timeline / urgency
+    waiting_q3 = State()   # current experience level
+    waiting_q4 = State()   # motivation / goal depth
+    waiting_confirm = State()
 
 
 class BroadcastFSM(StatesGroup):

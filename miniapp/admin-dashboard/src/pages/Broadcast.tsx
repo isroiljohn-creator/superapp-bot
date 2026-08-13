@@ -116,7 +116,7 @@ export default function Broadcast() {
       setMedia((m) =>
         m ? { ...m, fileId: data.file_id, contentType: data.content_type, uploading: false } : null
       );
-      toast({ title: "✅ Media yuklandi", description: "Xabarni yuborishga tayyor." });
+      toast({ title: "Media yuklandi", description: "Xabarni yuborishga tayyor." });
     },
     onError: (err: Error) => {
       setMedia(null);
@@ -153,7 +153,7 @@ export default function Broadcast() {
     },
     onSuccess: (data) => {
       toast({
-        title: "✅ Broadcast qabul qilindi!",
+        title: "Broadcast qabul qilindi",
         description: `${data.recipient_count ?? "?"} ta foydalanuvchiga yuborilmoqda. Pastdagi ro'yxatda kuzating.`,
         duration: 8000,
       });
@@ -166,7 +166,7 @@ export default function Broadcast() {
       setTimeout(() => refetchHistory(), 6000);
     },
     onError: (error: Error) => {
-      toast({ title: "❌ Xatolik", description: error.message, variant: "destructive", duration: 8000 });
+      toast({ title: "Xatolik", description: error.message, variant: "destructive", duration: 8000 });
     },
   });
 
@@ -238,7 +238,7 @@ export default function Broadcast() {
               <div className="flex-1 min-w-0">
                 <p className="text-xs font-medium truncate">{media.file.name}</p>
                 <p className="text-[10px] text-muted-foreground">
-                  {media.uploading ? "Yuklanmoqda..." : `✅ ${media.contentType}`}
+                  {media.uploading ? "Yuklanmoqda..." : media.contentType}
                 </p>
               </div>
               <button onClick={() => setMedia(null)} className="text-muted-foreground hover:text-destructive">
@@ -446,13 +446,13 @@ export default function Broadcast() {
                             <p className="text-sm font-bold text-green-500">
                               {b.sent.toLocaleString()}
                             </p>
-                            <p className="text-[10px] text-muted-foreground">Yetkazildi ✅</p>
+                            <p className="text-[10px] text-muted-foreground">Yetkazildi</p>
                           </div>
                           <div className="text-center">
                             <p className="text-sm font-bold text-destructive">
                               {b.failed.toLocaleString()}
                             </p>
-                            <p className="text-[10px] text-muted-foreground">Xato ❌</p>
+                            <p className="text-[10px] text-muted-foreground">Xato</p>
                           </div>
                         </div>
 

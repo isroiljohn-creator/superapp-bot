@@ -152,7 +152,7 @@ export function HtmlToolbar({ value, onChange, placeholder, rows = 3 }: HtmlTool
                     </PopoverTrigger>
                     <PopoverContent className="w-72 p-3" align="start">
                         <div className="space-y-3">
-                            <p className="text-sm font-medium">🔗 Havola qo'shish</p>
+                            <p className="text-sm font-medium">Havola qo'shish</p>
                             <div className="space-y-1.5">
                                 <Label className="text-xs">URL</Label>
                                 <Input

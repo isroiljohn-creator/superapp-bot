@@ -37,7 +37,7 @@ export default function ABTests() {
                 body: JSON.stringify(form),
             }),
         onSuccess: () => {
-            toast({ title: "✅ Test yaratildi" });
+            toast({ title: "Test yaratildi" });
             setShowCreate(false);
             setForm({ name: "", description: "", variant_a_name: "A", variant_b_name: "B", variant_a_value: "", variant_b_value: "" });
             queryClient.invalidateQueries({ queryKey: ["admin_ab_tests"] });
@@ -59,12 +59,12 @@ export default function ABTests() {
     return (
         <div className="space-y-4">
             <div className="flex items-center justify-between">
-                <h2 className="text-lg font-bold">🎯 A/B Testlar</h2>
+                <h2 className="text-lg font-bold">A/B Testlar</h2>
                 <button
                     onClick={() => setShowCreate(!showCreate)}
                     className="px-3 py-1.5 bg-primary text-primary-foreground text-xs rounded-md hover:opacity-90"
                 >
-                    {showCreate ? "✕ Yopish" : "+ Yangi test"}
+                    {showCreate ? "Yopish" : "Yangi test"}
                 </button>
             </div>
 
@@ -123,7 +123,7 @@ export default function ABTests() {
                         disabled={!form.name.trim() || createMutation.isPending}
                         className="w-full py-2 bg-primary text-primary-foreground text-sm rounded-md hover:opacity-90 disabled:opacity-50"
                     >
-                        {createMutation.isPending ? "Yaratilmoqda..." : "✅ Yaratish"}
+                        {createMutation.isPending ? "Yaratilmoqda..." : "Yaratish"}
                     </button>
                 </div>
             )}

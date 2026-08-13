@@ -527,6 +527,12 @@ async def get_events_stats(admin_id: int = Depends(check_admin), db: AsyncSessio
         .order_by(func.count(User.id).desc())
     )
     goal_map = {
+        "pul_topish": "Pul topish",
+        "tezlashtirish": "Ishni tezlashtirish",
+        "kontent": "Kontent",
+        "oqish": "O'qish",
+        "biznes": "Biznes",
+        # legacy values (pre-funnel-rebuild users)
         "make_money": "Pul topish",
         "get_clients": "Mijoz olish",
         "automate_business": "Avtomatlashtirish",

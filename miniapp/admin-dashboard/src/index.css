@@ -4,105 +4,106 @@
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
+/* Apple.com-style design system — flat surfaces, near-black/white, single blue accent */
 @layer base {
   :root {
-    --background: 0 0% 97%;
-    --foreground: 210 20% 10%;
+    --background: 0 0% 100%;
+    --foreground: 240 6% 10%;
 
     --card: 0 0% 100%;
-    --card-foreground: 210 20% 10%;
+    --card-foreground: 240 6% 10%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 210 20% 10%;
+    --popover-foreground: 240 6% 10%;
 
-    --primary: 199 85% 55%;
+    --primary: 212 100% 45%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 210 20% 94%;
-    --secondary-foreground: 210 20% 20%;
+    --secondary: 240 9% 96%;
+    --secondary-foreground: 240 6% 15%;
 
-    --muted: 210 15% 93%;
-    --muted-foreground: 210 10% 50%;
+    --muted: 240 9% 96%;
+    --muted-foreground: 240 2% 45%;
 
-    --accent: 199 85% 95%;
-    --accent-foreground: 199 85% 30%;
+    --accent: 212 100% 96%;
+    --accent-foreground: 212 100% 35%;
 
-    --destructive: 0 72% 55%;
+    --destructive: 4 86% 48%;
     --destructive-foreground: 0 0% 100%;
 
-    --success: 142 60% 45%;
+    --success: 142 60% 38%;
     --success-foreground: 0 0% 100%;
 
-    --warning: 38 92% 55%;
+    --warning: 35 100% 48%;
     --warning-foreground: 0 0% 100%;
 
-    --border: 210 15% 90%;
-    --input: 210 15% 90%;
-    --ring: 199 85% 55%;
+    --border: 240 4% 87%;
+    --input: 240 4% 87%;
+    --ring: 212 100% 45%;
 
-    --radius: 0.75rem;
+    --radius: 1rem;
 
-    --glass-bg: 0 0% 100% / 0.7;
-    --glass-border: 0 0% 100% / 0.3;
-    --glass-blur: 12px;
+    --glass-bg: 0 0% 100% / 1;
+    --glass-border: 240 4% 89% / 1;
+    --glass-blur: 0px;
 
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-primary: 199 85% 55%;
+    --sidebar-background: 240 9% 98%;
+    --sidebar-foreground: 240 6% 15%;
+    --sidebar-primary: 212 100% 45%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 199 85% 95%;
-    --sidebar-accent-foreground: 199 85% 30%;
-    --sidebar-border: 210 15% 90%;
-    --sidebar-ring: 199 85% 55%;
+    --sidebar-accent: 212 100% 96%;
+    --sidebar-accent-foreground: 212 100% 35%;
+    --sidebar-border: 240 4% 87%;
+    --sidebar-ring: 212 100% 45%;
   }
 
   .dark {
-    --background: 220 20% 7%;
-    --foreground: 210 20% 93%;
+    --background: 240 6% 7%;
+    --foreground: 240 9% 96%;
 
-    --card: 220 20% 10%;
-    --card-foreground: 210 20% 93%;
+    --card: 240 6% 10%;
+    --card-foreground: 240 9% 96%;
 
-    --popover: 220 20% 10%;
-    --popover-foreground: 210 20% 93%;
+    --popover: 240 6% 10%;
+    --popover-foreground: 240 9% 96%;
 
-    --primary: 199 85% 55%;
+    --primary: 212 100% 55%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 220 15% 16%;
-    --secondary-foreground: 210 20% 85%;
+    --secondary: 240 5% 15%;
+    --secondary-foreground: 240 9% 90%;
 
-    --muted: 220 15% 14%;
-    --muted-foreground: 210 10% 55%;
+    --muted: 240 5% 15%;
+    --muted-foreground: 240 2% 60%;
 
-    --accent: 199 60% 15%;
-    --accent-foreground: 199 85% 75%;
+    --accent: 212 55% 18%;
+    --accent-foreground: 212 100% 75%;
 
-    --destructive: 0 62% 40%;
+    --destructive: 4 78% 55%;
     --destructive-foreground: 0 0% 100%;
 
-    --success: 142 50% 40%;
+    --success: 142 48% 45%;
     --success-foreground: 0 0% 100%;
 
-    --warning: 38 80% 50%;
+    --warning: 35 90% 55%;
     --warning-foreground: 0 0% 100%;
 
-    --border: 220 15% 18%;
-    --input: 220 15% 18%;
-    --ring: 199 85% 55%;
+    --border: 240 4% 20%;
+    --input: 240 4% 20%;
+    --ring: 212 100% 55%;
 
-    --glass-bg: 220 20% 10% / 0.6;
-    --glass-border: 220 20% 20% / 0.3;
-    --glass-blur: 12px;
+    --glass-bg: 240 6% 10% / 1;
+    --glass-border: 240 4% 22% / 1;
+    --glass-blur: 0px;
 
-    --sidebar-background: 220 20% 8%;
-    --sidebar-foreground: 210 20% 90%;
-    --sidebar-primary: 199 85% 55%;
+    --sidebar-background: 240 6% 8%;
+    --sidebar-foreground: 240 9% 92%;
+    --sidebar-primary: 212 100% 55%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 199 60% 15%;
-    --sidebar-accent-foreground: 199 85% 75%;
-    --sidebar-border: 220 15% 18%;
-    --sidebar-ring: 199 85% 55%;
+    --sidebar-accent: 212 55% 18%;
+    --sidebar-accent-foreground: 212 100% 75%;
+    --sidebar-border: 240 4% 20%;
+    --sidebar-ring: 212 100% 55%;
   }
 }
 
@@ -114,7 +115,8 @@
   body,
   html {
     @apply bg-background text-foreground font-sans antialiased;
-    font-family: 'Inter', sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Inter", Helvetica, Arial, sans-serif;
+    letter-spacing: -0.01em;
     overflow-x: hidden;
     max-width: 100vw;
   }
@@ -122,15 +124,18 @@
 
 @layer utilities {
   .glass-card {
-    background: hsl(var(--glass-bg));
-    backdrop-filter: blur(var(--glass-blur));
-    -webkit-backdrop-filter: blur(var(--glass-blur));
-    border: 1px solid hsl(var(--glass-border));
+    background: hsl(var(--card));
+    border: 1px solid hsl(var(--border));
     overflow: hidden;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .glass-card:hover {
+    border-color: hsl(var(--foreground) / 0.15);
   }
 
   .text-gradient {
-    background: linear-gradient(135deg, hsl(var(--primary)), hsl(199 85% 70%));
+    background: linear-gradient(135deg, hsl(var(--primary)), hsl(212 100% 65%));
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;

@@ -79,7 +79,7 @@ async def main():
     dp = Dispatcher(storage=storage)
 
     # Register routers
-    from bot.handlers import registration, segmentation, lead_magnet, funnel, subscription, referral, admin, ai_workers, imagegen, copywriter, chatbot, moderation, menu, presentation, lyrics, lifecycle, jobs, wallet, videonote, mediadown, fileconvert, bg_remover, transcriber, scanner, voicer, compressor, superapp
+    from bot.handlers import registration, segmentation, lead_magnet, funnel, subscription, referral, admin, ai_workers, imagegen, copywriter, chatbot, moderation, menu, presentation, lyrics, lifecycle, jobs, wallet, videonote, mediadown, fileconvert, bg_remover, transcriber, scanner, voicer, compressor, superapp, tripwire, application
     dp.include_routers(
         lifecycle.router,    # Bot block/unblock tracking — must be first
         registration.router,
@@ -87,6 +87,8 @@ async def main():
         lead_magnet.router,
         funnel.router,
         subscription.router,
+        tripwire.router,     # AI START tripwire product (149k)
+        application.router,  # Post-masterclass ariza (application form)
         wallet.router,       # Wallet top up
         referral.router,
         admin.router,

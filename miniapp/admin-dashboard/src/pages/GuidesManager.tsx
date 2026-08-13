@@ -128,7 +128,7 @@ export default function GuidesManager() {
     return (
         <div className="space-y-4">
             <div className="flex items-center justify-between">
-                <h2 className="text-xl font-bold">📚 Qo'llanmalar</h2>
+                <h2 className="text-xl font-bold">Qo'llanmalar</h2>
 
                 <Dialog open={isDialogOpen} onOpenChange={(open) => {
                     setIsDialogOpen(open);
@@ -219,7 +219,7 @@ export default function GuidesManager() {
                                     className="w-full"
                                     onClick={() => setFormData({ ...formData, is_active: !formData.is_active })}
                                 >
-                                    Holati: {formData.is_active ? "🟢 Aktiv" : "🔴 Aktiv emas"}
+                                    Holati: {formData.is_active ? "Aktiv" : "Aktiv emas"}
                                 </Button>
                             </div>
 

@@ -21,7 +21,7 @@ from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 from bot.config import settings
 
-from api.routers import user, payment, referral, course, admin, moderator_api, team_api, tools_api
+from api.routers import user, payment, referral, course, admin, moderator_api, team_api, tools_api, crm
 
 from typing import Optional
 
@@ -74,7 +74,7 @@ async def lifespan(app: FastAPI):
     dp = Dispatcher(storage=storage)
 
     # Register bot routers
-    from bot.handlers import registration, segmentation, lead_magnet, funnel, subscription, referral as bot_referral, admin as bot_admin, ai_workers, imagegen, copywriter, chatbot, moderation, menu, presentation, lyrics, lifecycle, jobs, superapp, moderator, moderator_group, wallet, videonote, mediadown, fileconvert, bg_remover, transcriber, scanner, voicer, compressor
+    from bot.handlers import registration, segmentation, lead_magnet, funnel, subscription, referral as bot_referral, admin as bot_admin, ai_workers, imagegen, copywriter, chatbot, moderation, menu, presentation, lyrics, lifecycle, jobs, superapp, moderator, moderator_group, wallet, videonote, mediadown, fileconvert, bg_remover, transcriber, scanner, voicer, compressor, tripwire, application
     dp.include_routers(
         lifecycle.router,       # Bot block/unblock tracking — must be first
         moderator_group.router, # Group moderation — must be before menu
@@ -83,6 +83,8 @@ async def lifespan(app: FastAPI):
         lead_magnet.router,
         funnel.router,
         subscription.router,
+        tripwire.router,        # AI START tripwire product (149k)
+        application.router,     # Post-masterclass ariza (application form)
         wallet.router,          # Wallet top up
         bot_referral.router,
         bot_admin.router,
@@ -182,6 +184,7 @@ app.include_router(payment.router)
 app.include_router(referral.router)
 app.include_router(course.router)
 app.include_router(admin.router)
+app.include_router(crm.router)
 app.include_router(moderator_api.router)
 app.include_router(team_api.router)
 app.include_router(tools_api.router)
