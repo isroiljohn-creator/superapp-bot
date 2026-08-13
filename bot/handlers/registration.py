@@ -225,8 +225,7 @@ async def cmd_start(message: Message, state: FSMContext):
     if deep_link and campaign:
         try:
             from bot.handlers.lead_magnet import deliver_lead_magnet_force
-            await deliver_lead_magnet_force(message, message.from_user.id)
-            lead_magnet_delivered = True
+            lead_magnet_delivered = await deliver_lead_magnet_force(message, message.from_user.id)
         except Exception as e:
             from bot.config import settings
             if message.from_user.id in settings.ADMIN_IDS:
@@ -235,8 +234,7 @@ async def cmd_start(message: Message, state: FSMContext):
         # Plain source deep link — also try as campaign
         try:
             from bot.handlers.lead_magnet import deliver_lead_magnet_force
-            await deliver_lead_magnet_force(message, message.from_user.id)
-            lead_magnet_delivered = True
+            lead_magnet_delivered = await deliver_lead_magnet_force(message, message.from_user.id)
         except Exception as e:
             from bot.config import settings
             if message.from_user.id in settings.ADMIN_IDS:

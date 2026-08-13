@@ -121,22 +121,25 @@ async def deliver_lead_magnet(message: Message, telegram_id: int):
     await _schedule_delayed_video(telegram_id)
 
 
-async def deliver_lead_magnet_force(message: Message, telegram_id: int):
+async def deliver_lead_magnet_force(message: Message, telegram_id: int) -> bool:
     """Like deliver_lead_magnet but forces re-delivery even if already opened.
     Used when an existing user returns via a new campaign/source deep link,
     or for a new user arriving via a campaign link.
+
+    Returns True only if a magnet was actually found and sent — callers use
+    this to decide whether to show "you received the material" follow-ups.
     """
     async with async_session() as session:
         crm = CRMService(session)
         user = await crm.get_user(telegram_id)
         if not user:
-            return
+            return False
 
         funnel = FunnelService(session)
         lead_magnet = await _find_lead_magnet(funnel, user)
 
         if not lead_magnet:
-            return  # No content for this campaign, skip silently
+            return False  # No content for this campaign, skip silently
 
         await _send_lead_magnet(message, lead_magnet)
 
@@ -148,6 +151,7 @@ async def deliver_lead_magnet_force(message: Message, telegram_id: int):
         scoring = LeadScoringService(session)
         await scoring.process_event(telegram_id, user.id, EVT_LEAD_MAGNET_OPEN)
         await session.commit()
+        return True
 
     await _schedule_delayed_video(telegram_id)
 

@@ -38,8 +38,7 @@ async def process_goal(callback: CallbackQuery, state: FSMContext):
     lead_magnet_delivered = False
     try:
         from bot.handlers.lead_magnet import deliver_lead_magnet_force
-        await deliver_lead_magnet_force(callback.message, callback.from_user.id)
-        lead_magnet_delivered = True
+        lead_magnet_delivered = await deliver_lead_magnet_force(callback.message, callback.from_user.id)
     except Exception:
         pass
 

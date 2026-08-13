@@ -167,44 +167,54 @@ CHURN_DAY_7 = (
 # Admin can override any day via AdminSetting key "warmup_day_{N}"
 # ──────────────────────────────────────────────
 WARMUP_DAY_1 = (
-    "👋 Salom! Bugun sizga o'zim haqimda qisqacha aytib bermoqchiman.\n\n"
-    "13 yoshimda internetdan birinchi pulimni topganman. Shundan beri dizayn, "
-    "SMM va endi sun'iy intellekt orqali natijalar yaratib kelaman. "
-    "Shu yo'lda orttirgan tajribamni sizga ham o'rgataman 🚀"
+    "👋 Salom! Keling, tanishib olaylik.\n\n"
+    "13 yoshimda internetdan birinchi pulimni topganman. O'shandan beri dizayn, "
+    "SMM, endi esa sun'iy intellekt orqali natija yaratib kelaman — o'zim ham, "
+    "shogirdlarim ham.\n\n"
+    "Keyingi 6 kun davomida sizga shu yo'lda o'rgangan eng foydali narsalarimni "
+    "bepul ulashaman. Ertaga — birinchi real natija haqida 👇"
 )
 
 WARMUP_DAY_2 = (
-    "🎓 Bugungi mavzu — talaba case'i.\n\n"
-    "AI'ni umuman bilmagan bir talabam bor edi. 30 kunlik amaliyotdan so'ng "
-    "u birinchi natijasini oldi. Bu tasodif emas — tizimli yondashuv natijasi."
+    "🎓 Bugun — talaba tajribasi haqida.\n\n"
+    "AI'ni umuman bilmagan odam ham to'g'ri tizim bilan 30 kun ichida birinchi "
+    "natijasini olishi mumkin. Bu tasodif emas — aniq qadamlar ketma-ketligi natijasi.\n\n"
+    "Ertaga esa — o'sha qadamlarning aynan o'zini sizga ko'rsataman: AI orqali "
+    "pul topishning 5 ta real yo'li."
 )
 
 WARMUP_DAY_3 = (
     "⚡ Amaliy dars: AI orqali pul topishning 5 ta yo'li.\n\n"
-    "Bugun sizga real ishlaydigan 5 ta usulni qisqacha tushuntiraman — "
-    "har biri hoziroq qo'llash mumkin bo'lgan usullar."
+    "Nazariya emas — har biri hoziroq qo'llab ko'rish mumkin bo'lgan, real "
+    "ishlaydigan usullar. Qaysi biri sizga eng yaqin ekanini o'ylab ko'ring — "
+    "bu ertangi mavzuga bevosita bog'liq."
 )
 
 WARMUP_DAY_4 = (
-    "⚠️ Ko'pchilik qiladigan bitta katta xato: faqat AI vositalarini yig'ish, "
-    "ulardan malaka sifatida foydalanmaslik.\n\n"
-    "Vosita yig'ish — ko'nikma emas. Ko'nikma — tizimli qo'llash."
+    "⚠️ Ko'pchilik yo'l qo'yadigan bitta katta xato: AI vositalarini to'plash, "
+    "lekin ulardan tizimli foydalanmaslik.\n\n"
+    "Vosita yig'ish — ko'nikma emas. Ko'nikma — bir narsani doimiy va to'g'ri "
+    "qo'llash. Shu farqni tushungan odam ancha tezroq natijaga chiqadi."
 )
 
 WARMUP_DAY_5 = (
-    "🎬 Kulisa ortida: haqiqiy mijoz loyihasi ustida qanday ishlayotganimni ko'rsataman.\n\n"
-    "Bu — nazariya emas, real jarayon."
+    "🎬 Bugun — kulisa ortida.\n\n"
+    "Haqiqiy mijoz loyihasi ustida qanday ishlayotganimni ko'rsataman — "
+    "nazariya emas, jonli jarayon. Ertaga esa shu loyihaning aniq natijalarini "
+    "raqamlarda ko'rasiz."
 )
 
 WARMUP_DAY_6 = (
     "📊 Case breakdown: muammo → AI yechimi → natija.\n\n"
-    "Qancha vaqt tejalgani, qancha qiymat yaratilgani — barchasini raqamlarda ko'rsataman."
+    "Qancha vaqt tejalgani, qancha qiymat yaratilgani — barchasini aniq "
+    "raqamlarda ko'rsataman. Ertaga esa — shunga o'xshash natijani siz ham "
+    "olishingiz uchun taklifim bor."
 )
 
 WARMUP_DAY_7 = (
-    "🎯 Bugun — taklif kuni.\n\n"
+    "🎯 6 kun davomida bir-birimizni yaxshiroq tanidik. Endi — aniq taklif.\n\n"
     "AI'ni shunchaki ishlatish emas, undan kasb va daromad qilish vaqti keldi. "
-    "Sizni 90 daqiqalik amaliy intensivga taklif qilaman 👇"
+    "Sizni 90 daqiqalik amaliy intensivga — AI START'ga taklif qilaman 👇"
 )
 
 # ──────────────────────────────────────────────
