@@ -278,6 +278,10 @@ admin_dist = os.path.join(os.path.dirname(os.path.dirname(__file__)), "static", 
 if os.path.exists(admin_dist):
     app.mount("/admin", StaticFiles(directory=admin_dist, html=True), name="admin_dashboard")
     app.mount("/panel", StaticFiles(directory=admin_dist, html=True), name="admin_dashboard_new")
+    # Fresh mount path — Railway's edge cache has been observed to keep serving a
+    # stale index.html on /admin and /panel across deploys even after a cache
+    # purge; a never-before-seen path has no stale entry to serve.
+    app.mount("/dashboard", StaticFiles(directory=admin_dist, html=True), name="admin_dashboard_fresh")
 
 mod_dist = os.path.join(os.path.dirname(os.path.dirname(__file__)), "static", "moderator")
 if os.path.exists(mod_dist):
@@ -300,7 +304,7 @@ if os.path.exists(boshqaruv_dist):
 async def add_no_cache_headers(request, call_next):
     response = await call_next(request)
     path = request.url.path
-    if path.startswith("/admin") or path.startswith("/panel") or path.startswith("/moderator") or path.startswith("/boshqaruv"):
+    if path.startswith("/admin") or path.startswith("/panel") or path.startswith("/dashboard") or path.startswith("/moderator") or path.startswith("/boshqaruv"):
         # JS/CSS are hash-named (cache-safe), but HTML must never be cached
         if not path.endswith(".js") and not path.endswith(".css"):
             response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
@@ -312,7 +316,7 @@ async def add_no_cache_headers(request, call_next):
 @app.exception_handler(404)
 async def custom_404_handler(request, __):
     # If the user is requesting an admin path, serve the React index file
-    if (request.url.path.startswith("/admin") or request.url.path.startswith("/panel")) and os.path.exists(os.path.join(admin_dist, "index.html")):
+    if (request.url.path.startswith("/admin") or request.url.path.startswith("/panel") or request.url.path.startswith("/dashboard")) and os.path.exists(os.path.join(admin_dist, "index.html")):
         return FileResponse(os.path.join(admin_dist, "index.html"))
     # If requesting moderator path, serve moderator index
     if request.url.path.startswith("/moderator") and os.path.exists(os.path.join(mod_dist, "index.html")):
