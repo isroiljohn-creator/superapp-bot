@@ -1,4 +1,5 @@
-"""Social media downloader — download videos/photos from Instagram, TikTok, YouTube, etc."""
+"""Social media downloader — download videos/photos from TikTok, Pinterest, etc.
+(Instagram and YouTube are not supported — see the note on SUPPORTED_PATTERNS.)"""
 import os
 import uuid
 import asyncio
@@ -84,7 +85,7 @@ async def handle_media_url(message: Message, state: FSMContext):
         await message.answer(
             "⚠️ Bu havolani tanib ololmadim.\n\n"
             "Qo'llab-quvvatlanadigan platformalar:\n"
-            "Instagram, TikTok, YouTube, Pinterest, Snapchat, Twitter/X, Facebook, Reddit, LinkedIn\n\n"
+            "TikTok, Pinterest, Snapchat, Twitter/X, Facebook, Reddit, LinkedIn\n\n"
             "To'g'ri havola yuboring yoki chiqish uchun 🔙 Orqaga tugmasini bosing."
         )
         return
@@ -110,15 +111,8 @@ async def handle_media_url(message: Message, state: FSMContext):
             "--no-check-certificates",
             "--socket-timeout", "30",
             "--retries", "3",
-            # Bypass YouTube bot detection
-            "--extractor-args", "youtube:player_client=ios,web_creator",
             "--user-agent", "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1",
         ]
-
-        # Support optional cookies file for YouTube
-        cookies_path = os.path.join(os.getcwd(), "cookies.txt")
-        if os.path.exists(cookies_path):
-            cmd.extend(["--cookies", cookies_path])
 
         cmd.append(text)
 
@@ -136,9 +130,7 @@ async def handle_media_url(message: Message, state: FSMContext):
             if "Sign in to confirm" in error_text or "cookies" in error_text.lower():
                 await msg.edit_text(
                     f"🤖 {platform} bot tekshiruvidan o'ta olmadi.\n\n"
-                    "Bu vaqtinchalik muammo — YouTube botlarni bloklayapti.\n"
-                    "Iltimos, boshqa platformadagi (Instagram, TikTok) kontentni sinab ko'ring "
-                    "yoki keyinroq qayta urinib ko'ring."
+                    "Iltimos, boshqa platformadagi kontentni sinab ko'ring yoki keyinroq qayta urinib ko'ring."
                 )
             elif "Private" in error_text or "login" in error_text.lower():
                 await msg.edit_text(f"🔒 Bu {platform} kontent yopiq (private). Faqat ochiq (public) kontentlarni yuklab olish mumkin.")
