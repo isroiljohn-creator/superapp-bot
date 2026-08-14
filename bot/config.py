@@ -80,6 +80,7 @@ class Settings(BaseSettings):
     CONTENT_CHANNEL_ID: int = 0      # Private channel for large video storage
     CLUB_PRICE: int = 97_000         # UZS — legacy recurring club subscription, no longer sold
     HR_CHAT_ID: int = 0              # Internal HR group — candidate interview summaries
+    BOT_USERNAME: str = "ISROIL_AIBOT"  # used to build t.me deep links outside the bot process (e.g. quiz landing)
 
     # ── New funnel: tripwire → masterclass → application → full course ──
     TRIPWIRE_PRICE: int = 149_000        # UZS — "AI START" one-time product

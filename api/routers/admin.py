@@ -1565,3 +1565,77 @@ async def delete_job(job_id: int, admin_id: int = Depends(check_admin), db: Asyn
     return {"status": "deleted", "id": job_id}
 
 
+# ── Quiz (AI knowledge test / Instagram bio landing) Analytics ──
+from db.models import QuizEvent, QuizSubmission
+
+QUIZ_FUNNEL_STAGES = ["page_view", "profession_selected", "quiz_started", "quiz_completed", "contact_view", "submitted"]
+
+
+@router.get("/quiz/stats")
+async def get_quiz_stats(days: int = 30, admin_id: int = Depends(check_admin), db: AsyncSession = Depends(get_db)):
+    """Funnel breakdown (unique sessions per stage) + submission summary for the quiz landing."""
+    since = datetime.utcnow() - timedelta(days=days)
+
+    funnel = {}
+    for stage in QUIZ_FUNNEL_STAGES:
+        res = await db.execute(
+            select(func.count(func.distinct(QuizEvent.session_id)))
+            .where(QuizEvent.event_type == stage, QuizEvent.created_at >= since)
+        )
+        funnel[stage] = res.scalar() or 0
+
+    total_submissions_res = await db.execute(
+        select(func.count()).select_from(QuizSubmission).where(QuizSubmission.created_at >= since)
+    )
+    total_submissions = total_submissions_res.scalar() or 0
+
+    linked_res = await db.execute(
+        select(func.count()).select_from(QuizSubmission)
+        .where(QuizSubmission.created_at >= since, QuizSubmission.telegram_id.isnot(None))
+    )
+    linked_to_bot = linked_res.scalar() or 0
+
+    level_res = await db.execute(
+        select(QuizSubmission.level, func.count()).where(QuizSubmission.created_at >= since).group_by(QuizSubmission.level)
+    )
+    level_breakdown = {row[0]: row[1] for row in level_res.all()}
+
+    profession_res = await db.execute(
+        select(QuizSubmission.profession, func.count()).where(QuizSubmission.created_at >= since).group_by(QuizSubmission.profession)
+    )
+    profession_breakdown = {(row[0] or "noma'lum"): row[1] for row in profession_res.all()}
+
+    return {
+        "days": days,
+        "funnel": funnel,
+        "total_submissions": total_submissions,
+        "linked_to_bot": linked_to_bot,
+        "level_breakdown": level_breakdown,
+        "profession_breakdown": profession_breakdown,
+    }
+
+
+@router.get("/quiz/submissions")
+async def get_quiz_submissions(limit: int = 100, admin_id: int = Depends(check_admin), db: AsyncSession = Depends(get_db)):
+    """Recent quiz leads — name, phone, level, profession, whether they continued into the bot."""
+    result = await db.execute(
+        select(QuizSubmission).order_by(QuizSubmission.created_at.desc()).limit(min(limit, 500))
+    )
+    rows = result.scalars().all()
+    return [
+        {
+            "id": r.id,
+            "name": r.name,
+            "phone": r.phone,
+            "profession": r.profession,
+            "level": r.level,
+            "correct_count": r.correct_count,
+            "utm_source": r.utm_source,
+            "utm_campaign": r.utm_campaign,
+            "linked_to_bot": r.telegram_id is not None,
+            "created_at": r.created_at.isoformat() if r.created_at else "",
+        }
+        for r in rows
+    ]
+
+

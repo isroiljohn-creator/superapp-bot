@@ -142,6 +142,7 @@ async def cmd_start(message: Message, state: FSMContext):
     referer_id = None
     source = None
     campaign = None
+    quiz_token = None
 
     if deep_link:
         # ── CAPTCHA verification ──
@@ -157,6 +158,12 @@ async def cmd_start(message: Message, state: FSMContext):
         elif deep_link.startswith("campaign_"):
             campaign = deep_link.replace("campaign_", "")
             source = "campaign"
+        elif deep_link.startswith("quiz_"):
+            # AI-knowledge quiz landing (Instagram bio) — funnels through the
+            # normal goal-segmentation flow like any other campaign entry.
+            quiz_token = deep_link[len("quiz_"):]
+            source = "quiz"
+            campaign = "quiz"
         elif not deep_link.startswith("captcha_"):
             source = deep_link
             campaign = deep_link  # treat plain deep link as campaign name too
@@ -171,6 +178,25 @@ async def cmd_start(message: Message, state: FSMContext):
             campaign=campaign,
             referer_id=referer_id,
         )
+
+        # Link the quiz result (if any) to this user
+        quiz_level = None
+        if quiz_token:
+            from sqlalchemy import select
+            from db.models import QuizSubmission
+            result = await session.execute(select(QuizSubmission).where(QuizSubmission.token == quiz_token))
+            submission = result.scalar_one_or_none()
+            if submission:
+                submission.telegram_id = message.from_user.id
+                user.ai_level = submission.level
+                quiz_level = submission.level
+                if submission.profession:
+                    user.profession = submission.profession
+                if submission.name and not user.name:
+                    user.name = submission.name
+                if submission.phone and not user.phone:
+                    user.phone = submission.phone
+                await session.commit()
 
         # Update username if it changed
         if user.username != message.from_user.username:
@@ -222,6 +248,18 @@ async def cmd_start(message: Message, state: FSMContext):
         deep_link and (campaign or (source and source not in ("referral",)))
     )
     if is_new and has_campaign_entry:
+        if quiz_level:
+            level_labels = {
+                "boshlangich": ("🌱", "Boshlang'ich"),
+                "orta": ("⚡", "O'rta"),
+                "yuqori": ("🚀", "Yuqori"),
+            }
+            emoji, label = level_labels.get(quiz_level, ("🎯", quiz_level))
+            await message.answer(
+                f"{emoji} Testdan o'tganingiz uchun rahmat! Sizning AI bilim darajangiz: <b>{label}</b>.\n\n"
+                f"Endi shu darajangizga mos darslarni tanlashimiz uchun yana bir-ikkita savol beraman.",
+                parse_mode="HTML",
+            )
         await message.answer(uz.ASK_GOAL, reply_markup=goal_keyboard())
         await state.set_state(SegmentationFSM.waiting_goal)
         return

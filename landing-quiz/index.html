@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>AI Bilim Testi — Nuvi Academy</title>
+<meta name="description" content="AI bo'yicha bilim darajangizni 60 soniyada aniqlang">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html, body { height: 100%; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', 'Segoe UI', sans-serif;
+  background: #ffffff;
+  color: #1d1d1f;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+.wrap {
+  width: 100%;
+  max-width: 560px;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  padding: 24px 24px 40px;
+}
+
+/* progress bar */
+.progress-track {
+  width: 100%;
+  height: 4px;
+  background: #f5f5f7;
+  border-radius: 100px;
+  overflow: hidden;
+  margin-bottom: 32px;
+  flex-shrink: 0;
+}
+.progress-fill {
+  height: 100%;
+  background: #0071e3;
+  border-radius: 100px;
+  width: 0%;
+  transition: width .5s cubic-bezier(.4,0,.2,1);
+}
+
+.stage { flex: 1; display: none; flex-direction: column; }
+.stage.active { display: flex; }
+
+/* intro */
+#stage-intro { justify-content: center; align-items: center; text-align: center; gap: 16px; }
+.badge {
+  font-size: 13px;
+  font-weight: 600;
+  color: #0071e3;
+  background: #f0f7ff;
+  padding: 6px 14px;
+  border-radius: 100px;
+  letter-spacing: .2px;
+}
+.hero-title {
+  font-size: 34px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  color: #1d1d1f;
+}
+.hero-sub {
+  font-size: 17px;
+  color: #6e6e73;
+  line-height: 1.5;
+  max-width: 420px;
+}
+.meta-row {
+  display: flex;
+  gap: 24px;
+  margin-top: 8px;
+  color: #86868b;
+  font-size: 14px;
+}
+.meta-row span { display: flex; align-items: center; gap: 6px; }
+
+.btn-primary {
+  appearance: none;
+  border: none;
+  background: #0071e3;
+  color: #fff;
+  font-size: 17px;
+  font-weight: 600;
+  padding: 16px 32px;
+  border-radius: 100px;
+  cursor: pointer;
+  width: 100%;
+  max-width: 320px;
+  transition: transform .15s ease, background .15s ease, opacity .15s ease;
+  margin-top: 12px;
+}
+.btn-primary:active { transform: scale(0.97); background: #0060c2; }
+.btn-primary:disabled { opacity: .4; pointer-events: none; }
+
+/* profession + question shared */
+.q-counter { font-size: 14px; color: #86868b; font-weight: 600; margin-bottom: 12px; }
+.q-text {
+  font-size: 25px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.3;
+  color: #1d1d1f;
+  margin-bottom: 28px;
+}
+.options { display: flex; flex-direction: column; gap: 10px; }
+.option {
+  border: 1px solid #e5e5ea;
+  background: #fff;
+  border-radius: 16px;
+  padding: 16px 18px;
+  font-size: 16px;
+  font-weight: 500;
+  color: #1d1d1f;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color .15s ease, background .15s ease, transform .1s ease;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.option:active { transform: scale(0.985); }
+.option.selected { border-color: #0071e3; background: #f0f7ff; }
+.option-letter {
+  width: 26px; height: 26px;
+  border-radius: 50%;
+  background: #f5f5f7;
+  color: #6e6e73;
+  font-size: 13px;
+  font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.option.selected .option-letter { background: #0071e3; color: #fff; }
+.option-emoji { font-size: 22px; flex-shrink: 0; }
+
+/* contact form */
+#stage-contact { justify-content: flex-start; }
+.form-field { margin-bottom: 16px; }
+.form-label { font-size: 14px; font-weight: 600; color: #6e6e73; margin-bottom: 8px; display: block; }
+.form-input {
+  width: 100%;
+  border: 1px solid #e5e5ea;
+  background: #f5f5f7;
+  border-radius: 14px;
+  padding: 16px 18px;
+  font-size: 17px;
+  color: #1d1d1f;
+  font-family: inherit;
+  outline: none;
+  transition: border-color .15s ease, background .15s ease;
+}
+.form-input:focus { border-color: #0071e3; background: #fff; }
+
+/* result */
+#stage-result { justify-content: center; align-items: center; text-align: center; gap: 14px; }
+.result-emoji { font-size: 56px; margin-bottom: 4px; }
+.result-level {
+  font-size: 30px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: #1d1d1f;
+}
+.result-desc {
+  font-size: 16px;
+  color: #6e6e73;
+  max-width: 400px;
+  line-height: 1.5;
+}
+.result-score {
+  font-size: 14px;
+  color: #86868b;
+  background: #f5f5f7;
+  padding: 8px 16px;
+  border-radius: 100px;
+  margin: 6px 0;
+}
+
+.footer-note {
+  text-align: center;
+  font-size: 12px;
+  color: #c7c7cc;
+  margin-top: 24px;
+  flex-shrink: 0;
+}
+
+.spinner {
+  width: 20px; height: 20px;
+  border: 2.5px solid rgba(255,255,255,.4);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin .7s linear infinite;
+  display: none;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.btn-primary.loading .spinner { display: inline-block; }
+.btn-primary.loading .btn-label { display: none; }
+
+@media (prefers-color-scheme: dark) {
+  body { background: #000000; color: #f5f5f7; }
+  .hero-title, .q-text, .result-level { color: #f5f5f7; }
+  .hero-sub, .result-desc { color: #98989d; }
+  .badge { background: #0a1a2e; }
+  .progress-track { background: #1c1c1e; }
+  .option { background: #1c1c1e; border-color: #2c2c2e; color: #f5f5f7; }
+  .option.selected { background: #0a1a2e; border-color: #0071e3; }
+  .option-letter { background: #2c2c2e; color: #98989d; }
+  .result-score { background: #1c1c1e; color: #98989d; }
+  .meta-row { color: #636366; }
+  .form-label { color: #98989d; }
+  .form-input { background: #1c1c1e; border-color: #2c2c2e; color: #f5f5f7; }
+  .form-input:focus { background: #000; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+
+  <div class="stage active" id="stage-intro">
+    <div class="badge">60 soniyalik test</div>
+    <div class="hero-title">AI bilim darajangizni aniqlang</div>
+    <div class="hero-sub">Bir necha oddiy savolga javob bering — natijangizga qarab sizga mos bepul darsni tavsiya qilamiz.</div>
+    <div class="meta-row">
+      <span>⏱ 1 daqiqa</span>
+      <span>🎯 Bepul</span>
+    </div>
+    <button class="btn-primary" id="startBtn" style="margin-top:20px;">Boshlash</button>
+  </div>
+
+  <div class="stage" id="stage-profession">
+    <div class="q-counter">1-qadam</div>
+    <div class="q-text">Kim sifatida ishtirok etyapsiz?</div>
+    <div class="options" id="professionOptions"></div>
+  </div>
+
+  <div class="stage" id="stage-quiz">
+    <div class="q-counter" id="qCounter">Savol 1 / 6</div>
+    <div class="q-text" id="qText"></div>
+    <div class="options" id="qOptions"></div>
+  </div>
+
+  <div class="stage" id="stage-contact">
+    <div class="q-counter">Oxirgi qadam</div>
+    <div class="q-text">Natijangizni va bepul darsni olish uchun ma'lumotlaringizni qoldiring</div>
+    <div class="form-field">
+      <label class="form-label" for="nameInput">Ismingiz</label>
+      <input class="form-input" type="text" id="nameInput" placeholder="Ismingizni kiriting" autocomplete="given-name">
+    </div>
+    <div class="form-field">
+      <label class="form-label" for="phoneInput">Telefon raqamingiz</label>
+      <input class="form-input" type="tel" id="phoneInput" placeholder="+998 90 123 45 67" autocomplete="tel">
+    </div>
+    <button class="btn-primary" id="submitContactBtn" style="margin-top:8px;">
+      <span class="btn-label">Natijani ko'rish</span>
+      <span class="spinner"></span>
+    </button>
+  </div>
+
+  <div class="stage" id="stage-result">
+    <div class="result-emoji" id="resultEmoji">🎯</div>
+    <div class="result-level" id="resultLevel">Natija tayyorlanmoqda...</div>
+    <div class="result-score" id="resultScore"></div>
+    <div class="result-desc" id="resultDesc"></div>
+    <button class="btn-primary" id="continueBtn" style="margin-top:16px;">
+      <span class="btn-label">Bepul darsga o'tish</span>
+    </button>
+  </div>
+
+  <div class="footer-note">Nuvi Academy © 2026</div>
+</div>
+<script src="main.js"></script>
+</body>
+</html>

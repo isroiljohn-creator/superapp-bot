@@ -190,6 +190,9 @@ app.include_router(moderator_api.router)
 app.include_router(team_api.router)
 app.include_router(tools_api.router)
 
+from api.routers import quiz
+app.include_router(quiz.router)
+
 
 @app.get("/health")
 async def health():
@@ -198,8 +201,15 @@ async def health():
 
 
 @app.get("/")
-async def root():
-    """Serve GA4 tag at root for Google verification, then redirect to admin."""
+async def root(request: Request):
+    """nuvi.uz (Instagram bio domain) serves the AI quiz landing directly.
+    Any other host (Railway's own domain, etc.) keeps the GA4-tag-then-
+    redirect-to-admin behavior it always had."""
+    host = request.headers.get("host", "").split(":")[0].lower()
+    if host in ("nuvi.uz", "www.nuvi.uz") and os.path.exists(quiz_dist):
+        from fastapi.responses import FileResponse
+        return FileResponse(os.path.join(quiz_dist, "index.html"))
+
     from fastapi.responses import HTMLResponse
     return HTMLResponse("""<!doctype html>
 <html lang="uz">
@@ -295,6 +305,10 @@ if os.path.exists(tools_dist):
 landing_dist = os.path.join(os.path.dirname(os.path.dirname(__file__)), "landing")
 if os.path.exists(landing_dist):
     app.mount("/ai-kurs", StaticFiles(directory=landing_dist, html=True), name="landing_page")
+
+quiz_dist = os.path.join(os.path.dirname(os.path.dirname(__file__)), "landing-quiz")
+if os.path.exists(quiz_dist):
+    app.mount("/quiz", StaticFiles(directory=quiz_dist, html=True), name="quiz_landing")
 
 boshqaruv_dist = os.path.join(os.path.dirname(os.path.dirname(__file__)), "nuvi-boshqaruv-repo", "dist")
 if os.path.exists(boshqaruv_dist):

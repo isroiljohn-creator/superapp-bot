@@ -37,6 +37,8 @@ class User(Base):
     # Segmentation
     goal_tag = Column(String(30), nullable=True)    # make_money | get_clients | automate_business
     level_tag = Column(String(20), nullable=True)   # beginner | freelancer | business
+    ai_level = Column(String(20), nullable=True)    # boshlangich | orta | yuqori — from the AI-knowledge quiz
+    profession = Column(String(30), nullable=True)  # biznes_egasi | oqituvchi | oquvchi | mutaxassis | shifokor | ijodkor
 
     # Lead scoring
     lead_score = Column(Integer, default=0, nullable=False)
@@ -388,6 +390,40 @@ class HRCandidate(Base):
     motivation_type = Column(String(100), nullable=True)      # McClelland label
     sheets_synced = Column(Boolean, default=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+# ──────────────────────────────────────────────
+# AI Knowledge Quiz (Instagram bio landing page)
+# ──────────────────────────────────────────────
+class QuizSubmission(Base):
+    __tablename__ = "quiz_submissions"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    token = Column(String(64), unique=True, nullable=False, index=True)
+    answers = Column(JSON, nullable=False)          # list[int] — selected option index per question
+    correct_count = Column(Integer, nullable=False)
+    level = Column(String(20), nullable=False)       # boshlangich | orta | yuqori
+    profession = Column(String(30), nullable=True)   # biznes_egasi | oqituvchi | oquvchi | mutaxassis | shifokor | ijodkor
+    name = Column(String(255), nullable=True)
+    phone = Column(String(30), nullable=True)
+    utm_source = Column(String(100), nullable=True)
+    utm_campaign = Column(String(100), nullable=True)
+    telegram_id = Column(BigInteger, nullable=True, index=True)  # filled once matched in the bot
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class QuizEvent(Base):
+    """Funnel/analytics tracking for the quiz landing page — one row per
+    stage a visitor reaches, keyed by an anonymous client-generated
+    session_id so drop-off between stages can be measured."""
+    __tablename__ = "quiz_events"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    session_id = Column(String(64), nullable=False, index=True)
+    event_type = Column(String(30), nullable=False)  # page_view | profession_selected | quiz_started | quiz_completed | contact_view | submitted
+    utm_source = Column(String(100), nullable=True)
+    utm_campaign = Column(String(100), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
 
 
 # ──────────────────────────────────────────────

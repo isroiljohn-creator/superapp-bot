@@ -12,6 +12,7 @@ import GuidesManager from "@/pages/GuidesManager";
 import LeadMagnetManager from "@/pages/LeadMagnetManager";
 import Settings from "@/pages/Settings";
 import JobsManager from "@/pages/JobsManager";
+import QuizAnalytics from "@/pages/QuizAnalytics";
 import ABTests from "@/pages/ABTests";
 import ScheduledMessages from "@/pages/ScheduledMessages";
 import PromptManager from "@/pages/PromptManager";
@@ -37,6 +38,7 @@ const analyticsSubTabs = [
   { id: "funnel", label: "Voronka" },
   { id: "events", label: "Voqealar" },
   { id: "abtests", label: "A/B Test" },
+  { id: "quiz", label: "Test" },
 ] as const;
 type AnalyticsSubTab = (typeof analyticsSubTabs)[number]["id"];
 
@@ -72,7 +74,8 @@ export default function AppLayout() {
           <div className="space-y-3">
             <SubTabBar tabs={analyticsSubTabs} active={analyticsTab} onChange={(id) => setAnalyticsTab(id as AnalyticsSubTab)} />
             {analyticsTab === "funnel" ? <FunnelAnalytics /> :
-              analyticsTab === "events" ? <EventTracking /> : <ABTests />}
+              analyticsTab === "events" ? <EventTracking /> :
+                analyticsTab === "abtests" ? <ABTests /> : <QuizAnalytics />}
           </div>
         );
       case "broadcast":
