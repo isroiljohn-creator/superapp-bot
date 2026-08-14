@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 450" width="600" height="450">
+  <defs>
+    <radialGradient id="bgm4-agent" cx="50%" cy="38%" r="75%">
+      <stop offset="0%" stop-color="#132135"/>
+      <stop offset="55%" stop-color="#0a1420"/>
+      <stop offset="100%" stop-color="#04070c"/>
+    </radialGradient>
+    <radialGradient id="glowm4-agent" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#0071e3" stop-opacity="0.55"/>
+      <stop offset="100%" stop-color="#0071e3" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="strokem4-agent" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#5ac8fa"/>
+      <stop offset="100%" stop-color="#0071e3"/>
+    </linearGradient>
+  </defs>
+  <rect width="600" height="450" fill="url(#bgm4-agent)"/>
+  <circle cx="300.0" cy="207.0" r="189.0" fill="url(#glowm4-agent)"/>
+  <g stroke="url(#strokem4-agent)" stroke-width="7.2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    
+  <rect x="210" y="170" width="180" height="140" rx="30"/>
+  <circle cx="265" cy="235" r="14" fill="url(#strokem4-agent)" stroke="none"/>
+  <circle cx="335" cy="235" r="14" fill="url(#strokem4-agent)" stroke="none"/>
+  <line x1="300" y1="170" x2="300" y2="130"/>
+  <circle cx="300" cy="115" r="14"/>
+
+  </g>
+</svg>

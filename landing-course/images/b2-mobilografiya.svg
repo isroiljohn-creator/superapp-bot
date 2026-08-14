@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 450" width="600" height="450">
+  <defs>
+    <radialGradient id="bgb2-mobilografiya" cx="50%" cy="38%" r="75%">
+      <stop offset="0%" stop-color="#132135"/>
+      <stop offset="55%" stop-color="#0a1420"/>
+      <stop offset="100%" stop-color="#04070c"/>
+    </radialGradient>
+    <radialGradient id="glowb2-mobilografiya" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#0071e3" stop-opacity="0.55"/>
+      <stop offset="100%" stop-color="#0071e3" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="strokeb2-mobilografiya" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#5ac8fa"/>
+      <stop offset="100%" stop-color="#0071e3"/>
+    </linearGradient>
+  </defs>
+  <rect width="600" height="450" fill="url(#bgb2-mobilografiya)"/>
+  <circle cx="300.0" cy="207.0" r="189.0" fill="url(#glowb2-mobilografiya)"/>
+  <g stroke="url(#strokeb2-mobilografiya)" stroke-width="7.2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    
+  <rect x="235" y="130" width="130" height="200" rx="22"/>
+  <circle cx="300" cy="230" r="38"/>
+  <line x1="280" y1="160" x2="320" y2="160"/>
+
+  </g>
+</svg>

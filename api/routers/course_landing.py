@@ -32,7 +32,7 @@ DEFAULT_CONTENT = {
         "subtitle": "Sun'iy intellekt yordamida 0 dan yangi kasbga chiqing va kamida 1000$ doimiy o'sib boruvchi daromadga ega bo'ling.",
         "cta": "Ariza qoldirish",
         "meta": ["30+ dars", "6 asosiy + 6 bonus modul", "3+ mehmon spiker"],
-        "image": "",
+        "image": "/kurs/images/hero.svg",
     },
     "audience": {
         "title": "Kurs kimlar uchun?",
@@ -54,7 +54,7 @@ DEFAULT_CONTENT = {
                 "Biz uchun eng kerakli ilovalar",
                 "Elektron pochta ochish va undan to'g'ri foydalanish",
                 "To'lov saytlari va to'lov usullari",
-            ], "image": "",
+            ], "image": "/kurs/images/m0-foundation.svg",
         },
         {
             "badge": "1-Modul", "title": "Prompt engineering",
@@ -66,7 +66,7 @@ DEFAULT_CONTENT = {
                 "To'g'ri prompt arxitekturasi",
                 "Instagram sahifa ochish va qadoqlash",
                 "Instagram uchun sotuvchi kontent tayyorlash",
-            ], "image": "",
+            ], "image": "/kurs/images/m1-prompt.svg",
         },
         {
             "badge": "2-Modul", "title": "AI orqali professional rasmlar",
@@ -75,7 +75,7 @@ DEFAULT_CONTENT = {
                 "Kirish darsi", "AI orqali karusel postlar | 1-qism", "AI orqali karusel postlar | 2-qism",
                 "2 qadamda prezentatsiya tayyorlash", "AI orqali YouTube bannerlar", "Professional neyro fotosessiya",
                 "AI influencer modellarini tayyorlash", "Multfilmlar uchun kadrlar tayyorlash", "Marketplace uchun infografik post",
-            ], "image": "",
+            ], "image": "/kurs/images/m2-images.svg",
         },
         {
             "badge": "3-Modul", "title": "AI orqali professional videolar",
@@ -85,7 +85,7 @@ DEFAULT_CONTENT = {
                 "Videoroliklar uchun realistik rasmlar", "AI orqali musiqa tayyorlash", "Kling AI bilan tanishuv",
                 "AI modellar orqali blog yuritish", "Kino va minifilmlar tayyorlash", "Musiqa uchun kliplar tayyorlash",
                 "Trenddagi \"uchadigan\" videolar",
-            ], "image": "",
+            ], "image": "/kurs/images/m3-video.svg",
         },
         {
             "badge": "4-Modul", "title": "Chatbot va AI agent tayyorlash",
@@ -94,7 +94,7 @@ DEFAULT_CONTENT = {
                 "ChatPlace'da ro'yxatdan o'tish va chatbot", "Lidmagnit nima va qanday tayyorlanadi?",
                 "Lidmagnitni AI lar bilan svyazka qilish", "Instagram uchun AI agent o'rnatish",
                 "Instagramni avtomatlashtirish", "Telegram xabarlariga AI agent", "Telegram botlar tayyorlash",
-            ], "image": "",
+            ], "image": "/kurs/images/m4-agent.svg",
         },
         {
             "badge": "5-Modul", "title": "Mijoz topish va sotuv sirlari",
@@ -102,7 +102,7 @@ DEFAULT_CONTENT = {
             "lessons": [
                 "Mijoz topish yo'llari", "Sotuv qadamlari", "Narx strategiyasi",
                 "Ikki qadamli qimmat sotish | 1-qism", "Ikki qadamli qimmat sotish | 2-qism", "Ikki qadamli qimmat sotish | 3-qism",
-            ], "image": "",
+            ], "image": "/kurs/images/m5-sales.svg",
         },
     ],
     "bonus_title": "Bundan tashqari siz 6 ta BONUS modulni olasiz",
@@ -113,7 +113,7 @@ DEFAULT_CONTENT = {
             "lessons": [
                 "VIBE coding o'zi nima?", "Qaysi kod yozuvchi ilovalar yaxshi?", "VIBE coding bilan sayt yasash",
                 "VIBE coding bilan telegram bot yasash", "Telegram uchun ilova yasash", "Bizneslar uchun platforma yasash",
-            ], "image": "",
+            ], "image": "/kurs/images/b1-vibecoding.svg",
         },
         {
             "badge": "Bonus 2", "title": "Mobilografiya",
@@ -121,13 +121,13 @@ DEFAULT_CONTENT = {
             "lessons": [
                 "Telefonda ekspertlik videolar syomkasi", "Telefonda video montaj qilish", "AI orqali subtitr qo'yish",
                 "Captions ilovasida montaj", "Story-board orqali video montaj",
-            ], "image": "",
+            ], "image": "/kurs/images/b2-mobilografiya.svg",
         },
         {
             "badge": "Bonus 3", "title": "Mindcard va Notion",
             "result": "Bilim va loyihalaringizni tizimlashtirasiz, Notion'ni AI ga moslab shaxsiy ish maydoningizni qurasiz.",
             "lessons": ["XMind ilovasi texnikalari", "Miro ilovasida ishlash", "Notion ilovasi afzalliklari", "Notion'ni AI ga moslashtirish"],
-            "image": "",
+            "image": "/kurs/images/b3-notion.svg",
         },
         {
             "badge": "Bonus 4", "title": "SMM va Marketing asoslari",
@@ -136,7 +136,7 @@ DEFAULT_CONTENT = {
                 "Kirish", "AI orqali kontent yozish", "AI orqali kontent zavod qurish", "AI orqali sahifani tahlil qilish",
                 "Maqsadli auditoriyani aniqlash", "Analizdan foydalanish", "0 dan sahifa ochish va sozlash",
                 "Qachon qaysi platforma yaxshi", "Kontent turlari va vazifasi",
-            ], "image": "",
+            ], "image": "/kurs/images/b4-smm.svg",
         },
         {
             "badge": "Bonus 5", "title": "Blog orqali monetizatsiya",
@@ -144,13 +144,13 @@ DEFAULT_CONTENT = {
             "lessons": [
                 "Kirish", "Sotuvchi matnlar yozish sirlari", "Blog orqali daromadning 3 usuli",
                 "Progrev nima, qanday qilinadi", "Lidmagnitlar tayyorlash", "VSL varonkasidan foydalanish",
-            ], "image": "",
+            ], "image": "/kurs/images/b5-blog.svg",
         },
         {
             "badge": "Bonus 6", "title": "Shaxsiy brend qurish sirlari",
             "result": "Profilingiz DNK sini shakllantirib, shaxsiy brendingiz orqali doimiy mijozlar oqimi va monetizatsiyaga chiqasiz.",
             "lessons": ["Shaxsiy brend asoslari", "Profil DNK si", "Shaxsiy brenddagi xatolar", "Shaxsiy brend orqali monetizatsiya"],
-            "image": "",
+            "image": "/kurs/images/b6-brand.svg",
         },
     ],
     "outcomes": {

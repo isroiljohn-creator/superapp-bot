@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 450" width="600" height="450">
+  <defs>
+    <radialGradient id="bgb5-blog" cx="50%" cy="38%" r="75%">
+      <stop offset="0%" stop-color="#132135"/>
+      <stop offset="55%" stop-color="#0a1420"/>
+      <stop offset="100%" stop-color="#04070c"/>
+    </radialGradient>
+    <radialGradient id="glowb5-blog" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#0071e3" stop-opacity="0.55"/>
+      <stop offset="100%" stop-color="#0071e3" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="strokeb5-blog" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#5ac8fa"/>
+      <stop offset="100%" stop-color="#0071e3"/>
+    </linearGradient>
+  </defs>
+  <rect width="600" height="450" fill="url(#bgb5-blog)"/>
+  <circle cx="300.0" cy="207.0" r="189.0" fill="url(#glowb5-blog)"/>
+  <g stroke="url(#strokeb5-blog)" stroke-width="7.2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    
+  <rect x="200" y="160" width="200" height="130" rx="12"/>
+  <line x1="230" y1="195" x2="350" y2="195"/>
+  <line x1="230" y1="225" x2="330" y2="225"/>
+  <circle cx="400" cy="310" r="24"/>
+  <circle cx="440" cy="290" r="16"/>
+
+  </g>
+</svg>

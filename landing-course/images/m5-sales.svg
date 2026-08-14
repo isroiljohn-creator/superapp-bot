@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 450" width="600" height="450">
+  <defs>
+    <radialGradient id="bgm5-sales" cx="50%" cy="38%" r="75%">
+      <stop offset="0%" stop-color="#132135"/>
+      <stop offset="55%" stop-color="#0a1420"/>
+      <stop offset="100%" stop-color="#04070c"/>
+    </radialGradient>
+    <radialGradient id="glowm5-sales" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#0071e3" stop-opacity="0.55"/>
+      <stop offset="100%" stop-color="#0071e3" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="strokem5-sales" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#5ac8fa"/>
+      <stop offset="100%" stop-color="#0071e3"/>
+    </linearGradient>
+  </defs>
+  <rect width="600" height="450" fill="url(#bgm5-sales)"/>
+  <circle cx="300.0" cy="207.0" r="189.0" fill="url(#glowm5-sales)"/>
+  <g stroke="url(#strokem5-sales)" stroke-width="7.2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    
+  <polyline points="180,320 260,260 320,300 420,180"/>
+  <polygon points="420,180 390,180 420,150" fill="url(#strokem5-sales)" stroke="none"/>
+  <circle cx="180" cy="320" r="10" fill="url(#strokem5-sales)" stroke="none"/>
+  <circle cx="420" cy="180" r="10" fill="url(#strokem5-sales)" stroke="none"/>
+
+  </g>
+</svg>

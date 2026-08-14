@@ -56,6 +56,8 @@ h1, h2, h3 { letter-spacing: -0.02em; color: #1d1d1f; }
 .hero .sub { font-size: 20px; color: #424245; max-width: 620px; margin: 0 auto 32px; line-height: 1.5; }
 .hero-meta { display: flex; gap: 28px; justify-content: center; margin-top: 34px; flex-wrap: wrap; }
 .hero-meta span { font-size: 14px; color: #6e6e73; font-weight: 500; }
+.hero-image { width: 100%; max-width: 780px; border-radius: 24px; margin: 40px auto 0; display: none; box-shadow: 0 20px 60px rgba(0,0,0,.12); }
+.hero-image.show { display: block; }
 
 /* Audience */
 .audience-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
@@ -72,6 +74,8 @@ h1, h2, h3 { letter-spacing: -0.02em; color: #1d1d1f; }
   transition: box-shadow .2s ease;
 }
 .module-card:hover { box-shadow: 0 8px 30px rgba(0,0,0,.06); }
+.module-image { width: 100%; border-radius: 14px; margin-bottom: 16px; display: none; }
+.module-image.show { display: block; }
 .module-head { display: flex; align-items: center; gap: 12px; cursor: pointer; }
 .module-badge {
   font-size: 12px; font-weight: 700; color: #0071e3; background: #f0f7ff;
@@ -198,6 +202,7 @@ footer { padding: 32px 0; text-align: center; font-size: 12px; color: #c7c7cc; }
     <p class="sub" id="heroSubtitle"></p>
     <a href="#ariza" class="btn btn-primary large" id="heroCta">Ariza qoldirish</a>
     <div class="hero-meta" id="heroMeta"></div>
+    <img class="hero-image" id="heroImage" alt="">
   </div>
 </section>
 

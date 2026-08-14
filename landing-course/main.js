@@ -41,8 +41,10 @@ function renderModuleCard(m) {
   const lessons = (m.lessons || []).map((l, i) => `
     <div class="module-lesson"><span class="n">${i + 1}</span><span>${esc(l)}</span></div>
   `).join("");
+  const image = m.image ? `<img class="module-image show" src="${esc(m.image)}" alt="${esc(m.title)}">` : "";
   return `
     <div class="module-card">
+      ${image}
       <div class="module-head" data-toggle="module">
         <span class="module-badge">${esc(m.badge)}</span>
         <span class="module-title">${esc(m.title)}</span>
@@ -74,6 +76,8 @@ function render(content) {
   document.getElementById("heroSubtitle").textContent = hero.subtitle || "";
   document.querySelectorAll("#topCta, #heroCta").forEach((el) => { el.textContent = hero.cta || "Ariza qoldirish"; });
   document.getElementById("heroMeta").innerHTML = (hero.meta || []).map((m) => `<span>${esc(m)}</span>`).join("");
+  const heroImg = document.getElementById("heroImage");
+  if (hero.image) { heroImg.src = hero.image; heroImg.classList.add("show"); } else { heroImg.classList.remove("show"); }
 
   const audience = content.audience || {};
   document.getElementById("audienceEyebrow").textContent = audience.subtitle || "Kimlar uchun";

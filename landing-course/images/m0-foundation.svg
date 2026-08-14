@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 450" width="600" height="450">
+  <defs>
+    <radialGradient id="bgm0-foundation" cx="50%" cy="38%" r="75%">
+      <stop offset="0%" stop-color="#132135"/>
+      <stop offset="55%" stop-color="#0a1420"/>
+      <stop offset="100%" stop-color="#04070c"/>
+    </radialGradient>
+    <radialGradient id="glowm0-foundation" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#0071e3" stop-opacity="0.55"/>
+      <stop offset="100%" stop-color="#0071e3" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="strokem0-foundation" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#5ac8fa"/>
+      <stop offset="100%" stop-color="#0071e3"/>
+    </linearGradient>
+  </defs>
+  <rect width="600" height="450" fill="url(#bgm0-foundation)"/>
+  <circle cx="300.0" cy="207.0" r="189.0" fill="url(#glowm0-foundation)"/>
+  <g stroke="url(#strokem0-foundation)" stroke-width="7.2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    
+  <circle cx="300" cy="220" r="110"/>
+  <polygon points="300,140 330,220 300,300 270,220" fill="url(#strokem0-foundation)" stroke="none"/>
+  <circle cx="300" cy="220" r="8" fill="#04070c" stroke="none"/>
+
+  </g>
+</svg>
