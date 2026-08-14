@@ -651,20 +651,25 @@ MOD_LINK_DELETED = "🔗 Havolalar faqat adminlar tomonidan yuborilishi mumkin."
 # ──────────────────────────────────────────────
 MENU_BTN_JOBS = "💼 Vakansiyalar"
 
-JOBS_MENU_TEXT = (
+JOBS_HUB_TEXT = (
     "💼 <b>NUVI Jobs</b>\n\n"
-    "Bu yerda siz o'z biznesingiz uchun vakansiya e'lon qilishingiz mumkin.\n"
-    "Vakansiya admin tomonidan tekshirilgach, kanalga chiqariladi.\n\n"
-    "Quyidan kerakli amalni tanlang 👇"
+    "Ish beruvchimisiz yoki ish qidiryapsizmi?"
+)
+JOBS_BTN_EMPLOYER = "🏢 Ish beruvchi"
+JOBS_BTN_SEEKER = "🔍 Ish kerak"
+
+JOBS_SEEKER_TEXT = (
+    "🔍 <b>Ish qidiryapsizmi?</b>\n\n"
+    "Barcha aktiv vakansiyalarni bizning kanalda topasiz 👇"
+)
+JOBS_SEEKER_NO_CHANNEL = (
+    "🔍 Hozircha vakansiyalar kanali sozlanmagan. Keyinroq qayta urinib ko'ring."
 )
 
-JOBS_CHANNEL_INFO = (
-    "💼 <b>NUVI Jobs — Vakansiyalar kanali</b>\n\n"
-    "Eng so'nggi vakansiyalarni bizning kanalda topishingiz mumkin!\n\n"
-    "✅ IT, AI, Marketing, Dizayn va boshqa sohalar\n"
-    "✅ Har kuni yangi ish o'rinlari\n"
-    "✅ Bepul ro'yxatdan o'tish\n\n"
-    "Kanalga obuna bo'ling va o'zingizga mos ish toping 👇"
+JOBS_MENU_TEXT = (
+    "💼 <b>NUVI Jobs — Ish beruvchi</b>\n\n"
+    "Bu yerda vakansiya e'lon qilishingiz, to'lov qilishingiz va navbat asosida "
+    "kanalga avtomatik chiqarilishini kuzatishingiz mumkin."
 )
 
 JOBS_LIST_EMPTY = (
@@ -673,85 +678,132 @@ JOBS_LIST_EMPTY = (
     "Tez orada yangi ish o'rinlari qo'shiladi! 🔔"
 )
 
-JOBS_ASK_TITLE = "✍️ Lavozim nomini kiriting:\n\n<i>Masalan: AI mutaxassisi, Prompt Engineer, Machine Learning Developer\n\n⚠️ Eslatma: Faqat Sun'iy Intellekt (AI) ga tegishli vakansiyalarni joylashtirish mumkin.</i>"
+JOBS_ASK_JOB_TYPE = "Bo'limni tanlang:"
+JOBS_BTN_PERMANENT = "💼 Doimiy ishchi kerak"
+JOBS_BTN_FREELANCE = "💻 Frilanser (Bir martalik ish)"
 
-JOBS_ASK_COMPANY = "🏢 Kompaniya nomini kiriting:\n\n<i>Masalan: NUVI Academy, IT Park</i>"
-
-JOBS_ASK_DESCRIPTION = (
-    "📋 Vakansiya tavsifini kiriting:\n\n"
-    "<i>Masalan: Biz jamoamizga tajribali SMM mutaxassisini qidirmoqdamiz. "
-    "Asosiy vazifalar: kontent rejalashtirish, post tayyorlash...</i>"
+JOBS_ASK_TITLE = (
+    "❗ <i>E'tiborli bo'ling: kiritgan ma'lumotlaringiz avtomatik ravishda chiroyli suratga joylanadi.</i>\n\n"
+    "✍️ Yo'nalishni kiriting:\n\n<i>Masalan: SMM mutaxassisi, Grafik dizayner</i>"
 )
 
-JOBS_ASK_SALARY = (
-    "💰 Maosh miqdorini kiriting:\n\n"
-    "<i>Masalan: 3-5 mln so'm, Kelishiladi, $500-800</i>\n\n"
-    "O'tkazib yuborish uchun /skip bosing"
-)
-
-JOBS_ASK_JOB_TYPE = "⏰ Ish turini tanlang:"
+JOBS_ASK_EXPERIENCE = "⬆️ Ishchining tajribasini tanlang yoki qo'lda kiriting:"
+JOBS_BTN_JUNIOR = "👶 Junior"
+JOBS_BTN_MIDDLE = "🧑 Middle"
+JOBS_BTN_SENIOR = "👨‍💻 Senior"
+JOBS_BTN_SKIP = "➡️ Shart emas"
 
 JOBS_ASK_LOCATION = (
-    "📍 Joylashuvni kiriting:\n\n"
-    "<i>Masalan: Toshkent, Samarqand, Masofaviy</i>\n\n"
-    "O'tkazib yuborish uchun /skip bosing"
+    "📍 Ofis manzilini kiriting:\n\n<i>Masalan: Toshkent shahri yoki Masofaviy</i>"
 )
+JOBS_BTN_TASHKENT = "📍 Toshkent shahri"
+JOBS_BTN_REMOTE = "💻 Masofaviy"
+
+JOBS_ASK_COMPANY = "🏢 Firma / Kompaniya nomini kiriting:"
+
+JOBS_ASK_SALARY = (
+    "💰 Maoshni belgilang:\n\n<i>Masalan: 3-5 mln so'm yoki Suhbat asosida deb yozing/tanlang</i>"
+)
+JOBS_BTN_NEGOTIABLE = "💬 Suhbat asosida"
+JOBS_BTN_INTERN = "🎓 Amaliyotchi"
 
 JOBS_ASK_CONTACT = (
-    "📱 Aloqa ma'lumotlarini kiriting:\n\n"
-    "<i>Masalan: @username yoki +998901234567</i>"
+    "📱 Aloqa vositasini kiriting:\n\n<i>Masalan: @username yoki +998901234567</i>"
 )
 
-JOBS_CONFIRM_TEXT = (
-    "📋 <b>Vakansiyani tekshirib chiqing:</b>\n\n"
-    "💼 <b>Lavozim:</b> {title}\n"
-    "🏢 <b>Kompaniya:</b> {company}\n"
-    "📋 <b>Tavsif:</b>\n{description}\n\n"
-    "💰 <b>Maosh:</b> {salary}\n"
-    "⏰ <b>Ish turi:</b> {job_type}\n"
-    "📍 <b>Joylashuv:</b> {location}\n"
-    "📱 <b>Aloqa:</b> {contact}\n\n"
-    "Hammasini to'g'ri kiritdingizmi?"
+JOBS_ASK_WORKING_HOURS = (
+    "⏱️ Xodimning ishlash vaqtini kiriting:\n\n<i>Masalan: 09:00 - 18:00, 5/2 yoki \"Shart emas\"</i>"
 )
 
-JOBS_SUBMITTED = (
-    "✅ <b>Vakansiya qabul qilindi!</b>\n\n"
-    "Adminlar tekshirgandan so'ng kanalga chiqariladi.\n"
-    "Rahmat! 🙏"
+JOBS_ASK_REQUIREMENTS = (
+    "📝 Xodimning vazifalari nimalar?\n\n<i>Har birini yangi qatordan yozishingiz mumkin yoki \"Shart emas\"</i>"
+)
+
+JOBS_ASK_SKILLS = (
+    "⚙️ Xodimdan qanday bilimlar talab etiladi?\n\n<i>Masalan: Photoshop, Illustrator yoki \"Shart emas\"</i>"
+)
+
+JOBS_ASK_BENEFITS = (
+    "🎁 Xodimga nimalar taklif etiladi?\n\n<i>Masalan: Shinam ofis, bepul tushlik yoki \"Shart emas\"</i>"
+)
+
+JOBS_PREVIEW_CAPTION = "📋 E'loningiz shunday ko'rinishda kanalga chiqadi. Hammasi to'g'rimi?"
+JOBS_BTN_CONFIRM_OK = "✅ Ha, hammasi to'g'ri"
+JOBS_BTN_EDIT = "✏️ Tahrirlash"
+JOBS_BTN_CANCEL = "🚫 Bekor qilish"
+
+JOBS_EDIT_FIELDS = {
+    "Sarlavha": "title",
+    "Tajriba": "experience",
+    "Lokatsiya": "location",
+    "Kompaniya": "company",
+    "Maosh": "salary",
+    "Ish vaqti": "working_hours",
+    "Vazifalar": "requirements",
+    "Talablar": "skills",
+    "Taklif": "benefits",
+    "Aloqa": "contact",
+}
+
+JOBS_TARIFF_TEXT = (
+    "Iltimos, e'lon joylashtirish tarifini tanlang:\n\n"
+    "🔹 <b>Pro</b> — Standart kanalga joylash: <b>{pro:,} so'm</b>\n"
+    "🔸 <b>Premium</b> — Tezlashtirilgan navbat: <b>{premium:,} so'm</b>\n"
+    "🚀 <b>VIP</b> — Birinchi navbatda joylash + 24 soat pin: <b>{vip:,} so'm</b>"
+)
+JOBS_BTN_PRO = "🔹 Pro"
+JOBS_BTN_PREMIUM = "🔸 Premium"
+JOBS_BTN_VIP = "🚀 VIP"
+
+JOBS_TARIFF_LABELS = {"pro": "Pro", "premium": "Premium", "vip": "VIP"}
+
+JOBS_ASK_PAYMENT_METHOD = (
+    "Tanlangan tarif: <b>{tariff}</b>\n"
+    "To'lov summasi: <b>{price:,} so'm</b>\n\n"
+    "Iltimos, to'lov usulini tanlang:"
+)
+JOBS_BTN_PAY_CARD = "📎 Karta orqali to'lov (Chek yuborish)"
+JOBS_BTN_PAY_TG = "💳 Telegram orqali to'lov"
+
+JOBS_CARD_PAYMENT_TEXT = (
+    "💳 <b>Karta orqali to'lov:</b>\n\n"
+    "Karta: <code>{card}</code>\n"
+    "Summa: <b>{price:,} so'm</b>\n\n"
+    "To'lovni amalga oshirganingizdan so'ng, to'lov chekini (kvitansiya) rasm ko'rinishida shu yerga yuboring:"
+)
+JOBS_RECEIPT_ACCEPTED = (
+    "✅ Rahmat! To'lov cheki qabul qilindi. Admin tekshiruvidan so'ng e'loningiz navbatga qo'yiladi."
 )
 
 JOBS_CANCELLED = "❌ Vakansiya berish bekor qilindi."
 
-JOBS_CHANNEL_POST = (
-    "💼 <b>{title}</b>\n\n"
-    "🏢 Kompaniya: <b>{company}</b>\n"
-    "📍 Joylashuv: {location}\n"
-    "💰 Maosh: <b>{salary}</b>\n"
-    "⏰ Ish turi: {job_type}\n\n"
-    "📋 <b>Tavsif:</b>\n{description}\n\n"
-    "📱 Aloqa: {contact}\n\n"
-    "━━━━━━━━━━━━━━━━━━━━\n"
-    "📩 @isroil_aibot orqali bepulga vakansiya joylang"
-)
-
 JOBS_ADMIN_NEW = (
-    "🔔 <b>Yangi vakansiya ariza!</b>\n\n"
-    "💼 <b>{title}</b>\n"
-    "🏢 {company}\n"
-    "💰 {salary}\n"
-    "📍 {location}\n\n"
-    "📋 {description}\n\n"
-    "📱 Aloqa: {contact}\n"
-    "👤 Yuboruvchi: {user_name} (@{username})\n\n"
-    "Tasdiqlaysizmi?"
+    "🔔 <b>YANGI ARIZA</b>\n\n"
+    "🆔 Ariza ID: #{vac_id}\n"
+    "📌 Lavozim: {title}\n"
+    "🏢 Firma: {company}\n"
+    "💵 Maosh: {salary}\n"
+    "🚀 Tarif: <b>{tariff}</b>\n"
+    "💳 To'lov turi: {method}\n"
+    "📈 To'lov holati: {payment_status}\n\n"
+    "<b>Matn:</b>\n{formatted_text}"
 )
 
-JOBS_APPROVED = "✅ Vakansiya tasdiqlandi va kanalga yuborildi!"
+JOBS_APPROVED = "✅ Vakansiya tasdiqlandi va navbatga qo'yildi!"
 JOBS_REJECTED = "❌ Vakansiya rad etildi."
-JOBS_USER_APPROVED = "✅ Sizning vakansiyangiz «{title}» tasdiqlandi va kanalga chiqarildi! 🎉"
-JOBS_USER_REJECTED = "❌ Sizning vakansiyangiz «{title}» rad etildi."
+JOBS_USER_PAYMENT_CONFIRMED = "💳 Sizning e'lon #{vac_id} bo'yicha to'lovingiz admin tomonidan tasdiqlandi! Vakansiya ko'rib chiqilmoqda."
+JOBS_USER_APPROVED = "✅ Sizning e'lon #{vac_id} tasdiqlandi!\n⏰ Rejalashtirilgan chop etish vaqti: <b>{time_str}</b> (Toshkent vaqti)."
+JOBS_USER_REJECTED = "❌ Sizning e'lon #{vac_id} rad etildi.\n⚠️ Sababi: <b>{reason}</b>"
+JOBS_REJECT_REASONS = {
+    "sifatsiz": "Vakansiya tafsilotlari yetarli emas yoki sifatsiz ma'lumot kiritilgan.",
+    "reklama": "Boshqa raqobatchi guruh/kanallar havolasi va taqiqlangan reklamalar mavjud.",
+    "boshqa": "Ariza talablarga javob bermaydi.",
+}
 
 JOB_TYPE_NAMES = {
+    "doimiy": "💼 Doimiy",
+    "frilans": "💻 Frilanser",
+    # legacy values kept for old rows
     "full_time": "🏢 To'liq kun",
     "part_time": "⏰ Yarim kun",
     "remote": "🌐 Masofaviy",

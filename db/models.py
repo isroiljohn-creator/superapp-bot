@@ -331,18 +331,35 @@ class JobVacancy(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     title = Column(String(255), nullable=False)             # Lavozim nomi
     company = Column(String(255), nullable=True)            # Kompaniya nomi
-    description = Column(Text, nullable=False)              # Batafsil tavsif
+    description = Column(Text, nullable=True)               # Legacy free-form tavsif (eski yozuvlar uchun)
     salary = Column(String(100), nullable=True)             # "3-5 mln so'm"
-    job_type = Column(String(50), default="full_time")      # full_time / part_time / remote
+    job_type = Column(String(50), default="full_time")      # doimiy / frilans
     location = Column(String(255), nullable=True)           # Joylashuv
     contact_info = Column(String(255), nullable=True)       # Aloqa (telefon/username)
     channel_msg_id = Column(Integer, nullable=True)         # Kanalga yuborilgan xabar ID
-    status = Column(String(20), default="pending")          # pending / approved / rejected
+    status = Column(String(20), default="pending")          # draft / pending_payment / pending_approval / approved / posted / rejected
     submitted_by = Column(BigInteger, nullable=False)       # Ariza bergan foydalanuvchi telegram_id
     reviewed_by = Column(BigInteger, nullable=True)         # Tasdiqlagan admin telegram_id
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     approved_at = Column(DateTime, nullable=True)
+
+    # ── Nuvi Jobs — vacancy posting mechanism (ported from nuvi-jobs-bot) ──
+    experience = Column(String(100), nullable=True)         # Junior / Middle / Senior
+    working_hours = Column(String(255), nullable=True)
+    requirements = Column(Text, nullable=True)               # Xodim vazifalari
+    skills = Column(Text, nullable=True)                     # Talab qilinadigan bilimlar
+    benefits = Column(Text, nullable=True)                   # Taklif etiladigan qulayliklar
+    formatted_text = Column(Text, nullable=True)              # Kanalga chiqadigan tayyor matn
+    tariff = Column(String(20), default="pro")                # pro / premium / vip
+    payment_status = Column(String(20), default="unpaid")     # unpaid / manual_pending / paid
+    payment_method = Column(String(30), nullable=True)        # card_manual / telegram_billing
+    payment_receipt = Column(Text, nullable=True)             # Chek rasmi file_id
+    rejection_reason = Column(Text, nullable=True)
+    scheduled_for = Column(DateTime, nullable=True)           # Navbatga qo'yilgan chop etish vaqti
+    posted_at = Column(DateTime, nullable=True)
+    pinned = Column(Boolean, default=False)
+    pin_expires_at = Column(DateTime, nullable=True)
 
 
 # ──────────────────────────────────────────────

@@ -1,197 +1,268 @@
-"""NUVI Jobs — vacancy posting by business owners, admin approval, channel publishing."""
+"""NUVI Jobs — vacancy posting mechanism, ported from the standalone
+nuvi-jobs-bot (Ish beruvchi posts + pays + admin approves + auto-posts to
+channel in a tariff-based queue). Job-seekers just get the channel link.
+"""
 import html as html_mod
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
+import pytz
 from aiogram import Router, F
-from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.types import (
     CallbackQuery,
     InlineKeyboardButton,
     InlineKeyboardMarkup,
+    KeyboardButton,
+    LabeledPrice,
     Message,
+    ReplyKeyboardMarkup,
+    ReplyKeyboardRemove,
 )
+from sqlalchemy import select
 
 from bot.config import settings
 from bot.fsm.states import JobPostFSM
 from bot.keyboards.buttons import get_main_menu
 from bot.locales import uz
 from db.database import async_session
+from db.models import AdminSetting, JobVacancy
 
 router = Router(name="jobs")
 logger = logging.getLogger("jobs")
 
+TASHKENT = pytz.timezone("Asia/Tashkent")
+DEFAULT_TARIFF_PRICES = {"pro": 20_000, "premium": 35_000, "vip": 50_000}
 
-# ── Helpers ──────────────────────────────────────
 
 def _is_admin(user_id: int) -> bool:
     return user_id in settings.ADMIN_IDS
 
 
-async def _get_jobs_channel_id(key: str = "jobs_channel_id") -> "int | None":
-    """Get channel ID from admin_settings table."""
-    from sqlalchemy import select
-    from db.models import AdminSetting
+def _kb(rows: list[list[str]]) -> ReplyKeyboardMarkup:
+    return ReplyKeyboardMarkup(
+        keyboard=[[KeyboardButton(text=t) for t in row] for row in rows],
+        resize_keyboard=True,
+    )
+
+
+async def _get_setting(key: str) -> "str | None":
+    async with async_session() as session:
+        result = await session.execute(select(AdminSetting).where(AdminSetting.key == key))
+        setting = result.scalar_one_or_none()
+        return setting.value if setting and setting.value else None
+
+
+async def _get_tariff_price(tariff: str) -> int:
+    raw = await _get_setting(f"tariff_{tariff}_price")
+    if raw:
+        try:
+            return int(raw)
+        except ValueError:
+            pass
+    return DEFAULT_TARIFF_PRICES.get(tariff, 20_000)
+
+
+async def _get_card_details() -> str:
+    return await _get_setting("vacancy_card_details") or "8600 0000 0000 0000 (Nuvi Jobs)"
+
+
+async def _get_jobs_channel_id() -> "int | None":
+    raw = await _get_setting("jobs_channel_id")
     try:
-        async with async_session() as session:
-            result = await session.execute(
-                select(AdminSetting).where(AdminSetting.key == key)
-            )
-            setting = result.scalar_one_or_none()
-            if setting and setting.value:
-                return int(setting.value)
-    except Exception:
-        pass
-    return None
+        return int(raw) if raw else None
+    except ValueError:
+        return None
 
 
-def _is_ai_vacancy(title: str) -> bool:
-    """Check if vacancy is AI-related using robust keyword/phrase matching."""
-    import re
-    title_lower = title.lower().strip()
-    
-    # 1. Check exact phrase matches (multi-word phrases)
-    ai_phrases = [
-        "sun'iy intellekt", "suniy intellekt", "sun'iy intelekt", "suniy intelekt",
-        "machine learning", "data scientist", "data science", "deep learning",
-        "neyron to'r", "neyron tor", "neural network", "computer vision",
-        "sun'iy ong", "suniy ong", "ai mutaxassisi"
-    ]
-    if any(phrase in title_lower for phrase in ai_phrases):
-        return True
-        
-    # 2. Tokenize into words
-    words = re.findall(r'[a-z0-9\'’`ʼ]+', title_lower)
-    
-    # 3. Check individual word matches
-    ai_exact_words = {"ai", "ml", "llm", "gpt", "nlp"}
-    for word in words:
-        # Check exact word matches
-        if word in ai_exact_words:
-            return True
-        # Check if the word contains AI-specific substrings
-        if "gpt" in word or "llm" in word or "chatbot" in word:
-            return True
-        # Check prefixes
-        if word.startswith("neyro") or word.startswith("neuro") or word.startswith("prompt"):
-            return True
-            
-    return False
+def _clean(text: str) -> str:
+    return html_mod.escape((text or "").strip())
 
 
-
-async def _get_target_channel(title: str) -> "tuple[int | None, int | None]":
-    """Get appropriate channel: AI channel for AI jobs, main channel for others. Returns (chat_id, message_thread_id)."""
-    if _is_ai_vacancy(title):
-        ai_channel = await _get_jobs_channel_id("ai_jobs_channel_id")
-        if ai_channel:
-            topic_id = await _get_jobs_channel_id("ai_jobs_channel_id_topic")
-            return ai_channel, topic_id
-    channel_id = await _get_jobs_channel_id("jobs_channel_id")
-    topic_id = await _get_jobs_channel_id("jobs_channel_id_topic")
-    return channel_id, topic_id
+def _is_skip(text: str) -> bool:
+    t = (text or "").strip().lower()
+    return t in ("", "shart emas", "➡️ shart emas")
 
 
-def _job_type_label(tag: str) -> str:
-    return uz.JOB_TYPE_NAMES.get(tag, tag or "—")
+def _format_vacancy_text(data: dict) -> str:
+    """Builds the HTML text that gets posted to the channel (and shown as preview)."""
+    title = _clean(data.get("title", ""))
+    company = _clean(data.get("company", ""))
+    salary = _clean(data.get("salary", ""))
+    location = _clean(data.get("location", ""))
+    experience = data.get("experience", "")
+    hours = data.get("working_hours", "")
+    contact = _clean(data.get("contact", ""))
+    reqs = data.get("requirements", "")
+    skills = data.get("skills", "")
+    benefits = data.get("benefits", "")
+
+    text = f"📌 <b>{title}</b>\n\n"
+    text += f"🏢 <b>Firma:</b> {company}\n"
+    text += f"💵 <b>Maosh:</b> {salary}\n"
+    text += f"📍 <b>Lokatsiya:</b> {location}\n"
+
+    if not _is_skip(experience):
+        text += f"⬆️ <b>Tajriba:</b> {_clean(experience)}\n"
+    if not _is_skip(hours):
+        text += f"⏱️ <b>Ish vaqti:</b> {_clean(hours)}\n"
+
+    if not _is_skip(reqs):
+        lines = "\n".join(f"— {html_mod.escape(l.strip())}" for l in reqs.split("\n") if l.strip())
+        text += f"\n📝 <b>Vazifalar:</b>\n{lines}\n"
+    if not _is_skip(skills):
+        lines = "\n".join(f"— {html_mod.escape(l.strip())}" for l in skills.split("\n") if l.strip())
+        text += f"\n⚙️ <b>Talablar:</b>\n{lines}\n"
+    if not _is_skip(benefits):
+        lines = "\n".join(f"— {html_mod.escape(l.strip())}" for l in benefits.split("\n") if l.strip())
+        text += f"\n🎁 <b>Taklif:</b>\n{lines}\n"
+
+    text += f"\n📩 <b>Aloqa:</b> {contact}\n\n"
+    text += "💼 <b>Nuvi Jobs</b> — ish va ishchi topishda yordam beramiz!"
+    return text
 
 
-def _jobs_menu_keyboard(user_id: int = None) -> InlineKeyboardMarkup:
-    """Jobs menu: post a vacancy + view active jobs."""
-    buttons = [
-        [InlineKeyboardButton(text="📝 Vakansiya berish", callback_data="jobs:post")],
-        [InlineKeyboardButton(text="📥 Mening vakansiyalarim", callback_data="jobs:my")],
-        [InlineKeyboardButton(text="📋 Aktiv vakansiyalar", callback_data="jobs:list")],
-    ]
-    if user_id and _is_admin(user_id):
-        buttons.append([
-            InlineKeyboardButton(text="⏳ Kutilayotganlar", callback_data="jobs:pending"),
-        ])
-        buttons.append([
-            InlineKeyboardButton(text="⚙️ Asosiy kanal", callback_data="jobs:set_channel"),
-            InlineKeyboardButton(text="🤖 AI kanal", callback_data="jobs:set_ai_channel"),
-        ])
-    return InlineKeyboardMarkup(inline_keyboard=buttons)
+async def _calculate_next_post_time(tariff: str) -> datetime:
+    """Queue scheduling: VIP ~instant, Premium every 1h, Pro every 2h, within 09:00-22:00 Tashkent."""
+    now_utc = datetime.now(timezone.utc)
+    if tariff == "vip":
+        return (now_utc + timedelta(minutes=5)).astimezone(timezone.utc).replace(tzinfo=None)
 
-
-def _job_type_keyboard() -> InlineKeyboardMarkup:
-    return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="🏢 To'liq kun", callback_data="jtype:full_time")],
-        [InlineKeyboardButton(text="⏰ Yarim kun", callback_data="jtype:part_time")],
-        [InlineKeyboardButton(text="🌐 Masofaviy", callback_data="jtype:remote")],
-        [InlineKeyboardButton(text="💼 Frilanser", callback_data="jtype:freelance")],
-    ])
-
-
-# ──────────────────────────────────────────────────
-# 💼 Menu button → Jobs hub (branched by user type)
-# ──────────────────────────────────────────────────
-@router.message(F.text == uz.MENU_BTN_JOBS)
-async def menu_jobs(message: Message, state: FSMContext):
-    """Show NUVI Jobs — business owners see posting, regular users see channel info."""
-    await state.clear()
-
-    # Check if user is a business owner
-    is_business = False
-    try:
-        from sqlalchemy import select
-        from db.models import User
-        async with async_session() as session:
-            result = await session.execute(
-                select(User).where(User.telegram_id == message.from_user.id)
-            )
-            user = result.scalar_one_or_none()
-            if user and user.level_tag == "business":
-                is_business = True
-    except Exception:
-        pass
-
-    if is_business or _is_admin(message.from_user.id):
-        # Business owner / admin — show posting menu
-        await message.answer(
-            uz.JOBS_MENU_TEXT,
-            parse_mode="HTML",
-            reply_markup=_jobs_menu_keyboard(message.from_user.id),
-        )
-    else:
-        # Regular user — show channel info with link
-        channel_id = await _get_jobs_channel_id("jobs_channel_id")
-        buttons = []
-        if channel_id:
-            # Try to get channel username for link
-            try:
-                chat = await message.bot.get_chat(channel_id)
-                if chat.username:
-                    buttons.append([InlineKeyboardButton(
-                        text="📎 Vakansiyalar kanalga o'tish",
-                        url=f"https://t.me/{chat.username}",
-                    )])
-            except Exception:
-                pass
-        kb = InlineKeyboardMarkup(inline_keyboard=buttons) if buttons else None
-        await message.answer(
-            uz.JOBS_CHANNEL_INFO,
-            parse_mode="HTML",
-            reply_markup=kb,
-        )
-
-
-# ──────────────────────────────────────────────────
-# 📋 Active vacancies list
-# ──────────────────────────────────────────────────
-@router.callback_query(F.data == "jobs:list")
-async def list_active_jobs(callback: CallbackQuery):
-    """Show all active approved vacancies."""
-    from sqlalchemy import select
-    from db.models import JobVacancy
+    interval_hours = 1 if tariff == "premium" else 2
+    now_tz = now_utc.astimezone(TASHKENT)
 
     async with async_session() as session:
         result = await session.execute(
-            select(JobVacancy)
-            .where(JobVacancy.status == "approved", JobVacancy.is_active.is_(True))
-            .order_by(JobVacancy.approved_at.desc())
-            .limit(20)
+            select(JobVacancy.scheduled_for)
+            .where(JobVacancy.status == "approved", JobVacancy.posted_at.is_(None))
+            .order_by(JobVacancy.scheduled_for.desc())
+            .limit(1)
+        )
+        last_scheduled = result.scalar_one_or_none()
+
+    if last_scheduled:
+        base_tz = last_scheduled.replace(tzinfo=timezone.utc).astimezone(TASHKENT)
+        if base_tz > now_tz:
+            next_time = base_tz + timedelta(hours=interval_hours)
+            if next_time.hour >= 22 or next_time.hour < 9:
+                next_time = (next_time + timedelta(days=1)).replace(hour=9, minute=0, second=0, microsecond=0)
+            return next_time.astimezone(timezone.utc).replace(tzinfo=None)
+
+    if now_tz.hour < 9:
+        scheduled_tz = now_tz.replace(hour=9, minute=0, second=0, microsecond=0)
+    elif now_tz.hour >= 22:
+        scheduled_tz = (now_tz + timedelta(days=1)).replace(hour=9, minute=0, second=0, microsecond=0)
+    else:
+        scheduled_tz = now_tz
+    return scheduled_tz.astimezone(timezone.utc).replace(tzinfo=None)
+
+
+async def _generate_preview(data: dict):
+    """Returns (formatted_text, image_bytesio_or_None)."""
+    from services.job_image import generate_vacancy_image
+    formatted = _format_vacancy_text(data)
+    img = None
+    try:
+        img = generate_vacancy_image(title=data.get("title", ""), company=data.get("company", ""), salary=data.get("salary", ""))
+    except Exception as e:
+        logger.warning(f"Preview image generation failed: {e}")
+    return formatted, img
+
+
+def _preview_confirm_kb() -> ReplyKeyboardMarkup:
+    return _kb([[uz.JOBS_BTN_CONFIRM_OK], [uz.JOBS_BTN_EDIT], [uz.JOBS_BTN_CANCEL]])
+
+
+async def _send_preview(message: Message, state: FSMContext):
+    data = await state.get_data()
+    formatted, img = await _generate_preview(data)
+    await state.update_data(formatted_text=formatted)
+
+    from aiogram.types import BufferedInputFile
+    if img:
+        photo = BufferedInputFile(file=img.read(), filename="preview.png")
+        await message.answer_photo(photo=photo, caption=formatted, parse_mode="HTML")
+        await message.answer(uz.JOBS_PREVIEW_CAPTION, reply_markup=_preview_confirm_kb())
+    else:
+        await message.answer(formatted, parse_mode="HTML")
+        await message.answer(uz.JOBS_PREVIEW_CAPTION, reply_markup=_preview_confirm_kb())
+    await state.set_state(JobPostFSM.waiting_preview_confirm)
+
+
+async def _cancel_to_menu(message: Message, state: FSMContext):
+    await state.clear()
+    await message.answer(uz.JOBS_CANCELLED, reply_markup=await get_main_menu(user_id=message.from_user.id))
+
+
+# ──────────────────────────────────────────────────
+# 💼 Menu button → hub (Ish beruvchi / Ish kerak)
+# ──────────────────────────────────────────────────
+@router.message(F.text == uz.MENU_BTN_JOBS)
+async def menu_jobs(message: Message, state: FSMContext):
+    await state.clear()
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text=uz.JOBS_BTN_EMPLOYER, callback_data="jobs:employer")],
+        [InlineKeyboardButton(text=uz.JOBS_BTN_SEEKER, callback_data="jobs:seeker")],
+    ])
+    await message.answer(uz.JOBS_HUB_TEXT, parse_mode="HTML", reply_markup=kb)
+
+
+@router.callback_query(F.data == "jobs:seeker")
+async def jobs_seeker(callback: CallbackQuery):
+    channel_id = await _get_jobs_channel_id()
+    buttons = []
+    if channel_id:
+        try:
+            chat = await callback.bot.get_chat(channel_id)
+            if chat.username:
+                buttons.append([InlineKeyboardButton(text="📎 Kanalga o'tish", url=f"https://t.me/{chat.username}")])
+        except Exception:
+            pass
+    if buttons:
+        await callback.message.answer(uz.JOBS_SEEKER_TEXT, parse_mode="HTML", reply_markup=InlineKeyboardMarkup(inline_keyboard=buttons))
+    else:
+        await callback.message.answer(uz.JOBS_SEEKER_NO_CHANNEL, parse_mode="HTML")
+    await callback.answer()
+
+
+@router.callback_query(F.data == "jobs:employer")
+async def jobs_employer(callback: CallbackQuery, state: FSMContext):
+    await state.clear()
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="📝 Vakansiya berish", callback_data="jobs:post")],
+        [InlineKeyboardButton(text="📥 Mening vakansiyalarim", callback_data="jobs:my")],
+        [InlineKeyboardButton(text="📋 Aktiv vakansiyalar", callback_data="jobs:list")],
+    ])
+    if _is_admin(callback.from_user.id):
+        kb.inline_keyboard.append([InlineKeyboardButton(text="⏳ Kutilayotganlar", callback_data="jobs:pending")])
+        kb.inline_keyboard.append([InlineKeyboardButton(text="⚙️ Kanal sozlash", callback_data="jobs:set_channel")])
+    await callback.message.answer(uz.JOBS_MENU_TEXT, parse_mode="HTML", reply_markup=kb)
+    await callback.answer()
+
+
+@router.callback_query(F.data == "jobs:back")
+async def jobs_back(callback: CallbackQuery):
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="📝 Vakansiya berish", callback_data="jobs:post")],
+        [InlineKeyboardButton(text="📥 Mening vakansiyalarim", callback_data="jobs:my")],
+        [InlineKeyboardButton(text="📋 Aktiv vakansiyalar", callback_data="jobs:list")],
+    ])
+    if _is_admin(callback.from_user.id):
+        kb.inline_keyboard.append([InlineKeyboardButton(text="⏳ Kutilayotganlar", callback_data="jobs:pending")])
+        kb.inline_keyboard.append([InlineKeyboardButton(text="⚙️ Kanal sozlash", callback_data="jobs:set_channel")])
+    await callback.message.edit_text(uz.JOBS_MENU_TEXT, parse_mode="HTML", reply_markup=kb)
+    await callback.answer()
+
+
+# ──────────────────────────────────────────────────
+# 📋 Lists
+# ──────────────────────────────────────────────────
+@router.callback_query(F.data == "jobs:list")
+async def list_active_jobs(callback: CallbackQuery):
+    async with async_session() as session:
+        result = await session.execute(
+            select(JobVacancy).where(JobVacancy.status == "posted", JobVacancy.is_active.is_(True))
+            .order_by(JobVacancy.posted_at.desc()).limit(20)
         )
         jobs = result.scalars().all()
 
@@ -203,75 +274,48 @@ async def list_active_jobs(callback: CallbackQuery):
     text = "💼 <b>Aktiv vakansiyalar</b>\n\n"
     buttons = []
     for i, job in enumerate(jobs, 1):
-        salary_info = f" | 💰 {job.salary}" if job.salary else ""
-        text += f"<b>{i}.</b> {html_mod.escape(job.title)} — {html_mod.escape(job.company or '—')}{salary_info}\n"
-        buttons.append([InlineKeyboardButton(
-            text=f"👁 {i}. {job.title[:30]}",
-            callback_data=f"job_view:{job.id}",
-        )])
-
+        text += f"<b>{i}.</b> {html_mod.escape(job.title)} — {html_mod.escape(job.company or '—')}\n"
+        buttons.append([InlineKeyboardButton(text=f"👁 {i}. {job.title[:30]}", callback_data=f"jv_view:{job.id}")])
     buttons.append([InlineKeyboardButton(text="🔙 Orqaga", callback_data="jobs:back")])
-    await callback.message.edit_text(
-        text, parse_mode="HTML",
-        reply_markup=InlineKeyboardMarkup(inline_keyboard=buttons),
-    )
+    await callback.message.edit_text(text, parse_mode="HTML", reply_markup=InlineKeyboardMarkup(inline_keyboard=buttons))
     await callback.answer()
 
 
 @router.callback_query(F.data == "jobs:my")
 async def list_my_jobs(callback: CallbackQuery):
-    """Show jobs submitted by this user."""
-    from sqlalchemy import select
-    from db.models import JobVacancy
-
     async with async_session() as session:
         result = await session.execute(
-            select(JobVacancy)
-            .where(JobVacancy.submitted_by == callback.from_user.id)
-            .order_by(JobVacancy.created_at.desc())
-            .limit(20)
+            select(JobVacancy).where(JobVacancy.submitted_by == callback.from_user.id)
+            .order_by(JobVacancy.created_at.desc()).limit(20)
         )
         jobs = result.scalars().all()
 
     if not jobs:
         await callback.message.edit_text(
-            "📭 Sizda hozircha hech qanday vakansiya yo'q.\n\nYangi vakansiya berish uchun 'Vakansiya berish' tugmasidan foydalaning.",
-            parse_mode="HTML",
-            reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-                [InlineKeyboardButton(text="🔙 Orqaga", callback_data="jobs:back")]
-            ])
+            "📭 Sizda hozircha hech qanday vakansiya yo'q.",
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="🔙 Orqaga", callback_data="jobs:back")]]),
         )
         await callback.answer()
         return
 
+    status_labels = {
+        "draft": "✏️ Qoralama", "pending_payment": "💳 To'lov kutilmoqda",
+        "pending_approval": "⏳ Tekshirilmoqda", "approved": "🟡 Navbatda",
+        "posted": "🟢 Kanalda", "rejected": "🔴 Rad etilgan",
+    }
     text = "📥 <b>Mening vakansiyalarim</b>\n\n"
     buttons = []
     for i, job in enumerate(jobs, 1):
-        status_emoji = "🟢" if job.is_active else "🔴"
-        status_text = "Tasdiqlangan" if job.status == "approved" else ("Kutmoqda" if job.status == "pending" else "Rad etilgan")
-        state_label = "Aktiv" if job.is_active else "Yopilgan"
-        
-        text += f"<b>{i}.</b> {status_emoji} {html_mod.escape(job.title)}\nHolat: {status_text} | {state_label}\n\n"
-        
-        buttons.append([InlineKeyboardButton(
-            text=f"👁 Ko'rish: {job.title[:20]}",
-            callback_data=f"job_view:{job.id}",
-        )])
-
+        label = status_labels.get(job.status, job.status)
+        text += f"<b>{i}.</b> {html_mod.escape(job.title)} — {label}\n"
+        buttons.append([InlineKeyboardButton(text=f"👁 {i}. {job.title[:25]}", callback_data=f"jv_view:{job.id}")])
     buttons.append([InlineKeyboardButton(text="🔙 Orqaga", callback_data="jobs:back")])
-    await callback.message.edit_text(
-        text, parse_mode="HTML",
-        reply_markup=InlineKeyboardMarkup(inline_keyboard=buttons),
-    )
+    await callback.message.edit_text(text, parse_mode="HTML", reply_markup=InlineKeyboardMarkup(inline_keyboard=buttons))
     await callback.answer()
 
 
-@router.callback_query(F.data.startswith("job_view:"))
+@router.callback_query(F.data.startswith("jv_view:"))
 async def view_job(callback: CallbackQuery):
-    """View a single vacancy in detail."""
-    from sqlalchemy import select
-    from db.models import JobVacancy
-
     try:
         job_id = int(callback.data.split(":")[1])
     except (ValueError, IndexError):
@@ -286,580 +330,601 @@ async def view_job(callback: CallbackQuery):
         await callback.answer("Vakansiya topilmadi", show_alert=True)
         return
 
-    text = uz.JOBS_CONFIRM_TEXT.format(
-        title=html_mod.escape(job.title),
-        company=html_mod.escape(job.company or "—"),
-        description=html_mod.escape(job.description),
-        salary=html_mod.escape(job.salary or "Kelishiladi"),
-        job_type=_job_type_label(job.job_type),
-        location=html_mod.escape(job.location or "—"),
-        contact=html_mod.escape(job.contact_info or "—"),
-    )
-
+    text = job.formatted_text or f"📌 <b>{html_mod.escape(job.title)}</b>"
     kb_buttons = []
-    if job.submitted_by == callback.from_user.id and job.is_active and job.status == "approved":
-        kb_buttons.append([InlineKeyboardButton(text="🔴 Vakansiyani yopish", callback_data=f"job_close:{job.id}")])
-        
+    if job.submitted_by == callback.from_user.id and job.is_active and job.status == "posted":
+        kb_buttons.append([InlineKeyboardButton(text="🔴 Vakansiyani yopish", callback_data=f"jv_close:{job.id}")])
     kb_buttons.append([InlineKeyboardButton(text="🔙 Orqaga", callback_data="jobs:back")])
-    kb = InlineKeyboardMarkup(inline_keyboard=kb_buttons)
-    await callback.message.edit_text(text, parse_mode="HTML", reply_markup=kb)
+    await callback.message.edit_text(text, parse_mode="HTML", reply_markup=InlineKeyboardMarkup(inline_keyboard=kb_buttons))
     await callback.answer()
 
 
-@router.callback_query(F.data.startswith("job_close:"))
+@router.callback_query(F.data.startswith("jv_close:"))
 async def close_my_job(callback: CallbackQuery):
-    """Close an active job created by the user."""
     try:
         job_id = int(callback.data.split(":")[1])
-    except (ValueError, IndexError):
-        await callback.answer("Xatolik. Qaytadan urinib ko'ring.", show_alert=True)
-        return
-
-    from sqlalchemy import select
-    from db.models import JobVacancy
-
-    async with async_session() as session:
-        result = await session.execute(select(JobVacancy).where(JobVacancy.id == job_id))
-        job = result.scalar_one_or_none()
-
-        if not job:
-            await callback.answer("Vakansiya topilmadi.", show_alert=True)
-            return
-
-        if job.submitted_by != callback.from_user.id and not _is_admin(callback.from_user.id):
-            await callback.answer("Bu vakansiyani yopish huquqingiz yo'q.", show_alert=True)
-            return
-
-        if not job.is_active:
-            await callback.answer("Bu vakansiya allaqachon yopilgan.", show_alert=True)
-            return
-
-        # Try to edit channel message
-        if job.channel_msg_id and job.status == "approved":
-            channel_id, _ = await _get_target_channel(job.title)
-            if channel_id:
-                try:
-                    curr_text = f"<s>{job.title}</s>\n\n🔴 <b>BU VAKANSIYA YOPILDI</b>"
-                    await callback.bot.edit_message_text(
-                        chat_id=channel_id,
-                        message_id=job.channel_msg_id,
-                        text=curr_text,
-                        parse_mode="HTML",
-                        reply_markup=None
-                    )
-                except Exception as e:
-                    logger.warning(f"Failed to edit channel msg {job.channel_msg_id} on close: {e}")
-
-        job.is_active = False
-        await session.commit()
-
-    await callback.answer("Vakansiyangiz yopildi! Kanal va asosiy menyudan olib tashlandi.", show_alert=True)
-    # Refresh 'jobs:my' handler simply
-    await list_my_jobs(callback)
-
-
-@router.callback_query(F.data == "jobs:back")
-async def jobs_back(callback: CallbackQuery):
-    """Return to jobs hub."""
-    await callback.message.edit_text(
-        uz.JOBS_MENU_TEXT,
-        parse_mode="HTML",
-        reply_markup=_jobs_menu_keyboard(callback.from_user.id),
-    )
-    await callback.answer()
-
-
-# ──────────────────────────────────────────────────
-# 📝 Vacancy posting FSM (by business owner)
-# ──────────────────────────────────────────────────
-
-# Predefined job categories
-JOB_CATEGORIES = [
-    ("🤖 AI (SUN'IY INTELLEKT)", "AI mutaxassisi"),
-    ("💻 Dasturchi", "Dasturchi"),
-    ("📱 SMM mutaxassisi", "SMM mutaxassisi"),
-    ("🎨 Dizayner", "Dizayner"),
-    ("📝 Kontent menejer", "Kontent menejer"),
-    ("📊 Marketolog", "Marketolog"),
-    ("📞 Sotuv menejeri", "Sotuv menejeri"),
-    ("🎥 Videograf", "Videograf"),
-    ("📷 Fotograf", "Fotograf"),
-    ("👨‍💼 HR menejer", "HR menejer"),
-    ("💼 Buxgalter", "Buxgalter"),
-    ("🚗 Haydovchi", "Haydovchi"),
-    ("🏪 Sotuvchi", "Sotuvchi"),
-]
-
-
-def _job_categories_keyboard() -> InlineKeyboardMarkup:
-    """Job category selection keyboard — AI on top, 2 columns for rest."""
-    buttons = []
-    # AI — first row, full width, stands out
-    buttons.append([InlineKeyboardButton(
-        text="🤖 AI (SUN'IY INTELLEKT)",
-        callback_data="jcat:AI mutaxassisi",
-    )])
-    # Rest of categories in 2 columns (skip first item which is AI)
-    rest = JOB_CATEGORIES[1:]
-    for i in range(0, len(rest), 2):
-        row = [InlineKeyboardButton(
-            text=rest[i][0],
-            callback_data=f"jcat:{rest[i][1]}",
-        )]
-        if i + 1 < len(rest):
-            row.append(InlineKeyboardButton(
-                text=rest[i + 1][0],
-                callback_data=f"jcat:{rest[i + 1][1]}",
-            ))
-        buttons.append(row)
-    # "O'zim yozaman" button at the bottom
-    buttons.append([InlineKeyboardButton(text="✍️ O'zim yozaman", callback_data="jcat:custom")])
-    return InlineKeyboardMarkup(inline_keyboard=buttons)
-
-
-@router.callback_query(F.data == "jobs:post")
-async def start_job_post(callback: CallbackQuery, state: FSMContext):
-    """Start vacancy posting FSM — show AI category selection."""
-    await state.clear()
-    await state.set_state(JobPostFSM.waiting_title)
-    await callback.message.edit_text(
-        "🤖 <b>AI vakansiya yo'nalishi</b>\n\n"
-        "Qaysi AI yo'nalishi bo'yicha mutaxassis kerak? Quyidan tanlang yoki o'zingiz yozing 👇",
-        parse_mode="HTML",
-        reply_markup=_ai_subcategories_keyboard(),
-    )
-    await callback.answer()
-
-
-# AI sub-categories
-AI_SUBCATEGORIES = [
-    ("🤖 ChatBot yaratish", "AI — ChatBot mutaxassisi"),
-    ("🎨 Rasm generatsiya", "AI — Rasm generatsiya mutaxassisi"),
-    ("📝 Kontent yaratish", "AI — Kontent yaratish mutaxassisi"),
-    ("🔄 Avtomatlashtirish", "AI — Avtomatlashtirish mutaxassisi"),
-    ("📊 Data Science", "AI — Data Science mutaxassisi"),
-    ("🧠 Machine Learning", "AI — Machine Learning mutaxassisi"),
-    ("💬 NLP / Chatbot", "AI — NLP mutaxassisi"),
-    ("📢 AI Marketing", "AI — Marketing mutaxassisi"),
-    ("🎵 Audio / Video AI", "AI — Audio/Video mutaxassisi"),
-    ("⚙️ AI integratsiya", "AI — Integratsiya mutaxassisi"),
-]
-
-
-def _ai_subcategories_keyboard() -> InlineKeyboardMarkup:
-    """AI service types selection keyboard."""
-    buttons = []
-    for i in range(0, len(AI_SUBCATEGORIES), 2):
-        row = [InlineKeyboardButton(
-            text=AI_SUBCATEGORIES[i][0],
-            callback_data=f"jaisub:{i}",
-        )]
-        if i + 1 < len(AI_SUBCATEGORIES):
-            row.append(InlineKeyboardButton(
-                text=AI_SUBCATEGORIES[i + 1][0],
-                callback_data=f"jaisub:{i + 1}",
-            ))
-        buttons.append(row)
-    buttons.append([InlineKeyboardButton(text="✍️ O'zim yozaman", callback_data="jaisub:custom")])
-    buttons.append([InlineKeyboardButton(text="🔙 Orqaga", callback_data="jobs:back")])
-    return InlineKeyboardMarkup(inline_keyboard=buttons)
-
-
-@router.callback_query(F.data.startswith("jcat:"), JobPostFSM.waiting_title)
-async def process_job_category(callback: CallbackQuery, state: FSMContext):
-    """Handle category selection from inline buttons (legacy fallback)."""
-    category = callback.data.split(":", 1)[1]
-    if category == "custom" or category == "AI mutaxassisi":
-        await callback.message.edit_text(
-            "🤖 <b>AI vakansiya yo'nalishi</b>\n\n"
-            "Qaysi AI yo'nalishi bo'yicha mutaxassis kerak? Quyidan tanlang yoki o'zingiz yozing 👇",
-            parse_mode="HTML",
-            reply_markup=_ai_subcategories_keyboard(),
-        )
-        await callback.answer()
-        return
-
-    # Check if category is AI-related (should not happen normally)
-    if not _is_ai_vacancy(category):
-        await callback.answer("❌ Faqat AI ga taaluqli vakansiyalarni joylash mumkin.", show_alert=True)
-        return
-
-    await state.update_data(title=category)
-    await state.set_state(JobPostFSM.waiting_company)
-    await callback.message.answer(uz.JOBS_ASK_COMPANY, parse_mode="HTML")
-    await callback.answer()
-
-
-@router.callback_query(F.data.startswith("jaisub:"), JobPostFSM.waiting_title)
-async def process_ai_subcategory(callback: CallbackQuery, state: FSMContext):
-    """Handle AI sub-category selection."""
-    value = callback.data.split(":", 1)[1]
-
-    if value == "back":
-        # Fallback to main jobs hub
-        await jobs_back(callback)
-        return
-
-    if value == "custom":
-        await callback.message.answer(uz.JOBS_ASK_TITLE, parse_mode="HTML")
-        await callback.answer()
-        return
-
-    try:
-        idx = int(value)
-        title = AI_SUBCATEGORIES[idx][1]
     except (ValueError, IndexError):
         await callback.answer("Xatolik", show_alert=True)
         return
 
-    await state.update_data(title=title)
-    await state.set_state(JobPostFSM.waiting_company)
-    await callback.message.answer(uz.JOBS_ASK_COMPANY, parse_mode="HTML")
+    async with async_session() as session:
+        result = await session.execute(select(JobVacancy).where(JobVacancy.id == job_id))
+        job = result.scalar_one_or_none()
+        if not job:
+            await callback.answer("Vakansiya topilmadi", show_alert=True)
+            return
+        if job.submitted_by != callback.from_user.id and not _is_admin(callback.from_user.id):
+            await callback.answer("Bu vakansiyani yopish huquqingiz yo'q", show_alert=True)
+            return
+        if not job.is_active:
+            await callback.answer("Bu vakansiya allaqachon yopilgan", show_alert=True)
+            return
+
+        channel_id = await _get_jobs_channel_id()
+        if job.channel_msg_id and channel_id:
+            try:
+                await callback.bot.edit_message_caption(
+                    chat_id=channel_id, message_id=job.channel_msg_id,
+                    caption=f"<s>{html_mod.escape(job.title)}</s>\n\n🔴 <b>BU VAKANSIYA YOPILDI</b>",
+                    parse_mode="HTML",
+                )
+            except Exception:
+                pass
+        job.is_active = False
+        await session.commit()
+
+    await callback.answer("Vakansiyangiz yopildi!", show_alert=True)
+    await list_my_jobs(callback)
+
+
+# ──────────────────────────────────────────────────
+# 📝 Posting FSM
+# ──────────────────────────────────────────────────
+@router.callback_query(F.data == "jobs:post")
+async def start_job_post(callback: CallbackQuery, state: FSMContext):
+    await state.clear()
     await callback.answer()
+    await callback.message.answer(
+        uz.JOBS_ASK_JOB_TYPE,
+        reply_markup=_kb([[uz.JOBS_BTN_PERMANENT], [uz.JOBS_BTN_FREELANCE], [uz.JOBS_BTN_CANCEL]]),
+    )
+    await state.set_state(JobPostFSM.waiting_job_type)
+
+
+@router.message(JobPostFSM.waiting_job_type)
+async def state_job_type(message: Message, state: FSMContext):
+    text = (message.text or "").strip()
+    if text == uz.JOBS_BTN_CANCEL:
+        await _cancel_to_menu(message, state)
+        return
+    mapping = {uz.JOBS_BTN_PERMANENT: "doimiy", uz.JOBS_BTN_FREELANCE: "frilans"}
+    if text not in mapping:
+        await message.answer("Iltimos, tugmalardan birini tanlang:")
+        return
+    await state.update_data(job_type=mapping[text])
+    await message.answer(uz.JOBS_ASK_TITLE, parse_mode="HTML", reply_markup=_kb([[uz.JOBS_BTN_CANCEL]]))
+    await state.set_state(JobPostFSM.waiting_title)
 
 
 @router.message(JobPostFSM.waiting_title)
-async def process_job_title(message: Message, state: FSMContext):
-    """Handle custom title text input with validation for AI relatedness."""
-    if not message.text or len(message.text.strip()) < 2:
+async def state_title(message: Message, state: FSMContext):
+    text = (message.text or "").strip()
+    if text == uz.JOBS_BTN_CANCEL:
+        await _cancel_to_menu(message, state)
+        return
+    if len(text) < 2:
         await message.answer(uz.JOBS_ASK_TITLE, parse_mode="HTML")
         return
-        
-    title = message.text.strip()
-    if not _is_ai_vacancy(title):
-        await message.answer(
-            "❌ <b>Kechirasiz, faqat AI (Sun'iy intellekt) ga tegishli vakansiyalarni joylashtirish mumkin.</b>\n\n"
-            "Iltimos, AI ga tegishli sohani kiriting (masalan, <i>AI mutaxassisi, Prompt Engineer, Machine Learning Developer</i>):",
-            parse_mode="HTML"
-        )
+    await state.update_data(title=text[:255])
+    await message.answer(
+        uz.JOBS_ASK_EXPERIENCE,
+        reply_markup=_kb([[uz.JOBS_BTN_JUNIOR], [uz.JOBS_BTN_MIDDLE], [uz.JOBS_BTN_SENIOR], [uz.JOBS_BTN_SKIP], [uz.JOBS_BTN_CANCEL]]),
+    )
+    await state.set_state(JobPostFSM.waiting_experience)
+
+
+@router.message(JobPostFSM.waiting_experience)
+async def state_experience(message: Message, state: FSMContext):
+    text = (message.text or "").strip()
+    if text == uz.JOBS_BTN_CANCEL:
+        await _cancel_to_menu(message, state)
         return
-
-    await state.update_data(title=title[:255])
-    await state.set_state(JobPostFSM.waiting_company)
-    await message.answer(uz.JOBS_ASK_COMPANY, parse_mode="HTML")
-
-
-@router.message(JobPostFSM.waiting_company)
-async def process_job_company(message: Message, state: FSMContext):
-    if not message.text or len(message.text.strip()) < 2:
-        await message.answer(uz.JOBS_ASK_COMPANY, parse_mode="HTML")
-        return
-    await state.update_data(company=message.text.strip()[:255])
-    await state.set_state(JobPostFSM.waiting_description)
-    await message.answer(uz.JOBS_ASK_DESCRIPTION, parse_mode="HTML")
-
-
-@router.message(JobPostFSM.waiting_description)
-async def process_job_description(message: Message, state: FSMContext):
-    if not message.text or len(message.text.strip()) < 10:
-        await message.answer("❌ Tavsif kamida 10 belgi bo'lishi kerak.\n\n" + uz.JOBS_ASK_DESCRIPTION, parse_mode="HTML")
-        return
-    await state.update_data(description=message.text.strip()[:2000])
-    await state.set_state(JobPostFSM.waiting_salary)
-    await message.answer(uz.JOBS_ASK_SALARY, parse_mode="HTML")
-
-
-@router.message(JobPostFSM.waiting_salary, Command("skip"))
-async def skip_salary(message: Message, state: FSMContext):
-    await state.update_data(salary="Kelishiladi")
-    await state.set_state(JobPostFSM.waiting_job_type)
-    await message.answer(uz.JOBS_ASK_JOB_TYPE, parse_mode="HTML", reply_markup=_job_type_keyboard())
-
-
-@router.message(JobPostFSM.waiting_salary)
-async def process_job_salary(message: Message, state: FSMContext):
-    if not message.text:
-        await message.answer(uz.JOBS_ASK_SALARY, parse_mode="HTML")
-        return
-    await state.update_data(salary=message.text.strip()[:100])
-    await state.set_state(JobPostFSM.waiting_job_type)
-    await message.answer(uz.JOBS_ASK_JOB_TYPE, parse_mode="HTML", reply_markup=_job_type_keyboard())
-
-
-@router.callback_query(F.data.startswith("jtype:"), JobPostFSM.waiting_job_type)
-async def process_job_type(callback: CallbackQuery, state: FSMContext):
-    job_type = callback.data.split(":")[1]
-    await state.update_data(job_type=job_type)
+    await state.update_data(experience=text)
+    await message.answer(
+        uz.JOBS_ASK_LOCATION, parse_mode="HTML",
+        reply_markup=_kb([[uz.JOBS_BTN_TASHKENT], [uz.JOBS_BTN_REMOTE], [uz.JOBS_BTN_CANCEL]]),
+    )
     await state.set_state(JobPostFSM.waiting_location)
-    await callback.message.answer(uz.JOBS_ASK_LOCATION, parse_mode="HTML")
-    await callback.answer()
-
-
-@router.message(JobPostFSM.waiting_location, Command("skip"))
-async def skip_location(message: Message, state: FSMContext):
-    await state.update_data(location="—")
-    await state.set_state(JobPostFSM.waiting_contact)
-    await message.answer(uz.JOBS_ASK_CONTACT, parse_mode="HTML")
 
 
 @router.message(JobPostFSM.waiting_location)
-async def process_job_location(message: Message, state: FSMContext):
-    if not message.text:
+async def state_location(message: Message, state: FSMContext):
+    text = (message.text or "").strip()
+    if text == uz.JOBS_BTN_CANCEL:
+        await _cancel_to_menu(message, state)
+        return
+    if not text:
         await message.answer(uz.JOBS_ASK_LOCATION, parse_mode="HTML")
         return
-    await state.update_data(location=message.text.strip()[:255])
+    await state.update_data(location=text[:255])
+    await message.answer(uz.JOBS_ASK_COMPANY, reply_markup=_kb([[uz.JOBS_BTN_CANCEL]]))
+    await state.set_state(JobPostFSM.waiting_company)
+
+
+@router.message(JobPostFSM.waiting_company)
+async def state_company(message: Message, state: FSMContext):
+    text = (message.text or "").strip()
+    if text == uz.JOBS_BTN_CANCEL:
+        await _cancel_to_menu(message, state)
+        return
+    if len(text) < 2:
+        await message.answer(uz.JOBS_ASK_COMPANY)
+        return
+    await state.update_data(company=text[:255])
+    await message.answer(
+        uz.JOBS_ASK_SALARY, parse_mode="HTML",
+        reply_markup=_kb([[uz.JOBS_BTN_NEGOTIABLE], [uz.JOBS_BTN_INTERN], [uz.JOBS_BTN_CANCEL]]),
+    )
+    await state.set_state(JobPostFSM.waiting_salary)
+
+
+@router.message(JobPostFSM.waiting_salary)
+async def state_salary(message: Message, state: FSMContext):
+    text = (message.text or "").strip()
+    if text == uz.JOBS_BTN_CANCEL:
+        await _cancel_to_menu(message, state)
+        return
+    if not text:
+        await message.answer(uz.JOBS_ASK_SALARY, parse_mode="HTML")
+        return
+    await state.update_data(salary=text[:100])
+    await message.answer(uz.JOBS_ASK_CONTACT, parse_mode="HTML", reply_markup=_kb([[uz.JOBS_BTN_CANCEL]]))
     await state.set_state(JobPostFSM.waiting_contact)
-    await message.answer(uz.JOBS_ASK_CONTACT, parse_mode="HTML")
 
 
 @router.message(JobPostFSM.waiting_contact)
-async def process_job_contact(message: Message, state: FSMContext):
-    if not message.text or len(message.text.strip()) < 3:
+async def state_contact(message: Message, state: FSMContext):
+    text = (message.text or "").strip()
+    if text == uz.JOBS_BTN_CANCEL:
+        await _cancel_to_menu(message, state)
+        return
+    if len(text) < 3:
         await message.answer(uz.JOBS_ASK_CONTACT, parse_mode="HTML")
         return
-    await state.update_data(contact=message.text.strip()[:255])
-    await state.set_state(JobPostFSM.waiting_confirm)
-
-    data = await state.get_data()
-    preview = uz.JOBS_CONFIRM_TEXT.format(
-        title=html_mod.escape(data["title"]),
-        company=html_mod.escape(data["company"]),
-        description=html_mod.escape(data["description"]),
-        salary=html_mod.escape(data.get("salary", "Kelishiladi")),
-        job_type=_job_type_label(data.get("job_type", "full_time")),
-        location=html_mod.escape(data.get("location", "—")),
-        contact=html_mod.escape(data["contact"]),
+    await state.update_data(contact=text[:255])
+    await message.answer(
+        uz.JOBS_ASK_WORKING_HOURS, parse_mode="HTML",
+        reply_markup=_kb([[uz.JOBS_BTN_SKIP], [uz.JOBS_BTN_CANCEL]]),
     )
-    kb = InlineKeyboardMarkup(inline_keyboard=[
-        [
-            InlineKeyboardButton(text="✅ Yuborish", callback_data="jobs:submit"),
-            InlineKeyboardButton(text="❌ Bekor qilish", callback_data="jobs:cancel"),
-        ]
-    ])
-    await message.answer(preview, parse_mode="HTML", reply_markup=kb)
+    await state.set_state(JobPostFSM.waiting_working_hours)
 
 
-@router.callback_query(F.data == "jobs:cancel")
-async def cancel_job_post(callback: CallbackQuery, state: FSMContext):
-    await state.clear()
-    await callback.message.edit_text(uz.JOBS_CANCELLED)
-    await callback.answer()
-
-
-@router.callback_query(F.data == "jobs:submit")
-async def submit_job_post(callback: CallbackQuery, state: FSMContext):
-    """Save vacancy to DB and notify admins."""
-    data = await state.get_data()
-    await state.clear()
-
-    if not data.get("title"):
-        await callback.answer("❌ Sessiya muddati o'tdi, qaytadan boshlang.", show_alert=True)
+@router.message(JobPostFSM.waiting_working_hours)
+async def state_working_hours(message: Message, state: FSMContext):
+    text = (message.text or "").strip()
+    if text == uz.JOBS_BTN_CANCEL:
+        await _cancel_to_menu(message, state)
         return
+    await state.update_data(working_hours=text)
+    await message.answer(
+        uz.JOBS_ASK_REQUIREMENTS, parse_mode="HTML",
+        reply_markup=_kb([[uz.JOBS_BTN_SKIP], [uz.JOBS_BTN_CANCEL]]),
+    )
+    await state.set_state(JobPostFSM.waiting_requirements)
 
-    from db.models import JobVacancy
+
+@router.message(JobPostFSM.waiting_requirements)
+async def state_requirements(message: Message, state: FSMContext):
+    text = (message.text or "").strip()
+    if text == uz.JOBS_BTN_CANCEL:
+        await _cancel_to_menu(message, state)
+        return
+    await state.update_data(requirements=text)
+    await message.answer(
+        uz.JOBS_ASK_SKILLS, parse_mode="HTML",
+        reply_markup=_kb([[uz.JOBS_BTN_SKIP], [uz.JOBS_BTN_CANCEL]]),
+    )
+    await state.set_state(JobPostFSM.waiting_skills)
+
+
+@router.message(JobPostFSM.waiting_skills)
+async def state_skills(message: Message, state: FSMContext):
+    text = (message.text or "").strip()
+    if text == uz.JOBS_BTN_CANCEL:
+        await _cancel_to_menu(message, state)
+        return
+    await state.update_data(skills=text)
+    await message.answer(
+        uz.JOBS_ASK_BENEFITS, parse_mode="HTML",
+        reply_markup=_kb([[uz.JOBS_BTN_SKIP], [uz.JOBS_BTN_CANCEL]]),
+    )
+    await state.set_state(JobPostFSM.waiting_benefits)
+
+
+@router.message(JobPostFSM.waiting_benefits)
+async def state_benefits(message: Message, state: FSMContext):
+    text = (message.text or "").strip()
+    if text == uz.JOBS_BTN_CANCEL:
+        await _cancel_to_menu(message, state)
+        return
+    await state.update_data(benefits=text)
+    await _send_preview(message, state)
+
+
+# ── Preview confirm / edit ──
+@router.message(JobPostFSM.waiting_preview_confirm)
+async def state_preview_confirm(message: Message, state: FSMContext):
+    text = (message.text or "").strip()
+    if text == uz.JOBS_BTN_CONFIRM_OK:
+        prices = {t: await _get_tariff_price(t) for t in ("pro", "premium", "vip")}
+        await message.answer(
+            uz.JOBS_TARIFF_TEXT.format(pro=prices["pro"], premium=prices["premium"], vip=prices["vip"]),
+            parse_mode="HTML",
+            reply_markup=_kb([[uz.JOBS_BTN_PRO], [uz.JOBS_BTN_PREMIUM], [uz.JOBS_BTN_VIP], [uz.JOBS_BTN_CANCEL]]),
+        )
+        await state.set_state(JobPostFSM.waiting_tariff)
+    elif text == uz.JOBS_BTN_EDIT:
+        rows = list(uz.JOBS_EDIT_FIELDS.keys())
+        kb_rows = [rows[i:i + 2] for i in range(0, len(rows), 2)] + [["⬅️ Orqaga"]]
+        await message.answer("Tahrirlash uchun maydonni tanlang:", reply_markup=_kb(kb_rows))
+        await state.set_state(JobPostFSM.waiting_edit_field_choice)
+    else:
+        await _cancel_to_menu(message, state)
+
+
+@router.message(JobPostFSM.waiting_edit_field_choice)
+async def state_edit_field_choice(message: Message, state: FSMContext):
+    text = (message.text or "").strip()
+    if text == "⬅️ Orqaga":
+        await _send_preview(message, state)
+        return
+    if text not in uz.JOBS_EDIT_FIELDS:
+        await message.answer("Iltimos, ro'yxatdagi maydonlardan birini tanlang:")
+        return
+    await state.update_data(editing_field=uz.JOBS_EDIT_FIELDS[text], editing_field_name=text)
+    await message.answer(f"Yangi qiymatni kiriting ({text}):", reply_markup=_kb([["⬅️ Orqaga"]]))
+    await state.set_state(JobPostFSM.waiting_edit_field_value)
+
+
+@router.message(JobPostFSM.waiting_edit_field_value)
+async def state_edit_field_value(message: Message, state: FSMContext):
+    text = (message.text or "").strip()
+    if text == "⬅️ Orqaga":
+        data = await state.get_data()
+        rows = list(uz.JOBS_EDIT_FIELDS.keys())
+        kb_rows = [rows[i:i + 2] for i in range(0, len(rows), 2)] + [["⬅️ Orqaga"]]
+        await message.answer("Tahrirlash uchun maydonni tanlang:", reply_markup=_kb(kb_rows))
+        await state.set_state(JobPostFSM.waiting_edit_field_choice)
+        return
+    data = await state.get_data()
+    field = data.get("editing_field")
+    if field:
+        await state.update_data(**{field: text})
+        await message.answer(f"✅ {data.get('editing_field_name')} muvaffaqiyatli tahrirlandi!")
+    await _send_preview(message, state)
+
+
+# ── Tariff → create record → payment ──
+@router.message(JobPostFSM.waiting_tariff)
+async def state_tariff(message: Message, state: FSMContext):
+    text = (message.text or "").strip()
+    if text == uz.JOBS_BTN_CANCEL:
+        await _cancel_to_menu(message, state)
+        return
+    mapping = {uz.JOBS_BTN_PRO: "pro", uz.JOBS_BTN_PREMIUM: "premium", uz.JOBS_BTN_VIP: "vip"}
+    if text not in mapping:
+        await message.answer("Iltimos, tariflardan birini tanlang:")
+        return
+    tariff = mapping[text]
+    data = await state.get_data()
 
     async with async_session() as session:
-        vacancy = JobVacancy(
-            title=data["title"],
-            company=data["company"],
-            description=data["description"],
-            salary=data.get("salary", "Kelishiladi"),
-            job_type=data.get("job_type", "full_time"),
-            location=data.get("location"),
-            contact_info=data["contact"],
-            status="pending",
-            submitted_by=callback.from_user.id,
+        vac = JobVacancy(
+            title=data["title"], company=data["company"], salary=data["salary"],
+            job_type=data.get("job_type", "doimiy"), location=data["location"],
+            contact_info=data["contact"], experience=data.get("experience"),
+            working_hours=data.get("working_hours"), requirements=data.get("requirements"),
+            skills=data.get("skills"), benefits=data.get("benefits"),
+            formatted_text=data.get("formatted_text"), tariff=tariff,
+            status="draft", payment_status="unpaid", submitted_by=message.from_user.id,
         )
-        session.add(vacancy)
+        session.add(vac)
         await session.commit()
-        vacancy_id = vacancy.id
+        vac_id = vac.id
 
-    await callback.message.edit_text(uz.JOBS_SUBMITTED, parse_mode="HTML")
-    await callback.answer()
+    await state.update_data(vacancy_id=vac_id, tariff=tariff)
 
-    # Notify admins
-    admin_kb = InlineKeyboardMarkup(inline_keyboard=[
-        [
-            InlineKeyboardButton(text="✅ Tasdiqlash", callback_data=f"job_approve:{vacancy_id}"),
-            InlineKeyboardButton(text="❌ Rad etish", callback_data=f"job_reject:{vacancy_id}"),
-        ]
-    ])
+    price = await _get_tariff_price(tariff)
+    keyboard = [[uz.JOBS_BTN_PAY_CARD]]
+    if settings.PAYMENT_PROVIDER_TOKEN:
+        keyboard.insert(0, [uz.JOBS_BTN_PAY_TG])
+    keyboard.append([uz.JOBS_BTN_CANCEL])
 
-    admin_text = uz.JOBS_ADMIN_NEW.format(
-        title=html_mod.escape(data["title"]),
-        company=html_mod.escape(data["company"]),
-        salary=html_mod.escape(data.get("salary", "Kelishiladi")),
-        location=html_mod.escape(data.get("location", "—")),
-        description=html_mod.escape(data["description"][:500]),
-        contact=html_mod.escape(data["contact"]),
-        user_name=html_mod.escape(callback.from_user.full_name or "—"),
-        username=html_mod.escape(callback.from_user.username or "—"),
+    await message.answer(
+        uz.JOBS_ASK_PAYMENT_METHOD.format(tariff=uz.JOBS_TARIFF_LABELS[tariff], price=price),
+        parse_mode="HTML", reply_markup=_kb(keyboard),
     )
+    await state.set_state(JobPostFSM.waiting_payment_method)
+
+
+@router.message(JobPostFSM.waiting_payment_method)
+async def state_payment_method(message: Message, state: FSMContext):
+    text = (message.text or "").strip()
+    if text == uz.JOBS_BTN_CANCEL:
+        await _cancel_to_menu(message, state)
+        return
+
+    data = await state.get_data()
+    vac_id = data.get("vacancy_id")
+    tariff = data.get("tariff", "pro")
+    price = await _get_tariff_price(tariff)
+
+    if text == uz.JOBS_BTN_PAY_TG and settings.PAYMENT_PROVIDER_TOKEN:
+        async with async_session() as session:
+            vac = await session.get(JobVacancy, vac_id)
+            vac.status = "pending_payment"
+            vac.payment_method = "telegram_billing"
+            await session.commit()
+
+        await message.answer("To'lov hisobi tayyorlanmoqda...", reply_markup=ReplyKeyboardRemove())
+        await message.answer_invoice(
+            title=f"Vakansiya e'loni #{vac_id}",
+            description=f"Nuvi Jobs kanalida vakansiya e'lonini joylash to'lovi (Tarif: {tariff.upper()}).",
+            payload=f"vacancy_payment_{vac_id}",
+            provider_token=settings.PAYMENT_PROVIDER_TOKEN,
+            currency="UZS",
+            prices=[LabeledPrice(label="Vakansiya e'loni", amount=price * 100)],
+        )
+        await state.clear()
+        return
+
+    if text == uz.JOBS_BTN_PAY_CARD:
+        card = await _get_card_details()
+        async with async_session() as session:
+            vac = await session.get(JobVacancy, vac_id)
+            vac.status = "pending_payment"
+            vac.payment_method = "card_manual"
+            await session.commit()
+
+        await message.answer(
+            uz.JOBS_CARD_PAYMENT_TEXT.format(card=card, price=price),
+            parse_mode="HTML", reply_markup=_kb([[uz.JOBS_BTN_CANCEL]]),
+        )
+        await state.set_state(JobPostFSM.waiting_receipt)
+        return
+
+    await message.answer("Iltimos, to'lov usullaridan birini tanlang:")
+
+
+@router.message(JobPostFSM.waiting_receipt, F.photo)
+async def state_receipt_photo(message: Message, state: FSMContext):
+    data = await state.get_data()
+    vac_id = data.get("vacancy_id")
+    file_id = message.photo[-1].file_id
+
+    async with async_session() as session:
+        vac = await session.get(JobVacancy, vac_id)
+        vac.payment_status = "manual_pending"
+        vac.payment_receipt = file_id
+        vac.status = "pending_approval"
+        await session.commit()
+
+    await message.answer(uz.JOBS_RECEIPT_ACCEPTED, parse_mode="HTML", reply_markup=await get_main_menu(user_id=message.from_user.id))
+    await state.clear()
+    await _send_vacancy_to_admins(message.bot, vac_id)
+
+
+@router.message(JobPostFSM.waiting_receipt)
+async def state_receipt_fallback(message: Message, state: FSMContext):
+    text = (message.text or "").strip()
+    if text == uz.JOBS_BTN_CANCEL:
+        await _cancel_to_menu(message, state)
+        return
+    await message.answer("Iltimos, to'lov chekini faqat rasm shaklida yuboring:")
+
+
+# ── Telegram invoice payment ──
+@router.message(F.successful_payment, F.successful_payment.invoice_payload.startswith("vacancy_payment_"))
+async def jobs_successful_payment(message: Message):
+    vac_id = int(message.successful_payment.invoice_payload.split("_")[-1])
+    async with async_session() as session:
+        vac = await session.get(JobVacancy, vac_id)
+        if not vac:
+            return
+        vac.payment_status = "paid"
+        vac.status = "pending_approval"
+        await session.commit()
+
+    await message.answer(
+        "✅ To'lov qabul qilindi! Admin tekshiruvidan so'ng e'loningiz navbatga qo'yiladi.",
+        reply_markup=await get_main_menu(user_id=message.from_user.id),
+    )
+    await _send_vacancy_to_admins(message.bot, vac_id)
+
+
+# ──────────────────────────────────────────────────
+# Admin: review incoming vacancies
+# ──────────────────────────────────────────────────
+async def _send_vacancy_to_admins(bot, vacancy_id: int):
+    async with async_session() as session:
+        vac = await session.get(JobVacancy, vacancy_id)
+        if not vac:
+            return
+        text = uz.JOBS_ADMIN_NEW.format(
+            vac_id=vacancy_id, title=html_mod.escape(vac.title), company=html_mod.escape(vac.company or "—"),
+            salary=html_mod.escape(vac.salary or "—"), tariff=uz.JOBS_TARIFF_LABELS.get(vac.tariff, vac.tariff),
+            method=vac.payment_method or "—", payment_status=vac.payment_status,
+            formatted_text=vac.formatted_text or "",
+        )
+        receipt = vac.payment_receipt
+        needs_payconfirm = vac.payment_status == "manual_pending"
+
+    kb = [[InlineKeyboardButton(
+        text="💳 To'lovni tasdiqlash" if needs_payconfirm else "✅ Tasdiqlash",
+        callback_data=f"jv_payconfirm:{vacancy_id}" if needs_payconfirm else f"jv_approve:{vacancy_id}",
+    )], [InlineKeyboardButton(text="❌ Rad etish", callback_data=f"jv_rejectmenu:{vacancy_id}")]]
+    markup = InlineKeyboardMarkup(inline_keyboard=kb)
 
     for aid in settings.ADMIN_IDS:
         try:
-            await callback.bot.send_message(
-                chat_id=aid, text=admin_text,
-                parse_mode="HTML", reply_markup=admin_kb,
-            )
+            if receipt:
+                await bot.send_photo(chat_id=aid, photo=receipt, caption=text, parse_mode="HTML", reply_markup=markup)
+            else:
+                await bot.send_message(chat_id=aid, text=text, parse_mode="HTML", reply_markup=markup)
         except Exception as e:
             logger.warning(f"Could not notify admin {aid}: {e}")
 
 
-# ──────────────────────────────────────────────────
-# Admin: approve/reject vacancy
-# ──────────────────────────────────────────────────
-@router.callback_query(F.data.startswith("job_approve:"))
-async def approve_job(callback: CallbackQuery):
+@router.callback_query(F.data.startswith("jv_payconfirm:"))
+async def admin_payconfirm(callback: CallbackQuery):
     if not _is_admin(callback.from_user.id):
         await callback.answer("⛔ Faqat adminlar uchun", show_alert=True)
         return
-
-    try:
-        vacancy_id = int(callback.data.split(":")[1])
-    except (ValueError, IndexError):
-        await callback.answer("Noto'g'ri ID", show_alert=True)
-        return
-
-    from sqlalchemy import select
-    from db.models import JobVacancy
+    vac_id = int(callback.data.split(":")[1])
 
     async with async_session() as session:
-        result = await session.execute(select(JobVacancy).where(JobVacancy.id == vacancy_id))
-        job = result.scalar_one_or_none()
-
-        if not job:
-            await callback.answer("Vakansiya topilmadi", show_alert=True)
+        vac = await session.get(JobVacancy, vac_id)
+        if not vac:
+            await callback.answer("Topilmadi", show_alert=True)
             return
-
-        if job.status == "approved":
-            await callback.answer("Bu vakansiya allaqachon tasdiqlangan", show_alert=True)
+        if vac.payment_status == "paid":
+            await callback.answer("Allaqachon tasdiqlangan", show_alert=True)
             return
-
-        job.status = "approved"
-        job.reviewed_by = callback.from_user.id
-        job.approved_at = datetime.now(timezone.utc).replace(tzinfo=None)
+        vac.payment_status = "paid"
+        submitted_by = vac.submitted_by
         await session.commit()
 
-        # Publish to channel — AI vacancies go to AI channel
-        channel_id, topic_id = await _get_target_channel(job.title)
-        if channel_id:
-            channel_text = uz.JOBS_CHANNEL_POST.format(
-                title=html_mod.escape(job.title),
-                company=html_mod.escape(job.company or "—"),
-                location=html_mod.escape(job.location or "—"),
-                salary=html_mod.escape(job.salary or "Kelishiladi"),
-                job_type=_job_type_label(job.job_type),
-                description=html_mod.escape(job.description),
-                contact=html_mod.escape(job.contact_info or "—"),
-            )
-            try:
-                # Generate vacancy banner image
-                from services.job_image import generate_vacancy_image
-                from aiogram.types import BufferedInputFile
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="✅ Tasdiqlash", callback_data=f"jv_approve:{vac_id}")],
+        [InlineKeyboardButton(text="❌ Rad etish", callback_data=f"jv_rejectmenu:{vac_id}")],
+    ])
+    try:
+        if callback.message.photo:
+            await callback.message.edit_caption(caption=(callback.message.caption or "") + "\n\n🟢 TO'LOV TASDIQLANDI", reply_markup=kb)
+        else:
+            await callback.message.edit_text((callback.message.text or "") + "\n\n🟢 TO'LOV TASDIQLANDI", reply_markup=kb)
+    except Exception:
+        pass
 
-                img_buf = generate_vacancy_image(
-                    title=job.title,
-                    company=job.company or "",
-                    salary=job.salary or "",
-                )
-                photo = BufferedInputFile(
-                    file=img_buf.read(),
-                    filename=f"vacancy_{vacancy_id}.png",
-                )
+    try:
+        await callback.bot.send_message(chat_id=submitted_by, text=uz.JOBS_USER_PAYMENT_CONFIRMED.format(vac_id=vac_id), parse_mode="HTML")
+    except Exception:
+        pass
+    await callback.answer()
 
-                sent_msg = await callback.bot.send_photo(
-                    chat_id=channel_id,
-                    message_thread_id=topic_id,
-                    photo=photo,
-                    caption=channel_text,
-                    parse_mode="HTML",
-                )
-                # Save channel message ID
-                job.channel_msg_id = sent_msg.message_id
-                await session.commit()
-            except Exception as e:
-                logger.error(f"Failed to post job {vacancy_id} to channel {channel_id}: {e}")
-                await callback.message.answer(f"⚠️ Kanalga yuborishda xatolik: {e}")
 
-        # Notify the business owner
-        try:
-            await callback.bot.send_message(
-                chat_id=job.submitted_by,
-                text=uz.JOBS_USER_APPROVED.format(title=job.title),
-                parse_mode="HTML",
-            )
-        except Exception:
-            pass
+@router.callback_query(F.data.startswith("jv_approve:"))
+async def admin_approve(callback: CallbackQuery):
+    if not _is_admin(callback.from_user.id):
+        await callback.answer("⛔ Faqat adminlar uchun", show_alert=True)
+        return
+    vac_id = int(callback.data.split(":")[1])
 
-    await callback.message.edit_text(
-        callback.message.text + "\n\n" + uz.JOBS_APPROVED,
-        parse_mode="HTML",
-    )
+    async with async_session() as session:
+        vac = await session.get(JobVacancy, vac_id)
+        if not vac:
+            await callback.answer("Topilmadi", show_alert=True)
+            return
+        if vac.status == "approved" or vac.status == "posted":
+            await callback.answer("Allaqachon tasdiqlangan", show_alert=True)
+            return
+        scheduled_for = await _calculate_next_post_time(vac.tariff)
+        vac.status = "approved"
+        vac.reviewed_by = callback.from_user.id
+        vac.approved_at = datetime.utcnow()
+        vac.scheduled_for = scheduled_for
+        submitted_by = vac.submitted_by
+        await session.commit()
+
+    time_str = scheduled_for.replace(tzinfo=timezone.utc).astimezone(TASHKENT).strftime("%Y-%m-%d %H:%M")
+    try:
+        if callback.message.photo:
+            await callback.message.edit_caption(caption=(callback.message.caption or "") + f"\n\n🟢 TASDIQLANDI\n⏰ Navbat: {time_str}", reply_markup=None)
+        else:
+            await callback.message.edit_text((callback.message.text or "") + f"\n\n🟢 TASDIQLANDI\n⏰ Navbat: {time_str}", reply_markup=None)
+    except Exception:
+        pass
+
+    try:
+        await callback.bot.send_message(chat_id=submitted_by, text=uz.JOBS_USER_APPROVED.format(vac_id=vac_id, time_str=time_str), parse_mode="HTML")
+    except Exception:
+        pass
     await callback.answer(uz.JOBS_APPROVED)
 
 
-@router.callback_query(F.data.startswith("job_reject:"))
-async def reject_job(callback: CallbackQuery):
+@router.callback_query(F.data.startswith("jv_rejectmenu:"))
+async def admin_reject_menu(callback: CallbackQuery):
     if not _is_admin(callback.from_user.id):
         await callback.answer("⛔ Faqat adminlar uchun", show_alert=True)
         return
-
+    vac_id = int(callback.data.split(":")[1])
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="❌ Sifatsiz ma'lumot", callback_data=f"jv_reject:{vac_id}:sifatsiz")],
+        [InlineKeyboardButton(text="❌ Boshqa kanallar reklamasi", callback_data=f"jv_reject:{vac_id}:reklama")],
+        [InlineKeyboardButton(text="❌ Boshqa sabab", callback_data=f"jv_reject:{vac_id}:boshqa")],
+    ])
     try:
-        vacancy_id = int(callback.data.split(":")[1])
-    except (ValueError, IndexError):
-        await callback.answer("Noto'g'ri ID", show_alert=True)
-        return
+        if callback.message.photo:
+            await callback.message.edit_caption(caption=callback.message.caption, reply_markup=kb)
+        else:
+            await callback.message.edit_text(callback.message.text, reply_markup=kb)
+    except Exception:
+        pass
+    await callback.answer()
 
-    from sqlalchemy import select
-    from db.models import JobVacancy
+
+@router.callback_query(F.data.startswith("jv_reject:"))
+async def admin_reject(callback: CallbackQuery):
+    if not _is_admin(callback.from_user.id):
+        await callback.answer("⛔ Faqat adminlar uchun", show_alert=True)
+        return
+    parts = callback.data.split(":")
+    vac_id = int(parts[1])
+    reason_code = parts[2]
+    reason = uz.JOBS_REJECT_REASONS.get(reason_code, "Ariza talablarga javob bermaydi.")
 
     async with async_session() as session:
-        result = await session.execute(select(JobVacancy).where(JobVacancy.id == vacancy_id))
-        job = result.scalar_one_or_none()
-
-        if not job:
-            await callback.answer("Vakansiya topilmadi", show_alert=True)
+        vac = await session.get(JobVacancy, vac_id)
+        if not vac:
+            await callback.answer("Topilmadi", show_alert=True)
             return
-
-        job.status = "rejected"
-        job.reviewed_by = callback.from_user.id
+        vac.status = "rejected"
+        vac.rejection_reason = reason
+        vac.reviewed_by = callback.from_user.id
+        submitted_by = vac.submitted_by
         await session.commit()
 
-        # Notify the business owner
-        try:
-            await callback.bot.send_message(
-                chat_id=job.submitted_by,
-                text=uz.JOBS_USER_REJECTED.format(title=job.title),
-                parse_mode="HTML",
-            )
-        except Exception:
-            pass
+    try:
+        if callback.message.photo:
+            await callback.message.edit_caption(caption=(callback.message.caption or "") + f"\n\n🔴 RAD ETILDI\n⚠️ {reason}", reply_markup=None)
+        else:
+            await callback.message.edit_text((callback.message.text or "") + f"\n\n🔴 RAD ETILDI\n⚠️ {reason}", reply_markup=None)
+    except Exception:
+        pass
 
-    await callback.message.edit_text(
-        callback.message.text + "\n\n" + uz.JOBS_REJECTED,
-        parse_mode="HTML",
-    )
+    try:
+        await callback.bot.send_message(chat_id=submitted_by, text=uz.JOBS_USER_REJECTED.format(vac_id=vac_id, reason=reason), parse_mode="HTML")
+    except Exception:
+        pass
     await callback.answer(uz.JOBS_REJECTED)
 
 
-# ──────────────────────────────────────────────────
-# Admin: pending vacancies list
-# ──────────────────────────────────────────────────
 @router.callback_query(F.data == "jobs:pending")
 async def list_pending_jobs(callback: CallbackQuery):
     if not _is_admin(callback.from_user.id):
         await callback.answer("⛔ Faqat adminlar uchun", show_alert=True)
         return
-
-    from sqlalchemy import select
-    from db.models import JobVacancy
-
     async with async_session() as session:
         result = await session.execute(
-            select(JobVacancy)
-            .where(JobVacancy.status == "pending")
-            .order_by(JobVacancy.created_at.desc())
-            .limit(20)
+            select(JobVacancy).where(JobVacancy.status.in_(["pending_approval"]))
+            .order_by(JobVacancy.created_at.desc()).limit(20)
         )
         jobs = result.scalars().all()
 
     if not jobs:
         await callback.message.edit_text(
             "📭 Kutilayotgan vakansiyalar yo'q.",
-            reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-                [InlineKeyboardButton(text="🔙 Orqaga", callback_data="jobs:back")]
-            ]),
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="🔙 Orqaga", callback_data="jobs:back")]]),
         )
         await callback.answer()
         return
@@ -868,112 +933,63 @@ async def list_pending_jobs(callback: CallbackQuery):
     buttons = []
     for i, job in enumerate(jobs, 1):
         text += f"<b>{i}.</b> {html_mod.escape(job.title)} — {html_mod.escape(job.company or '—')}\n"
-        buttons.append([
-            InlineKeyboardButton(text=f"✅ {job.title[:20]}", callback_data=f"job_approve:{job.id}"),
-            InlineKeyboardButton(text=f"❌", callback_data=f"job_reject:{job.id}"),
-        ])
-
+        buttons.append([InlineKeyboardButton(text=f"👁 #{job.id}: {job.title[:25]}", callback_data=f"jv_view:{job.id}")])
     buttons.append([InlineKeyboardButton(text="🔙 Orqaga", callback_data="jobs:back")])
-    await callback.message.edit_text(
-        text, parse_mode="HTML",
-        reply_markup=InlineKeyboardMarkup(inline_keyboard=buttons),
-    )
+    await callback.message.edit_text(text, parse_mode="HTML", reply_markup=InlineKeyboardMarkup(inline_keyboard=buttons))
     await callback.answer()
 
 
 # ──────────────────────────────────────────────────
-# Admin: set jobs channel ID
+# Admin: set jobs channel
 # ──────────────────────────────────────────────────
-@router.callback_query(F.data.in_({"jobs:set_channel", "jobs:set_ai_channel"}))
+@router.callback_query(F.data == "jobs:set_channel")
 async def set_channel_prompt(callback: CallbackQuery, state: FSMContext):
     if not _is_admin(callback.from_user.id):
         await callback.answer("⛔ Faqat adminlar uchun", show_alert=True)
         return
-
-    is_ai = callback.data == "jobs:set_ai_channel"
-    setting_key = "ai_jobs_channel_id" if is_ai else "jobs_channel_id"
-    label = "🤖 AI vakansiya" if is_ai else "💼 Asosiy vakansiya"
-
-    current = await _get_jobs_channel_id(setting_key)
-    current_topic = await _get_jobs_channel_id(f"{setting_key}_topic")
-    current_text = f"<code>{current}</code>" if current else "o'rnatilmagan"
-    if current_topic:
-        current_text += f" (Topic: {current_topic})"
-
+    current = await _get_setting("jobs_channel_id")
     await callback.message.answer(
-        f"⚙️ <b>{label} kanali sozlash</b>\n\n"
-        f"Hozirgi kanal ID: {current_text}\n\n"
+        f"⚙️ <b>Vakansiya kanali sozlash</b>\n\n"
+        f"Hozirgi kanal ID: <code>{current or 'o‘rnatilmagan'}</code>\n\n"
         f"Yangi kanal ID ni yuboring (masalan: <code>-1001234567890</code>).\n"
-        f"Agar maxsus guruh topigiga yubormoqchi bo'lsangiz, ID dan keyin probel tashlab Topik ID ni yozing (masalan: <code>-1001234567890 54</code>).\n\n"
-        f"💡 Kanal ID ni olish uchun kanalga @userinfobot ni qo'shing va /start bosing.\n"
+        f"💡 Kanal ID olish uchun kanalga @userinfobot ni qo'shing.\n"
         f"Botni kanalga admin qilib qo'shishni unutmang!",
         parse_mode="HTML",
     )
     await state.set_state(JobPostFSM.waiting_confirm)
-    await state.update_data(_channel_setup=True, _channel_key=setting_key)
+    await state.update_data(_channel_setup=True)
     await callback.answer()
 
 
 @router.message(JobPostFSM.waiting_confirm, F.text)
-async def process_channel_or_confirm(message: Message, state: FSMContext):
-    """Handle channel ID input (admin) — reuses waiting_confirm state with a flag."""
+async def process_channel_setup(message: Message, state: FSMContext):
     data = await state.get_data()
-    if not data.get("_channel_setup"):
-        return  # Not channel setup — let other handlers deal with it
-
-    if not _is_admin(message.from_user.id):
+    if not data.get("_channel_setup") or not _is_admin(message.from_user.id):
         return
 
     text = message.text.strip()
-    parts = text.split()
     try:
-        channel_id = int(parts[0])
-        topic_id = int(parts[1]) if len(parts) > 1 else None
-    except ValueError:
-        await message.answer("❌ Noto'g'ri format. Raqam yuboring (masalan: -1001234567890 54)")
+        channel_id = int(text.split()[0])
+    except (ValueError, IndexError):
+        await message.answer("❌ Noto'g'ri format. Raqam yuboring (masalan: -1001234567890)")
         return
 
-    # Save to admin_settings
-    from sqlalchemy import select
-    from db.models import AdminSetting
-
-    setting_key = data.get("_channel_key", "jobs_channel_id")
-    topic_key = f"{setting_key}_topic"
-
-    async def _save_setting(session, k, v):
-        res = await session.execute(select(AdminSetting).where(AdminSetting.key == k))
-        existing = res.scalar_one_or_none()
-        if existing:
-            existing.value = str(v) if v is not None else ""
-        elif v is not None:
-            session.add(AdminSetting(key=k, value=str(v)))
-
     async with async_session() as session:
-        await _save_setting(session, setting_key, channel_id)
-        await _save_setting(session, topic_key, topic_id)
+        result = await session.execute(select(AdminSetting).where(AdminSetting.key == "jobs_channel_id"))
+        existing = result.scalar_one_or_none()
+        if existing:
+            existing.value = str(channel_id)
+        else:
+            session.add(AdminSetting(key="jobs_channel_id", value=str(channel_id)))
         await session.commit()
 
     await state.clear()
-
-    # Test: try sending a test message
     try:
-        test_msg = await message.bot.send_message(
-            chat_id=channel_id,
-            message_thread_id=topic_id,
-            text="✅ NUVI Jobs kanali muvaffaqiyatli ulandi!",
-        )
+        test_msg = await message.bot.send_message(chat_id=channel_id, text="✅ Nuvi Jobs kanali muvaffaqiyatli ulandi!")
         await message.bot.delete_message(chat_id=channel_id, message_id=test_msg.message_id)
-        await message.answer(
-            f"✅ Kanal muvaffaqiyatli ulandi!\n\nKanal ID: <code>{channel_id}</code>",
-            parse_mode="HTML",
-            reply_markup=await get_main_menu(user_id=message.from_user.id),
-        )
+        await message.answer(f"✅ Kanal ulandi: <code>{channel_id}</code>", parse_mode="HTML", reply_markup=await get_main_menu(user_id=message.from_user.id))
     except Exception as e:
         await message.answer(
-            f"⚠️ Kanal ID saqlandi (<code>{channel_id}</code>), lekin test xabar yuborib bo'lmadi:\n"
-            f"<code>{html_mod.escape(str(e)[:200])}</code>\n\n"
-            f"Botni kanalga admin qilib qo'shing!",
-            parse_mode="HTML",
-            reply_markup=await get_main_menu(user_id=message.from_user.id),
+            f"⚠️ Kanal ID saqlandi, lekin test xabar yuborilmadi:\n<code>{html_mod.escape(str(e)[:200])}</code>\n\nBotni kanalga admin qiling!",
+            parse_mode="HTML", reply_markup=await get_main_menu(user_id=message.from_user.id),
         )
-

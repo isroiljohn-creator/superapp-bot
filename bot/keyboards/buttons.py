@@ -20,7 +20,7 @@ async def get_main_menu(user_id: int = None) -> ReplyKeyboardMarkup:
             
     buttons = [
         [KeyboardButton(text=uz.MENU_BTN_FREE_LESSONS), KeyboardButton(text=uz.MENU_BTN_SUPERAPP)],
-        [KeyboardButton(text=uz.MENU_BTN_PROFILE)],
+        [KeyboardButton(text=uz.MENU_BTN_JOBS), KeyboardButton(text=uz.MENU_BTN_PROFILE)],
     ]
     
     if is_admin:

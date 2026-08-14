@@ -88,6 +88,22 @@ async def _auto_migrate(engine):
         ("moderated_groups", "plan", "VARCHAR(10) DEFAULT 'free'"),
         ("moderated_groups", "plan_expires_at", "TIMESTAMP"),
         ("moderated_groups", "last_ad_sent_at", "TIMESTAMP"),
+        # Nuvi Jobs — vacancy posting (ported from nuvi-jobs-bot)
+        ("job_vacancies", "experience", "VARCHAR(100)"),
+        ("job_vacancies", "working_hours", "VARCHAR(255)"),
+        ("job_vacancies", "requirements", "TEXT"),
+        ("job_vacancies", "skills", "TEXT"),
+        ("job_vacancies", "benefits", "TEXT"),
+        ("job_vacancies", "formatted_text", "TEXT"),
+        ("job_vacancies", "tariff", "VARCHAR(20) DEFAULT 'pro'"),
+        ("job_vacancies", "payment_status", "VARCHAR(20) DEFAULT 'unpaid'"),
+        ("job_vacancies", "payment_method", "VARCHAR(30)"),
+        ("job_vacancies", "payment_receipt", "TEXT"),
+        ("job_vacancies", "rejection_reason", "TEXT"),
+        ("job_vacancies", "scheduled_for", "TIMESTAMP"),
+        ("job_vacancies", "posted_at", "TIMESTAMP"),
+        ("job_vacancies", "pinned", "BOOLEAN DEFAULT FALSE"),
+        ("job_vacancies", "pin_expires_at", "TIMESTAMP"),
     ]
     async with engine.begin() as conn:
         for table, column, col_type in migrations:
@@ -98,6 +114,16 @@ async def _auto_migrate(engine):
                 logger.info(f"✅ Migration: {table}.{column} OK")
             except Exception as e:
                 logger.warning(f"⚠️ Migration {table}.{column}: {e}")
+
+        # job_vacancies.description was NOT NULL — the new flow builds
+        # formatted_text instead, so relax the constraint.
+        try:
+            await conn.execute(text(
+                "ALTER TABLE job_vacancies ALTER COLUMN description DROP NOT NULL"
+            ))
+            logger.info("✅ Migration: job_vacancies.description nullable OK")
+        except Exception as e:
+            logger.warning(f"⚠️ Migration job_vacancies.description nullable: {e}")
 
         # One-time: deduplicate events table (keep earliest per user+type)
         try:

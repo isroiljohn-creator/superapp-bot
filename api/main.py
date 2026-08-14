@@ -129,6 +129,13 @@ async def lifespan(app: FastAPI):
         except Exception as e:
             logger.warning(f"Scheduled message checker failed to start: {e}")
 
+        try:
+            from services.jobs_cron import start_cron as start_jobs_cron
+            start_jobs_cron(bot)
+            logger.info("✅ Nuvi Jobs queue cron started")
+        except Exception as e:
+            logger.warning(f"Nuvi Jobs cron failed to start: {e}")
+
     yield
 
     # Shutdown

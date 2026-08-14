@@ -53,15 +53,25 @@ class FunnelBuilderFSM(StatesGroup):
 
 
 class JobPostFSM(StatesGroup):
-    """Business owner job posting flow."""
+    """Employer vacancy posting flow (ported from nuvi-jobs-bot)."""
+    waiting_job_type = State()       # doimiy / frilans
     waiting_title = State()
-    waiting_company = State()
-    waiting_description = State()
-    waiting_salary = State()
-    waiting_job_type = State()
+    waiting_experience = State()
     waiting_location = State()
+    waiting_company = State()
+    waiting_salary = State()
     waiting_contact = State()
-    waiting_confirm = State()
+    waiting_working_hours = State()
+    waiting_requirements = State()
+    waiting_skills = State()
+    waiting_benefits = State()
+    waiting_preview_confirm = State()
+    waiting_edit_field_choice = State()
+    waiting_edit_field_value = State()
+    waiting_tariff = State()
+    waiting_payment_method = State()
+    waiting_receipt = State()
+    waiting_confirm = State()        # admin channel-id setup reuses this (see admin.py)
 
 
 class WalletTopUpFSM(StatesGroup):
