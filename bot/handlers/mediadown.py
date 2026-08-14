@@ -14,11 +14,14 @@ from bot.locales import uz
 router = Router(name="mediadown")
 logger = logging.getLogger("mediadown")
 
-# Supported URL patterns
+# Supported URL patterns.
+# Instagram and YouTube are deliberately excluded: yt-dlp currently can't
+# fetch from either without browser cookies (both platforms block
+# datacenter/cloud IPs with a "sign in" / "not granting access" error), and
+# there's no fix available without shipping real account cookies. Confirmed
+# broken via live requests from this server; TikTok confirmed working.
 SUPPORTED_PATTERNS = [
-    r"(https?://)?(www\.)?(instagram\.com|instagr\.am)/",
     r"(https?://)?(www\.|vm\.|vt\.)?tiktok\.com/",
-    r"(https?://)?(www\.)?(youtube\.com|youtu\.be)/",
     r"(https?://)?(www\.)?pinterest\.(com|co\.uk|de|fr)/",
     r"(https?://)?(www\.)?snapchat\.com/",
     r"(https?://)?(www\.)?(twitter\.com|x\.com)/",
@@ -39,11 +42,7 @@ def _is_supported_url(text: str) -> bool:
 def _get_platform_name(url: str) -> str:
     """Get human-readable platform name from URL."""
     platforms = {
-        "instagram": "Instagram",
-        "instagr.am": "Instagram",
         "tiktok": "TikTok",
-        "youtube": "YouTube",
-        "youtu.be": "YouTube",
         "pinterest": "Pinterest",
         "snapchat": "Snapchat",
         "twitter": "Twitter/X",

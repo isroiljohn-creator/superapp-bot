@@ -38,9 +38,7 @@ async def prompt_mediadown(message: Message, state: FSMContext):
     await message.answer(
         "📥 <b>Media yuklab olish</b>\n\n"
         "Quyidagi platformalardan video yoki rasm havolasini yuboring:\n\n"
-        "• Instagram (Reels, Post, Story)\n"
         "• TikTok\n"
-        "• YouTube / YouTube Shorts\n"
         "• Pinterest\n"
         "• Snapchat\n"
         "• Twitter / X\n"
