@@ -151,9 +151,9 @@ async def deliver_lead_magnet_force(message: Message, telegram_id: int) -> bool:
         scoring = LeadScoringService(session)
         await scoring.process_event(telegram_id, user.id, EVT_LEAD_MAGNET_OPEN)
         await session.commit()
-        return True
 
     await _schedule_delayed_video(telegram_id)
+    return True
 
 
 async def _schedule_delayed_video(telegram_id: int):

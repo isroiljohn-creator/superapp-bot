@@ -15,6 +15,24 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/moderator", tags=["moderator"])
 
 
+async def _can_manage_group(grp: ModeratedGroup, user_id: int) -> bool:
+    """Allowed if the user added the bot, is a global bot admin, or is
+    currently an admin/creator of the Telegram group itself — matches the
+    (more permissive) check the bot handler already uses to hand out the
+    setup link, so a legitimate group admin never hits a surprise 403 here."""
+    from bot.config import settings as bot_settings
+    if grp.added_by == user_id or user_id in bot_settings.ADMIN_IDS:
+        return True
+    try:
+        import api.main as api_main
+        if api_main.bot is None:
+            return False
+        member = await api_main.bot.get_chat_member(grp.group_id, user_id)
+        return member.status in ("creator", "administrator")
+    except Exception:
+        return False
+
+
 class SettingsDTO(BaseModel):
     # Features
     anti_spam: bool
@@ -62,8 +80,7 @@ async def get_settings(group_id: int, user: dict = Depends(validate_init_data)):
             raise HTTPException(status_code=404, detail="Guruh topilmadi")
 
         # Basic security: only 'added_by' or admin list can edit via webapp
-        from bot.config import settings as bot_settings
-        if grp.added_by != user_id and user_id not in bot_settings.ADMIN_IDS:
+        if not await _can_manage_group(grp, user_id):
             raise HTTPException(status_code=403, detail="Siz bu guruh admini emassiz")
 
         # Get banned words
@@ -120,8 +137,7 @@ async def save_settings(
         if not grp:
             raise HTTPException(status_code=404, detail="Guruh topilmadi")
 
-        from bot.config import settings as bot_settings
-        if grp.added_by != user_id and user_id not in bot_settings.ADMIN_IDS:
+        if not await _can_manage_group(grp, user_id):
             raise HTTPException(status_code=403, detail="Siz bu guruh admini emassiz")
 
         # Validate plan limits
@@ -207,8 +223,7 @@ async def upgrade_plan(data: UpgradeRequest, user: dict = Depends(validate_init_
         if not grp:
             raise HTTPException(status_code=404, detail="Guruh topilmadi")
             
-        from bot.config import settings as bot_settings
-        if grp.added_by != user_id and user_id not in bot_settings.ADMIN_IDS:
+        if not await _can_manage_group(grp, user_id):
             raise HTTPException(status_code=403, detail="Siz bu guruh admini emassiz")
 
         # Deduct balance
