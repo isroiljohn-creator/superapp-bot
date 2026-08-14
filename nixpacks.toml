@@ -1,6 +1,0 @@
-[phases.setup]
-nixPkgs = ["(python311.withPackages (ps: with ps; [pip setuptools wheel]))", "gcc", "postgresql", "rustc", "cargo", "pkg-config", "openssl", "ffmpeg", "libreoffice-fresh"]
-aptPkgs = ["ffmpeg", "fonts-liberation"]
-
-[phases.install]
-cmds = ["python3.11 -m pip install -r requirements.txt"]
