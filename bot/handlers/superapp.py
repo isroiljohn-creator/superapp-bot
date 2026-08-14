@@ -73,12 +73,6 @@ async def prompt_bg_remover(message: Message, state: FSMContext):
     await state.set_state(AIRemoveBGFSM.waiting_for_photo)
     await message.answer("✂️ <b>Orqafonni o'chirish</b>\n\nIltimos, orqa fonini o'chirib tashlamoqchi bo'lgan rasmingizni yuboring:", parse_mode="HTML")
 
-@router.message(F.text == uz.SUPERAPP_BTN_TRANSCRIBE)
-async def prompt_transcribe(message: Message, state: FSMContext):
-    from bot.fsm.states import AITranscribeFSM
-    await state.set_state(AITranscribeFSM.waiting_for_audio)
-    await message.answer("🎙 <b>Ovozdan matnga</b>\n\nAudio yoki ovozli xabar (voice) yuboring. Men uni matnga aylantirib beraman:", parse_mode="HTML")
-
 @router.message(F.text == uz.SUPERAPP_BTN_SCANNER)
 async def prompt_scanner(message: Message, state: FSMContext):
     from bot.fsm.states import AIScannerFSM

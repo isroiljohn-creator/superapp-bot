@@ -87,9 +87,6 @@ class FileConvertFSM(StatesGroup):
 class AIRemoveBGFSM(StatesGroup):
     waiting_for_photo = State()
 
-class AITranscribeFSM(StatesGroup):
-    waiting_for_audio = State()
-
 class AIScannerFSM(StatesGroup):
     waiting_for_photos = State()
     

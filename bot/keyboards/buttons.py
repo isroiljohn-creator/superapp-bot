@@ -19,8 +19,8 @@ async def get_main_menu(user_id: int = None) -> ReplyKeyboardMarkup:
     is_admin = user_id and user_id in settings.ADMIN_IDS
             
     buttons = [
-        [KeyboardButton(text=uz.MENU_BTN_AI_WORKERS), KeyboardButton(text=uz.MENU_BTN_FREE_LESSONS)],
-        [KeyboardButton(text=uz.MENU_BTN_SUPERAPP), KeyboardButton(text=uz.MENU_BTN_PROFILE)],
+        [KeyboardButton(text=uz.MENU_BTN_FREE_LESSONS), KeyboardButton(text=uz.MENU_BTN_SUPERAPP)],
+        [KeyboardButton(text=uz.MENU_BTN_PROFILE)],
     ]
     
     if is_admin:
@@ -35,8 +35,7 @@ def superapp_keyboard() -> ReplyKeyboardMarkup:
         [KeyboardButton(text=uz.SUPERAPP_BTN_VIDEONOTE), KeyboardButton(text=uz.SUPERAPP_BTN_MEDIADOWN)],
         [KeyboardButton(text=uz.SUPERAPP_BTN_CONVERT), KeyboardButton(text=uz.SUPERAPP_BTN_COMPRESSOR)],
         [KeyboardButton(text=uz.SUPERAPP_BTN_BG_REMOVER), KeyboardButton(text=uz.SUPERAPP_BTN_SCANNER)],
-        [KeyboardButton(text=uz.SUPERAPP_BTN_TRANSCRIBE), KeyboardButton(text=uz.SUPERAPP_BTN_VOICER)],
-        [KeyboardButton(text=uz.SUPERAPP_BTN_MODERATOR)],
+        [KeyboardButton(text=uz.SUPERAPP_BTN_VOICER), KeyboardButton(text=uz.SUPERAPP_BTN_MODERATOR)],
         [KeyboardButton(text=uz.MENU_BTN_BACK)]
     ]
     return ReplyKeyboardMarkup(keyboard=buttons, resize_keyboard=True)
@@ -50,20 +49,6 @@ def free_lessons_keyboard() -> ReplyKeyboardMarkup:
             [KeyboardButton(text=uz.MENU_BTN_COURSE)],
             [KeyboardButton(text=uz.FREE_LESSONS_BTN_VIDEO), KeyboardButton(text=uz.FREE_LESSONS_BTN_GUIDES)],
             [KeyboardButton(text=uz.FREE_LESSONS_BTN_PROMPTS), KeyboardButton(text=uz.FREE_LESSONS_BTN_AI_LIST)],
-            [KeyboardButton(text=uz.MENU_BTN_BACK)],
-        ],
-        resize_keyboard=True,
-    )
-
-
-def ai_workers_reply_keyboard() -> ReplyKeyboardMarkup:
-    """AI Workers sub-menu as reply keyboard (not inline)."""
-    return ReplyKeyboardMarkup(
-        keyboard=[
-            [KeyboardButton(text=uz.AI_WORKERS_KB_IMAGE), KeyboardButton(text=uz.AI_WORKERS_KB_COPY)],
-            [KeyboardButton(text=uz.AI_WORKERS_KB_CHAT), KeyboardButton(text=uz.AI_WORKERS_KB_PRES)],
-            [KeyboardButton(text=uz.AI_WORKERS_KB_LYRICS), KeyboardButton(text=uz.AI_WORKERS_KB_DAILY)],
-            [KeyboardButton(text=uz.AI_WORKERS_KB_TOPUP)],
             [KeyboardButton(text=uz.MENU_BTN_BACK)],
         ],
         resize_keyboard=True,
