@@ -1,5 +1,5 @@
 [phases.setup]
-nixPkgs = ["(python311.withPackages (ps: with ps; [pip setuptools wheel]))", "gcc", "postgresql", "rustc", "cargo", "pkg-config", "openssl", "ffmpeg"]
+nixPkgs = ["(python311.withPackages (ps: with ps; [pip setuptools wheel]))", "gcc", "postgresql", "rustc", "cargo", "pkg-config", "openssl", "ffmpeg", "libreoffice-fresh"]
 aptPkgs = ["ffmpeg", "fonts-liberation"]
 
 [phases.install]

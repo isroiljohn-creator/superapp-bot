@@ -175,21 +175,55 @@ def _compress_photo(input_path: str, output_path: str) -> bool:
         return False
 
 def _compress_pdf(input_path: str, output_path: str) -> bool:
-    """Compress PDF by removing embedded content using PyPDF2."""
+    """Compress PDF by recompressing embedded images (the main size driver for
+    scanned/photo-heavy PDFs) via PyMuPDF, then falling back to PyPDF2's
+    content-stream compression if PyMuPDF is unavailable or fails."""
     try:
-        from PyPDF2 import PdfReader, PdfWriter
-        reader = PdfReader(input_path)
-        writer = PdfWriter()
-        
-        for page in reader.pages:
-            # We compress page contents
-            page.compress_content_streams()
-            writer.add_page(page)
-            
-        with open(output_path, "wb") as f:
-            writer.write(f)
-        return True
+        import fitz  # PyMuPDF
+        import io
+        from PIL import Image
+
+        doc = fitz.open(input_path)
+        MAX_DIM = 1600
+        for page in doc:
+            for img in page.get_images(full=True):
+                xref = img[0]
+                try:
+                    base = doc.extract_image(xref)
+                    pil_img = Image.open(io.BytesIO(base["image"]))
+                    if pil_img.mode in ("RGBA", "P", "LA"):
+                        bg = Image.new("RGB", pil_img.size, (255, 255, 255))
+                        conv = pil_img.convert("RGBA") if pil_img.mode != "RGBA" else pil_img
+                        bg.paste(conv, mask=conv.split()[-1])
+                        pil_img = bg
+                    elif pil_img.mode != "RGB":
+                        pil_img = pil_img.convert("RGB")
+
+                    if max(pil_img.size) > MAX_DIM:
+                        pil_img.thumbnail((MAX_DIM, MAX_DIM), Image.LANCZOS)
+
+                    buf = io.BytesIO()
+                    pil_img.save(buf, "JPEG", quality=55, optimize=True)
+                    page.replace_image(xref, stream=buf.getvalue())
+                except Exception:
+                    continue  # leave this image as-is, keep going
+
+        doc.save(output_path, garbage=4, deflate=True, deflate_fonts=True)
+        doc.close()
+        return os.path.exists(output_path) and os.path.getsize(output_path) > 0
     except Exception as e:
         import logging
-        logging.getLogger("compressor").error(f"PDF compress error: {e}")
-        return False
+        logging.getLogger("compressor").warning(f"PyMuPDF compress failed, falling back to PyPDF2: {e}")
+        try:
+            from PyPDF2 import PdfReader, PdfWriter
+            reader = PdfReader(input_path)
+            writer = PdfWriter()
+            for page in reader.pages:
+                page.compress_content_streams()
+                writer.add_page(page)
+            with open(output_path, "wb") as f:
+                writer.write(f)
+            return True
+        except Exception as e2:
+            logging.getLogger("compressor").error(f"PDF compress error: {e2}")
+            return False

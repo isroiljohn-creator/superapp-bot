@@ -521,36 +521,99 @@ async def _convert_document(input_path: str, output_path: str, source_ext: str, 
                 f.write(html_content)
             return True
 
-        elif target_ext == "pdf" and source_ext == "txt":
-            # Text to PDF using basic approach
-            try:
-                from PIL import Image, ImageDraw, ImageFont
-                with open(input_path, "r", encoding="utf-8", errors="ignore") as f:
-                    text = f.read()
-
-                lines = text.split("\n")
-                line_height = 16
-                margin = 40
-                page_w, page_h = 595, 842  # A4
-
-                pages = []
-                max_lines = (page_h - 2 * margin) // line_height
-
-                for i in range(0, len(lines), max_lines):
-                    page_lines = lines[i:i + max_lines]
-                    img = Image.new("RGB", (page_w, page_h), "white")
-                    draw = ImageDraw.Draw(img)
-                    for j, line in enumerate(page_lines):
-                        draw.text((margin, margin + j * line_height), line[:90], fill="black")
-                    pages.append(img)
-
-                if pages:
-                    pages[0].save(output_path, "PDF", save_all=True, append_images=pages[1:])
-                    return True
-            except Exception as e:
-                logger.error(f"TXT to PDF error: {e}")
+        elif target_ext == "pdf":
+            # Office formats (docx/doc/pptx/ppt/xlsx/xls/csv/md/json/xml/html/txt)
+            # go through LibreOffice headless — it's the only thing that renders
+            # these faithfully. Fall back to the plain-text-to-image method only
+            # for .txt if LibreOffice isn't available or fails.
+            if await _convert_via_libreoffice(input_path, output_path):
+                return True
+            if source_ext == "txt":
+                return await _txt_to_pdf_fallback(input_path, output_path)
             return False
 
     except Exception as e:
         logger.error(f"Document convert error: {e}")
         return False
+
+
+async def _convert_via_libreoffice(input_path: str, output_path: str) -> bool:
+    """Convert a document to PDF using headless LibreOffice (soffice).
+
+    soffice writes `<input-basename>.pdf` into --outdir, so we convert into a
+    scratch directory and move the result to the exact output_path we need.
+    Each call gets its own -env:UserInstallation profile dir to avoid lock
+    conflicts when multiple conversions run concurrently.
+    """
+    import shutil
+    soffice = shutil.which("soffice") or shutil.which("libreoffice")
+    if not soffice:
+        logger.warning("LibreOffice (soffice) not found on PATH")
+        return False
+
+    scratch_dir = output_path + "_lo_scratch"
+    os.makedirs(scratch_dir, exist_ok=True)
+    profile_dir = output_path + "_lo_profile"
+
+    try:
+        cmd = [
+            soffice, "--headless", "--norestore", "--nolockcheck",
+            f"-env:UserInstallation=file://{profile_dir}",
+            "--convert-to", "pdf",
+            "--outdir", scratch_dir,
+            input_path,
+        ]
+        proc = await asyncio.create_subprocess_exec(
+            *cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
+        )
+        try:
+            await asyncio.wait_for(proc.communicate(), timeout=90)
+        except asyncio.TimeoutError:
+            proc.kill()
+            logger.error("LibreOffice conversion timed out")
+            return False
+
+        produced = os.path.join(
+            scratch_dir, os.path.splitext(os.path.basename(input_path))[0] + ".pdf"
+        )
+        if os.path.exists(produced):
+            shutil.move(produced, output_path)
+            return True
+        return False
+    except Exception as e:
+        logger.error(f"LibreOffice convert error: {e}")
+        return False
+    finally:
+        shutil.rmtree(scratch_dir, ignore_errors=True)
+        shutil.rmtree(profile_dir, ignore_errors=True)
+
+
+async def _txt_to_pdf_fallback(input_path: str, output_path: str) -> bool:
+    """Plain-text-to-image-pages PDF, used only when LibreOffice is unavailable."""
+    try:
+        from PIL import Image, ImageDraw
+        with open(input_path, "r", encoding="utf-8", errors="ignore") as f:
+            text = f.read()
+
+        lines = text.split("\n")
+        line_height = 16
+        margin = 40
+        page_w, page_h = 595, 842  # A4
+
+        pages = []
+        max_lines = (page_h - 2 * margin) // line_height
+
+        for i in range(0, len(lines), max_lines):
+            page_lines = lines[i:i + max_lines]
+            img = Image.new("RGB", (page_w, page_h), "white")
+            draw = ImageDraw.Draw(img)
+            for j, line in enumerate(page_lines):
+                draw.text((margin, margin + j * line_height), line[:90], fill="black")
+            pages.append(img)
+
+        if pages:
+            pages[0].save(output_path, "PDF", save_all=True, append_images=pages[1:])
+            return True
+    except Exception as e:
+        logger.error(f"TXT to PDF fallback error: {e}")
+    return False
