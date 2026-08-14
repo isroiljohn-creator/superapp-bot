@@ -105,3 +105,32 @@ class AIVoicerFSM(StatesGroup):
     
 class AICompressorFSM(StatesGroup):
     waiting_for_file = State()
+
+
+class HRInterviewFSM(StatesGroup):
+    """Candidate interview flow, entered via /start hr_<slug>."""
+    waiting_name = State()
+    waiting_phone = State()
+    waiting_kim_ozi = State()
+    waiting_nima_qiladi = State()
+    waiting_tajriba = State()
+    waiting_konikmalar = State()
+    waiting_star = State()
+    waiting_chidamlilik = State()
+    waiting_xato_osish = State()
+    waiting_qiziqishlar = State()
+    waiting_motivatsiya = State()
+    waiting_daromad_osish = State()
+    waiting_daromad_izoh = State()
+    waiting_qadriyatlar = State()
+    waiting_ish_uslubi = State()
+    waiting_kelajak = State()
+    waiting_nega_vakansiya = State()
+    waiting_portfolio = State()
+    waiting_savol = State()
+
+
+class HRAdminFSM(StatesGroup):
+    """Admin flow for creating a new internal HR vacancy."""
+    waiting_title = State()
+    waiting_topic_id = State()

@@ -133,6 +133,12 @@ async def cmd_start(message: Message, state: FSMContext):
             pass
         return
 
+    # ── HR interview deep link (internal hiring, bypasses the normal funnel) ──
+    if deep_link and deep_link.startswith("hr_"):
+        from bot.handlers.hr_interview import start_hr_interview
+        await start_hr_interview(message, state, deep_link[len("hr_"):])
+        return
+
     referer_id = None
     source = None
     campaign = None

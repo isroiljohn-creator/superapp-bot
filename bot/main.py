@@ -79,7 +79,7 @@ async def main():
     dp = Dispatcher(storage=storage)
 
     # Register routers
-    from bot.handlers import registration, segmentation, lead_magnet, funnel, subscription, referral, admin, moderation, menu, lifecycle, jobs, wallet, videonote, mediadown, fileconvert, bg_remover, scanner, voicer, compressor, superapp, tripwire, application
+    from bot.handlers import registration, segmentation, lead_magnet, funnel, subscription, referral, admin, moderation, menu, lifecycle, jobs, hr_interview, wallet, videonote, mediadown, fileconvert, bg_remover, scanner, voicer, compressor, superapp, tripwire, application
     dp.include_routers(
         lifecycle.router,    # Bot block/unblock tracking — must be first
         registration.router,
@@ -93,6 +93,7 @@ async def main():
         referral.router,
         admin.router,
         jobs.router,         # NUVI Jobs — vacancy posting
+        hr_interview.router, # Internal HR interview flow (/start hr_<slug>)
         superapp.router,     # Superapp menu — must be before tool handlers
         videonote.router,    # Video to video note converter
         mediadown.router,    # Social media downloader

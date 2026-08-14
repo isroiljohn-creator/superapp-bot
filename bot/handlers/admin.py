@@ -46,6 +46,7 @@ def admin_menu_keyboard() -> InlineKeyboardMarkup:
         [InlineKeyboardButton(text="📊 Statistika", callback_data="admin_action:stats")],
         [InlineKeyboardButton(text="📤 Xabar yuborish (Broadcast)", callback_data="admin_action:broadcast")],
         [InlineKeyboardButton(text="⚙️ Taklif sozlamalari", callback_data="admin_action:settings")],
+        [InlineKeyboardButton(text="🧑‍💼 HR vakansiyalar", callback_data="hr:hub")],
     ]
     return InlineKeyboardMarkup(inline_keyboard=[row for row in buttons if row])
 

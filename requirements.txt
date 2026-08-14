@@ -14,6 +14,9 @@ python-multipart==0.0.6
 python-jose[cryptography]==3.3.0
 redis==5.0.1
 pytz==2024.1
+gspread==6.1.2
+google-auth==2.32.0
+fpdf2==2.7.9
 python-pptx==1.0.2
 imageio-ffmpeg==0.5.1
 yt-dlp

@@ -363,6 +363,34 @@ class JobVacancy(Base):
 
 
 # ──────────────────────────────────────────────
+# HR Interview Bot (internal hiring, per-vacancy deep links)
+# ──────────────────────────────────────────────
+class HRVacancy(Base):
+    __tablename__ = "hr_vacancies"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    slug = Column(String(64), unique=True, nullable=False, index=True)   # used in /start hr_<slug>
+    title = Column(String(255), nullable=False)              # e.g. "Montajyor"
+    topic_id = Column(Integer, nullable=True)                 # HR guruhidagi forum topic ID
+    is_active = Column(Boolean, default=True)
+    created_by = Column(BigInteger, nullable=False)           # admin telegram_id
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class HRCandidate(Base):
+    __tablename__ = "hr_candidates"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    hr_vacancy_id = Column(Integer, ForeignKey("hr_vacancies.id", ondelete="CASCADE"), nullable=False, index=True)
+    telegram_id = Column(BigInteger, nullable=False)
+    telegram_handle = Column(String(100), nullable=True)      # @username yoki F.I.
+    answers = Column(JSON, nullable=False)                    # {field: answer, ...}
+    motivation_type = Column(String(100), nullable=True)      # McClelland label
+    sheets_synced = Column(Boolean, default=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+# ──────────────────────────────────────────────
 # Moderated Groups (Nazoratchi Bot)
 # ──────────────────────────────────────────────
 class ModeratedGroup(Base):

@@ -79,6 +79,7 @@ class Settings(BaseSettings):
     PRIVATE_GROUP_ID: int = 0        # Private Telegram group ID (subscribers)
     CONTENT_CHANNEL_ID: int = 0      # Private channel for large video storage
     CLUB_PRICE: int = 97_000         # UZS — legacy recurring club subscription, no longer sold
+    HR_CHAT_ID: int = 0              # Internal HR group — candidate interview summaries
 
     # ── New funnel: tripwire → masterclass → application → full course ──
     TRIPWIRE_PRICE: int = 149_000        # UZS — "AI START" one-time product
