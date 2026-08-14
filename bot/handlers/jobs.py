@@ -209,15 +209,13 @@ async def menu_jobs(message: Message, state: FSMContext):
 
 @router.callback_query(F.data == "jobs:seeker")
 async def jobs_seeker(callback: CallbackQuery):
-    channel_id = await _get_jobs_channel_id()
+    # Reads a stored username/invite link instead of calling bot.get_chat() —
+    # some channels have fields (e.g. "paid" reactions) this aiogram version
+    # can't deserialize, which would raise on every seeker click.
+    channel_link = await _get_setting("jobs_channel_link")
     buttons = []
-    if channel_id:
-        try:
-            chat = await callback.bot.get_chat(channel_id)
-            if chat.username:
-                buttons.append([InlineKeyboardButton(text="📎 Kanalga o'tish", url=f"https://t.me/{chat.username}")])
-        except Exception:
-            pass
+    if channel_link:
+        buttons.append([InlineKeyboardButton(text="📎 Kanalga o'tish", url=channel_link)])
     if buttons:
         await callback.message.answer(uz.JOBS_SEEKER_TEXT, parse_mode="HTML", reply_markup=InlineKeyboardMarkup(inline_keyboard=buttons))
     else:
@@ -948,10 +946,13 @@ async def set_channel_prompt(callback: CallbackQuery, state: FSMContext):
         await callback.answer("⛔ Faqat adminlar uchun", show_alert=True)
         return
     current = await _get_setting("jobs_channel_id")
+    current_link = await _get_setting("jobs_channel_link")
     await callback.message.answer(
         f"⚙️ <b>Vakansiya kanali sozlash</b>\n\n"
-        f"Hozirgi kanal ID: <code>{current or 'o‘rnatilmagan'}</code>\n\n"
-        f"Yangi kanal ID ni yuboring (masalan: <code>-1001234567890</code>).\n"
+        f"Hozirgi kanal ID: <code>{current or 'o‘rnatilmagan'}</code>\n"
+        f"Hozirgi havola: {current_link or 'o‘rnatilmagan'}\n\n"
+        f"Kanal ID va (ixtiyoriy) havolasini probel bilan ajratib yuboring:\n"
+        f"<code>-1001234567890 https://t.me/kanal_nomi</code>\n\n"
         f"💡 Kanal ID olish uchun kanalga @userinfobot ni qo'shing.\n"
         f"Botni kanalga admin qilib qo'shishni unutmang!",
         parse_mode="HTML",
@@ -967,20 +968,26 @@ async def process_channel_setup(message: Message, state: FSMContext):
     if not data.get("_channel_setup") or not _is_admin(message.from_user.id):
         return
 
-    text = message.text.strip()
+    parts = message.text.strip().split()
     try:
-        channel_id = int(text.split()[0])
+        channel_id = int(parts[0])
     except (ValueError, IndexError):
         await message.answer("❌ Noto'g'ri format. Raqam yuboring (masalan: -1001234567890)")
         return
+    channel_link = parts[1] if len(parts) > 1 else None
 
     async with async_session() as session:
-        result = await session.execute(select(AdminSetting).where(AdminSetting.key == "jobs_channel_id"))
-        existing = result.scalar_one_or_none()
-        if existing:
-            existing.value = str(channel_id)
-        else:
-            session.add(AdminSetting(key="jobs_channel_id", value=str(channel_id)))
+        async def _save(key, value):
+            result = await session.execute(select(AdminSetting).where(AdminSetting.key == key))
+            existing = result.scalar_one_or_none()
+            if existing:
+                existing.value = value
+            elif value:
+                session.add(AdminSetting(key=key, value=value))
+
+        await _save("jobs_channel_id", str(channel_id))
+        if channel_link:
+            await _save("jobs_channel_link", channel_link)
         await session.commit()
 
     await state.clear()
