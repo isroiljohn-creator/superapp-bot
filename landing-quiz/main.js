@@ -39,59 +39,9 @@ const PROFESSIONS = [
   { emoji: "🎨", value: "ijodkor", label: "Ijodkor" },
 ];
 
-const QUESTIONS = [
-  {
-    text: "ChatGPT — bu nima?",
-    options: [
-      "Qidiruv tizimi",
-      "AI bilan yozishib gaplashish mumkin bo'lgan dastur",
-      "Telefon operatori",
-      "Bank ilovasi",
-    ],
-  },
-  {
-    text: "AI'dan yaxshi natija olish uchun eng muhimi nima?",
-    options: [
-      "Savolni aniq va batafsil yozish",
-      "Faqat bitta so'z yozish",
-      "Qanday yozsangiz ham natija bir xil chiqadi",
-      "Faqat ingliz tilida yozish shart",
-    ],
-  },
-  {
-    text: "AI (masalan, ChatGPT) har doim 100% to'g'ri javob beradimi?",
-    options: [
-      "Ha, hech qachon adashmaydi",
-      "Yo'q, ba'zan noto'g'ri yoki noaniq ma'lumot berishi mumkin",
-      "Faqat matematik savollarda adashadi",
-      "Faqat kechqurun ishlamaydi",
-    ],
-  },
-  {
-    text: "Quyidagilardan qaysi biri matndan rasm yaratadigan AI dastur?",
-    options: ["Midjourney", "Excel", "Telegram", "Kalkulyator"],
-  },
-  {
-    text: "Bir xil savolni AI'ga ikki marta bersangiz, nima bo'ladi?",
-    options: [
-      "Javob har doim so'zma-so'z bir xil chiqadi",
-      "Javob har safar biroz farqli bo'lishi mumkin, chunki AI matnni qayta generatsiya qiladi",
-      "Ikkinchi marta AI ishlamay qoladi",
-      "Faqat birinchi savolga javob beradi",
-    ],
-  },
-  {
-    text: "Zapier yoki Make kabi vositalar AI bilan birga nima uchun ishlatiladi?",
-    options: [
-      "Turli ilovalar orasida avtomatik jarayon (workflow) yaratish uchun",
-      "Video tahrirlash uchun",
-      "Fayllarni siqish uchun",
-      "Parol saqlash uchun",
-    ],
-  },
-];
-
-const state = { profession: null, current: 0, answers: [], name: "", phone: "" };
+// Questions are fetched per-profession from the server (20-question bank per
+// profession, 6 served at random each visit) — see api/routers/quiz.py.
+const state = { profession: null, current: 0, questions: [], answers: [], name: "", phone: "" };
 
 const stages = {
   intro: document.getElementById("stage-intro"),
@@ -122,16 +72,25 @@ function renderProfessions() {
     const btn = document.createElement("button");
     btn.className = "option";
     btn.innerHTML = `<span class="option-emoji">${p.emoji}</span><span>${p.label}</span>`;
-    btn.addEventListener("click", () => {
+    btn.addEventListener("click", async () => {
       state.profession = p.value;
       document.querySelectorAll("#professionOptions .option").forEach((o) => o.classList.remove("selected"));
       btn.classList.add("selected");
       trackEvent("profession_selected");
-      trackEvent("quiz_started");
-      setTimeout(() => {
+
+      try {
+        const res = await fetch(`/api/quiz/questions?profession=${encodeURIComponent(p.value)}`);
+        if (!res.ok) throw new Error("failed to load questions");
+        const data = await res.json();
+        state.questions = data.questions;
+        state.current = 0;
+        state.answers = [];
+        trackEvent("quiz_started");
         showStage("quiz");
         renderQuestion();
-      }, 220);
+      } catch (e) {
+        alert("Savollarni yuklashda xatolik. Iltimos, sahifani yangilab qayta urinib ko'ring.");
+      }
     });
     el.appendChild(btn);
   });
@@ -139,10 +98,10 @@ function renderProfessions() {
 
 // ── Step 2: quiz ──
 function renderQuestion() {
-  const q = QUESTIONS[state.current];
-  document.getElementById("qCounter").textContent = `Savol ${state.current + 1} / ${QUESTIONS.length}`;
+  const q = state.questions[state.current];
+  document.getElementById("qCounter").textContent = `Savol ${state.current + 1} / ${state.questions.length}`;
   document.getElementById("qText").textContent = q.text;
-  progressFill.style.width = `${10 + (state.current / QUESTIONS.length) * 70}%`;
+  progressFill.style.width = `${10 + (state.current / state.questions.length) * 70}%`;
 
   const optsEl = document.getElementById("qOptions");
   optsEl.innerHTML = "";
@@ -156,11 +115,12 @@ function renderQuestion() {
 }
 
 function selectOption(idx) {
-  state.answers[state.current] = idx;
+  const q = state.questions[state.current];
+  state.answers[state.current] = { question_index: q.question_index, selected: idx };
   document.querySelectorAll("#qOptions .option").forEach((el, i) => el.classList.toggle("selected", i === idx));
 
   setTimeout(() => {
-    if (state.current < QUESTIONS.length - 1) {
+    if (state.current < state.questions.length - 1) {
       state.current += 1;
       renderQuestion();
     } else {
@@ -206,8 +166,8 @@ async function finishQuiz() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        answers: state.answers,
         profession: state.profession,
+        answers: state.answers,
         name: state.name,
         phone: state.phone,
         session_id: _sessionId(),
@@ -238,7 +198,7 @@ function showResult(data) {
   document.getElementById("resultEmoji").textContent = meta.emoji;
   document.getElementById("resultLevel").textContent = meta.title;
   document.getElementById("resultDesc").textContent = meta.desc;
-  document.getElementById("resultScore").textContent = `${data.correct_count} / ${QUESTIONS.length} to'g'ri javob`;
+  document.getElementById("resultScore").textContent = `${data.correct_count} / ${state.questions.length} to'g'ri javob`;
 
   const continueBtn = document.getElementById("continueBtn");
   continueBtn.addEventListener("click", () => {
