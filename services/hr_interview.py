@@ -11,8 +11,15 @@ logger = logging.getLogger("hr_interview")
 
 _DIR = os.path.dirname(os.path.abspath(__file__))
 _PROJECT = os.path.dirname(_DIR)
-FONT_PATH = os.path.join(_PROJECT, "assets", "fonts", "Roboto-Regular.ttf")
-FONT_BOLD_PATH = os.path.join(_PROJECT, "assets", "fonts", "Roboto-Bold.ttf")
+FONT_PATH = os.path.join(_PROJECT, "assets", "fonts", "Inter-Regular.ttf")
+FONT_BOLD_PATH = os.path.join(_PROJECT, "assets", "fonts", "Inter-Bold.ttf")
+
+# Apple-style palette
+_C_BLACK = (29, 29, 31)        # Apple's near-black text
+_C_GRAY = (110, 110, 115)      # secondary text
+_C_LIGHT_GRAY = (245, 245, 247)  # Apple's card background gray
+_C_DIVIDER = (229, 229, 234)
+_C_BLUE = (0, 113, 227)        # Apple blue accent
 
 HEADERS = [
     "Sana", "Telegram", "Ism/Familiya", "Aloqa", "Kim o'zi", "Nima qiladi", "Tajriba va yutuq",
@@ -112,89 +119,126 @@ async def save_candidate_to_sheets(vacancy_title: str, sana: str, telegram: str,
 
 
 def generate_candidate_pdf(vacancy_title: str, sana: str, telegram: str, answers: dict, motivation: str) -> bytes:
-    """Generates a print-ready PDF profile card for the candidate."""
+    """Generates an Apple-style (clean, minimal, Inter typeface) candidate profile PDF."""
     from fpdf import FPDF
 
-    class CandidatePDF(FPDF):
-        def header(self):
-            if self.page_no() == 1:
-                self.set_fill_color(26, 115, 232)
-                self.rect(0, 0, 210, 25, "F")
+    LM, RM = 18, 18  # left/right margins — generous, Apple-like whitespace
+    PAGE_W = 210
 
+    class CandidatePDF(FPDF):
         def footer(self):
             self.set_y(-15)
-            self.set_font("Roboto", "", 8)
-            self.set_text_color(150, 150, 150)
-            self.cell(0, 10, f"Sahifa {self.page_no()}/{{nb}}", align="C")
+            self.set_font("Inter", "", 8)
+            self.set_text_color(*_C_GRAY)
+            self.cell(0, 10, f"{self.page_no()} / {{nb}}", align="C")
 
     pdf = CandidatePDF()
     pdf.alias_nb_pages()
-    pdf.add_font("Roboto", "", FONT_PATH)
-    pdf.add_font("Roboto", "B", FONT_BOLD_PATH)
+    pdf.add_font("Inter", "", FONT_PATH)
+    pdf.add_font("Inter", "B", FONT_BOLD_PATH)
+    pdf.set_left_margin(LM)
+    pdf.set_right_margin(RM)
+    pdf.set_top_margin(20)
+    pdf.set_auto_page_break(auto=True, margin=22)
     pdf.add_page()
-    pdf.set_auto_page_break(auto=True, margin=20)
 
-    pdf.set_y(35)
-    pdf.set_font("Roboto", "B", 18)
-    pdf.set_text_color(26, 115, 232)
+    content_w = PAGE_W - LM - RM
+
+    # ── Header: name, large + bold, then muted meta line ──
+    pdf.set_font("Inter", "B", 26)
+    pdf.set_text_color(*_C_BLACK)
     ism = answers.get("ism_familiya") or "Nomzod"
-    pdf.cell(0, 10, ism.upper(), new_x="LMARGIN", new_y="NEXT")
+    pdf.cell(0, 12, ism, new_x="LMARGIN", new_y="NEXT")
 
-    pdf.set_font("Roboto", "", 10)
-    pdf.set_text_color(100, 100, 100)
-    pdf.cell(0, 6, f"Vakansiya: {vacancy_title}", new_x="LMARGIN", new_y="NEXT")
-    pdf.cell(0, 6, f"Sana: {sana}", new_x="LMARGIN", new_y="NEXT")
-    pdf.ln(5)
-
-    pdf.set_font("Roboto", "B", 12)
-    pdf.set_text_color(80, 91, 102)
-    pdf.cell(0, 8, "Shaxsiy ma'lumotlar", new_x="LMARGIN", new_y="NEXT")
-    pdf.set_draw_color(225, 228, 232)
-    pdf.set_line_width(0.3)
-    pdf.line(10, pdf.get_y(), 200, pdf.get_y())
-    pdf.ln(4)
-
-    metadata = [
-        ("Telegram:", telegram),
-        ("Aloqa raqami:", answers.get("aloqa") or "—"),
-        ("Motivatsiya turi:", motivation),
-        ("Daromad / Rivojlanish:", answers.get("daromad_osish") or "—"),
-        ("Ish uslubi:", answers.get("ish_uslubi") or "—"),
-        ("Portfolio:", answers.get("portfolio") or "—"),
-    ]
-    for label, val in metadata:
-        pdf.set_font("Roboto", "B", 10)
-        pdf.set_text_color(100, 100, 100)
-        pdf.cell(45, 6, label, new_x="RIGHT", new_y="TOP")
-        pdf.set_font("Roboto", "", 10)
-        pdf.set_text_color(34, 34, 34)
-        pdf.multi_cell(145, 6, str(val), new_x="LMARGIN", new_y="NEXT")
+    pdf.set_font("Inter", "", 11)
+    pdf.set_text_color(*_C_GRAY)
+    pdf.cell(0, 6, f"{vacancy_title}  ·  {sana}", new_x="LMARGIN", new_y="NEXT")
     pdf.ln(6)
 
-    pdf.set_font("Roboto", "B", 12)
-    pdf.set_text_color(80, 91, 102)
-    pdf.cell(0, 8, "Batafsil savol-javoblar", new_x="LMARGIN", new_y="NEXT")
-    pdf.line(10, pdf.get_y(), 200, pdf.get_y())
-    pdf.ln(4)
+    # ── Quick facts row: small pill-style chips (Apple-esque tags) ──
+    chips = [telegram, answers.get("aloqa") or "—", motivation]
+    x = LM
+    y = pdf.get_y()
+    pdf.set_font("Inter", "", 9)
+    for chip in chips:
+        chip = str(chip)
+        w = pdf.get_string_width(chip) + 8
+        pdf.set_xy(x, y)
+        pdf.set_fill_color(*_C_LIGHT_GRAY)
+        pdf.set_text_color(*_C_BLACK)
+        pdf.cell(w, 8, chip, fill=True, align="C", new_x="RIGHT", new_y="TOP")
+        x += w + 3
+    pdf.set_y(y + 8)
+    pdf.ln(10)
 
+    # ── Section: Umumiy ma'lumot (two-column key facts, no borders) ──
+    _section_title(pdf, "Umumiy ma'lumot", LM, content_w)
+    facts = [
+        ("Daromad / Rivojlanish", answers.get("daromad_osish") or "—"),
+        ("Ish uslubi", answers.get("ish_uslubi") or "—"),
+        ("Portfolio", answers.get("portfolio") or "—"),
+    ]
+    col_w = content_w / 2
+    for i, (label, val) in enumerate(facts):
+        col_x = LM + (i % 2) * col_w
+        if i % 2 == 0:
+            row_y = pdf.get_y()
+        pdf.set_xy(col_x, row_y)
+        pdf.set_font("Inter", "", 8)
+        pdf.set_text_color(*_C_GRAY)
+        pdf.cell(col_w - 4, 5, label.upper(), new_x="LEFT", new_y="NEXT")
+        pdf.set_xy(col_x, pdf.get_y())
+        pdf.set_font("Inter", "", 11)
+        pdf.set_text_color(*_C_BLACK)
+        pdf.multi_cell(col_w - 4, 6, str(val))
+        if i % 2 == 1 or i == len(facts) - 1:
+            pdf.ln(3)
+    pdf.set_y(max(pdf.get_y(), row_y + 20))
+    pdf.ln(8)
+
+    # ── Section: Batafsil javoblar — flat cards, rounded corners, no accent borders ──
+    _section_title(pdf, "Batafsil javoblar", LM, content_w)
     for title, field in DETAILED_FIELDS:
-        ans = answers.get(field) or "—"
-        pdf.set_font("Roboto", "B", 10)
-        pdf.set_text_color(85, 85, 85)
-        pdf.cell(0, 6, title, new_x="LMARGIN", new_y="NEXT")
-        pdf.set_font("Roboto", "", 10)
-        pdf.set_text_color(44, 62, 80)
-        pdf.set_draw_color(26, 115, 232)
-        pdf.set_line_width(0.8)
-        pdf.set_fill_color(248, 249, 250)
-        pdf.set_left_margin(15)
-        pdf.set_right_margin(15)
-        pdf.multi_cell(0, 5, str(ans), border="L", fill=True)
-        pdf.set_left_margin(10)
-        pdf.set_right_margin(10)
-        pdf.ln(4)
+        ans = str(answers.get(field) or "—")
+
+        pdf.set_font("Inter", "", 10)
+        text_h = pdf.multi_cell(content_w - 12, 5.5, ans, dry_run=True, output="LINES")
+        body_h = max(len(text_h), 1) * 5.5
+        card_h = body_h + 16
+
+        if pdf.get_y() + card_h > pdf.page_break_trigger:
+            pdf.add_page()
+
+        card_y = pdf.get_y()
+        pdf.set_fill_color(*_C_LIGHT_GRAY)
+        pdf.rect(LM, card_y, content_w, card_h, style="F", round_corners=True, corner_radius=3)
+
+        pdf.set_xy(LM + 6, card_y + 5)
+        pdf.set_font("Inter", "B", 9)
+        pdf.set_text_color(*_C_GRAY)
+        pdf.cell(content_w - 12, 5, title, new_x="LMARGIN", new_y="NEXT")
+
+        pdf.set_xy(LM + 6, card_y + 11)
+        pdf.set_font("Inter", "", 10)
+        pdf.set_text_color(*_C_BLACK)
+        pdf.set_left_margin(LM + 6)
+        pdf.multi_cell(content_w - 12, 5.5, ans)
+        pdf.set_left_margin(LM)
+
+        pdf.set_y(card_y + card_h + 4)
 
     return bytes(pdf.output())
+
+
+def _section_title(pdf, text: str, lm: float, content_w: float):
+    pdf.set_font("Inter", "B", 13)
+    pdf.set_text_color(*_C_BLACK)
+    pdf.cell(0, 8, text, new_x="LMARGIN", new_y="NEXT")
+    y = pdf.get_y() + 1
+    pdf.set_draw_color(*_C_DIVIDER)
+    pdf.set_line_width(0.3)
+    pdf.line(lm, y, lm + content_w, y)
+    pdf.ln(6)
 
 
 def _escape_md(text) -> str:
