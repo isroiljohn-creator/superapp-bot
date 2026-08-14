@@ -209,7 +209,6 @@ async def send_broadcast(
     from db.database import async_session
     from bot.config import settings
     from aiogram import Bot
-    from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
     # CHUNK_SIZE × (1/SEND_RATE) ≈ sleep_time keeps throughput at SEND_RATE msg/sec
     CHUNK_SIZE  = 25           # users sent concurrently per round
@@ -273,10 +272,6 @@ async def send_broadcast(
         except Exception:
             pass
 
-    unsub_kb = InlineKeyboardMarkup(inline_keyboard=[[
-        InlineKeyboardButton(text="🚫 Xabarlarni to'xtatish", callback_data="unsub:broadcast")
-    ]])
-
     is_media     = c_type in ("photo", "video", "document", "audio", "voice") and file_id
     use_entities = bool(send_entities)
     ent_kw = {"entities": send_entities} if use_entities and not is_media else {}
@@ -294,24 +289,23 @@ async def send_broadcast(
                     cap = content[:CAPTION_LIMIT] if content else ""
                     overflow = content[CAPTION_LIMIT:] if content and len(content) > CAPTION_LIMIT else ""
                     if c_type == "photo":
-                        await bot.send_photo(tid, photo=file_id, caption=cap or None, **cap_kw, **_pm, reply_markup=unsub_kb)
+                        await bot.send_photo(tid, photo=file_id, caption=cap or None, **cap_kw, **_pm)
                     elif c_type == "video":
-                        await bot.send_video(tid, video=file_id, caption=cap or None, **cap_kw, **_pm, reply_markup=unsub_kb)
+                        await bot.send_video(tid, video=file_id, caption=cap or None, **cap_kw, **_pm)
                     elif c_type == "document":
-                        await bot.send_document(tid, document=file_id, caption=cap or None, **cap_kw, **_pm, reply_markup=unsub_kb)
+                        await bot.send_document(tid, document=file_id, caption=cap or None, **cap_kw, **_pm)
                     elif c_type == "audio":
-                        await bot.send_audio(tid, audio=file_id, caption=cap or None, **cap_kw, **_pm, reply_markup=unsub_kb)
+                        await bot.send_audio(tid, audio=file_id, caption=cap or None, **cap_kw, **_pm)
                     elif c_type == "voice":
-                        await bot.send_voice(tid, voice=file_id, caption=cap or None, **cap_kw, **_pm, reply_markup=unsub_kb)
+                        await bot.send_voice(tid, voice=file_id, caption=cap or None, **cap_kw, **_pm)
                     if overflow:
-                        await bot.send_message(tid, text=overflow[:TEXT_LIMIT], **_pm, reply_markup=unsub_kb)
+                        await bot.send_message(tid, text=overflow[:TEXT_LIMIT], **_pm)
                 elif c_type == "video_note" and file_id:
                     await bot.send_video_note(tid, video_note=file_id)
                 else:
                     chunks = [content[i:i + TEXT_LIMIT] for i in range(0, max(len(content), 1), TEXT_LIMIT)]
                     for i, ch in enumerate(chunks):
-                        kb = unsub_kb if i == len(chunks) - 1 else None
-                        await bot.send_message(tid, text=ch, **ent_kw, **_pm, reply_markup=kb)
+                        await bot.send_message(tid, text=ch, **ent_kw, **_pm)
                 return True, False
 
             except Exception as e:

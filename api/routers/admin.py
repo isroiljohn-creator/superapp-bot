@@ -641,10 +641,12 @@ async def send_broadcast(payload: dict, admin_id: int = Depends(check_admin), db
             _logger.error(f"[API Broadcast {broadcast_id}] Direct fire also failed: {e2}")
             # Don't raise — return 200, broadcast will need manual retry
 
+    recipient_count = await broadcast_service.count_recipients(broadcast)
+
     return {
         "status": "accepted",
         "message": "Xabar yuborilmoqda...",
-        "recipient_count": 0,
+        "recipient_count": recipient_count,
         "broadcast_id": broadcast_id,
         "method": "queue",
     }
