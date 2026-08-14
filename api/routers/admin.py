@@ -1639,3 +1639,113 @@ async def get_quiz_submissions(limit: int = 100, admin_id: int = Depends(check_a
     ]
 
 
+# ── NUVI AI 2.0 course landing page (content CMS + leads + funnel) ──
+from db.models import CourseLandingContent, CourseLandingLead, CourseLandingEvent
+from api.routers.course_landing import SLUG as COURSE_LANDING_SLUG, _default_row_data as _course_landing_default
+
+COURSE_LANDING_FUNNEL_STAGES = ["page_view", "modules_view", "pricing_view", "lead_form_view", "lead_submitted"]
+
+
+@router.get("/course-landing/content")
+async def get_course_landing_content(admin_id: int = Depends(check_admin), db: AsyncSession = Depends(get_db)):
+    res = await db.execute(select(CourseLandingContent).where(CourseLandingContent.slug == COURSE_LANDING_SLUG))
+    row = res.scalar_one_or_none()
+    if not row:
+        row = CourseLandingContent(slug=COURSE_LANDING_SLUG, data=_course_landing_default())
+        db.add(row)
+        await db.commit()
+        await db.refresh(row)
+    return row.data
+
+
+@router.put("/course-landing/content")
+async def update_course_landing_content(payload: dict, admin_id: int = Depends(check_admin), db: AsyncSession = Depends(get_db)):
+    res = await db.execute(select(CourseLandingContent).where(CourseLandingContent.slug == COURSE_LANDING_SLUG))
+    row = res.scalar_one_or_none()
+    if not row:
+        row = CourseLandingContent(slug=COURSE_LANDING_SLUG, data=payload)
+        db.add(row)
+    else:
+        row.data = payload
+    await db.commit()
+    return {"status": "saved"}
+
+
+@router.get("/course-landing/leads")
+async def get_course_landing_leads(limit: int = 200, admin_id: int = Depends(check_admin), db: AsyncSession = Depends(get_db)):
+    result = await db.execute(
+        select(CourseLandingLead).order_by(CourseLandingLead.created_at.desc()).limit(min(limit, 1000))
+    )
+    rows = result.scalars().all()
+    return [
+        {
+            "id": r.id,
+            "name": r.name,
+            "phone": r.phone,
+            "tariff": r.tariff,
+            "status": r.status,
+            "utm_source": r.utm_source,
+            "utm_campaign": r.utm_campaign,
+            "created_at": r.created_at.isoformat() if r.created_at else "",
+        }
+        for r in rows
+    ]
+
+
+class CourseLandingLeadStatusUpdate(BaseModel):
+    status: str
+
+
+@router.patch("/course-landing/leads/{lead_id}")
+async def update_course_landing_lead_status(
+    lead_id: int, payload: CourseLandingLeadStatusUpdate,
+    admin_id: int = Depends(check_admin), db: AsyncSession = Depends(get_db),
+):
+    if payload.status not in ("new", "contacted", "closed"):
+        raise HTTPException(status_code=400, detail="Invalid status")
+    res = await db.execute(select(CourseLandingLead).where(CourseLandingLead.id == lead_id))
+    lead = res.scalar_one_or_none()
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead topilmadi")
+    lead.status = payload.status
+    await db.commit()
+    return {"status": "updated"}
+
+
+@router.get("/course-landing/stats")
+async def get_course_landing_stats(days: int = 30, admin_id: int = Depends(check_admin), db: AsyncSession = Depends(get_db)):
+    """Funnel breakdown (unique sessions per stage) + lead/tariff summary."""
+    since = datetime.utcnow() - timedelta(days=days)
+
+    funnel = {}
+    for stage in COURSE_LANDING_FUNNEL_STAGES:
+        res = await db.execute(
+            select(func.count(func.distinct(CourseLandingEvent.session_id)))
+            .where(CourseLandingEvent.event_type == stage, CourseLandingEvent.created_at >= since)
+        )
+        funnel[stage] = res.scalar() or 0
+
+    total_leads_res = await db.execute(
+        select(func.count()).select_from(CourseLandingLead).where(CourseLandingLead.created_at >= since)
+    )
+    total_leads = total_leads_res.scalar() or 0
+
+    tariff_res = await db.execute(
+        select(CourseLandingLead.tariff, func.count()).where(CourseLandingLead.created_at >= since).group_by(CourseLandingLead.tariff)
+    )
+    tariff_breakdown = {(row[0] or "tanlanmagan"): row[1] for row in tariff_res.all()}
+
+    status_res = await db.execute(
+        select(CourseLandingLead.status, func.count()).where(CourseLandingLead.created_at >= since).group_by(CourseLandingLead.status)
+    )
+    status_breakdown = {row[0]: row[1] for row in status_res.all()}
+
+    return {
+        "days": days,
+        "funnel": funnel,
+        "total_leads": total_leads,
+        "tariff_breakdown": tariff_breakdown,
+        "status_breakdown": status_breakdown,
+    }
+
+

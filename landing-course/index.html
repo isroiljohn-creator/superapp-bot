@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>NUVI AI 2.0 — Sun'iy intellekt kursi</title>
+<meta name="description" content="Sun'iy intellekt yordamida 0 dan yangi kasbga chiqing va kamida 1000$ doimiy o'sib boruvchi daromadga ega bo'ling.">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', 'Segoe UI', sans-serif;
+  background: #ffffff;
+  color: #1d1d1f;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+.container { max-width: 980px; margin: 0 auto; padding: 0 24px; }
+.section { padding: 88px 0; }
+.section-narrow { padding: 64px 0; }
+.eyebrow {
+  font-size: 13px; font-weight: 700; color: #0071e3; letter-spacing: .3px;
+  text-transform: uppercase; margin-bottom: 14px; display: block;
+}
+h1, h2, h3 { letter-spacing: -0.02em; color: #1d1d1f; }
+.section-title { font-size: 36px; font-weight: 700; line-height: 1.15; margin-bottom: 12px; }
+.section-sub { font-size: 18px; color: #6e6e73; max-width: 640px; margin-bottom: 40px; line-height: 1.5; }
+.center { text-align: center; margin-left: auto; margin-right: auto; }
+
+/* Top bar */
+.topbar {
+  position: sticky; top: 0; z-index: 50;
+  backdrop-filter: saturate(180%) blur(20px);
+  background: rgba(255,255,255,.8);
+  border-bottom: 1px solid rgba(0,0,0,.06);
+}
+.topbar-inner { max-width: 980px; margin: 0 auto; padding: 14px 24px; display: flex; align-items: center; justify-content: space-between; }
+.logo { font-weight: 700; font-size: 17px; letter-spacing: -0.01em; }
+.btn {
+  appearance: none; border: none; cursor: pointer; font-family: inherit;
+  border-radius: 100px; font-weight: 600; transition: transform .15s ease, background .15s ease, opacity .15s ease;
+}
+.btn:active { transform: scale(0.97); }
+.btn-primary { background: #0071e3; color: #fff; padding: 11px 22px; font-size: 14px; }
+.btn-primary:hover { background: #0060c2; }
+.btn-primary.large { padding: 17px 34px; font-size: 17px; }
+.btn-outline { background: transparent; border: 1px solid #d2d2d7; color: #1d1d1f; padding: 11px 22px; font-size: 14px; }
+
+/* Hero */
+.hero { padding: 90px 0 70px; text-align: center; background: linear-gradient(180deg, #fafafa 0%, #fff 100%); }
+.badge {
+  display: inline-block; font-size: 13px; font-weight: 600; color: #0071e3;
+  background: #f0f7ff; padding: 7px 16px; border-radius: 100px; margin-bottom: 22px;
+}
+.hero h1 { font-size: 56px; font-weight: 800; line-height: 1.05; margin-bottom: 20px; }
+.hero .sub { font-size: 20px; color: #424245; max-width: 620px; margin: 0 auto 32px; line-height: 1.5; }
+.hero-meta { display: flex; gap: 28px; justify-content: center; margin-top: 34px; flex-wrap: wrap; }
+.hero-meta span { font-size: 14px; color: #6e6e73; font-weight: 500; }
+
+/* Audience */
+.audience-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.audience-item {
+  display: flex; gap: 14px; align-items: flex-start; background: #f5f5f7;
+  border-radius: 18px; padding: 22px; font-size: 16px; line-height: 1.5; font-weight: 500;
+}
+.audience-item .check { flex-shrink: 0; width: 26px; height: 26px; border-radius: 50%; background: #0071e3; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 14px; }
+
+/* Modules */
+.modules-list { display: flex; flex-direction: column; gap: 14px; }
+.module-card {
+  border: 1px solid #e5e5ea; border-radius: 20px; padding: 26px 28px; background: #fff;
+  transition: box-shadow .2s ease;
+}
+.module-card:hover { box-shadow: 0 8px 30px rgba(0,0,0,.06); }
+.module-head { display: flex; align-items: center; gap: 12px; cursor: pointer; }
+.module-badge {
+  font-size: 12px; font-weight: 700; color: #0071e3; background: #f0f7ff;
+  padding: 5px 12px; border-radius: 100px; flex-shrink: 0;
+}
+.module-title { font-size: 20px; font-weight: 700; flex: 1; }
+.module-toggle { color: #86868b; font-size: 20px; transition: transform .2s ease; flex-shrink: 0; }
+.module-card.open .module-toggle { transform: rotate(45deg); }
+.module-result { font-size: 15px; color: #6e6e73; margin-top: 10px; line-height: 1.5; }
+.module-lessons { display: none; margin-top: 18px; padding-top: 18px; border-top: 1px solid #f0f0f2; }
+.module-card.open .module-lessons { display: block; }
+.module-lesson { display: flex; gap: 10px; align-items: flex-start; padding: 8px 0; font-size: 14.5px; color: #1d1d1f; }
+.module-lesson .n { color: #0071e3; font-weight: 700; flex-shrink: 0; width: 20px; }
+
+.bonus-section { background: #fafafa; }
+
+/* Outcomes */
+.outcomes-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.outcome-item { background: #fff; border: 1px solid #e5e5ea; border-radius: 18px; padding: 24px; }
+.outcome-num { font-size: 13px; font-weight: 700; color: #0071e3; margin-bottom: 10px; }
+.outcome-text { font-size: 15.5px; font-weight: 600; line-height: 1.4; }
+
+/* Extras */
+.extras-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 30px; }
+.extra-item { padding: 20px 0; }
+.extra-title { font-size: 16px; font-weight: 700; margin-bottom: 6px; }
+.extra-desc { font-size: 14.5px; color: #6e6e73; line-height: 1.4; }
+.extras-footer {
+  background: #f5f5f7; border-radius: 18px; padding: 24px 28px; font-size: 15px;
+  color: #424245; line-height: 1.55; text-align: center;
+}
+
+/* Pricing */
+.pricing-section { background: #fafafa; }
+.pricing-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; align-items: stretch; }
+.tier-card {
+  background: #fff; border: 1px solid #e5e5ea; border-radius: 24px; padding: 32px 26px;
+  display: flex; flex-direction: column;
+}
+.tier-card.highlight { border: 2px solid #0071e3; box-shadow: 0 12px 40px rgba(0,113,227,.14); transform: translateY(-8px); }
+.tier-name { font-size: 15px; font-weight: 800; letter-spacing: .5px; color: #1d1d1f; }
+.tier-subtitle { font-size: 14px; color: #6e6e73; margin: 8px 0 20px; line-height: 1.4; min-height: 40px; }
+.tier-price { font-size: 30px; font-weight: 800; margin-bottom: 4px; }
+.tier-price .currency { font-size: 15px; font-weight: 600; color: #6e6e73; }
+.tier-features { list-style: none; margin: 22px 0 26px; flex: 1; }
+.tier-features li { display: flex; gap: 10px; align-items: flex-start; font-size: 14px; padding: 7px 0; line-height: 1.4; color: #1d1d1f; }
+.tier-features li .dot { color: #0071e3; flex-shrink: 0; font-weight: 700; }
+.tier-cta { width: 100%; padding: 14px; font-size: 15px; }
+
+/* FAQ */
+.faq-item { border-bottom: 1px solid #e5e5ea; padding: 20px 0; cursor: pointer; }
+.faq-q { font-size: 17px; font-weight: 600; display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.faq-toggle { color: #86868b; font-size: 20px; transition: transform .2s ease; flex-shrink: 0; }
+.faq-item.open .faq-toggle { transform: rotate(45deg); }
+.faq-a { display: none; font-size: 15px; color: #6e6e73; margin-top: 12px; line-height: 1.55; max-width: 700px; }
+.faq-item.open .faq-a { display: block; }
+
+/* Lead form */
+.lead-section { background: #1d1d1f; color: #fff; }
+.lead-section .section-title, .lead-section h2 { color: #fff; }
+.lead-section .section-sub { color: #a1a1a6; }
+.lead-box { max-width: 480px; margin: 0 auto; }
+.form-field { margin-bottom: 16px; }
+.form-label { font-size: 13px; font-weight: 600; color: #a1a1a6; margin-bottom: 8px; display: block; }
+.form-input, .form-select {
+  width: 100%; border: 1px solid #3a3a3c; background: #2c2c2e; border-radius: 14px;
+  padding: 15px 18px; font-size: 16px; color: #fff; font-family: inherit; outline: none;
+  transition: border-color .15s ease; -webkit-appearance: none; appearance: none;
+}
+.form-input:focus, .form-select:focus { border-color: #0071e3; }
+.form-input::placeholder { color: #6e6e73; }
+.lead-box .btn-primary { width: 100%; margin-top: 6px; padding: 16px; font-size: 16px; }
+.lead-success { display: none; text-align: center; padding: 30px 0; }
+.lead-success.show { display: block; }
+.lead-success .emoji { font-size: 46px; margin-bottom: 14px; }
+.lead-success p { color: #a1a1a6; font-size: 15px; line-height: 1.5; }
+.lead-error { color: #ff6961; font-size: 13px; margin-top: 8px; display: none; }
+.spinner { width: 18px; height: 18px; border: 2.5px solid rgba(255,255,255,.4); border-top-color: #fff; border-radius: 50%; animation: spin .7s linear infinite; display: none; margin: 0 auto; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.btn-primary.loading .spinner { display: block; }
+.btn-primary.loading .btn-label { display: none; }
+
+footer { padding: 32px 0; text-align: center; font-size: 12px; color: #c7c7cc; }
+
+@media (max-width: 720px) {
+  .hero h1 { font-size: 38px; }
+  .hero .sub { font-size: 17px; }
+  .audience-grid, .outcomes-grid, .extras-grid, .pricing-grid { grid-template-columns: 1fr; }
+  .tier-card.highlight { transform: none; }
+  .section { padding: 56px 0; }
+  .section-title { font-size: 28px; }
+}
+
+@media (prefers-color-scheme: dark) {
+  body { background: #000; color: #f5f5f7; }
+  h1, h2, h3, .section-title, .module-title, .outcome-text, .extra-title, .tier-name, .faq-q, .logo { color: #f5f5f7; }
+  .topbar { background: rgba(0,0,0,.75); border-color: rgba(255,255,255,.08); }
+  .hero { background: linear-gradient(180deg, #0a0a0a 0%, #000 100%); }
+  .hero .sub, .section-sub, .module-result, .outcome-num, .extra-desc, .faq-a, .tier-subtitle { color: #98989d; }
+  .badge { background: #0a1a2e; }
+  .audience-item, .outcome-item, .module-card, .tier-card, .extras-footer { background: #1c1c1e; border-color: #2c2c2e; }
+  .bonus-section, .pricing-section { background: #0a0a0a; }
+  .btn-outline { border-color: #3a3a3c; color: #f5f5f7; }
+  .module-badge { background: #0a1a2e; }
+  .module-lessons { border-color: #2c2c2e; }
+  .faq-item { border-color: #2c2c2e; }
+  .tier-features li { color: #f5f5f7; }
+}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-inner">
+    <span class="logo">NUVI AI 2.0</span>
+    <a href="#ariza" class="btn btn-primary" id="topCta">Ariza qoldirish</a>
+  </div>
+</div>
+
+<section class="hero">
+  <div class="container">
+    <span class="badge" id="heroBadge">Yangi oqim</span>
+    <h1 id="heroTitle">NUVI AI 2.0</h1>
+    <p class="sub" id="heroSubtitle"></p>
+    <a href="#ariza" class="btn btn-primary large" id="heroCta">Ariza qoldirish</a>
+    <div class="hero-meta" id="heroMeta"></div>
+  </div>
+</section>
+
+<section class="section" id="audience-section">
+  <div class="container">
+    <span class="eyebrow" id="audienceEyebrow">Kimlar uchun</span>
+    <h2 class="section-title" id="audienceTitle"></h2>
+    <div class="audience-grid" id="audienceGrid"></div>
+  </div>
+</section>
+
+<section class="section" id="modules-section">
+  <div class="container">
+    <span class="eyebrow">Dastur</span>
+    <h2 class="section-title">6 ta asosiy modul</h2>
+    <p class="section-sub">Har bir modul — keyingisiga tayyorgarlik. Oxirida siz tayyor xizmat va mijozga egasiz.</p>
+    <div class="modules-list" id="modulesList"></div>
+  </div>
+</section>
+
+<section class="section bonus-section">
+  <div class="container">
+    <span class="eyebrow">Bonus</span>
+    <h2 class="section-title" id="bonusTitle"></h2>
+    <div class="modules-list" id="bonusList" style="margin-top:32px;"></div>
+  </div>
+</section>
+
+<section class="section" id="outcomes-section">
+  <div class="container">
+    <span class="eyebrow">Natija</span>
+    <h2 class="section-title" id="outcomesTitle"></h2>
+    <div class="outcomes-grid" id="outcomesGrid"></div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container">
+    <span class="eyebrow">Qo'shimcha</span>
+    <h2 class="section-title" id="extrasTitle"></h2>
+    <div class="extras-grid" id="extrasGrid"></div>
+    <div class="extras-footer" id="extrasFooter"></div>
+  </div>
+</section>
+
+<section class="section pricing-section" id="pricing-section">
+  <div class="container">
+    <h2 class="section-title center" id="pricingTitle"></h2>
+    <div class="pricing-grid" id="pricingGrid" style="margin-top:40px;"></div>
+  </div>
+</section>
+
+<section class="section-narrow" id="faq-section">
+  <div class="container" style="max-width:760px;">
+    <h2 class="section-title center">Savol-javob</h2>
+    <div id="faqList" style="margin-top:24px;"></div>
+  </div>
+</section>
+
+<section class="section lead-section" id="ariza">
+  <div class="container lead-box">
+    <h2 class="section-title center" id="leadTitle"></h2>
+    <p class="section-sub center" id="leadSubtitle"></p>
+
+    <form id="leadForm">
+      <div class="form-field">
+        <label class="form-label" for="nameInput">Ismingiz</label>
+        <input class="form-input" type="text" id="nameInput" placeholder="Ismingizni kiriting" autocomplete="given-name" required>
+      </div>
+      <div class="form-field">
+        <label class="form-label" for="phoneInput">Telefon raqamingiz</label>
+        <input class="form-input" type="tel" id="phoneInput" placeholder="+998 90 123 45 67" autocomplete="tel" required>
+      </div>
+      <div class="form-field">
+        <label class="form-label" for="tariffSelect">Tarif (ixtiyoriy)</label>
+        <select class="form-select" id="tariffSelect">
+          <option value="">Tanlanmagan</option>
+          <option value="standard">Standard</option>
+          <option value="premium">Premium</option>
+          <option value="vip">VIP</option>
+        </select>
+      </div>
+      <button type="submit" class="btn btn-primary" id="submitBtn">
+        <span class="btn-label">Ariza qoldirish</span>
+        <span class="spinner"></span>
+      </button>
+      <div class="lead-error" id="leadError">Xatolik yuz berdi. Iltimos, ma'lumotlarni tekshirib qayta urinib ko'ring.</div>
+    </form>
+
+    <div class="lead-success" id="leadSuccess">
+      <div class="emoji">✅</div>
+      <p id="leadSuccessText"></p>
+    </div>
+  </div>
+</section>
+
+<footer id="footerText"></footer>
+
+<script src="main.js"></script>
+</body>
+</html>

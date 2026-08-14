@@ -20,6 +20,8 @@ import Pipeline from "@/pages/Pipeline";
 import Applications from "@/pages/Applications";
 import StaffManager from "@/pages/StaffManager";
 import FinanceReports from "@/pages/FinanceReports";
+import CourseLandingManager from "@/pages/CourseLandingManager";
+import CourseLandingLeads from "@/pages/CourseLandingLeads";
 
 const tabs = [
   { id: "home", label: "Asosiy", icon: Home },
@@ -39,6 +41,7 @@ const analyticsSubTabs = [
   { id: "events", label: "Voqealar" },
   { id: "abtests", label: "A/B Test" },
   { id: "quiz", label: "Test" },
+  { id: "kurs", label: "NUVI AI 2.0" },
 ] as const;
 type AnalyticsSubTab = (typeof analyticsSubTabs)[number]["id"];
 
@@ -46,6 +49,7 @@ const materialSubTabs = [
   { id: "courses", label: "Darslar" },
   { id: "guides", label: "Qo'llanma" },
   { id: "magnets", label: "Havolalar" },
+  { id: "kurs_sayti", label: "NUVI AI 2.0 sayti" },
 ] as const;
 type MaterialSubTab = (typeof materialSubTabs)[number]["id"];
 
@@ -75,7 +79,8 @@ export default function AppLayout() {
             <SubTabBar tabs={analyticsSubTabs} active={analyticsTab} onChange={(id) => setAnalyticsTab(id as AnalyticsSubTab)} />
             {analyticsTab === "funnel" ? <FunnelAnalytics /> :
               analyticsTab === "events" ? <EventTracking /> :
-                analyticsTab === "abtests" ? <ABTests /> : <QuizAnalytics />}
+                analyticsTab === "abtests" ? <ABTests /> :
+                  analyticsTab === "kurs" ? <CourseLandingLeads /> : <QuizAnalytics />}
           </div>
         );
       case "broadcast":
@@ -90,7 +95,8 @@ export default function AppLayout() {
           <div className="space-y-3">
             <SubTabBar tabs={materialSubTabs} active={materialTab} onChange={(id) => setMaterialTab(id as MaterialSubTab)} />
             {materialTab === "courses" ? <CourseManager /> :
-              materialTab === "guides" ? <GuidesManager /> : <LeadMagnetManager />}
+              materialTab === "guides" ? <GuidesManager /> :
+                materialTab === "kurs_sayti" ? <CourseLandingManager /> : <LeadMagnetManager />}
           </div>
         );
       case "crm":

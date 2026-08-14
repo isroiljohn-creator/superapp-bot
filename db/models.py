@@ -427,6 +427,51 @@ class QuizEvent(Base):
 
 
 # ──────────────────────────────────────────────
+# NUVI AI 2.0 course sales page (standalone funnel, nuvi.uz/kurs)
+# ──────────────────────────────────────────────
+class CourseLandingContent(Base):
+    """Single-row JSON blob holding every editable text/image block on the
+    NUVI AI 2.0 sales page, keyed by slug so multiple landing pages could
+    share this table later. Admin edits the whole tree via structured forms;
+    the public page fetches it as-is and renders it."""
+    __tablename__ = "course_landing_content"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    slug = Column(String(50), unique=True, nullable=False, index=True)
+    data = Column(JSON, nullable=False)
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+
+class CourseLandingLead(Base):
+    """Contact-request submissions from the NUVI AI 2.0 sales page — no
+    on-page payment, a manager calls back."""
+    __tablename__ = "course_landing_leads"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    name = Column(String(255), nullable=False)
+    phone = Column(String(30), nullable=False)
+    tariff = Column(String(20), nullable=True)  # standard | premium | vip
+    session_id = Column(String(64), nullable=True)
+    utm_source = Column(String(100), nullable=True)
+    utm_campaign = Column(String(100), nullable=True)
+    status = Column(String(20), default="new", nullable=False)  # new | contacted | closed
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class CourseLandingEvent(Base):
+    """Funnel/analytics tracking for the NUVI AI 2.0 sales page — mirrors
+    QuizEvent's anonymous session_id pattern."""
+    __tablename__ = "course_landing_events"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    session_id = Column(String(64), nullable=False, index=True)
+    event_type = Column(String(40), nullable=False)  # page_view | pricing_view | cta_click:<tariff> | lead_form_view | lead_submitted
+    utm_source = Column(String(100), nullable=True)
+    utm_campaign = Column(String(100), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
+
+
+# ──────────────────────────────────────────────
 # Moderated Groups (Nazoratchi Bot)
 # ──────────────────────────────────────────────
 class ModeratedGroup(Base):
