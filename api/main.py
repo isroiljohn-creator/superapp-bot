@@ -231,6 +231,19 @@ async def root(request: Request):
 <body><p>Redirecting to <a href="/admin/">Admin Dashboard</a>...</p></body>
 </html>""")
 
+
+@app.get("/main.js")
+async def root_main_js(request: Request):
+    """The quiz landing served at "/" (see root() above) references main.js
+    with a relative path, which resolves to /main.js at the domain root —
+    that file only physically exists under the /quiz/ StaticFiles mount, so
+    without this route the script 404s and the whole page is inert."""
+    host = request.headers.get("host", "").split(":")[0].lower()
+    if host in ("nuvi.uz", "www.nuvi.uz") and os.path.exists(quiz_dist):
+        from fastapi.responses import FileResponse
+        return FileResponse(os.path.join(quiz_dist, "main.js"), media_type="application/javascript")
+    raise HTTPException(status_code=404)
+
 async def process_update_in_background(update: types.Update):
     """Background helper to process update, measure duration, and log exceptions."""
     start_time = time.perf_counter()
