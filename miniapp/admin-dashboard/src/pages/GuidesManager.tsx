@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, Trash2, Pencil, Link as LinkIcon, FileText, Video, File, BookOpen } from "lucide-react";
+import { Plus, Trash2, Pencil, Link as LinkIcon, FileText, Video, File, BookOpen, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -14,7 +14,7 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { fetchApi } from "@/lib/api";
+import { fetchApi, uploadAdminFile } from "@/lib/api";
 
 interface Guide {
     id: number;
@@ -32,6 +32,8 @@ export default function GuidesManager() {
     const queryClient = useQueryClient();
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [editingGuide, setEditingGuide] = useState<Guide | null>(null);
+    const [isUploading, setIsUploading] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     // Form state
     const [formData, setFormData] = useState({
@@ -116,6 +118,31 @@ export default function GuidesManager() {
         saveMutation.mutate(formData);
     };
 
+    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        setIsUploading(true);
+        try {
+            const result = await uploadAdminFile("/api/admin/upload-media-form", file);
+            setFormData((prev) => ({ ...prev, file_id: result.file_id, media_url: "" }));
+            toast.success(`Fayl yuklandi: ${file.name}`);
+        } catch (error: any) {
+            toast.error(error.message || "Faylni yuklashda xatolik");
+        } finally {
+            setIsUploading(false);
+            if (fileInputRef.current) fileInputRef.current.value = "";
+        }
+    };
+
+    const acceptForFileType = (type: string) => {
+        switch (type) {
+            case "video": return "video/*";
+            case "photo": return "image/*";
+            case "document": return ".pdf,.doc,.docx,.xls,.xlsx,.zip,application/pdf";
+            default: return undefined;
+        }
+    };
+
     const getFileIcon = (type: string | null) => {
         switch (type) {
             case "video": return <Video className="h-4 w-4" />;
@@ -195,7 +222,34 @@ export default function GuidesManager() {
                             {formData.file_type !== "text" && (
                                 <div className="space-y-2 p-3 bg-secondary/20 rounded-lg border border-border">
                                     <label className="text-sm font-medium flex items-center gap-2">
-                                        <LinkIcon className="h-4 w-4" /> Telegram File ID yoki Havola
+                                        <Upload className="h-4 w-4" /> Fayl yuklash
+                                    </label>
+                                    <input
+                                        ref={fileInputRef}
+                                        type="file"
+                                        accept={acceptForFileType(formData.file_type)}
+                                        onChange={handleFileUpload}
+                                        disabled={isUploading}
+                                        className="hidden"
+                                        id="guide-file-upload"
+                                    />
+                                    <Button
+                                        type="button"
+                                        variant="secondary"
+                                        className="w-full gap-2"
+                                        disabled={isUploading}
+                                        onClick={() => fileInputRef.current?.click()}
+                                    >
+                                        <Upload className="h-4 w-4" />
+                                        {isUploading ? "Yuklanmoqda..." : formData.file_id ? "Boshqa fayl yuklash" : "Kompyuterdan fayl tanlash"}
+                                    </Button>
+                                    {formData.file_id && (
+                                        <p className="text-xs text-emerald-500 truncate">✓ Fayl yuklandi va biriktirildi</p>
+                                    )}
+
+                                    <div className="text-center text-xs text-muted-foreground my-1">YOKI QO'LDA KIRITING</div>
+                                    <label className="text-xs font-medium flex items-center gap-2 text-muted-foreground">
+                                        <LinkIcon className="h-3.5 w-3.5" /> Telegram File ID
                                     </label>
                                     <Input
                                         value={formData.file_id}

@@ -61,3 +61,41 @@ export async function fetchApi(endpoint: string, options: RequestInit = {}) {
         return text;
     }
 }
+
+/**
+ * Uploads a file (e.g. PDF) via multipart form to get a stable Telegram
+ * file_id back — used by admin panels that let staff attach a document
+ * directly instead of pasting a Telegram file_id/link by hand.
+ */
+export async function uploadAdminFile(endpoint: string, file: File): Promise<{ file_id: string; content_type: string }> {
+    const initData = getInitData();
+    const token = typeof window !== "undefined" ? localStorage.getItem("admin_token") : null;
+    const headers = new Headers();
+
+    // Do NOT set Content-Type here — the browser must set it (with the
+    // multipart boundary) itself for FormData bodies.
+    if (token) {
+        headers.set("Authorization", `Bearer ${token}`);
+    } else if (initData) {
+        headers.set("Authorization", `tma ${initData}`);
+    }
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const response = await fetch(`${API_URL}${endpoint}`, {
+        method: "POST",
+        headers,
+        body: formData,
+    });
+
+    const text = await response.text();
+    if (!response.ok) {
+        let errorDetail = `HTTP ${response.status}`;
+        try {
+            errorDetail = JSON.parse(text).detail || errorDetail;
+        } catch { }
+        throw new Error(errorDetail);
+    }
+    return JSON.parse(text);
+}
