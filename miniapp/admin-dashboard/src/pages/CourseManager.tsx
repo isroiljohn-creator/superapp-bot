@@ -16,7 +16,7 @@ import {
     DialogTitle,
     DialogFooter,
 } from "@/components/ui/dialog";
-import { Trash2, Edit2, Plus, PlayCircle, Upload, X, Loader2, CheckCircle2 } from "lucide-react";
+import { Trash2, Edit2, Plus, PlayCircle, Upload, X, Loader2, CheckCircle2, Copy } from "lucide-react";
 
 function getTelegramInitData(): string {
     try {
@@ -237,6 +237,20 @@ export default function CourseManager() {
                                                 <span className="text-destructive">Video yo'q</span>
                                             )}
                                             {!course.is_active && <span className="text-destructive font-semibold px-2">Yashirilgan</span>}
+                                        </div>
+                                        <div className="flex items-center gap-2 mt-2">
+                                            <div className="bg-background border px-2 py-1 rounded text-xs font-mono text-muted-foreground truncate">
+                                                t.me/Isroil_AIBot?start=dars_{course.id}
+                                            </div>
+                                            <Button
+                                                size="icon" variant="outline" className="h-7 w-7 shrink-0"
+                                                onClick={() => {
+                                                    navigator.clipboard.writeText(`https://t.me/Isroil_AIBot?start=dars_${course.id}`);
+                                                    toast({ title: "Nusxa olindi", description: `dars_${course.id} havolasi nusxalandi` });
+                                                }}
+                                            >
+                                                <Copy className="h-3 w-3" />
+                                            </Button>
                                         </div>
                                     </div>
                                 </div>

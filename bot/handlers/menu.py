@@ -21,6 +21,93 @@ from services.crm import CRMService
 router = Router(name="menu")
 
 
+# ── Deep-link deliverable content ─────────────
+# Shared by the guide_db:/lesson_db: callback handlers below AND by the
+# guide_<id>/dars_<id> /start deep links (bot/handlers/registration.py) —
+# so an already-published guide or lesson can be shared as its own link,
+# the same way a LeadMagnet campaign link works.
+async def deliver_guide_by_id(bot, chat_id: int, guide_id: int) -> bool:
+    from db.database import async_session
+    from sqlalchemy import select
+    from db.models import Guide
+
+    async with async_session() as session:
+        result = await session.execute(
+            select(Guide).where(Guide.id == guide_id, Guide.is_active.is_(True))
+        )
+        guide = result.scalar_one_or_none()
+
+    if not guide:
+        return False
+
+    caption = f"📖 <b>{guide.title}</b>\n\n{guide.content or ''}"
+    if guide.media_url and not guide.file_id:
+        caption += f"\n\n🔗 {guide.media_url}"
+
+    try:
+        if guide.file_type == "video" and guide.file_id:
+            await bot.send_video(chat_id, guide.file_id, caption=caption, parse_mode="HTML")
+        elif guide.file_type == "document" and guide.file_id:
+            await bot.send_document(chat_id, guide.file_id, caption=caption, parse_mode="HTML")
+        elif guide.file_type == "photo" and guide.file_id:
+            await bot.send_photo(chat_id, guide.file_id, caption=caption, parse_mode="HTML")
+        else:
+            await bot.send_message(chat_id, caption, parse_mode="HTML", disable_web_page_preview=False)
+        return True
+    except Exception as e:
+        import logging as _logging
+        _logging.getLogger("menu").error(f"Error delivering guide {guide_id} via deep link: {e}")
+        return False
+
+
+async def deliver_lesson_by_id(bot, chat_id: int, lesson_id: int) -> bool:
+    import re
+    from db.database import async_session
+    from sqlalchemy import select
+    from db.models import CourseModule
+
+    async with async_session() as session:
+        result = await session.execute(
+            select(CourseModule).where(CourseModule.id == lesson_id, CourseModule.is_active.is_(True))
+        )
+        lesson = result.scalar_one_or_none()
+
+    if not lesson:
+        return False
+
+    caption = f"📹 <b>{lesson.title}</b>\n\n{lesson.description or ''}"
+
+    if lesson.video_url and "t.me/c/" in lesson.video_url:
+        match = re.search(r't\.me/c/(\d+)/(\d+)', lesson.video_url)
+        if match:
+            channel_id = int(f"-100{match.group(1)}")
+            message_id = int(match.group(2))
+            try:
+                await bot.copy_message(chat_id=chat_id, from_chat_id=channel_id, message_id=message_id)
+                return True
+            except Exception:
+                pass
+
+    if lesson.channel_message_id:
+        content_channel = getattr(settings, 'CONTENT_CHANNEL_ID', 0)
+        if content_channel:
+            try:
+                await bot.copy_message(chat_id=chat_id, from_chat_id=content_channel, message_id=lesson.channel_message_id)
+                return True
+            except Exception:
+                pass
+
+    if lesson.video_file_id:
+        await bot.send_video(chat_id, lesson.video_file_id, caption=caption, parse_mode="HTML")
+        return True
+
+    if lesson.video_url:
+        await bot.send_message(chat_id, f"{caption}\n\n🔗 {lesson.video_url}", parse_mode="HTML")
+        return True
+
+    return False
+
+
 # ── Profile Settings FSM ─────────────────────
 class ProfileEdit(StatesGroup):
     waiting_name = State()

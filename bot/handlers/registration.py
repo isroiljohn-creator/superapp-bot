@@ -139,6 +139,44 @@ async def cmd_start(message: Message, state: FSMContext):
         await start_hr_interview(message, state, deep_link[len("hr_"):])
         return
 
+    # ── Direct link to an existing guide/lesson (guide_<id> / dars_<id>) ──
+    # Lets an admin share a specific already-published Guide or CourseModule
+    # as its own t.me/<bot>?start=... link, the same way a LeadMagnet
+    # campaign link works — just pointed at content that already exists
+    # instead of a separate lead-magnet entry.
+    if deep_link and (deep_link.startswith("guide_") or deep_link.startswith("dars_")):
+        is_guide = deep_link.startswith("guide_")
+        raw_id = deep_link[len("guide_"):] if is_guide else deep_link[len("dars_"):]
+        try:
+            content_id = int(raw_id)
+        except ValueError:
+            content_id = None
+
+        async with async_session() as session:
+            crm = CRMService(session)
+            user, _ = await crm.get_or_create_user(
+                telegram_id=message.from_user.id,
+                name=message.from_user.full_name,
+                username=message.from_user.username,
+                source="direct_link",
+                campaign=deep_link,
+            )
+            analytics = AnalyticsService(session)
+            await analytics.track(user_id=user.id, event_type="direct_link_open")
+            await session.commit()
+
+        delivered = False
+        if content_id is not None:
+            from bot.handlers.menu import deliver_guide_by_id, deliver_lesson_by_id
+            delivered = await (deliver_guide_by_id(message.bot, message.chat.id, content_id) if is_guide
+                                else deliver_lesson_by_id(message.bot, message.chat.id, content_id))
+
+        if not delivered:
+            await message.answer("❌ Ushbu havola orqali material topilmadi yoki endi mavjud emas.")
+
+        await message.answer(uz.MENU_TEXT, parse_mode="HTML", reply_markup=await get_main_menu(user_id=message.from_user.id))
+        return
+
     referer_id = None
     source = None
     campaign = None

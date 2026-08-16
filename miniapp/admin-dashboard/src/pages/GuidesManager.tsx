@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, Trash2, Pencil, Link as LinkIcon, FileText, Video, File, BookOpen, Upload } from "lucide-react";
+import { Plus, Trash2, Pencil, Link as LinkIcon, FileText, Video, File, BookOpen, Upload, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -132,6 +132,11 @@ export default function GuidesManager() {
             setIsUploading(false);
             if (fileInputRef.current) fileInputRef.current.value = "";
         }
+    };
+
+    const copyToClipboard = (text: string) => {
+        navigator.clipboard.writeText(text);
+        toast.success("Nusxa olindi: " + text);
     };
 
     const acceptForFileType = (type: string) => {
@@ -331,6 +336,17 @@ export default function GuidesManager() {
                                             <LinkIcon className="h-3 w-3" /> {guide.media_url}
                                         </p>
                                     )}
+                                    <div className="flex items-center gap-2 mt-2">
+                                        <div className="bg-background border px-2 py-1 rounded text-xs font-mono text-muted-foreground flex-1 truncate">
+                                            t.me/Isroil_AIBot?start=guide_{guide.id}
+                                        </div>
+                                        <Button
+                                            size="icon" variant="outline" className="h-7 w-7 shrink-0"
+                                            onClick={() => copyToClipboard(`https://t.me/Isroil_AIBot?start=guide_${guide.id}`)}
+                                        >
+                                            <Copy className="h-3 w-3" />
+                                        </Button>
+                                    </div>
                                 </div>
                             </div>
 
