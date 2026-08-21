@@ -196,6 +196,9 @@ app.include_router(quiz.router)
 from api.routers import course_landing
 app.include_router(course_landing.router)
 
+from api.routers import agency
+app.include_router(agency.router)
+
 
 @app.get("/health")
 async def health():
@@ -329,6 +332,10 @@ if os.path.exists(quiz_dist):
 course_dist = os.path.join(os.path.dirname(os.path.dirname(__file__)), "landing-course")
 if os.path.exists(course_dist):
     app.mount("/kurs", StaticFiles(directory=course_dist, html=True), name="course_landing")
+
+agency_dist = os.path.join(os.path.dirname(os.path.dirname(__file__)), "landing-agency")
+if os.path.exists(agency_dist):
+    app.mount("/agency", StaticFiles(directory=agency_dist, html=True), name="agency_landing")
 
 boshqaruv_dist = os.path.join(os.path.dirname(os.path.dirname(__file__)), "nuvi-boshqaruv-repo", "dist")
 if os.path.exists(boshqaruv_dist):

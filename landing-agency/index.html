@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title id="pageTitle">NUVI AI Agency — Biznesingizni o'stirish uchun bitta jamoa</title>
+<meta id="metaDescription" name="description" content="Marketing, shaxsiy brend, development, AI Production va biznes avtomatlashtirishni bitta tizimga birlashtiramiz.">
+<meta property="og:title" content="NUVI AI Agency">
+<meta property="og:description" content="Biznesingizni o'stirish uchun kerak bo'lgan jamoa. Bitta joyda.">
+<meta property="og:type" content="website">
+<link rel="icon" href="assets/nuvi-icon.png" type="image/png">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- ===== NAV ===== -->
+<header class="nav" id="nav">
+  <div class="nav-inner">
+    <a href="#top" class="nav-logo"><img src="assets/nuvi-logo-wordmark.png" alt="NUVI" class="nav-logo-img"></a>
+    <nav class="nav-links" id="navLinks">
+      <a href="#system" data-i18n="nav.services"></a>
+      <a href="#pricing" data-i18n="nav.pricing"></a>
+      <a href="#ai-production" data-i18n="nav.aiProduction"></a>
+      <a href="#why" data-i18n="nav.about"></a>
+      <a href="#faq" data-i18n="nav.faq"></a>
+    </nav>
+    <div class="nav-right">
+      <div class="lang-switch" id="langSwitch">
+        <button class="lang-btn" data-lang="uz">O'Z</button>
+        <button class="lang-btn" data-lang="ru">RU</button>
+        <button class="lang-btn" data-lang="en">EN</button>
+      </div>
+      <a href="#lead" class="btn btn-primary btn-nav" data-i18n="nav.cta" data-track="nav_cta_click"></a>
+      <button class="nav-burger" id="navBurger" aria-label="Menu">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </div>
+  <div class="nav-mobile" id="navMobile">
+    <a href="#system" data-i18n="nav.services"></a>
+    <a href="#pricing" data-i18n="nav.pricing"></a>
+    <a href="#ai-production" data-i18n="nav.aiProduction"></a>
+    <a href="#why" data-i18n="nav.about"></a>
+    <a href="#faq" data-i18n="nav.faq"></a>
+    <a href="#lead" class="btn btn-primary" data-i18n="nav.cta"></a>
+  </div>
+</header>
+
+<main id="top">
+
+<!-- ===== 01 HERO ===== -->
+<section class="hero" id="hero">
+  <div class="container hero-inner">
+    <h1 class="hero-title" data-i18n="hero.title"></h1>
+    <p class="hero-sub" data-i18n="hero.subtitle"></p>
+    <div class="hero-flow" id="heroFlow"></div>
+    <div class="hero-ctas">
+      <a href="#lead" class="btn btn-primary btn-lg" data-i18n="hero.ctaPrimary" data-track="hero_cta_click"></a>
+      <a href="#pricing" class="btn btn-outline btn-lg" data-i18n="hero.ctaSecondary"></a>
+    </div>
+    <p class="hero-trust" data-i18n="hero.trustLine"></p>
+  </div>
+</section>
+
+<!-- ===== 02 PROBLEM ===== -->
+<section class="section problem" id="problem">
+  <div class="container">
+    <span class="eyebrow" data-i18n="problem.eyebrow"></span>
+    <h2 class="section-title" data-i18n="problem.title"></h2>
+    <p class="section-sub" data-i18n="problem.subtitle"></p>
+    <div class="problem-diagram reveal">
+      <div class="problem-fragments" id="problemFragments"></div>
+      <div class="problem-arrow">→</div>
+      <div class="problem-unified">
+        <div class="unified-badge">NUVI</div>
+        <p class="unified-caption" data-i18n="problem.unifiedCaption"></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== 03 SYSTEM ===== -->
+<section class="section system" id="system">
+  <div class="container">
+    <span class="eyebrow" data-i18n="system.eyebrow"></span>
+    <h2 class="section-title" data-i18n="system.title"></h2>
+    <div class="system-flow" id="systemFlow"></div>
+    <div class="system-stages" id="systemStages"></div>
+  </div>
+</section>
+
+<!-- ===== 04 PRICING ===== -->
+<section class="section pricing-section" id="pricing">
+  <div class="container">
+    <span class="eyebrow" data-i18n="pricing.eyebrow"></span>
+    <h2 class="section-title" data-i18n="pricing.title"></h2>
+    <p class="section-sub" data-i18n="pricing.subtitle"></p>
+    <div class="pricing-grid" id="pricingGrid"></div>
+  </div>
+</section>
+
+<!-- ===== 04b CUSTOM ===== -->
+<section class="section custom-section" id="custom">
+  <div class="container">
+    <div class="custom-card reveal">
+      <h2 class="custom-title" data-i18n="pricing.custom.title"></h2>
+      <p class="custom-desc" data-i18n="pricing.custom.desc"></p>
+      <div class="custom-modules" id="customModules"></div>
+      <a href="#lead" class="btn btn-primary btn-lg" data-i18n="pricing.custom.cta" data-track="custom_selected"></a>
+    </div>
+  </div>
+</section>
+
+<!-- ===== 05 BONUS ===== -->
+<section class="section bonus-section" id="bonus">
+  <div class="container">
+    <span class="eyebrow" data-i18n="bonus.eyebrow"></span>
+    <h2 class="section-title" data-i18n="bonus.title"></h2>
+
+    <div class="bonus-hero reveal">
+      <span class="bonus-badge" data-i18n="bonus.hero.badge"></span>
+      <h3 class="bonus-hero-title" data-i18n="bonus.hero.title"></h3>
+      <p class="bonus-hero-desc" data-i18n="bonus.hero.desc"></p>
+      <ul class="bonus-capabilities" id="bonusCapabilities"></ul>
+      <div class="bonus-flow" id="bonusFlow"></div>
+      <p class="bonus-disclaimer" data-i18n="bonus.hero.disclaimer"></p>
+    </div>
+
+    <div class="bonus-others" id="bonusOthers"></div>
+  </div>
+</section>
+
+<!-- ===== 06 STANDALONE SERVICES ===== -->
+<section class="section standalone-section" id="standalone">
+  <div class="container">
+    <span class="eyebrow" data-i18n="standalone.eyebrow"></span>
+    <h2 class="section-title" data-i18n="standalone.title"></h2>
+    <p class="section-sub" data-i18n="standalone.subtitle"></p>
+    <div class="standalone-grid" id="standaloneGrid"></div>
+  </div>
+</section>
+
+<!-- ===== AI PRODUCTION (dark) ===== -->
+<section class="section ai-production" id="ai-production">
+  <div class="container">
+    <span class="eyebrow eyebrow-dark" data-i18n="aiProduction.eyebrow"></span>
+    <h2 class="section-title title-dark" data-i18n="aiProduction.title"></h2>
+    <p class="section-sub sub-dark" data-i18n="aiProduction.subtitle"></p>
+    <div class="ai-categories" id="aiCategories"></div>
+
+    <div class="ai-pricing reveal">
+      <p class="ai-pricing-headline" data-i18n="aiProduction.pricingHeadline"></p>
+      <div class="ai-pricing-range" id="aiPricingRange"></div>
+      <p class="ai-pricing-note" data-i18n="aiProduction.pricingNote"></p>
+      <div class="ai-pricing-factors" id="aiPricingFactors"></div>
+      <div class="ai-tier-compare" id="aiTierCompare"></div>
+      <a href="#lead" class="btn btn-primary btn-lg" data-i18n="aiProduction.cta" data-track="ai_production_selected"></a>
+    </div>
+  </div>
+</section>
+
+<!-- ===== 07 AUTOMATION ===== -->
+<section class="section automation-section" id="automation">
+  <div class="container">
+    <span class="eyebrow" data-i18n="automation.eyebrow"></span>
+    <h2 class="section-title" data-i18n="automation.title"></h2>
+    <div class="automation-examples" id="automationExamples"></div>
+    <div class="automation-workflow" id="automationWorkflow"></div>
+    <a href="#lead" class="btn btn-outline" data-i18n="automation.cta" data-track="automation_selected"></a>
+  </div>
+</section>
+
+<!-- ===== 08 HOW WE WORK ===== -->
+<section class="section how-section" id="how">
+  <div class="container">
+    <span class="eyebrow" data-i18n="how.eyebrow"></span>
+    <h2 class="section-title" data-i18n="how.title"></h2>
+    <div class="how-steps" id="howSteps"></div>
+  </div>
+</section>
+
+<!-- ===== 09 KPI ===== -->
+<section class="section kpi-section" id="kpi">
+  <div class="container">
+    <span class="eyebrow" data-i18n="kpi.eyebrow"></span>
+    <h2 class="section-title" data-i18n="kpi.title"></h2>
+    <p class="section-sub" data-i18n="kpi.subtitle"></p>
+    <div class="kpi-tags" id="kpiTags"></div>
+    <p class="kpi-disclaimer" data-i18n="kpi.disclaimer"></p>
+  </div>
+</section>
+
+<!-- ===== 10 RESPONSIBILITY ===== -->
+<section class="section responsibility-section" id="responsibility">
+  <div class="container">
+    <div class="responsibility-grid">
+      <div class="responsibility-col">
+        <h3 data-i18n="responsibility.nuviTitle"></h3>
+        <ul id="responsibilityNuvi"></ul>
+      </div>
+      <div class="responsibility-col">
+        <h3 data-i18n="responsibility.clientTitle"></h3>
+        <ul id="responsibilityClient"></ul>
+      </div>
+    </div>
+    <p class="responsibility-note" data-i18n="responsibility.note"></p>
+  </div>
+</section>
+
+<!-- ===== 11 CASE STUDIES ===== -->
+<section class="section cases-section" id="cases">
+  <div class="container">
+    <span class="eyebrow" data-i18n="cases.eyebrow"></span>
+    <h2 class="section-title" data-i18n="cases.title"></h2>
+    <p class="section-sub" data-i18n="cases.subtitle"></p>
+    <div class="cases-grid" id="casesGrid"></div>
+  </div>
+</section>
+
+<!-- ===== 12 WHY NUVI ===== -->
+<section class="section why-section" id="why">
+  <div class="container">
+    <span class="eyebrow" data-i18n="why.eyebrow"></span>
+    <h2 class="section-title" data-i18n="why.title"></h2>
+    <div class="why-pillars" id="whyPillars"></div>
+    <p class="why-closing" data-i18n="why.closing"></p>
+  </div>
+</section>
+
+<!-- ===== 13 FAQ ===== -->
+<section class="section faq-section" id="faq">
+  <div class="container container-narrow">
+    <span class="eyebrow" data-i18n="faq.eyebrow"></span>
+    <h2 class="section-title" data-i18n="faq.title"></h2>
+    <div class="faq-list" id="faqList"></div>
+  </div>
+</section>
+
+<!-- ===== 14 FINAL CTA + LEAD FORM ===== -->
+<section class="section final-section" id="lead">
+  <div class="container container-narrow">
+    <h2 class="final-title" data-i18n="finalCta.title"></h2>
+    <p class="final-sub" data-i18n="finalCta.subtitle"></p>
+
+    <form id="leadForm" class="lead-form">
+      <div class="form-row">
+        <div class="form-field">
+          <label data-i18n="form.name"></label>
+          <input type="text" id="fName" required>
+        </div>
+        <div class="form-field">
+          <label data-i18n="form.phone"></label>
+          <input type="tel" id="fPhone" placeholder="+998 90 123 45 67" required>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-field">
+          <label data-i18n="form.company"></label>
+          <input type="text" id="fCompany">
+        </div>
+        <div class="form-field">
+          <label data-i18n="form.serviceLabel"></label>
+          <select id="fService"></select>
+        </div>
+      </div>
+      <div class="form-field">
+        <label data-i18n="form.messageLabel"></label>
+        <textarea id="fMessage" rows="3"></textarea>
+      </div>
+      <button type="submit" class="btn btn-primary btn-lg btn-block" id="leadSubmitBtn">
+        <span class="btn-label" data-i18n="form.cta"></span>
+        <span class="spinner"></span>
+      </button>
+      <p class="lead-error" id="leadError"></p>
+    </form>
+
+    <div class="lead-success" id="leadSuccess">
+      <div class="success-emoji">✓</div>
+      <p data-i18n="form.success"></p>
+    </div>
+
+    <p class="final-trust" data-i18n="finalCta.trustLine"></p>
+  </div>
+</section>
+
+</main>
+
+<footer class="site-footer">
+  <div class="container footer-inner">
+    <img src="assets/nuvi-logo-wordmark.png" alt="NUVI" class="footer-logo-img">
+    <p data-i18n="footer.text"></p>
+  </div>
+</footer>
+
+<script src="i18n.js"></script>
+<script src="main.js"></script>
+</body>
+</html>

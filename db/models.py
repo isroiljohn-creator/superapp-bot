@@ -472,6 +472,40 @@ class CourseLandingEvent(Base):
 
 
 # ──────────────────────────────────────────────
+# NUVI AI Agency site (nuvi.uz/agency)
+# ──────────────────────────────────────────────
+class AgencyLead(Base):
+    """Contact-request submissions from the NUVI AI Agency site."""
+    __tablename__ = "agency_leads"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    name = Column(String(255), nullable=False)
+    phone = Column(String(30), nullable=False)
+    company = Column(String(255), nullable=True)
+    service = Column(String(100), nullable=True)  # which offer the visitor selected in the dropdown
+    message = Column(Text, nullable=True)
+    lang = Column(String(5), nullable=True)  # uz | ru | en — which language they submitted in
+    session_id = Column(String(64), nullable=True)
+    utm_source = Column(String(100), nullable=True)
+    utm_campaign = Column(String(100), nullable=True)
+    status = Column(String(20), default="new", nullable=False)  # new | contacted | closed
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class AgencyEvent(Base):
+    """Funnel/analytics tracking for the NUVI AI Agency site — mirrors
+    CourseLandingEvent's anonymous session_id pattern."""
+    __tablename__ = "agency_events"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    session_id = Column(String(64), nullable=False, index=True)
+    event_type = Column(String(60), nullable=False)  # page_view | pricing_viewed | <tier>_selected | language_changed:<lang> | lead_form_submitted | ...
+    utm_source = Column(String(100), nullable=True)
+    utm_campaign = Column(String(100), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
+
+
+# ──────────────────────────────────────────────
 # Moderated Groups (Nazoratchi Bot)
 # ──────────────────────────────────────────────
 class ModeratedGroup(Base):
