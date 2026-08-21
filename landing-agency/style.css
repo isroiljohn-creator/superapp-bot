@@ -125,7 +125,7 @@ ul { list-style: none; }
   flex: 1; min-width: 240px; background: var(--ink); color: #fff; border-radius: var(--radius-lg);
   padding: 40px; text-align: center;
 }
-.unified-badge { font-size: 28px; font-weight: 800; letter-spacing: -0.01em; margin-bottom: 12px; }
+.unified-badge-img { height: 30px; width: auto; margin: 0 auto 16px; display: block; }
 .unified-caption { font-size: 15px; color: #c7c7cc; line-height: 1.5; }
 
 /* ============================================================

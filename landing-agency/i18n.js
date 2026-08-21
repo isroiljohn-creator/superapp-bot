@@ -12,11 +12,11 @@ uz: {
     flow: ["E'tibor", "Mijoz", "Sotuv", "Avtomatlashtirish"],
     ctaPrimary: "Bepul konsultatsiya olish",
     ctaSecondary: "Tariflarni ko'rish",
-    trustLine: "Hamkorlik $1,500/oydan boshlanadi.",
+    trustLine: "Har bir loyiha uchun individual taklif tayyorlaymiz.",
   },
   problem: {
     eyebrow: "Muammo",
-    title: "5 ta pudratchi o'rniga — bitta kuchli jamoa.",
+    title: "5 ta turli kompaniya o'rniga — bitta kuchli jamoa.",
     subtitle: "Marketing bir tomonda, sayt boshqa tomonda, sotuv esa umuman boshqa tizimda ishlamasligi kerak. Biz ularni bir-biriga bog'laymiz.",
     fragments: ["SMM agentlik", "Dizayner", "Dasturchi", "Production", "AI mutaxassis", "Automation specialist"],
     unifiedCaption: "Bitta strategiya. Bitta jamoa. Bitta o'sish yo'nalishi.",
@@ -39,7 +39,7 @@ uz: {
     tiers: [
       {
         key: "start", name: "START", price: "$1,500+", period: "/oy",
-        headline: "Kuchli digital presence.",
+        headline: "Kuchli raqamli ko'rinish.",
         desc: "Biznesingizni ijtimoiy tarmoqlarda professional, faol va tizimli ko'rsatamiz.",
         features: ["Marketing strategiya", "Kontent strategiya", "SMM management", "Content Production", "Reels", "Dizayn", "Copywriting", "Stories", "Posting", "Oylik o'sish hisoboti"],
         cta: "START bilan boshlash",
@@ -145,7 +145,7 @@ uz: {
   },
   responsibility: {
     nuviTitle: "NUVI tomonidan",
-    nuviList: ["Strategiya", "Kelishilgan deliverables", "Production", "Implementation", "Optimization", "Reporting", "Kelishilgan muddatlarga rioya qilish", "KPI monitoring"],
+    nuviList: ["Strategiya", "Kelishilgan natijalar", "Ishlab chiqarish", "Amalga oshirish", "Optimallashtirish", "Hisobotlar", "Kelishilgan muddatlarga rioya qilish", "KPI nazorati"],
     clientTitle: "Mijoz tomonidan",
     clientList: ["Kerakli ma'lumotlarni taqdim etish", "Materiallarni o'z vaqtida tasdiqlash", "Reklama budjeti", "Uchinchi tomon platforma tariflari", "Sotuv jamoasi samaradorligi", "Mahsulot mavjudligi", "Narx qarorlari", "Biznes operatsiyalari"],
     note: "Agar mijoz tasdiqlari, materiallari, kirish huquqi yoki kerakli ma'lumotlar kechiktirilsa, tegishli yetkazib berish muddatlari siljishi mumkin.",
@@ -162,7 +162,7 @@ uz: {
   },
   why: {
     eyebrow: "Nega NUVI",
-    title: "Agentlik emas. O'sish uchun bitta ekotizim.",
+    title: "Agentlik emas. O'sish uchun bitta tizim.",
     pillars: ["Marketing", "Personal Brand", "Development", "AI Production", "AI Automation"],
     closing: "Bitta strategiya. Bitta jamoa. Bitta maqsad.",
   },
