@@ -20,8 +20,8 @@ router = APIRouter(prefix="/api/agency", tags=["agency"])
 EVENT_TYPES = {
     "page_view", "pricing_viewed", "ai_production_viewed", "lead_form_started", "lead_form_submitted",
     "start_selected", "growth_selected", "scale_selected", "custom_selected",
-    "branding_selected", "website_selected", "mobile_selected", "ai_production_selected", "automation_selected",
-    "nav_cta_click", "hero_cta_click",
+    "branding_selected", "website_selected", "mobile_selected", "performance_selected", "ai_production_selected", "automation_selected",
+    "nav_cta_click", "hero_cta_click", "contact_click",
     "language_changed:uz", "language_changed:ru", "language_changed:en",
 }
 

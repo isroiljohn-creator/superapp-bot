@@ -210,7 +210,7 @@ ul { list-style: none; }
 /* ============================================================
    STANDALONE SERVICES
    ============================================================ */
-.standalone-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; margin-top: 40px; }
+.standalone-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 18px; margin-top: 40px; }
 .service-card { border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 30px 26px; transition: box-shadow .2s ease, transform .2s ease; }
 .service-card:hover { transform: translateY(-4px); box-shadow: 0 16px 40px rgba(0,0,0,.07); }
 .service-card-title { font-size: 20px; font-weight: 800; letter-spacing: -0.01em; margin-bottom: 16px; line-height: 1.3; }
@@ -328,14 +328,22 @@ ul { list-style: none; }
 .success-emoji { width: 56px; height: 56px; border-radius: 50%; background: var(--mint); color: #fff; font-size: 26px; font-weight: 800; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; }
 .lead-success p { color: #c7c7cc; font-size: 16px; }
 .final-trust { font-size: 13px; color: #8e8e93; margin-top: 28px; }
+.contact-line { font-size: 14px; color: #c7c7cc; margin-top: 16px; display: flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap; }
+.contact-line a { color: #fff; font-weight: 600; border-bottom: 1px solid rgba(255,255,255,.3); }
+.contact-line a:hover { border-color: #fff; }
+.contact-sep { color: #6e6e73; }
 
 /* ============================================================
    FOOTER
    ============================================================ */
 .site-footer { padding: 40px 0; border-top: 1px solid var(--line); }
-.footer-inner { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+.footer-inner { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px 20px; }
 .footer-inner p { font-size: 13px; color: var(--ink-faint); }
 .footer-logo-img { height: 18px; width: auto; display: block; }
+.footer-contact { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+.footer-contact a { color: var(--ink); font-weight: 600; }
+.footer-contact a:hover { color: var(--accent); }
+.footer-contact .contact-sep { color: var(--ink-faint); }
 
 /* ============================================================
    REVEAL ANIMATION
