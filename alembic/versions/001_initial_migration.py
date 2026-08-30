@@ -58,6 +58,7 @@ def upgrade() -> None:
             sa.Column('calorie_daily_uses', sa.Integer(), nullable=True),
             sa.Column('ai_menu_count', sa.Integer(), nullable=True),
             sa.Column('ai_workout_count', sa.Integer(), nullable=True),
+            sa.Column('tokens', sa.Integer(), nullable=True),
             sa.Column('ai_last_reset_month', sa.String(), nullable=True),
             sa.Column('plan_type', sa.String(), nullable=True),
             sa.Column('daily_stats', sa.Text(), nullable=True),

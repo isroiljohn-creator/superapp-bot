@@ -1,0 +1,40 @@
+name: Deploy to AWS EC2
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Install SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Deploy files to EC2
+        run: |
+          rsync -avz -e "ssh -i ~/.ssh/id_rsa" \
+            --exclude='.git' \
+            --exclude='.github' \
+            --exclude='.venv' \
+            --exclude='node_modules' \
+            --exclude='.env' \
+            --exclude='nuvi-boshqaruv-repo' \
+            --exclude='nuvi-uz-moderator-repo' \
+            ./ ubuntu@${{ secrets.EC2_HOST }}:/home/ubuntu/nuvi-academy-bot/
+
+      - name: Restart Docker Compose services
+        run: |
+          ssh -i ~/.ssh/id_rsa ubuntu@${{ secrets.EC2_HOST }} "
+            cd /home/ubuntu/nuvi-academy-bot && \
+            docker-compose up -d --build
+          "

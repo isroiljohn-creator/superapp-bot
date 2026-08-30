@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: nuvi-academy-db
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: HDBBjGYipNExuTMaKqCwvMOropQTEAqW
+      POSTGRES_DB: railway
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      # Expose only to localhost for migrations/debugging from the host
+      - "127.0.0.1:5432:5432"
+
+  redis:
+    image: redis:7-alpine
+    container_name: nuvi-academy-redis
+    restart: always
+    command: redis-server --requirepass asnqiUUVoYbzCgQJBcXcpirycTLvavOH
+    volumes:
+      - redis_data:/data
+    ports:
+      # Expose only to localhost
+      - "127.0.0.1:6379:6379"
+
+  web:
+    build: .
+    container_name: nuvi-academy-web
+    restart: always
+    depends_on:
+      - db
+      - redis
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://postgres:HDBBjGYipNExuTMaKqCwvMOropQTEAqW@db:5432/railway
+      - REDIS_URL=redis://default:asnqiUUVoYbzCgQJBcXcpirycTLvavOH@redis:6379
+      - RAILWAY_SERVICE_NAME=web
+    ports:
+      - "127.0.0.1:8080:8080"
+
+volumes:
+  postgres_data:
+  redis_data:

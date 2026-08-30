@@ -21,10 +21,12 @@ if not is_sqlite:
         "pool_timeout": 30,    # wait up to 30s for a connection slot
         "pool_recycle": 1800,  # recycle connections after 30min (Railway keepalive)
     })
-    ssl_context = ssl.create_default_context()
-    ssl_context.check_hostname = False
-    ssl_context.verify_mode = ssl.CERT_NONE
-    engine_kwargs["connect_args"] = {"ssl": ssl_context}
+    is_local_db = any(x in db_url for x in ["@db:", "@localhost:", "@127.0.0.1:"])
+    if not is_local_db:
+        ssl_context = ssl.create_default_context()
+        ssl_context.check_hostname = False
+        ssl_context.verify_mode = ssl.CERT_NONE
+        engine_kwargs["connect_args"] = {"ssl": ssl_context}
 
 engine = create_async_engine(db_url, **engine_kwargs)
 async_session = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
