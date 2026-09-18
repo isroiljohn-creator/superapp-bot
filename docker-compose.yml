@@ -42,6 +42,19 @@ services:
     ports:
       - "127.0.0.1:8080:8080"
 
+  jobs-bot:
+    build: ./nuvi-jobs-bot
+    container_name: nuvi-jobs-bot
+    restart: always
+    depends_on:
+      - db
+    env_file:
+      - .env
+    environment:
+      # asyncpg (used directly here, not via SQLAlchemy) needs a plain
+      # postgresql:// URL — the web service's +asyncpg scheme would break it.
+      - DATABASE_URL=postgresql://postgres:HDBBjGYipNExuTMaKqCwvMOropQTEAqW@db:5432/railway
+
 volumes:
   postgres_data:
   redis_data:

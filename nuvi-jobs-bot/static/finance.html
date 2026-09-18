@@ -1,0 +1,885 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Hisobchim</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+
+    :root {
+      --bg:    #000000;
+      --surf:  #1C1C1E; /* iOS dark mode card color */
+      --surf2: #2C2C2E;
+      --line:  rgba(255,255,255,0.08);
+      --t1:    #FFFFFF;
+      --t2:    rgba(255,255,255,0.5);
+      --t3:    rgba(255,255,255,0.2);
+      --up:    #32D74B; /* iOS Green */
+      --dn:    #FF453A; /* iOS Red */
+      --acc:   #0A84FF; /* iOS Blue */
+      --safe-t: env(safe-area-inset-top, 16px);
+      --safe-b: env(safe-area-inset-bottom, 24px);
+    }
+
+    html,body{height:100%;background:var(--bg);color:var(--t1);font-family:'Inter',-apple-system,sans-serif;-webkit-font-smoothing:antialiased;overflow:hidden}
+    #app{display:flex;flex-direction:column;height:100vh;height:100dvh;overflow:hidden}
+
+    /* ── HEADER ── */
+    .hd{
+      flex-shrink:0;
+      padding:calc(var(--safe-t) + 16px) 20px 16px;
+      display:flex;align-items:center;justify-content:space-between;
+    }
+    .hd-title{font-size:24px;font-weight:700;letter-spacing:-0.5px}
+    .hd-date{font-size:13px;color:var(--t2);margin-top:2px;font-weight:500;}
+    .hd-btn{
+      width:36px;height:36px;border-radius:18px;
+      background:var(--surf);border:none;
+      display:flex;align-items:center;justify-content:center;
+      cursor:pointer;color:var(--t1);transition:transform .15s;
+    }
+    .hd-btn:active{transform:scale(0.9)}
+    .hd-btn svg{width:18px;height:18px}
+
+    /* ── PERIOD TABS (iOS Segmented Control Style) ── */
+    .tabs-wrap {
+      padding: 0 20px 16px;
+      flex-shrink: 0;
+    }
+    .tabs{
+      display:flex;
+      background:var(--surf);
+      border-radius:12px;
+      padding:2px;
+    }
+    .tab{
+      flex:1;
+      padding:8px 0;font-size:13px;font-weight:600;
+      color:var(--t1);background:none;border:none;font-family:inherit;
+      cursor:pointer;position:relative;transition:all .2s;
+      border-radius:10px;
+    }
+    .tab.on{
+      background:#3A3A3C; /* Active segment */
+      box-shadow: 0 3px 8px rgba(0,0,0,0.12);
+    }
+
+    /* ── SCROLL ── */
+    .scroll{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding:0 20px calc(var(--safe-b) + 90px)}
+    .scroll::-webkit-scrollbar{display:none}
+
+    /* ── PAGES ── */
+    .page{display:none; animation: fadeIn 0.3s ease;}
+    .page.active{display:block}
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* ── BALANCE BLOCK ── */
+    .bal-block{padding:8px 0 24px; text-align: center;}
+    .bal-sup{font-size:13px;font-weight:600;color:var(--t2);text-transform:uppercase;letter-spacing:0.5px}
+    .bal-num{font-size:46px;font-weight:700;letter-spacing:-1.5px;margin:8px 0 6px;line-height:1}
+    .bal-num span{font-size:20px;font-weight:500;color:var(--t2); margin-left:4px;}
+    .bal-sub{font-size:13px;font-weight:500;color:var(--t2); display:inline-flex; align-items:center; gap:6px; background:var(--surf); padding:6px 12px; border-radius:16px;}
+
+    .bal-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:24px}
+    .bal-cell{
+      background:var(--surf);border-radius:20px;
+      padding:16px; text-align:left;
+    }
+    .bal-cell-lbl{font-size:12px;font-weight:600;color:var(--t2);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;display:flex;align-items:center;gap:6px}
+    .bal-cell-lbl svg{width:14px;height:14px}
+    .bal-cell-val{font-size:20px;font-weight:700;letter-spacing:-0.5px}
+
+    /* ── SECTION HEAD ── */
+    .sec{display:flex;justify-content:space-between;align-items:flex-end;padding:32px 0 16px}
+    .sec-lbl{font-size:18px;font-weight:700;color:var(--t1);}
+    .sec-btn{font-size:14px;font-weight:500;color:var(--acc);background:none;border:none;font-family:inherit;cursor:pointer;padding:0;transition:opacity .15s}
+    .sec-btn:active{opacity:0.6}
+
+    /* ── CHART ── */
+    .chart-box{background:var(--surf);border-radius:20px;padding:20px;margin-bottom:-8px}
+    .chart-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+    .chart-ttl{font-size:15px;font-weight:600}
+    .chart-leg{display:flex;gap:16px}
+    .leg{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:500;color:var(--t2)}
+    .leg-ln{width:10px;height:10px;border-radius:50%}
+    .chart-h{height:140px}
+
+    /* ── TX ITEMS (Cards) ── */
+    .tx-list{display:flex;flex-direction:column;gap:12px;}
+    .tx{
+      display:flex;align-items:center;gap:14px;
+      padding:16px; border-radius: 20px;
+      background: var(--surf);
+    }
+    .tx-ic{
+      width:44px;height:44px;border-radius:14px;
+      background:var(--surf2);
+      display:flex;align-items:center;justify-content:center;
+      flex-shrink:0;color:var(--t1);
+    }
+    .tx-ic svg{width:20px;height:20px}
+    .tx-body{flex:1;min-width:0}
+    .tx-name{font-size:16px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .tx-meta{font-size:13px;color:var(--t2);margin-top:4px;font-weight:500;}
+    .tx-amt{font-size:16px;font-weight:700;white-space:nowrap}
+
+    /* ── DONUT SECTION ── */
+    .donut-wrap{background:var(--surf); border-radius:20px; padding:20px; display:flex; gap:24px; align-items:center;}
+    .donut-cv{position:relative;width:110px;height:110px;flex-shrink:0}
+    .donut-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+    .donut-cv-n{font-size:15px;font-weight:700;letter-spacing:-0.5px}
+    .donut-cv-l{font-size:10px;font-weight:600;color:var(--t2);text-transform:uppercase;letter-spacing:0.5px}
+    .donut-lg{flex:1;display:flex;flex-direction:column;gap:12px}
+    .d-row{display:flex;align-items:center;gap:10px}
+    .d-bar-bg{flex:1;height:4px;background:var(--surf2);border-radius:2px;overflow:hidden}
+    .d-bar{height:100%;border-radius:2px}
+    .d-name{font-size:13px;font-weight:500;color:var(--t1);width:90px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex-shrink:0}
+    .d-pct{font-size:12px;font-weight:600;color:var(--t2);width:32px;text-align:right;flex-shrink:0}
+
+    /* ── BUDGET BARS ── */
+    .bud-list{display:flex;flex-direction:column;gap:12px;margin-bottom:16px;}
+    .bud-item{background:var(--surf);border-radius:20px;padding:16px;}
+    .bud-top{display:flex;align-items:center;gap:14px;margin-bottom:12px}
+    .bud-ic{width:44px;height:44px;border-radius:14px;background:var(--surf2);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+    .bud-ic svg{width:20px;height:20px}
+    .bud-info{flex:1}
+    .bud-name{font-size:15px;font-weight:600}
+    .bud-pct{font-size:13px;font-weight:500;color:var(--t2);margin-top:4px}
+    .bud-val{font-size:16px;font-weight:700}
+    .bud-bar-bg{height:6px;background:var(--surf2);border-radius:3px;overflow:hidden}
+    .bud-bar{height:100%;border-radius:3px;transition:width .6s cubic-bezier(.4,0,.2,1)}
+
+    /* ── BOTTOM NAV (Floating iOS Style) ── */
+    .bnav-wrap {
+      position:fixed;bottom:var(--safe-b);left:20px;right:20px;
+      display:flex;justify-content:center;z-index:100;
+    }
+    .bnav{
+      display:flex; gap:8px;
+      padding:8px 16px;
+      background:rgba(28,28,30,0.85); /* Blur background */
+      backdrop-filter:blur(30px);-webkit-backdrop-filter:blur(30px);
+      border-radius:30px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    }
+    .nb{
+      display:flex;align-items:center;justify-content:center;
+      background:none;border:none;color:var(--t2);
+      cursor:pointer;padding:10px 16px; border-radius:20px;
+      transition:all .2s;
+    }
+    .nb.on{color:var(--t1); background: rgba(255,255,255,0.1);}
+    .nb svg{width:22px;height:22px}
+
+    /* ── FAB ── */
+    .fab{
+      position:fixed;right:20px;bottom:calc(var(--safe-b) + 90px);
+      width:56px;height:56px;border-radius:28px;
+      background:var(--t1);border:none;color:var(--bg);
+      display:flex;align-items:center;justify-content:center;
+      cursor:pointer;z-index:99;
+      box-shadow:0 8px 24px rgba(255,255,255,0.25);
+      transition:transform .2s;
+    }
+    .fab:active{transform:scale(0.9)}
+    .fab svg{width:24px; height:24px;}
+
+    /* ── MODAL / SHEET (iOS Bottom Sheet) ── */
+    .overlay{position:fixed;inset:0;z-index:200;display:flex;align-items:flex-end;background:rgba(0,0,0,0.8);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);opacity:0;pointer-events:none;transition:opacity .3s}
+    .overlay.open{opacity:1;pointer-events:all}
+    .sheet{
+      background:var(--surf);
+      border-radius:32px 32px 0 0;width:100%;
+      padding:16px 20px calc(var(--safe-b) + 20px);
+      transform:translateY(100%);
+      transition:transform .4s cubic-bezier(0.175, 0.885, 0.32, 1); /* Nice spring */
+      max-height:92vh;overflow-y:auto;
+    }
+    .overlay.open .sheet{transform:translateY(0)}
+    .sh-handle{width:40px;height:5px;background:var(--surf2);border-radius:3px;margin:0 auto 24px}
+    .sh-head{font-size:20px;font-weight:700;margin-bottom:24px; text-align:center;}
+
+    /* type toggle (Segmented) */
+    .type-row{
+      display:flex; background: var(--surf2); border-radius:14px; padding:4px; margin-bottom:24px;
+    }
+    .t-btn{
+      flex:1;padding:12px;border:none;background:transparent;color:var(--t1);
+      font-size:15px;font-weight:600;font-family:inherit;cursor:pointer;transition:all .2s;
+      display:flex;align-items:center;justify-content:center;gap:8px; border-radius:10px;
+    }
+    .t-btn svg{width:18px;height:18px}
+    .t-btn.on-in{background:var(--up);color:#000;}
+    .t-btn.on-ex{background:var(--dn);color:#fff;}
+
+    /* amount */
+    .amt-area{text-align:center;padding:10px 0 32px}
+    .amt-n{font-size:56px;font-weight:700;letter-spacing:-2px; color:var(--t1);}
+    .amt-c{font-size:20px;color:var(--t2);font-weight:500;}
+
+    /* numpad */
+    .npad{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:32px}
+    .nk{
+      padding:16px;background:var(--surf2);border:none;
+      border-radius:24px;color:var(--t1);font-size:24px;font-weight:500;
+      font-family:inherit;cursor:pointer;transition:background .1s, transform .1s;
+    }
+    .nk:active{background:#3A3A3C; transform:scale(0.95)}
+    .nk.del{color:var(--t2); display:flex; align-items:center; justify-content:center;}
+    .nk.del svg{width:28px; height:28px;}
+
+    /* cat grid */
+    .f-lbl{font-size:13px;font-weight:600;color:var(--t2);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:12px; padding-left:4px;}
+    .cat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px}
+    .c-chip{
+      display:flex;flex-direction:column;align-items:center;gap:8px;
+      background:var(--surf2); border-radius:16px;padding:14px 4px;
+      font-size:11px;font-weight:600;color:var(--t1);
+      cursor:pointer;transition:all .2s;text-align:center;
+    }
+    .c-chip .icon-wrap {
+      width:40px; height:40px; border-radius:12px; background:var(--surf);
+      display:flex; align-items:center; justify-content:center;
+      transition:all .2s;
+    }
+    .c-chip svg{width:20px;height:20px}
+    .c-chip.sel{background:var(--t1); color:#000;}
+    .c-chip.sel .icon-wrap{background:rgba(0,0,0,0.1); color:#000 !important;}
+
+    /* form */
+    .f-grp{margin-bottom:20px}
+    .f-in{
+      width:100%;background:var(--surf2);border:none;
+      border-radius:16px;padding:16px;color:var(--t1);
+      font-size:16px;font-family:'Inter',sans-serif;outline:none;
+    }
+    .f-in::placeholder{color:var(--t2)}
+    select.f-in{-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 16px center}
+
+    .s-btn{
+      width:100%;padding:18px;border:none;border-radius:16px;
+      font-size:17px;font-weight:700;font-family:inherit;cursor:pointer;
+      transition:transform .2s;margin-top:10px;
+    }
+    .s-btn:active{transform:scale(0.97)}
+    .s-in{background:var(--up);color:#000}
+    .s-ex{background:var(--dn);color:#fff}
+
+    /* chat */
+    .chat-msgs{display:flex;flex-direction:column;gap:12px;padding-top:16px;}
+    .cm{max-width:85%;padding:14px 18px;border-radius:24px;font-size:15px;line-height:1.5;font-weight:500;}
+    .cm.u{background:var(--acc);color:#fff;align-self:flex-end;border-bottom-right-radius:6px}
+    .cm.a{background:var(--surf);color:var(--t1);align-self:flex-start;border-bottom-left-radius:6px}
+    .chat-bar{position:fixed;bottom:calc(var(--safe-b) + 90px);left:20px;right:20px;display:flex;gap:12px;z-index:99; background:transparent;}
+    .ci{flex:1;background:var(--surf);border:none;border-radius:24px;padding:16px 20px;color:var(--t1);font-size:16px;font-family:inherit;outline:none; box-shadow: 0 4px 20px rgba(0,0,0,0.5);}
+    .cs{width:54px;height:54px;border-radius:27px;background:var(--acc);border:none;color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer; box-shadow: 0 4px 20px rgba(10,132,255,0.4);}
+    .cs svg{width:22px;height:22px}
+
+    /* toast */
+    .t-wrap{position:fixed;top:calc(var(--safe-t) + 16px);left:20px;right:20px;z-index:999;pointer-events:none;display:flex;flex-direction:column;gap:10px}
+    .t-item{padding:14px 18px;border-radius:16px;font-size:14px;font-weight:600;display:flex;align-items:center;gap:10px;animation:tIn .4s cubic-bezier(0.175, 0.885, 0.32, 1); box-shadow: 0 10px 30px rgba(0,0,0,0.5);}
+    .t-ok{background:var(--surf);color:var(--up);}
+    .t-err{background:var(--surf);color:var(--dn);}
+    @keyframes tIn{from{opacity:0;transform:translateY(-20px) scale(0.9)}to{opacity:1;transform:none}}
+
+    /* skeleton */
+    .sk{background:var(--surf2); animation:sk 1.5s infinite alternate; border-radius:12px}
+    @keyframes sk{from{opacity:0.6}to{opacity:1}}
+
+    /* empty */
+    .empty{display:flex;flex-direction:column;align-items:center;padding:60px 20px;gap:16px}
+    .empty svg{width:64px;height:64px;color:var(--surf2)}
+    .empty-t{font-size:18px;font-weight:600;color:var(--t1);}
+    .empty-s{font-size:15px;color:var(--t2);text-align:center;max-width:260px;line-height:1.4;}
+  </style>
+</head>
+<body>
+<div id="app">
+
+<!-- HEADER -->
+<div class="hd">
+  <div>
+    <div class="hd-title">Hisobchim</div>
+    <div class="hd-date" id="hDate">Yuklanmoqda...</div>
+  </div>
+  <button class="hd-btn" onclick="loadData()" title="Yangilash">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+  </button>
+</div>
+
+<!-- TABS -->
+<div class="tabs-wrap">
+  <div class="tabs">
+    <button class="tab on" onclick="setPrd('daily',this)">Bugun</button>
+    <button class="tab" onclick="setPrd('weekly',this)">Hafta</button>
+    <button class="tab" onclick="setPrd('monthly',this)">Oy</button>
+    <button class="tab" onclick="setPrd('all',this)">Barchasi</button>
+  </div>
+</div>
+
+<!-- SCROLL -->
+<div class="scroll">
+
+  <!-- HOME PAGE -->
+  <div class="page active" id="pg-home">
+    <div class="bal-block">
+      <div class="bal-sup">Sof Balans</div>
+      <div class="bal-num" id="balNum">—</div>
+      <div class="bal-sub" id="balSub">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        Yuklanmoqda...
+      </div>
+      <div class="bal-row">
+        <div class="bal-cell">
+          <div class="bal-cell-lbl">
+            <svg viewBox="0 0 24 24" fill="none" stroke="var(--up)" stroke-width="3"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+            Kirim
+          </div>
+          <div class="bal-cell-val" id="chipIn">—</div>
+        </div>
+        <div class="bal-cell">
+          <div class="bal-cell-lbl">
+            <svg viewBox="0 0 24 24" fill="none" stroke="var(--dn)" stroke-width="3"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/></svg>
+            Chiqim
+          </div>
+          <div class="bal-cell-val" id="chipEx">—</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Trend chart -->
+    <div class="chart-box">
+      <div class="chart-head">
+        <span class="chart-ttl">Dinamika</span>
+        <div class="chart-leg">
+          <div class="leg"><div class="leg-ln" style="background:var(--up)"></div>Kirim</div>
+          <div class="leg"><div class="leg-ln" style="background:var(--dn)"></div>Chiqim</div>
+        </div>
+      </div>
+      <div class="chart-h"><canvas id="trendChart"></canvas></div>
+    </div>
+
+    <!-- Category donut -->
+    <div class="sec"><span class="sec-lbl">Xarajatlar</span><button class="sec-btn" onclick="nav('cats')">Hammasi</button></div>
+    <div class="donut-wrap">
+      <div class="donut-cv">
+        <canvas id="donutChart" width="110" height="110"></canvas>
+        <div class="donut-center">
+          <div class="donut-cv-n" id="donutN">—</div>
+          <div class="donut-cv-l">Jami</div>
+        </div>
+      </div>
+      <div class="donut-lg" id="donutLg">
+        <div class="sk" style="height:14px;width:100%"></div>
+        <div class="sk" style="height:14px;width:80%"></div>
+        <div class="sk" style="height:14px;width:90%"></div>
+      </div>
+    </div>
+
+    <!-- Recent tx -->
+    <div class="sec"><span class="sec-lbl">So'nggi harakatlar</span><button class="sec-btn" onclick="nav('txs')">Ro'yxat</button></div>
+    <div class="tx-list" id="recentList">
+      <div class="tx"><div class="sk" style="height:44px;width:44px;border-radius:14px;flex-shrink:0"></div><div style="flex:1"><div class="sk" style="height:16px;width:60%;margin-bottom:8px"></div><div class="sk" style="height:12px;width:40%"></div></div></div>
+      <div class="tx"><div class="sk" style="height:44px;width:44px;border-radius:14px;flex-shrink:0"></div><div style="flex:1"><div class="sk" style="height:16px;width:55%;margin-bottom:8px"></div><div class="sk" style="height:12px;width:35%"></div></div></div>
+    </div>
+  </div>
+
+  <!-- CATEGORIES PAGE -->
+  <div class="page" id="pg-cats">
+    <div class="sec" style="padding-top:16px;"><span class="sec-lbl">Chiqimlar tahlili</span></div>
+    <div class="bud-list" id="budList"></div>
+    <div class="sec"><span class="sec-lbl">Kirimlar tahlili</span></div>
+    <div class="bud-list" id="incList"></div>
+  </div>
+
+  <!-- TX PAGE -->
+  <div class="page" id="pg-txs">
+    <div class="tabs-wrap" style="padding:16px 0;">
+      <div class="tabs">
+        <button class="tab on" onclick="setTxF('all',this)">Barchasi</button>
+        <button class="tab" onclick="setTxF('income',this)">Kirimlar</button>
+        <button class="tab" onclick="setTxF('expense',this)">Chiqimlar</button>
+      </div>
+    </div>
+    <div class="tx-list" id="allTxList"></div>
+  </div>
+
+  <!-- AI PAGE -->
+  <div class="page" id="pg-ai">
+    <div class="chat-msgs" id="chatMsgs">
+      <div class="cm a">Salom 👋 Men AI yordamchingizman. Xarajatlar yoki byudjet bo'yicha maslahat kerakmi?</div>
+    </div>
+  </div>
+
+</div><!-- /scroll -->
+
+<!-- BOTTOM NAV -->
+<div class="bnav-wrap">
+  <div class="bnav">
+    <button class="nb on" onclick="nav('home')" id="nb-home">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline stroke-linecap="round" stroke-linejoin="round" points="9 22 9 12 15 12 15 22"/></svg>
+    </button>
+    <button class="nb" onclick="nav('cats')" id="nb-cats">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>
+    </button>
+    <button class="nb" onclick="nav('txs')" id="nb-txs">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6" stroke-linecap="round"/><line x1="8" y1="12" x2="21" y2="12" stroke-linecap="round"/><line x1="8" y1="18" x2="21" y2="18" stroke-linecap="round"/><line x1="3" y1="6" x2="3.01" y2="6" stroke-linecap="round"/><line x1="3" y1="12" x2="3.01" y2="12" stroke-linecap="round"/><line x1="3" y1="18" x2="3.01" y2="18" stroke-linecap="round"/></svg>
+    </button>
+    <button class="nb" onclick="nav('ai')" id="nb-ai">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg>
+    </button>
+  </div>
+</div>
+
+<!-- FAB -->
+<button class="fab" id="fab" onclick="openModal()">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+</button>
+
+</div><!-- /app -->
+
+<!-- MODAL (Bottom Sheet) -->
+<div class="overlay" id="modal" onclick="if(event.target===this)closeModal()">
+  <div class="sheet" onclick="event.stopPropagation()">
+    <div class="sh-handle"></div>
+    <div class="sh-head" id="shHead">Yangi Operatsiya</div>
+
+    <div class="type-row">
+      <button class="t-btn on-in" id="tIn" onclick="setType('income')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+        Kirim
+      </button>
+      <button class="t-btn" id="tEx" onclick="setType('expense')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/></svg>
+        Chiqim
+      </button>
+    </div>
+
+    <div class="amt-area">
+      <div class="amt-n" id="amtDisp">0</div>
+      <div class="amt-c">so'm</div>
+    </div>
+
+    <div class="npad">
+      <button class="nk" onclick="np('1')">1</button>
+      <button class="nk" onclick="np('2')">2</button>
+      <button class="nk" onclick="np('3')">3</button>
+      <button class="nk" onclick="np('4')">4</button>
+      <button class="nk" onclick="np('5')">5</button>
+      <button class="nk" onclick="np('6')">6</button>
+      <button class="nk" onclick="np('7')">7</button>
+      <button class="nk" onclick="np('8')">8</button>
+      <button class="nk" onclick="np('9')">9</button>
+      <button class="nk" onclick="np('000')">000</button>
+      <button class="nk" onclick="np('0')">0</button>
+      <button class="nk del" onclick="np('del')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 4H8l-7 8 7 8h13a2 2 0 002-2V6a2 2 0 00-2-2z"/><line x1="18" y1="9" x2="12" y2="15"/><line x1="12" y1="9" x2="18" y2="15"/></svg>
+      </button>
+    </div>
+
+    <div class="f-grp">
+      <div class="f-lbl">TOIFA TANLANG</div>
+      <div class="cat-grid" id="catGrid"></div>
+    </div>
+
+    <div class="f-grp">
+      <div class="f-lbl">QO'SHIMCHA MA'LUMOT (IXTIYORIY)</div>
+      <input type="text" class="f-in" id="fnote" placeholder="Qisqacha izoh yozing...">
+    </div>
+    <div class="f-grp" style="margin-bottom:24px;">
+      <div class="f-lbl">TO'LOV USULI</div>
+      <select class="f-in" id="fpay">
+        <option value="naqd">Naqd pul</option>
+        <option value="karta">Plastik karta</option>
+        <option value="transfer">O'tkazma (Click/Payme)</option>
+      </select>
+    </div>
+
+    <button class="s-btn s-in" id="sBtn" onclick="saveTx()">Tasdiqlash</button>
+  </div>
+</div>
+
+<!-- CHAT BAR -->
+<div class="chat-bar" id="chatBar" style="display:none">
+  <input type="text" class="ci" id="chatIn" placeholder="Moliyaviy savol bering...">
+  <button class="cs" onclick="sendAi()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+  </button>
+</div>
+
+<!-- TOAST -->
+<div class="t-wrap" id="toasts"></div>
+
+<script>
+'use strict';
+
+// ── SVG ICONS BY CATEGORY (Premium Line Icons) ──
+const ICONS = {
+  // Expense
+  'Oziq-ovqat':   `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M3 6l3 14h12l3-14M8 6V4a1 1 0 011-1h6a1 1 0 011 1v2"/></svg>`,
+  'Kafe':         `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8h1a4 4 0 010 8h-1"/><path d="M2 8h16v9a4 4 0 01-4 4H6a4 4 0 01-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>`,
+  'Transport':    `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13" rx="2"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>`,
+  'Uy-joy':       `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>`,
+  'Kommunal':     `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>`,
+  'Kiyim':        `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.38 3.46L16 2a4 4 0 01-8 0L3.62 3.46a2 2 0 00-1.34 2.23l.58 3.57a1 1 0 00.99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 002-2V10h2.15a1 1 0 00.99-.84l.58-3.57a2 2 0 00-1.34-2.23z"/></svg>`,
+  "Sog'liq":      `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>`,
+  'Telefon':      `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>`,
+  'Internet':     `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>`,
+  "Ko'ngilochar": `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>`,
+  'Sport':        `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a10 10 0 00-3.5 19.4M12 2a10 10 0 013.5 19.4M12 2v4M12 22v-4M2 12h4M22 12h-4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8"/></svg>`,
+  "Ta'lim":       `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>`,
+  'Tejamkorlik':  `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>`,
+  // Income
+  'Maosh':        `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/></svg>`,
+  'Freelance':    `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>`,
+  'Biznes':       `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 7H4a2 2 0 00-2 2v6a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2z"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/></svg>`,
+  'Investitsiya': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>`,
+  'Hadya':        `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><line x1="12" y1="22" x2="12" y2="7"/><path d="M12 7H7.5a2.5 2.5 0 010-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 000-5C13 2 12 7 12 7z"/></svg>`,
+  'Boshqa':       `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>`,
+};
+const defaultIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>`;
+
+const EXPENSE_CATS = [
+  {id:'Oziq-ovqat',label:'Oziq-ovqat',c:'#FF9500'},
+  {id:'Kafe',label:'Kafe/Rest.',c:'#FF9500'},
+  {id:'Transport',label:'Transport',c:'#5E5CE6'},
+  {id:'Uy-joy',label:'Uy ijarasi',c:'#BF5AF2'},
+  {id:'Kommunal',label:'Kommunal',c:'#30D158'},
+  {id:'Kiyim',label:'Kiyim-kechak',c:'#FF2D55'},
+  {id:"Sog'liq",label:"Sog'liq",c:'#64D2FF'},
+  {id:'Telefon',label:'Telefon',c:'#0A84FF'},
+  {id:'Internet',label:'Internet',c:'#30D158'},
+  {id:"Ko'ngilochar",label:"Ko'ngilochar",c:'#BF5AF2'},
+  {id:'Sport',label:'Sport',c:'#5AC8FA'},
+  {id:"Ta'lim",label:"Ta'lim",c:'#FFD60A'},
+  {id:'Tejamkorlik',label:'Tejamkor.',c:'#32D74B'},
+  {id:'Boshqa',label:'Boshqalar',c:'#8E8E93'},
+];
+const INCOME_CATS = [
+  {id:'Maosh',label:'Asosiy Maosh',c:'#32D74B'},
+  {id:'Freelance',label:'Freelance',c:'#0A84FF'},
+  {id:'Biznes',label:'Biznes/Foyda',c:'#BF5AF2'},
+  {id:'Investitsiya',label:'Investitsiya',c:'#FFD60A'},
+  {id:'Hadya',label:'Hadya/Sovg\'a',c:'#FF375F'},
+  {id:'Boshqa',label:'Boshqalar',c:'#8E8E93'},
+];
+const CAT_MAP = {};
+[...EXPENSE_CATS,...INCOME_CATS].forEach(c=>{CAT_MAP[c.id]=c});
+
+// ── STATE ──────────────────────────────────────────────────
+const S = { data:null, period:'daily', page:'home', txFilter:'all', amtStr:'', type:'expense', selCat:'Oziq-ovqat' };
+
+// ── HELPERS ───────────────────────────────────────────────
+const fmtS = n => { const a=Math.abs(n||0); if(a>=1e9)return(n/1e9).toFixed(1)+' mlrd'; if(a>=1e6)return(n/1e6).toFixed(1)+' mln'; if(a>=1e3)return(n/1e3).toFixed(0)+'K'; return Math.round(n||0)+''; };
+const fmtF = n => Math.abs(n||0).toLocaleString('ru-RU');
+const toast = (ok,msg) => {
+  const e=document.createElement('div');
+  e.className='t-item '+(ok?'t-ok':'t-err');
+  e.innerHTML= (ok?`<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>`:`<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`) + msg;
+  document.getElementById('toasts').appendChild(e);
+  setTimeout(()=>e.remove(),3000);
+};
+
+// ── API ───────────────────────────────────────────────────
+const api = async (path, opts={}) => {
+  try {
+    const h=opts.headers||{};
+    if(window.Telegram?.WebApp?.initData) h['X-Telegram-Auth']=window.Telegram.WebApp.initData;
+    const r=await fetch('/api/finance'+path,{...opts,headers:h});
+    return r.ok ? await r.json() : null;
+  } catch(e){ return null; }
+};
+
+// ── LOAD ─────────────────────────────────────────────────
+const loadData = async () => {
+  const d=await api('/data');
+  if(!d){ toast(false,'Tarmoq xatosi'); return; }
+  S.data=d;
+  render();
+};
+
+// ── FILTER ───────────────────────────────────────────────
+const filterTxns = (txns) => {
+  if(!txns) return [];
+  const now = new Date();
+  const toISO = d => d.toISOString().split('T')[0];
+  const today = toISO(now);
+  const weekStart = toISO(new Date(now.setDate(now.getDate()-new Date().getDay()+1)));
+  const monthStart = new Date().toISOString().slice(0,7)+'-01';
+
+  return txns.filter(t => {
+    if(S.period==='all') return true;
+    if(S.period==='daily') return t.date===today;
+    if(S.period==='weekly') return t.date>=weekStart;
+    if(S.period==='monthly') return t.date>=monthStart;
+    return true;
+  });
+};
+
+// ── RENDER ───────────────────────────────────────────────
+const render = () => {
+  if(!S.data) return;
+  const txns = filterTxns(S.data.transactions||[]);
+
+  const dOpts = { weekday: 'long', day: 'numeric', month: 'long' };
+  document.getElementById('hDate').textContent = new Date().toLocaleDateString('uz-UZ', dOpts).replace(/^./, c=>c.toUpperCase());
+
+  let inc=0, exp=0;
+  const eCats={}, iCats={};
+  txns.forEach(t => {
+    const a=parseFloat(t.amount), cat=t.category||'Boshqa';
+    if(t.type==='income'){ inc+=a; iCats[cat]=(iCats[cat]||0)+a; }
+    else { exp+=a; eCats[cat]=(eCats[cat]||0)+a; }
+  });
+  const net=inc-exp;
+  const savePct = inc>0 ? Math.round((inc-exp)/inc*100):0;
+
+  document.getElementById('balNum').innerHTML = `${net>=0?'':'-'}${fmtF(Math.abs(net))}<span>so'm</span>`;
+  document.getElementById('balSub').innerHTML = txns.length ? `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> ${txns.length} ta yozuv` : `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg> Hali yozuv yo'q`;
+  document.getElementById('chipIn').textContent = fmtS(inc);
+  document.getElementById('chipEx').textContent = fmtS(exp);
+
+  renderTrend(S.data.daily||{});
+  renderDonut(eCats);
+  renderRecent(txns);
+  if(S.page==='cats') renderCats(eCats,iCats,exp);
+  if(S.page==='txs') renderAllTx(txns);
+};
+
+// ── CHARTS ───────────────────────────────────────────────
+const CH={};
+const destroyC=k=>{if(CH[k]){CH[k].destroy();delete CH[k];}};
+
+Chart.defaults.font.family = "'Inter', sans-serif";
+
+const renderTrend = (daily) => {
+  const keys=Object.keys(daily).slice(-14);
+  const inc=keys.map(k=>daily[k].income||0),exp=keys.map(k=>daily[k].expense||0);
+  destroyC('trend');
+  const ctx=document.getElementById('trendChart');
+  if(!ctx)return;
+  CH.trend=new Chart(ctx.getContext('2d'),{
+    type:'line',
+    data:{
+      labels:keys.map(k=>k.slice(0,5)),
+      datasets:[
+        {label:'Kirim',data:inc,borderColor:'var(--up)',backgroundColor:'rgba(50,215,75,0.08)',borderWidth:2.5,tension:.4,fill:true,pointRadius:0,pointHitRadius:20},
+        {label:'Chiqim',data:exp,borderColor:'var(--dn)',backgroundColor:'rgba(255,69,58,0.08)',borderWidth:2.5,tension:.4,fill:true,pointRadius:0,pointHitRadius:20},
+      ]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      interaction:{mode:'index',intersect:false},
+      plugins:{legend:{display:false},tooltip:{backgroundColor:'rgba(28,28,30,.98)',borderColor:'rgba(255,255,255,.08)',borderWidth:1,titleColor:'rgba(255,255,255,.5)',bodyColor:'#fff',padding:12,cornerRadius:12,callbacks:{label:c=>` ${c.dataset.label}: ${fmtF(c.raw)}`}}},
+      scales:{
+        x:{grid:{display:false},ticks:{color:'rgba(255,255,255,.3)',font:{size:10,weight:500}}},
+        y:{grid:{color:'rgba(255,255,255,.06)'},border:{display:false},ticks:{color:'rgba(255,255,255,.3)',font:{size:11,weight:500},callback:v=>fmtS(v)}}
+      }
+    }
+  });
+};
+
+const renderDonut = (eCats) => {
+  const entries=Object.entries(eCats).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  const total=entries.reduce((s,[,v])=>s+v,0);
+  const labels=entries.map(([k])=>k),vals=entries.map(([,v])=>v),colors=labels.map(l=>CAT_MAP[l]?.c||'#8E8E93');
+
+  destroyC('donut');
+  const ctx=document.getElementById('donutChart');
+  if(!ctx)return;
+  CH.donut=new Chart(ctx.getContext('2d'),{
+    type:'doughnut',
+    data:{labels,datasets:[{data:vals,backgroundColor:colors,borderColor:'var(--surf)',borderWidth:4,hoverOffset:4}]},
+    options:{responsive:false,cutout:'70%',plugins:{legend:{display:false},tooltip:{backgroundColor:'rgba(28,28,30,.98)',titleColor:'rgba(255,255,255,.5)',bodyColor:'#fff',padding:12,cornerRadius:12,callbacks:{label:c=>` ${c.label}: ${fmtS(c.raw)}`}}}}
+  });
+  document.getElementById('donutN').textContent=fmtS(total);
+
+  const lg=document.getElementById('donutLg');
+  if(!entries.length){ lg.innerHTML='<span style="font-size:14px;color:var(--t2);font-weight:500;">Bosh</span>'; return; }
+  lg.innerHTML=entries.slice(0,3).map(([name,amt])=>{
+    const c=CAT_MAP[name]||{c:'#8E8E93'};
+    const pct=total?Math.round(amt/total*100):0;
+    return `<div class="d-row">
+      <div class="d-name">${name}</div>
+      <div class="d-bar-bg"><div class="d-bar" style="width:${pct}%;background:${c.c}"></div></div>
+      <div class="d-pct">${pct}%</div>
+    </div>`;
+  }).join('');
+};
+
+// ── TX HTML ──────────────────────────────────────────────
+const txHtml = t => {
+  const isIn=t.type==='income';
+  const cat=CAT_MAP[t.category]||{c:isIn?'var(--up)':'var(--dn)'};
+  const icon=ICONS[t.category]||defaultIcon;
+  const sign=isIn?'+':'-'; const col=isIn?'var(--up)':'var(--t1)';
+  // Subtle tint background for icons
+  const r=parseInt(cat.c.slice(1,3),16), g=parseInt(cat.c.slice(3,5),16), b=parseInt(cat.c.slice(5,7),16);
+  const bg=isNaN(r)?'var(--surf2)':`rgba(${r},${g},${b},0.12)`;
+  return `<div class="tx">
+    <div class="tx-ic" style="color:${cat.c}; background:${bg}">${icon}</div>
+    <div class="tx-body">
+      <div class="tx-name">${t.category||'Operatsiya'}</div>
+      <div class="tx-meta">${t.description ? t.description+' · ' : ''}${t.payment_method||''}</div>
+    </div>
+    <div class="tx-amt" style="color:${col}">${sign}${fmtF(t.amount)}</div>
+  </div>`;
+};
+
+const renderRecent = (txns) => {
+  const el=document.getElementById('recentList');
+  if(!txns.length){ el.innerHTML=`<div class="empty" style="padding:30px 20px;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg><div class="empty-t">Ajoyib, hammasi toza!</div><div class="empty-s">Hech qanday harajatlar kuzatilmadi. Operatsiya qo'shish uchun + ni bosing.</div></div>`; return; }
+  el.innerHTML=txns.slice(0,5).map(txHtml).join('');
+};
+
+// ── CATS PAGE ────────────────────────────────────────────
+const budHtml = (name, amt, maxVal, totalVal, isInc) => {
+  const cat=CAT_MAP[name]||{c:isInc?'var(--up)':'var(--dn)'};
+  const icon=ICONS[name]||defaultIcon;
+  const pct=maxVal?Math.round(amt/maxVal*100):0;
+  const pctOfTotal=totalVal>0?Math.round(amt/totalVal*100):0;
+  const r=parseInt(cat.c.slice(1,3),16), g=parseInt(cat.c.slice(3,5),16), b=parseInt(cat.c.slice(5,7),16);
+  const bg=isNaN(r)?'var(--surf2)':`rgba(${r},${g},${b},0.12)`;
+  return `<div class="bud-item">
+    <div class="bud-top">
+      <div class="bud-ic" style="color:${cat.c}; background:${bg}">${icon}</div>
+      <div class="bud-info">
+        <div class="bud-name">${name}</div>
+        <div class="bud-pct">Umumiy miqdorning ${pctOfTotal}% qismi</div>
+      </div>
+      <div class="bud-val">${fmtF(amt)}</div>
+    </div>
+    <div class="bud-bar-bg"><div class="bud-bar" style="width:${pct}%;background:${cat.c}"></div></div>
+  </div>`;
+};
+
+const renderCats = (eCats, iCats, totalEx) => {
+  const es=Object.entries(eCats).sort((a,b)=>b[1]-a[1]);
+  const is=Object.entries(iCats).sort((a,b)=>b[1]-a[1]);
+  const maxE=es[0]?.[1]||1, maxI=is[0]?.[1]||1;
+  const totalI=is.reduce((s,[,v])=>s+v,0);
+
+  document.getElementById('budList').innerHTML=es.length
+    ? es.map(([n,a])=>budHtml(n,a,maxE,totalEx,false)).join('')
+    : `<div class="empty"><div class="empty-t">Chiqim yo'q</div></div>`;
+  document.getElementById('incList').innerHTML=is.length
+    ? is.map(([n,a])=>budHtml(n,a,maxI,totalI,true)).join('')
+    : `<div class="empty"><div class="empty-t">Kirim yo'q</div></div>`;
+};
+
+// ── ALL TX ────────────────────────────────────────────────
+const renderAllTx = (txns) => {
+  let list=S.txFilter==='all'?txns:txns.filter(t=>t.type===S.txFilter);
+  const el=document.getElementById('allTxList');
+  if(!list.length){ el.innerHTML=`<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><div class="empty-t">Hech narsa topilmadi</div><div class="empty-s">Bu davr uchun ma'lumot yo'q</div></div>`; return; }
+  el.innerHTML=list.slice(0,100).map(txHtml).join('');
+};
+
+const setTxF = (f, btn) => {
+  S.txFilter=f;
+  btn.closest('.tabs').querySelectorAll('.tab').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  if(S.data) renderAllTx(filterTxns(S.data.transactions||[]));
+};
+
+// ── NAV ──────────────────────────────────────────────────
+const nav = page => {
+  S.page=page;
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nb').forEach(b=>b.classList.remove('on'));
+  document.getElementById('pg-'+page).classList.add('active');
+  document.getElementById('nb-'+page)?.classList.add('on');
+  const isAi=page==='ai';
+  document.getElementById('fab').style.display=isAi?'none':'flex';
+  document.getElementById('chatBar').style.display=isAi?'flex':'none';
+  document.querySelector('.scroll').scrollTo(0,0);
+  if(S.data){
+    const txns=filterTxns(S.data.transactions||[]);
+    if(page==='cats'){ let exp=0,e={},i={}; txns.forEach(t=>{ const a=parseFloat(t.amount),c=t.category||'Boshqa'; if(t.type==='expense'){exp+=a;e[c]=(e[c]||0)+a;}else{i[c]=(i[c]||0)+a;} }); renderCats(e,i,exp); }
+    if(page==='txs') renderAllTx(txns);
+  }
+};
+
+const setPrd = (p, el) => {
+  S.period=p;
+  el.closest('.tabs').querySelectorAll('.tab').forEach(b=>b.classList.remove('on'));
+  el.classList.add('on');
+  if(S.data) render();
+};
+
+// ── MODAL ────────────────────────────────────────────────
+const openModal=()=>{ document.getElementById('modal').classList.add('open'); S.amtStr=''; document.getElementById('amtDisp').textContent='0'; setType(S.type||'expense'); };
+const closeModal=()=>document.getElementById('modal').classList.remove('open');
+
+const setType = type => {
+  S.type=type;
+  document.getElementById('tIn').className='t-btn'+(type==='income'?' on-in':'');
+  document.getElementById('tEx').className='t-btn'+(type==='expense'?' on-ex':'');
+  document.getElementById('sBtn').className='s-btn '+(type==='income'?'s-in':'s-ex');
+  document.getElementById('shHead').textContent=type==='income'?'Kirim Qo\'shish':'Chiqim Qo\'shish';
+
+  const cats=type==='income'?INCOME_CATS:EXPENSE_CATS;
+  S.selCat=cats[0].id;
+  document.getElementById('catGrid').innerHTML=cats.map(c=>{
+    const icon = ICONS[c.id]||defaultIcon;
+    return `
+    <div class="c-chip${c.id===S.selCat?' sel':''}" onclick="selCat('${c.id}',this)">
+      <div class="icon-wrap" style="color:${c.c}">${icon}</div>
+      ${c.label}
+    </div>`;
+  }).join('');
+};
+
+const selCat=(id,el)=>{ S.selCat=id; document.querySelectorAll('.c-chip').forEach(c=>c.classList.remove('sel')); el.classList.add('sel'); };
+
+const np = v => {
+  if(v==='del') S.amtStr=S.amtStr.slice(0,-1);
+  else { if(S.amtStr.length>=11)return; if(S.amtStr===''&&v==='0')return; S.amtStr+=v; }
+  if (S.amtStr === '') { document.getElementById('amtDisp').textContent='0'; return; }
+  document.getElementById('amtDisp').textContent=fmtF(parseInt(S.amtStr||'0'));
+};
+
+// ── SAVE ─────────────────────────────────────────────────
+const saveTx = async () => {
+  const amount=parseInt(S.amtStr||'0');
+  if(!amount){ toast(false,'Iltimos, miqdorni kiriting'); return; }
+  const btn=document.getElementById('sBtn');
+  btn.disabled=true; btn.textContent='Saqlanmoqda...';
+  const res=await api('/transactions',{
+    method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({type:S.type,amount,category:S.selCat,description:document.getElementById('fnote').value.trim(),payment_method:document.getElementById('fpay').value,currency:'UZS'})
+  });
+  btn.disabled=false; btn.textContent='Tasdiqlash';
+  if(res?.ok!==false){ toast(true,'Muvaffaqiyatli saqlandi'); closeModal(); S.amtStr=''; document.getElementById('fnote').value=''; await loadData(); }
+  else toast(false,res?.error||'Xatolik yuz berdi');
+};
+
+// ── AI CHAT ──────────────────────────────────────────────
+const sendAi = async () => {
+  const inp=document.getElementById('chatIn'), msg=inp.value.trim();
+  if(!msg) return; inp.value='';
+  const msgs=document.getElementById('chatMsgs');
+  msgs.innerHTML+=`<div class="cm u">${msg.replace(/</g,'&lt;')}</div>`;
+  msgs.innerHTML+=`<div class="cm a" id="aiT">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" class="sk" style="background:transparent;"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" stroke-dasharray="16 16" stroke-dashoffset="0"><animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="1.5s" repeatCount="indefinite"/></circle></svg>
+  </div>`;
+  msgs.scrollTop=msgs.scrollHeight;
+  const s=S.data?.summary||{};
+  const ctx=s.total_income?`Kirim:${fmtF(s.total_income)}, Chiqim:${fmtF(s.total_expense)}, Balans:${fmtF(s.total_profit)}, Tejash:${s.savings_rate}%.`:'';
+  const res=await api('/ai-analyze',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question:msg,context:ctx})});
+  const a=document.getElementById('aiT'); if(a){a.id='';a.innerHTML=res?.answer||'Xatolik yuz berdi';}
+  msgs.scrollTop=msgs.scrollHeight;
+};
+document.getElementById('chatIn')?.addEventListener('keydown',e=>{if(e.key==='Enter')sendAi()});
+
+// ── INIT ─────────────────────────────────────────────────
+(()=>{
+  if(window.Telegram?.WebApp){ window.Telegram.WebApp.expand(); window.Telegram.WebApp.setHeaderColor('#000000'); window.Telegram.WebApp.setBackgroundColor('#000000'); }
+  loadData();
+})();
+</script>
+</body>
+</html>
