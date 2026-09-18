@@ -973,7 +973,8 @@ async def show_confirm_preview(update: Update, context: ContextTypes.DEFAULT_TYP
         company=context.user_data["company"],
         salary=context.user_data["salary"],
         output_path=temp_path,
-        is_vip=is_vip
+        is_vip=is_vip,
+        design="A" if update.effective_user.id % 2 == 0 else "B"
     )
     
     if waiting_msg:
@@ -1725,7 +1726,8 @@ async def nuvi_auto_post_job(context: ContextTypes.DEFAULT_TYPE) -> None:
             company=vac["company"],
             salary=vac["salary"],
             output_path=temp_path,
-            is_vip=is_vip
+            is_vip=is_vip,
+            design="A" if vac_id % 2 == 0 else "B"
         )
         
         caption_text = escape_telegram_markdown(vac["formatted_text"])

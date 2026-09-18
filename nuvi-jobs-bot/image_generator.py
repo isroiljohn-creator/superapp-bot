@@ -1,41 +1,35 @@
-from PIL import Image, ImageDraw, ImageFont, ImageFilter
+from PIL import Image, ImageDraw, ImageFont
 import os
 import logging
 
 logger = logging.getLogger("jarvis.image_generator")
 
-# Formora-inspired palette: warm rust/orange canvas, bold black wordmark,
-# cream hero card, dark stat strip. VIP swaps the accent for gold.
-ORANGE = (232, 92, 30)
-ORANGE_DEEP = (140, 46, 12)
-CREAM = (247, 240, 231)
-INK = (26, 20, 15)
-GOLD = (222, 168, 66)
+# Hirely brand palette (from the "Hirely Jobs Poster Shablonlari" designs).
+DARK_GREEN = (22, 58, 38)      # #163A26
+BRIGHT_GREEN = (140, 245, 110)  # #8CF56E
+CARD_BG = (247, 250, 246)       # #F7FAF6
+MUTED_GREEN = (169, 182, 167)   # #A9B6A7 - labels/eyebrow text
+SUBTITLE_GREEN = (31, 74, 48)   # #1F4A30 - italic subtitle on bright green
+DIVIDER = (220, 230, 217)       # #DCE6D9
+GOLD = (222, 168, 66)           # VIP accent
+
+FONT_DIR = os.path.dirname(os.path.abspath(__file__))
+SORA_PATH = os.path.join(FONT_DIR, "Sora-Variable.ttf")
+MANROPE_PATH = os.path.join(FONT_DIR, "Manrope-Variable.ttf")
 
 
-def _radial_bg(width: int, height: int, center_color, edge_color, center=None) -> Image.Image:
-    """Warm radial gradient canvas (Formora's textured orange background).
-    Builds the gradient as a grayscale mask and uses it to blend two solid
-    layers in C (Image.composite) — a pure-Python per-pixel loop over
-    800k+ pixels would take many seconds."""
-    grad = Image.radial_gradient("L").resize((width * 2, height * 2))
-    cx = center or (width, int(height * 0.35))
-    mask = grad.crop((width - cx[0], height - cx[1], width - cx[0] + width, height - cx[1] + height))
-    center_layer = Image.new("RGB", (width, height), center_color)
-    edge_layer = Image.new("RGB", (width, height), edge_color)
-    return Image.composite(center_layer, edge_layer, mask)
-
-
-def _accent_flower(draw: ImageDraw.ImageDraw, cx: int, cy: int, r: int, color) -> None:
-    """Small 6-petal burst — the orange asterisk accent from the reference logo."""
-    import math
-    petal_r = r * 0.55
-    for i in range(6):
-        angle = math.radians(i * 60)
-        px = cx + math.cos(angle) * r * 0.55
-        py = cy + math.sin(angle) * r * 0.55
-        draw.ellipse([px - petal_r, py - petal_r, px + petal_r, py + petal_r], fill=color)
-    draw.ellipse([cx - petal_r, cy - petal_r, cx + petal_r, cy + petal_r], fill=color)
+def _vf(path: str, size: int, weight: int) -> ImageFont.FreeTypeFont:
+    """Loads a variable font at a given weight, falling back to the
+    default face if the file is missing or isn't a variable font."""
+    try:
+        font = ImageFont.truetype(path, size)
+        font.set_variation_by_axes([weight])
+        return font
+    except Exception:
+        try:
+            return ImageFont.truetype(path, size)
+        except Exception:
+            return ImageFont.load_default()
 
 
 def _wrap(draw, text, font, max_width, max_lines=2):
@@ -54,15 +48,13 @@ def _wrap(draw, text, font, max_width, max_lines=2):
     return lines[:max_lines]
 
 
-def _wrap_fit(draw, text, font_sizes, font_path, max_width, max_lines=2):
-    """Wraps at the largest font size (in descending order) that fits the
-    whole text within max_lines — falls back to smaller sizes instead of
-    silently dropping words, and to the smallest size (with a hard cut) if
-    even that doesn't fit."""
+def _wrap_fit(draw, text, sizes, path, weight, max_width, max_lines=2):
+    """Wraps at the largest size (descending) that fits the whole text
+    within max_lines, falling back to the smallest size otherwise."""
     word_count = len(text.split())
     chosen_font, chosen_lines = None, None
-    for size in font_sizes:
-        font = ImageFont.truetype(font_path, size) if font_path else ImageFont.load_default()
+    for size in sizes:
+        font = _vf(path, size, weight)
         lines = _wrap(draw, text, font, max_width, max_lines=max_lines)
         chosen_font, chosen_lines = font, lines
         if sum(len(line.split()) for line in lines) >= word_count:
@@ -70,121 +62,221 @@ def _wrap_fit(draw, text, font_sizes, font_path, max_width, max_lines=2):
     return chosen_font, chosen_lines
 
 
-def generate_vacancy_cover(position: str, company: str, salary: str, output_path: str, is_vip: bool = False) -> bool:
-    """
-    Generates a bold, premium 1200x675 cover image for a vacancy post,
-    styled after a warm orange/black editorial reference: a cream "hero"
-    card with a huge bold job title up top, and a dark stat-strip footer
-    with the company/salary called out like highlight chips.
-    """
+def _hirely_logo(draw, x, y, size, color):
+    """Simplified two-person mark (the design's SVG silhouette, redrawn as
+    plain shapes since PIL can't render arbitrary SVG)."""
+    r = size * 0.24
+    draw.ellipse([x, y, x + r * 2, y + r * 2], fill=color)
+    draw.rounded_rectangle([x - r * 0.2, y + r * 2.1, x + r * 2.2, y + size], radius=r, fill=color)
+
+
+def _star(draw, cx, cy, r, color):
+    import math
+    pts = []
+    for i in range(10):
+        ang = math.radians(-90 + i * 36)
+        rad = r if i % 2 == 0 else r * 0.45
+        pts.append((cx + math.cos(ang) * rad, cy + math.sin(ang) * rad))
+    draw.polygon(pts, fill=color)
+
+
+def _vip_badge(draw, box, bg, text_color, font):
+    # The star is drawn as a polygon — the bundled fonts lack the ★ glyph
+    # and render a tofu box instead.
+    draw.rounded_rectangle(box, radius=18, fill=bg)
+    _star(draw, box[0] + 22, (box[1] + box[3]) // 2, 8, text_color)
+    draw.text((box[0] + 38, box[1] + 8), "VIP", fill=text_color, font=font)
+
+
+def _design_a(position, company, salary, is_vip, channel_display) -> Image.Image:
+    """'Ramkali' — framed card centered on a dark green canvas."""
+    width, height = 1200, 675
+    img = Image.new("RGB", (width, height), DARK_GREEN)
+    draw = ImageDraw.Draw(img)
+
+    pad = 22
+    card = [pad, pad, width - pad, height - pad]
+    draw.rounded_rectangle(card, radius=22, fill=CARD_BG)
+
+    accent = GOLD if is_vip else BRIGHT_GREEN
+    cx = width // 2
+
+    # Logo row (centered)
+    f_wordmark = _vf(SORA_PATH, 26, 800)
+    f_pill = _vf(SORA_PATH, 15, 800)
+    logo_text_w = draw.textbbox((0, 0), "HIRELY", font=f_wordmark)[2]
+    pill_text = "JOBS"
+    pill_pad = 12
+    pill_w = draw.textbbox((0, 0), pill_text, font=f_pill)[2] + pill_pad * 2
+    mark_size = 34
+    total_w = mark_size + 10 + logo_text_w + 10 + pill_w
+    lx = cx - total_w // 2
+    ly = pad + 44
+    _hirely_logo(draw, lx, ly, mark_size, DARK_GREEN)
+    draw.text((lx + mark_size + 10, ly + 2), "HIRELY", fill=DARK_GREEN, font=f_wordmark)
+    pill_x = lx + mark_size + 10 + logo_text_w + 10
+    draw.rounded_rectangle([pill_x, ly + 3, pill_x + pill_w, ly + 3 + 24], radius=8, fill=BRIGHT_GREEN)
+    draw.text((pill_x + pill_pad, ly + 6), pill_text, fill=DARK_GREEN, font=f_pill)
+
+    if is_vip:
+        f_badge = _vf(SORA_PATH, 16, 800)
+        _vip_badge(draw, [width - pad - 120, pad + 20, width - pad - 24, pad + 56], accent, DARK_GREEN, f_badge)
+
+    # Subtitle + eyebrow
+    f_sub = _vf(MANROPE_PATH, 15, 500)
+    sub_text = "Xayrli uchrashuvlar maskani"
+    sub_w = draw.textbbox((0, 0), sub_text, font=f_sub)[2]
+    draw.text((cx - sub_w // 2, ly + 46), sub_text, fill=MUTED_GREEN, font=f_sub)
+
+    f_eyebrow = _vf(MANROPE_PATH, 12, 700)
+    eyebrow_text = "YANGI VAKANSIYA  ·  TEZKOR ARIZA  ·  ISHONCHLI TAKLIF"
+    eb_w = draw.textbbox((0, 0), eyebrow_text, font=f_eyebrow)[2]
+    draw.text((cx - eb_w // 2, ly + 78), eyebrow_text, fill=MUTED_GREEN, font=f_eyebrow)
+
+    # Bottom footer + company/salary row are anchored to the card bottom;
+    # the big title fills whatever room is left above them.
+    footer_y = height - pad - 46
+    row_y = footer_y - 70
+
+    f_chip_label = _vf(MANROPE_PATH, 11, 700)
+    f_chip_val = _vf(SORA_PATH, 19, 600)
+    company_lines = _wrap(draw, company, f_chip_val, 340, max_lines=1)
+    f_salary, salary_lines = _wrap_fit(draw, salary, [15], SORA_PATH, 700, 340, max_lines=1)
+
+    title_bottom = row_y - 40
+    f_title, title_lines = _wrap_fit(draw, position.upper(), [66, 52, 42], SORA_PATH, 800, card[2] - card[0] - 120, max_lines=2)
+    title_h = sum(draw.textbbox((0, 0), l, font=f_title)[3] + 8 for l in title_lines)
+    y_title = ly + 118 + max(0, (title_bottom - (ly + 118) - title_h) // 2)
+    for line in title_lines:
+        lw = draw.textbbox((0, 0), line, font=f_title)[2]
+        draw.text((cx - lw // 2, y_title), line, fill=DARK_GREEN, font=f_title)
+        y_title += draw.textbbox((0, 0), line, font=f_title)[3] + 8
+
+    # Kompaniya | Maosh row
+    col_gap = 22
+    comp_w = max(draw.textbbox((0, 0), l, font=f_chip_val)[2] for l in company_lines)
+    sal_w = max(draw.textbbox((0, 0), l, font=f_salary)[2] for l in salary_lines) + 28
+    row_total_w = comp_w + col_gap * 2 + 1 + sal_w
+    row_x = cx - row_total_w // 2
+
+    draw.text((row_x, row_y), "KOMPANIYA", fill=MUTED_GREEN, font=f_chip_label)
+    for line in company_lines:
+        draw.text((row_x, row_y + 18), line, fill=DARK_GREEN, font=f_chip_val)
+    divider_x = row_x + comp_w + col_gap
+    draw.line([(divider_x, row_y - 4), (divider_x, row_y + 42)], fill=DIVIDER, width=1)
+
+    sal_x = divider_x + col_gap
+    draw.text((sal_x, row_y), "MAOSH", fill=MUTED_GREEN, font=f_chip_label)
+    for line in salary_lines:
+        chip_box = [sal_x, row_y + 16, sal_x + sal_w, row_y + 16 + f_salary.size + 12]
+        draw.rounded_rectangle(chip_box, radius=8, fill=BRIGHT_GREEN)
+        draw.text((sal_x + 14, row_y + 21), line, fill=DARK_GREEN, font=f_salary)
+
+    # Footer
+    draw.line([(card[0] + 56, footer_y - 16), (card[2] - 56, footer_y - 16)], fill=DIVIDER, width=1)
+    f_footer = _vf(MANROPE_PATH, 13, 500)
+    draw.text((card[0] + 56, footer_y), f"t.me/{channel_display}", fill=MUTED_GREEN, font=f_footer)
+    f_footer_r = _vf(MANROPE_PATH, 13, 600)
+    r_text = "Hirely Jobs"
+    r_w = draw.textbbox((0, 0), r_text, font=f_footer_r)[2]
+    draw.text((card[2] - 56 - r_w, footer_y), r_text, fill=MUTED_GREEN, font=f_footer_r)
+
+    return img
+
+
+def _design_b(position, company, salary, is_vip, channel_display) -> Image.Image:
+    """'Ikki ustunli' — bright green sidebar + white content column."""
+    width, height = 1200, 675
+    img = Image.new("RGB", (width, height), CARD_BG)
+    draw = ImageDraw.Draw(img)
+
+    accent = GOLD if is_vip else BRIGHT_GREEN
+    side_w = 420
+    draw.rectangle([0, 0, side_w, height], fill=accent)
+
+    pad = 40
+    f_wordmark = _vf(SORA_PATH, 20, 800)
+    mark_size = 28
+    _hirely_logo(draw, pad, pad, mark_size, DARK_GREEN)
+    draw.text((pad + mark_size + 9, pad + 3), "HIRELY JOBS", fill=DARK_GREEN, font=f_wordmark)
+
+    f_sub = _vf(MANROPE_PATH, 14, 500)
+    draw.text((pad, pad + 44), "Xayrli uchrashuvlar maskani", fill=SUBTITLE_GREEN, font=f_sub)
+
+    if is_vip:
+        f_badge = _vf(SORA_PATH, 15, 800)
+        _vip_badge(draw, [side_w - 130, pad, side_w - 30, pad + 34], DARK_GREEN, accent, f_badge)
+
+    f_hero = _vf(SORA_PATH, 40, 800)
+    draw.text((pad, height - 220), "Yangi", fill=DARK_GREEN, font=f_hero)
+    draw.text((pad, height - 220 + f_hero.size + 6), "vakansiya", fill=DARK_GREEN, font=f_hero)
+
+    f_hero_sub = _vf(MANROPE_PATH, 14, 600)
+    draw.text((pad, height - 60), "Tezkor ariza · Ishonchli taklif", fill=SUBTITLE_GREEN, font=f_hero_sub)
+
+    # Right column
+    rx = side_w + 52
+    rw = width - rx - 52
+
+    f_label = _vf(MANROPE_PATH, 12, 700)
+    draw.text((rx, pad + 4), "LAVOZIM", fill=MUTED_GREEN, font=f_label)
+
+    footer_y = height - pad - 26
+    row_y = footer_y - 76
+    f_title, title_lines = _wrap_fit(draw, position.upper(), [60, 48, 38], SORA_PATH, 800, rw, max_lines=2)
+    title_h = sum(draw.textbbox((0, 0), l, font=f_title)[3] + 8 for l in title_lines)
+    y_title = pad + 40 + max(0, (row_y - 40 - (pad + 40) - title_h) // 2)
+    for line in title_lines:
+        draw.text((rx, y_title), line, fill=DARK_GREEN, font=f_title)
+        y_title += draw.textbbox((0, 0), line, font=f_title)[3] + 8
+
+    f_chip_label = _vf(MANROPE_PATH, 11, 700)
+    f_chip_val = _vf(SORA_PATH, 19, 600)
+    col_gap = 48
+    col_w = (rw - col_gap) // 2
+    company_lines = _wrap(draw, company, f_chip_val, col_w, max_lines=1)
+    f_salary, salary_lines = _wrap_fit(draw, salary, [19], SORA_PATH, 700, col_w, max_lines=1)
+
+    draw.text((rx, row_y), "KOMPANIYA", fill=MUTED_GREEN, font=f_chip_label)
+    for line in company_lines:
+        draw.text((rx, row_y + 18), line, fill=DARK_GREEN, font=f_chip_val)
+
+    sal_x = rx + col_w + col_gap
+    draw.text((sal_x, row_y), "MAOSH", fill=MUTED_GREEN, font=f_chip_label)
+    for line in salary_lines:
+        sal_w = draw.textbbox((0, 0), line, font=f_salary)[2] + 24
+        chip_box = [sal_x, row_y + 16, sal_x + sal_w, row_y + 16 + f_salary.size + 10]
+        draw.rounded_rectangle(chip_box, radius=8, fill=accent)
+        draw.text((sal_x + 12, row_y + 20), line, fill=DARK_GREEN, font=f_salary)
+
+    draw.line([(rx, footer_y - 16), (width - 52, footer_y - 16)], fill=DIVIDER, width=1)
+    f_footer = _vf(MANROPE_PATH, 13, 500)
+    draw.text((rx, footer_y), f"t.me/{channel_display}", fill=MUTED_GREEN, font=f_footer)
+    f_footer_r = _vf(MANROPE_PATH, 13, 600)
+    r_text = "Hirely Jobs"
+    r_w = draw.textbbox((0, 0), r_text, font=f_footer_r)[2]
+    draw.text((width - 52 - r_w, footer_y), r_text, fill=MUTED_GREEN, font=f_footer_r)
+
+    return img
+
+
+def generate_vacancy_cover(
+    position: str,
+    company: str,
+    salary: str,
+    output_path: str,
+    is_vip: bool = False,
+    design: str = "A",
+    channel_display: str = None,
+) -> bool:
+    """Generates a 1200x675 Hirely-branded cover image for a vacancy post.
+    `design` picks between the two poster templates ("A" = framed/centered,
+    "B" = two-column) — callers alternate them across posts."""
     try:
-        width, height = 1200, 675
-        accent = GOLD if is_vip else ORANGE
-
-        img = _radial_bg(width, height, ORANGE if not is_vip else (74, 58, 22), ORANGE_DEEP if not is_vip else (20, 16, 10))
-        img = img.convert("RGBA")
-        draw = ImageDraw.Draw(img)
-
-        if is_vip:
-            draw.rectangle([0, 0, width - 1, height - 1], outline=GOLD, width=10)
-            draw.rectangle([16, 16, width - 17, height - 17], outline=(255, 255, 255, 60), width=1)
-
-        font_dir = os.path.dirname(os.path.abspath(__file__))
-        bold_path = os.path.join(font_dir, "Inter-Bold.ttf")
-        reg_path = os.path.join(font_dir, "Inter-Regular.ttf")
-        have_fonts = os.path.exists(bold_path) and os.path.exists(reg_path)
-
-        if have_fonts:
-            font_logo = ImageFont.truetype(bold_path, 24)
-            font_eyebrow = ImageFont.truetype(bold_path, 15)
-            font_title = ImageFont.truetype(bold_path, 58)
-            font_chip_label = ImageFont.truetype(bold_path, 16)
-            font_chip_val = ImageFont.truetype(bold_path, 27)
-            font_footer = ImageFont.truetype(reg_path, 20)
-            font_badge = ImageFont.truetype(bold_path, 18)
-        else:
-            logger.warning("Inter fonts not found, falling back to default.")
-            font_logo = font_eyebrow = font_title = font_chip_label = font_chip_val = font_footer = font_badge = ImageFont.load_default()
-
-        margin = 40
-        col_width = (width - 2 * margin) // 2 - 80
-        company_lines = _wrap(draw, company, font_chip_val, col_width, max_lines=2)
-        # Salary is the visual highlight (big bold number) — try progressively
-        # smaller sizes so a long free-text salary never loses words instead
-        # of just always wrapping at a huge size and cutting it off.
-        font_chip_val_salary, salary_lines = _wrap_fit(
-            draw, salary, [42, 34, 27, 22], bold_path if have_fonts else None, col_width, max_lines=2
-        )
-        company_row_h = font_chip_val.size + 6
-        salary_row_h = font_chip_val_salary.size + 6
-        # Strip grows to fit whichever column's wrapped text runs taller (and
-        # the hero card shrinks to match), so a long company name or salary
-        # string that needs a second line never collides with the footer.
-        content_h = max(len(company_lines) * company_row_h, len(salary_lines) * salary_row_h)
-        strip_height = 150 + max(0, content_h - company_row_h)
-        strip_top = height - margin - strip_height
-        hero_box = [margin, margin, width - margin, strip_top - 20]
-        draw.rounded_rectangle(hero_box, radius=28, fill=CREAM)
-
-        # Logo row: orange asterisk + NUVI JOBS wordmark
-        _accent_flower(draw, margin + 46, margin + 50, 20, accent)
-        draw.text((margin + 78, margin + 36), "NUVI", fill=INK, font=font_logo)
-        w_nuvi = draw.textbbox((0, 0), "NUVI", font=font_logo)[2]
-        draw.text((margin + 78 + w_nuvi + 10, margin + 36), "JOBS", fill=accent, font=font_logo)
-
-        if is_vip:
-            badge_box = [width - margin - 110, margin + 22, width - margin - 20, margin + 58]
-            draw.rounded_rectangle(badge_box, radius=18, fill=accent)
-            draw.text((badge_box[0] + 18, badge_box[1] + 8), "★ VIP", fill=INK, font=font_badge)
-
-        # Thin eyebrow row (Formora's 3-label strip, adapted)
-        eyebrow_y = margin + 92
-        eyebrow_items = ["YANGI VAKANSIYA", "TEZKOR ARIZA", "ISHONCHLI TAKLIF"]
-        ex = margin + 46
-        for i, item in enumerate(eyebrow_items):
-            draw.text((ex, eyebrow_y), item, fill=(120, 108, 96), font=font_eyebrow)
-            w = draw.textbbox((0, 0), item, font=font_eyebrow)[2]
-            ex += w + 24
-            if i < len(eyebrow_items) - 1:
-                draw.line([(ex - 14, eyebrow_y + 8), (ex - 6, eyebrow_y + 8)], fill=(190, 178, 164), width=2)
-
-        # Big bold job title — the wordmark-style headline
-        title_lines = _wrap(draw, position.upper(), font_title, hero_box[2] - hero_box[0] - 92, max_lines=2)
-        y_title = 235 if len(title_lines) == 2 else 270
-        for line in title_lines:
-            draw.text((margin + 46, y_title), line, fill=INK, font=font_title)
-            h = draw.textbbox((0, 0), line, font=font_title)[3]
-            y_title += h + 8
-
-        # Dark/orange stat-strip footer with company + salary chips
-        strip_box = [margin, strip_top, width - margin, height - margin]
-        draw.rounded_rectangle(strip_box, radius=28, fill=(*INK, 235))
-
-        chip_y = strip_box[1] + 30
-        col1_x = strip_box[0] + 46
-        col2_x = strip_box[0] + (strip_box[2] - strip_box[0]) // 2 + 20
-
-        draw.text((col1_x, chip_y), "KOMPANIYA", fill=accent, font=font_chip_label)
-        cy = chip_y + 28
-        for line in company_lines:
-            draw.text((col1_x, cy), line, fill=CREAM, font=font_chip_val)
-            cy += draw.textbbox((0, 0), line, font=font_chip_val)[3] + 6
-
-        draw.line([(col2_x - 24, chip_y), (col2_x - 24, strip_box[3] - 26)], fill=(90, 78, 66), width=1)
-
-        draw.text((col2_x, chip_y), "MAOSH", fill=accent, font=font_chip_label)
-        sy = chip_y + 28
-        for line in salary_lines:
-            draw.text((col2_x, sy), line, fill=(120, 230, 150), font=font_chip_val_salary)
-            sy += draw.textbbox((0, 0), line, font=font_chip_val_salary)[3] + 6
-
-        footer_y = strip_box[3] - 34
-        draw.text((strip_box[0] + 46, footer_y), "t.me/nuvi_jobs", fill=(150, 138, 124), font=font_footer)
-        footer_r = "NUVI AI Agency"
-        w_r = draw.textbbox((0, 0), footer_r, font=font_footer)[2]
-        draw.text((strip_box[2] - 46 - w_r, footer_y), footer_r, fill=(150, 138, 124), font=font_footer)
-
-        img.convert("RGB").save(output_path, "PNG")
+        channel = channel_display or os.environ.get("NUVI_TARGET_CHANNEL", "HirelyUz").lstrip("@")
+        builder = _design_b if str(design).upper() == "B" else _design_a
+        img = builder(position, company, salary, is_vip, channel)
+        img.save(output_path, "PNG")
         logger.info(f"✅ Vacancy cover image saved successfully at: {output_path}")
         return True
     except Exception as e:
