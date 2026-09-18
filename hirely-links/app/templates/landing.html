@@ -16,9 +16,20 @@
 </head>
 <body>
 <div class="lp">
-<main class="lp-wrap">
-  <header class="lp-brand">{{ symbol(38) }}<span class="wordmark">Hirely</span><span class="pill">JOBS</span></header>
+<aside class="lp-side">
+  <header class="lp-brand">
+    <span class="lp-logo lp-logo--top">{{ symbol(38) }}</span><span class="lp-logo lp-logo--side">{{ symbol(44, 'green') }}</span>
+    <span class="wordmark">Hirely</span><span class="pill">JOBS</span>
+  </header>
+  <div class="lp-side-copy">
+    <p class="eyebrow eyebrow--side">Work. Grow. Together.</p>
+    <h2>Odamlar imkoniyat yaratadi</h2>
+    <p>To'g'ri odamlar. Katta imkoniyatlar.</p>
+  </div>
+  <span class="lp-mark">{{ symbol(320, 'green') }}</span>
+</aside>
 
+<main class="lp-main">
   <section class="card lp-card" aria-labelledby="h">
     <p class="eyebrow">Hirely Jobs</p>
     <h1 id="h">Ish beruvchi bilan bog'lanish</h1>
@@ -32,9 +43,9 @@
   </section>
 
   {% if ad %}
-  <aside class="card ad" data-tk="{{ ad.token }}" aria-label="Reklama">
+  <aside class="card ad{{ '' if ad.image else ' ad--noimg' }}" data-tk="{{ ad.token }}" aria-label="Reklama">
     <p class="ad-label">Reklama</p>
-    {% if ad.image %}<a href="/a/{{ ad.token }}" rel="sponsored noopener" tabindex="-1" aria-hidden="true"><img class="ad-img" src="/media/{{ ad.image }}.webp" srcset="/media/{{ ad.image }}-s.webp 600w, /media/{{ ad.image }}.webp 1200w" sizes="(min-width:600px) 480px, calc(100vw - 60px)" width="{{ ad.w }}" height="{{ ad.h }}" loading="lazy" decoding="async" alt=""></a>{% endif %}
+    {% if ad.image %}<a class="ad-imglink" href="/a/{{ ad.token }}" rel="sponsored noopener" tabindex="-1" aria-hidden="true"><img class="ad-img" src="/media/{{ ad.image }}.webp" srcset="/media/{{ ad.image }}-s.webp 600w, /media/{{ ad.image }}.webp 1200w" sizes="(min-width:1200px) 420px, (min-width:900px) 38vw, (min-width:600px) 600px, calc(100vw - 60px)" width="{{ ad.w }}" height="{{ ad.h }}" loading="lazy" decoding="async" alt=""></a>{% endif %}
     <div class="ad-body"><h2>{{ ad.title }}</h2>{% if ad.description %}<p>{{ ad.description }}</p>{% endif %}</div>
     <a class="btn btn--primary btn--sm" href="/a/{{ ad.token }}" rel="sponsored noopener">{{ ad.cta }}</a>
   </aside>
