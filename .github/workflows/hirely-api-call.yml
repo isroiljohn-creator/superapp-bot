@@ -1,0 +1,36 @@
+name: Hirely Links - call the bot API from the server
+
+# Manual helper: POSTs a JSON body to the internal /api/jobs endpoint (not exposed publicly) using the
+# bot token from repo secrets, and prints the response. Handy for creating a test link.
+on:
+  workflow_dispatch:
+    inputs:
+      body:
+        description: "JSON body for POST /api/jobs"
+        required: true
+      idempotency_key:
+        description: "Idempotency-Key (re-running with the same key returns the same link)"
+        required: true
+
+env:
+  BODY: ${{ inputs.body }}
+  IDEM: ${{ inputs.idempotency_key }}
+
+jobs:
+  call:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
+
+      - name: POST /api/jobs
+        run: |
+          echo "$BODY" | python3 -c 'import json,sys; json.load(sys.stdin)' || { echo "::error::body is not valid JSON"; exit 1; }
+          [[ "$IDEM" =~ ^[A-Za-z0-9._:-]{8,100}$ ]] || { echo "::error::bad idempotency key"; exit 1; }
+          echo "$BODY" | ssh -i ~/.ssh/id_rsa ubuntu@${{ secrets.EC2_HOST }} \
+            "curl -sS -X POST http://127.0.0.1:8081/api/jobs -H 'Authorization: Bearer ${{ secrets.HIRELY_BOT_API_TOKENS }}' -H 'Idempotency-Key: $IDEM' -H 'Content-Type: application/json' --data-binary @-"
+          echo
