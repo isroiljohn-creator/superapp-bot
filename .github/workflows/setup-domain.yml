@@ -1,19 +1,27 @@
-name: Setup hrly.uz (nginx + HTTPS)
+name: Setup domain for Hirely Links (nginx + HTTPS)
 
-# Manual, one-off. Adds the hrly.uz server block to the EC2 nginx and issues a Let's Encrypt certificate.
-# Refuses to run until public DNS for hrly.uz and www.hrly.uz already points at the server.
-on: workflow_dispatch
+# Manual, one-off per domain. Adds an nginx server block on the EC2 host and issues a Let's Encrypt
+# certificate. Refuses to run until public DNS for every listed name already points at the server.
+on:
+  workflow_dispatch:
+    inputs:
+      domains:
+        description: "Space-separated host names, e.g. 'go.nuvi.uz' or 'hrly.uz www.hrly.uz'"
+        required: true
+        default: "hrly.uz www.hrly.uz"
 
 env:
   SERVER_IP: 13.60.170.72
+  DOMAINS: ${{ inputs.domains }}
 
 jobs:
   setup:
     runs-on: ubuntu-latest
     steps:
-      - name: DNS must already point at the server
+      - name: Validate input and check that DNS points at the server
         run: |
-          for h in hrly.uz www.hrly.uz; do
+          [[ "$DOMAINS" =~ ^[a-z0-9.\ -]+$ ]] || { echo "::error::invalid domain list"; exit 1; }
+          for h in $DOMAINS; do
             ip=$(dig +short "$h" @8.8.8.8 | tail -1)
             echo "$h -> ${ip:-<no record>}"
             [ "$ip" = "$SERVER_IP" ] || { echo "::error::DNS for $h does not point at $SERVER_IP yet"; exit 1; }
@@ -28,17 +36,18 @@ jobs:
 
       - name: Configure nginx and issue the certificate
         run: |
-          ssh -i ~/.ssh/id_rsa ubuntu@${{ secrets.EC2_HOST }} 'sudo bash -s' <<'EOS'
+          ssh -i ~/.ssh/id_rsa ubuntu@${{ secrets.EC2_HOST }} "sudo DOMAINS='$DOMAINS' bash -s" <<'EOS'
           set -euo pipefail
+          FIRST=${DOMAINS%% *}
           if [ -d /etc/nginx/sites-enabled ]; then
-            CONF=/etc/nginx/sites-available/hrly.uz
+            CONF=/etc/nginx/sites-available/hirely-$FIRST
           else
-            CONF=/etc/nginx/conf.d/hrly.uz.conf
+            CONF=/etc/nginx/conf.d/hirely-$FIRST.conf
           fi
           cat > "$CONF" <<'NGINX'
           server {
               listen 80;
-              server_name hrly.uz www.hrly.uz;
+              server_name __DOMAINS__;
               client_max_body_size 8m;
               gzip on;
               gzip_types text/css application/javascript application/json image/svg+xml;
@@ -55,12 +64,14 @@ jobs:
               location / { return 404; }
           }
           NGINX
-          if [ -d /etc/nginx/sites-enabled ]; then ln -sf "$CONF" /etc/nginx/sites-enabled/hrly.uz; fi
+          sed -i "s/__DOMAINS__/$DOMAINS/" "$CONF"
+          if [ -d /etc/nginx/sites-enabled ]; then ln -sf "$CONF" "/etc/nginx/sites-enabled/hirely-$FIRST"; fi
           nginx -t
           systemctl reload nginx
           command -v certbot >/dev/null || apt-get install -y certbot python3-certbot-nginx
-          certbot --nginx -d hrly.uz -d www.hrly.uz --non-interactive --agree-tos --register-unsafely-without-email --redirect --keep-until-expiring
+          ARGS=(); for d in $DOMAINS; do ARGS+=(-d "$d"); done
+          certbot --nginx "${ARGS[@]}" --non-interactive --agree-tos --register-unsafely-without-email --redirect --keep-until-expiring
           nginx -t && systemctl reload nginx
           echo "--- check"
-          curl -fsS https://hrly.uz/healthz
+          curl -fsS "https://$FIRST/healthz"
           EOS
