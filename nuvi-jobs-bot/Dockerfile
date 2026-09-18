@@ -4,10 +4,11 @@ ENV PYTHONUNBUFFERED=1
 
 WORKDIR /app
 
-# Tizim kutubxonalari (ffmpeg TTS va git ulanish uchun kerak)
+# Tizim kutubxonalari (ffmpeg TTS, git ulanish va chromium — poster rasmlari uchun)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ffmpeg \
     git \
+    chromium \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
