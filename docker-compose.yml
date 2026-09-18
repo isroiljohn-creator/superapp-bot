@@ -54,6 +54,8 @@ services:
       # asyncpg (used directly here, not via SQLAlchemy) needs a plain
       # postgresql:// URL — the web service's +asyncpg scheme would break it.
       - DATABASE_URL=postgresql://postgres:HDBBjGYipNExuTMaKqCwvMOropQTEAqW@db:5432/railway
+      - NUVI_BOT_TOKEN=8556619194:AAGE4dZ0TTr-FN-MDVF0vKuTt8a9YW9E3Uw
+      - NUVI_TARGET_CHANNEL=@HirelyUz
 
 volumes:
   postgres_data:
