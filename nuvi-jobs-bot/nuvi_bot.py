@@ -963,6 +963,22 @@ async def show_confirm_preview(update: Update, context: ContextTypes.DEFAULT_TYP
     context.user_data["user_id"] = update.effective_user.id
     formatted_text = await format_vacancy_text(context.user_data)
     context.user_data["formatted_text"] = formatted_text
+
+    digital = await is_digital_vacancy(
+        f"{context.user_data.get('title', '')}\n{context.user_data.get('company', '')}\n{formatted_text}"
+    )
+    if digital is False:
+        try:
+            await waiting_msg.delete()
+        except Exception:
+            pass
+        await update.message.reply_text(
+            "❌ Kechirasiz, kanalimizda faqat digital sohadagi vakansiyalar e'lon qilinadi "
+            "(IT, dizayn, marketing, SMM va shu kabi). Bu e'lon shu sohaga to'g'ri kelmadi.",
+            reply_markup=ReplyKeyboardRemove(),
+        )
+        await cmd_start(update, context)
+        return ConversationHandler.END
     
     temp_dir = tempfile.gettempdir()
     temp_path = os.path.join(temp_dir, f"vacancy_preview_{update.effective_user.id}.png")
@@ -4096,7 +4112,30 @@ async def post_init(application: Application) -> None:
         logger.warning("⚠️ No TG_SESSION_STRING or VACANCY_TG_SESSION_STRING found. Scraper disabled.")
 
 
-async def format_vacancy_with_ai(raw_text: str) -> str:
+DIGITAL_FIELD_RULE = """Kanalimizga FAQAT digital soha vakansiyalari qabul qilinadi: dasturlash va IT (frontend, backend, mobil, QA, DevOps, data/AI, kiberxavfsizlik, tizim va tarmoq administratori), dizayn (UI/UX, grafik, motion, video montaj), digital marketing (SMM, target, SEO, kontent, copywriting, email/marketing avtomatizatsiya), IT loyiha/mahsulot boshqaruvi (PM, product, biznes analitik), e-commerce va onlayn platformalar, IT support va texnik yordam. Boshqa barcha sohalar (qurilish, savdo do'koni, ishlab chiqarish, transport/haydovchi, umumiy ovqatlanish, ta'lim, tibbiyot, buxgalteriya, yuridik, oddiy ofis/administrator, call-markaz va h.k.) digital hisoblanmaydi."""
+
+
+async def is_digital_vacancy(text: str):
+    """True/False — digital soha vakansiyasimi. AI javob bermasa None."""
+    system_prompt = (
+        DIGITAL_FIELD_RULE
+        + "\n\nBerilgan vakansiya shu digital sohaga tegishlimi? FAQAT bitta so'z bilan javob bering: "
+        "'DIGITAL' yoki 'NOT_DIGITAL'. Boshqa hech narsa yozmang."
+    )
+    try:
+        answer = await ai.process_message(text, system_prompt, use_tools=False)
+    except Exception as e:
+        logger.error(f"Digital classification error: {e}")
+        return None
+    answer = (answer or "").upper()
+    if "NOT_DIGITAL" in answer:
+        return False
+    if "DIGITAL" in answer:
+        return True
+    return None
+
+
+async def format_vacancy_with_ai(raw_text: str):
     """Vakansiya matnini Gemini yordamida shablonga soladi."""
     default_template = """
 📌 *[Lavozim nomi]*
@@ -4139,6 +4178,8 @@ MUHIM QOIDALAR:
 8. Javobingizda faqat tayyorlangan vakansiya matni bo'lsin, ortiqcha izoh yoki gap qo'shmang.
 9. Shablon oxiridagi "[Hirely Jobs](https://t.me/HirelyUz) - *ish va ishchi topishda yordam beramiz!*" qismini o'zgarishsiz, aynan qanday yozilgan bo'lsa shunday qoldiring.
 10. Agar taqdim etilgan matn umuman vakansiya (ish yoki xodim e'loni) bo'lmasa, FAQAT 'NOT_A_VACANCY' deb javob bering. Boshqa hech qanday so'z yoki izoh yozmang.
+11. {DIGITAL_FIELD_RULE}
+    Agar vakansiya digital sohaga TEGISHLI BO'LMASA, FAQAT 'NOT_A_VACANCY' deb javob bering. Boshqa hech qanday so'z yoki izoh yozmang.
 """
     try:
         formatted = await ai.process_message(raw_text, system_prompt, use_tools=False)
@@ -4193,10 +4234,11 @@ MUHIM QOIDALAR:
             formatted = "\n".join(lines)
             # Final sanity trim to guarantee fits in 1000 chars caption limit
             formatted = trim_to_fit_caption(formatted, max_chars=980)
-        return formatted
+        # None = AI failed/empty; callers retry later instead of posting junk.
+        return formatted or None
     except Exception as e:
         logger.error(f"Gemini vacancy formatting error: {e}")
-        return ""
+        return None
 
 
 def extract_meta_for_cover(text: str) -> tuple[str, str, str]:
