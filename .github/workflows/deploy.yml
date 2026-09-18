@@ -38,6 +38,6 @@ jobs:
             docker system prune -af && \
             cd /home/ubuntu/nuvi-academy-bot && \
             docker-compose build && \
-            docker-compose rm -fsv web && \
+            docker-compose down --remove-orphans && \
             docker-compose up -d
           "
