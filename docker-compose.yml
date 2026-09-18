@@ -56,6 +56,7 @@ services:
       - DATABASE_URL=postgresql://postgres:HDBBjGYipNExuTMaKqCwvMOropQTEAqW@db:5432/railway
       - NUVI_BOT_TOKEN=8556619194:AAGE4dZ0TTr-FN-MDVF0vKuTt8a9YW9E3Uw
       - NUVI_TARGET_CHANNEL=@HirelyUz
+      - VACANCY_TG_SESSION_STRING=${VACANCY_TG_SESSION_STRING}
 
 volumes:
   postgres_data:

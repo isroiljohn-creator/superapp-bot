@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Nuvi Jobs Bot — E'lonlarni qabul qilish, to'lovlar, admin tasdiqlashi va rejalashtirilgan navbat scheduler tizimi.
+Hirely Jobs Bot — E'lonlarni qabul qilish, to'lovlar, admin tasdiqlashi va rejalashtirilgan navbat scheduler tizimi.
 """
 
 import os
@@ -101,7 +101,7 @@ async def get_card_details() -> str:
     card = await database.db_get_nuvi_setting("vacancy_card_details")
     if card:
         return card
-    return os.environ.get("NUVI_VACANCY_CARD_DETAILS", "8600 0000 0000 0000 (Nuvi Jobs)")
+    return os.environ.get("NUVI_VACANCY_CARD_DETAILS", "8600 0000 0000 0000 (Hirely Jobs)")
 
 # Conversation holatlari
 (
@@ -342,7 +342,7 @@ def generate_cv_pdf(cv_data: dict, output_path: str) -> None:
         alignment=1 # Center
     )
     story.append(Spacer(1, 15))
-    story.append(Paragraph("Rezyume @nuvijobs_bot yordamida shakllantirildi", footer_note_style))
+    story.append(Paragraph("Rezyume @HirelyUz_Bot yordamida shakllantirildi", footer_note_style))
     
     doc.build(story)
 
@@ -360,7 +360,7 @@ def trim_to_fit_caption(text: str, max_chars: int = 1000) -> str:
             stripped = lines[i].strip()
             if stripped.startswith("—") or stripped.startswith("-") or stripped.startswith("*"):
                 # Slogan va footer'larni o'chirmaslik uchun tekshiramiz
-                if "nuvi_jobs" not in stripped.lower() and "aloqa" not in stripped.lower():
+                if "hirelyuz" not in stripped.lower() and "aloqa" not in stripped.lower():
                     bullet_idx = i
                     break
         if bullet_idx != -1:
@@ -374,7 +374,7 @@ def trim_to_fit_caption(text: str, max_chars: int = 1000) -> str:
         footer = ""
         # Contact info qismini saqlash
         for line in reversed(text.split("\n")):
-            if "aloqa" in line.lower() or "nuvi_jobs" in line.lower():
+            if "aloqa" in line.lower() or "hirelyuz" in line.lower():
                 footer = "\n" + line + footer
         slice_idx = max(0, max_chars - len(footer) - 5)
         trimmed = trimmed[:slice_idx] + "..." + footer
@@ -512,7 +512,7 @@ async def format_vacancy_text(data: dict) -> str:
         text += f"\n🎁 *Taklif:*\n{benefit_lines}\n"
         
     text += f"\n📩 *Aloqa:* {contact}\n\n"
-    text += f"[Nuvi Jobs](https://t.me/nuvi_jobs) - *ish va ishchi topishda yordam beramiz!*"
+    text += f"[Hirely Jobs](https://t.me/HirelyUz) - *ish va ishchi topishda yordam beramiz!*"
     return text
 
 
@@ -568,7 +568,7 @@ async def check_user_subscription(update: Update, context: ContextTypes.DEFAULT_
     if user_id == OWNER_ID:
         return True
         
-    target_channel = "@nuvi_jobs"
+    target_channel = "@HirelyUz"
     try:
         member = await context.bot.get_chat_member(chat_id=target_channel, user_id=user_id)
         if member.status in ["creator", "administrator", "member"]:
@@ -579,7 +579,7 @@ async def check_user_subscription(update: Update, context: ContextTypes.DEFAULT_
         return True
         
     # Obuna bo'lmagan bo'lsa
-    join_btn = InlineKeyboardButton("🔗 Kanalga a'zo bo'lish", url="https://t.me/nuvi_jobs")
+    join_btn = InlineKeyboardButton("🔗 Kanalga a'zo bo'lish", url="https://t.me/HirelyUz")
     check_btn = InlineKeyboardButton("🔄 Tekshirish", callback_data="nuvi_check_sub")
     reply_markup = InlineKeyboardMarkup([[join_btn], [check_btn]])
     
@@ -602,7 +602,7 @@ async def cb_check_sub(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     user = update.effective_user
     user_id = user.id
     
-    target_channel = "@nuvi_jobs"
+    target_channel = "@HirelyUz"
     try:
         member = await context.bot.get_chat_member(chat_id=target_channel, user_id=user_id)
         if member.status in ["creator", "administrator", "member"]:
@@ -620,7 +620,7 @@ async def cb_check_sub(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     await query.message.reply_text(
         "❌ **Siz hali kanalga a'zo bo'lmadingiz!**\nIltimos, pastdagi tugma orqali a'zo bo'ling va qayta urinib ko'ring.",
         reply_markup=InlineKeyboardMarkup([
-            [InlineKeyboardButton("🔗 Kanalga a'zo bo'lish", url="https://t.me/nuvi_jobs")],
+            [InlineKeyboardButton("🔗 Kanalga a'zo bo'lish", url="https://t.me/HirelyUz")],
             [InlineKeyboardButton("🔄 Tekshirish", callback_data="nuvi_check_sub")]
         ]),
         parse_mode=ParseMode.MARKDOWN
@@ -693,7 +693,7 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     safe_name = clean_for_markdown(user.first_name)
     msg = (
         f"👋 *Assalomu alaykum, {safe_name}!* \n"
-        f"🚀 *Nuvi Jobs* e'lon berish botiga xush kelibsiz!\n\n"
+        f"🚀 *Hirely Jobs* e'lon berish botiga xush kelibsiz!\n\n"
         f"💼 Bu yerda kanalda vakansiya e'lon qilish uchun *ariza topshirishingiz*, "
         f"💳 *to'lov qilishingiz* va ⏱ *navbat asosida* e'loningizni avtomatik chop etishingiz mumkin."
     )
@@ -1291,7 +1291,7 @@ async def state_payment_method_received(update: Update, context: ContextTypes.DE
     
     if text == "💳 Telegram orqali to'lov (Click/Payme)" and PROVIDER_TOKEN:
         title = f"Vakansiya e'loni #{vac_id}"
-        description = f"Nuvi Jobs kanalida vakansiya e'lonini joylash to'lovi (Tarif: {tariff.upper()})."
+        description = f"Hirely Jobs kanalida vakansiya e'lonini joylash to'lovi (Tarif: {tariff.upper()})."
         payload = f"vacancy_payment_{vac_id}"
         currency = "UZS"
         prices = [LabeledPrice("Vakansiya e'loni", price * 100)]
@@ -1809,7 +1809,7 @@ async def nuvi_auto_post_job(context: ContextTypes.DEFAULT_TYPE) -> None:
                 chat_id=vac["user_id"],
                 text=(
                     f"🎉 Xushxabar! Sizning e'lon #{vac_id} kanalda muvaffaqiyatli chop etildi!\n\n"
-                    f"🔗 E'lon havolasi: [Nuvi Jobs Post]({post_link})"
+                    f"🔗 E'lon havolasi: [Hirely Jobs Post]({post_link})"
                 ),
                 parse_mode=ParseMode.MARKDOWN
             )
@@ -1852,7 +1852,7 @@ async def nuvi_auto_post_job(context: ContextTypes.DEFAULT_TYPE) -> None:
                     promo_banner_text = (
                         "🚀 **E'lon berishni xohlaysizmi?**\n\n"
                         "Bizning rasmiy botimiz orqali o'z vakansiyalaringizni tez va oson kanalga joylashingiz mumkin!\n\n"
-                        "🤖 **Bot:** @nuvijobs_bot\n\n"
+                        "🤖 **Bot:** @HirelyUz_Bot\n\n"
                         "🔹 **Qulayliklar:**\n"
                         "• Turli tarif rejalari (Pro, Premium, VIP)\n"
                         "• Tezkor to'lov tizimlari\n"
@@ -1892,7 +1892,7 @@ async def cmd_admin(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     reply_markup = InlineKeyboardMarkup(keyboard)
     
     if update.message:
-        await update.message.reply_text("Nuvi Jobs Bot - Admin Boshqaruv Paneli:", reply_markup=reply_markup)
+        await update.message.reply_text("Hirely Jobs Bot - Admin Boshqaruv Paneli:", reply_markup=reply_markup)
     else:
         # If triggered from back query
         pass
@@ -1957,7 +1957,7 @@ async def cb_admin_back(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         [InlineKeyboardButton("⚙️ Sozlamalar", callback_data="admin_settings")]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
-    await query.message.edit_text("Nuvi Jobs Bot - Admin Boshqaruv Paneli:", reply_markup=reply_markup)
+    await query.message.edit_text("Hirely Jobs Bot - Admin Boshqaruv Paneli:", reply_markup=reply_markup)
 
 async def cb_admin_create_promocode_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Yangi promo-kod yaratishni boshlash (Wizard)."""
@@ -2186,7 +2186,7 @@ async def cb_admin_promo_callback(update: Update, context: ContextTypes.DEFAULT_
             [InlineKeyboardButton("⚙️ Sozlamalar", callback_data="admin_settings")]
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
-        await query.message.reply_text("Nuvi Jobs Bot - Admin Boshqaruv Paneli:", reply_markup=reply_markup)
+        await query.message.reply_text("Hirely Jobs Bot - Admin Boshqaruv Paneli:", reply_markup=reply_markup)
         return ConversationHandler.END
         
     return ADMIN_CREATE_PROMOCODE
@@ -2263,7 +2263,7 @@ async def cb_set_card_start(update: Update, context: ContextTypes.DEFAULT_TYPE) 
         await query.answer("Ruxsat yo'q.")
         return ConversationHandler.END
     await query.answer()
-    await query.message.reply_text("Yangi karta ma'lumotlarini kiriting (masalan: 8600 0000 0000 0000 Nuvi Jobs MCH):")
+    await query.message.reply_text("Yangi karta ma'lumotlarini kiriting (masalan: 8600 0000 0000 0000 Hirely Jobs MCH):")
     return SETTING_ASK_CARD
 
 async def state_setting_card_received(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
@@ -2391,12 +2391,12 @@ async def cb_bot_info(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
     price_vip = await get_tariff_price("vip")
     
     bot_info = await context.bot.get_me()
-    bot_username = bot_info.username or "nuvijobs_bot"
+    bot_username = bot_info.username or "HirelyUz_Bot"
     ref_link = f"https://t.me/{bot_username}?start=ref_{update.effective_user.id}"
     
     msg = (
-        f"ℹ️ **Nuvi Jobs Bot haqida:**\n\n"
-        f"Ushbu bot orqali `@nuvi_jobs` kanaliga osongina vakansiya e'lonlarini joylashingiz mumkin.\n\n"
+        f"ℹ️ **Hirely Jobs Bot haqida:**\n\n"
+        f"Ushbu bot orqali `@HirelyUz` kanaliga osongina vakansiya e'lonlarini joylashingiz mumkin.\n\n"
         f"💰 **E'lon joylash tariflari:**\n"
         f"🔹 Pro: **{price_pro:,} so'm**\n"
         f"🔸 Premium: **{price_premium:,} so'm**\n"
@@ -3466,12 +3466,12 @@ async def cb_bot_info_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     price_vip = await get_tariff_price("vip")
     
     bot_info = await context.bot.get_me()
-    bot_username = bot_info.username or "nuvijobs_bot"
+    bot_username = bot_info.username or "HirelyUz_Bot"
     ref_link = f"https://t.me/{bot_username}?start=ref_{update.effective_user.id}"
     
     msg = (
-        f"ℹ️ *Nuvi Jobs Bot haqida:*\n\n"
-        f"Ushbu bot orqali `@nuvi_jobs` kanaliga osongina vakansiya e'lonlarini joylashingiz mumkin.\n\n"
+        f"ℹ️ *Hirely Jobs Bot haqida:*\n\n"
+        f"Ushbu bot orqali `@HirelyUz` kanaliga osongina vakansiya e'lonlarini joylashingiz mumkin.\n\n"
         f"💰 *E'lon joylash tariflari:*\n"
         f"🔹 *Pro:* {price_pro:,} so'm\n"
         f"🔸 *Premium:* {price_premium:,} so'm\n"
@@ -3624,7 +3624,7 @@ async def cb_bump_pay_tg(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     await query.message.edit_text("To'lov hisobi tayyorlanmoqda, iltimos kuting...")
     
     title = f"Tepaga ko'tarish #{vac_id}"
-    description = f"Nuvi Jobs kanalidagi #{vac_id} vakansiyani tepaga ko'tarish (Bump) to'lovi."
+    description = f"Hirely Jobs kanalidagi #{vac_id} vakansiyani tepaga ko'tarish (Bump) to'lovi."
     payload = f"bump_payment_{vac_id}"
     currency = "UZS"
     prices = [LabeledPrice("Tepaga ko'tarish xizmati", 5000 * 100)]
@@ -3689,7 +3689,7 @@ async def bump_vacancy(bot, vacancy_id: int) -> bool:
                     chat_id=vac["user_id"],
                     text=(
                         f"📌 E'loningiz kanalda muvaffaqiyatli mustahkamlandi (Pinned/Ko'tarildi)!\n\n"
-                        f"🔗 Havola: [Nuvi Jobs Post]({post_link})"
+                        f"🔗 Havola: [Hirely Jobs Post]({post_link})"
                     ),
                     parse_mode=ParseMode.MARKDOWN
                 )
@@ -3733,7 +3733,7 @@ async def cb_pin_pay_tg(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     await query.message.edit_text("To'lov hisobi tayyorlanmoqda, iltimos kuting...")
     
     title = f"Pin qilish #{vac_id}"
-    description = f"Nuvi Jobs kanalidagi #{vac_id} vakansiyani 24 soatga pin qilish to'lovi."
+    description = f"Hirely Jobs kanalidagi #{vac_id} vakansiyani 24 soatga pin qilish to'lovi."
     payload = f"pin_payment_{vac_id}"
     currency = "UZS"
     prices = [LabeledPrice("24 soatlik Pin qilish xizmati", 15000 * 100)]
@@ -4001,7 +4001,7 @@ async def update_telegram_post(bot, vac: dict) -> None:
         bot_info = await bot.get_me()
         bot_username = bot_info.username
     except Exception:
-        bot_username = "nuvijobs_bot"
+        bot_username = "HirelyUz_Bot"
         
     reply_markup = get_vacancy_reply_markup(bot_username, vac)
     
@@ -4076,7 +4076,7 @@ async def cmd_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
 # ──────────────────────── VACANCY SCRAPER SYSTEM ─────────────────────────
 
 async def post_init(application: Application) -> None:
-    """Initialize background services for Nuvi Jobs Bot."""
+    """Initialize background services for Hirely Jobs Bot."""
     global vacancy_scraper
     vac_session = os.environ.get("VACANCY_TG_SESSION_STRING") or os.environ.get("TG_SESSION_STRING")
     vac_api_id = os.environ.get("VACANCY_TG_API_ID") or os.environ.get("TG_API_ID") or "28124599"
@@ -4118,7 +4118,7 @@ async def format_vacancy_with_ai(raw_text: str) -> str:
 
 📩 *Aloqa:* [Telegram username yoki telefon]
 
-[Nuvi Jobs](https://t.me/nuvi_jobs) - *ish va ishchi topishda yordam beramiz!*
+[Hirely Jobs](https://t.me/HirelyUz) - *ish va ishchi topishda yordam beramiz!*
 """
     custom_template = os.environ.get("VACANCY_TEMPLATE")
     template = custom_template if custom_template else default_template
@@ -4129,7 +4129,7 @@ Siz professional HR assistentisiz. Vazifangiz quyidagi vakansiya matnini o'rgani
 {template}
 
 MUHIM QOIDALAR:
-1. Matndagi asosiy so'zlar: Firma:, Maosh:, Lokatsiya:, Ish vaqti:, Talablar:, Taklif:, Aloqa: va bizning slogan: Nuvi Jobs - ish va ishchi topishda yordam beramiz! qismlari faqat yulduzcha (*) belgisi bilan o'ralib bold bo'lishi kerak.
+1. Matndagi asosiy so'zlar: Firma:, Maosh:, Lokatsiya:, Ish vaqti:, Talablar:, Taklif:, Aloqa: va bizning slogan: Hirely Jobs - ish va ishchi topishda yordam beramiz! qismlari faqat yulduzcha (*) belgisi bilan o'ralib bold bo'lishi kerak.
 2. Har bir ma'lumot sarlavhalari (masalan, Firma:, Maosh:) va ularning qiymatlari (masalan, Adjaster .uz jamoasi, 3 000 000 so'm) chiroyli tarzda taqdim etilsin.
 3. Aloqa va kontakt ma'lumotlarini (nomzod murojaat qilishi kerak bo'lgan shaxsiy profil yoki telefon raqami) albatta saqlab qoling.
 4. MUHIM TAQIQLAR: Hech qachon telegram bot foydalanuvchi nomini (masalan, oxiri '_bot' bilan tugaydigan usernamelar, xususan @Humanresourcesuz_bot kabi) yoki reklama kanallari havolalarini 'Aloqa' qismiga qo'ymang. FAQAT real insonlarning shaxsiy telegram profili (masalan, @ism_hr) yoki telefon raqamini ko'rsating. Agar bunday shaxsiy aloqa ma'lumoti matnda bo'lmasa, 'Aloqa' qismiga '[Ko'rsatilmagan]' deb yozing.
@@ -4137,7 +4137,7 @@ MUHIM QOIDALAR:
 6. QAT'IY RAVISHDA MATNNI QISQA QILING: Butun xabar matni o'ta ixcham va lo'nda bo'lishi shart. Talablar va takliflar ro'yxatida faqat eng asosiy 2-3 tadan ko'p bo'lmagan eng muhim punktlarni qoldiring, mayda gaplarni va ortiqcha tafsilotlarni kesib tashlang. Umumiy belgi soni 700 tadan oshmasligi kerak.
 7. Har doim toza va chiroyli o'zbek tilida javob bering.
 8. Javobingizda faqat tayyorlangan vakansiya matni bo'lsin, ortiqcha izoh yoki gap qo'shmang.
-9. Shablon oxiridagi "[Nuvi Jobs](https://t.me/nuvi_jobs) - *ish va ishchi topishda yordam beramiz!*" qismini o'zgarishsiz, aynan qanday yozilgan bo'lsa shunday qoldiring.
+9. Shablon oxiridagi "[Hirely Jobs](https://t.me/HirelyUz) - *ish va ishchi topishda yordam beramiz!*" qismini o'zgarishsiz, aynan qanday yozilgan bo'lsa shunday qoldiring.
 10. Agar taqdim etilgan matn umuman vakansiya (ish yoki xodim e'loni) bo'lmasa, FAQAT 'NOT_A_VACANCY' deb javob bering. Boshqa hech qanday so'z yoki izoh yozmang.
 """
     try:
@@ -4146,7 +4146,7 @@ MUHIM QOIDALAR:
             if "NOT_A_VACANCY" in formatted:
                 return "NOT_A_VACANCY"
                 
-            expected_footer = "[Nuvi Jobs](https://t.me/nuvi_jobs) - *ish va ishchi topishda yordam beramiz!*"
+            expected_footer = "[Hirely Jobs](https://t.me/HirelyUz) - *ish va ishchi topishda yordam beramiz!*"
             import re
             lines = formatted.split("\n")
             has_valid_contact = False
@@ -4183,7 +4183,7 @@ MUHIM QOIDALAR:
                         lines[idx] = f"{prefix} [Ko'rsatilmagan]"
                 
                 # 2. Enforce the correct footer
-                if "[Nuvi Jobs](https://t.me/nuvi_jobs)" in line:
+                if "[Hirely Jobs](https://t.me/HirelyUz)" in line:
                     lines[idx] = expected_footer
                     
             if not has_valid_contact:
@@ -4288,7 +4288,7 @@ def extract_vacancy_details_from_text(text: str) -> dict:
         elif "🎁" in line_stripped and "taklif" in line_stripped.lower():
             current_section = "benefits"
             continue
-        elif any(emoji in line_stripped for emoji in ["📌", "🏢", "💵", "💰", "📍", "⏱️", "📩", "Nuvi Jobs"]):
+        elif any(emoji in line_stripped for emoji in ["📌", "🏢", "💵", "💰", "📍", "⏱️", "📩", "Hirely Jobs"]):
             current_section = None
             continue
             
@@ -4577,7 +4577,7 @@ async def nuvi_unpin_job(context: ContextTypes.DEFAULT_TYPE) -> None:
 
 def main():
     """Bot ishga tushirish."""
-    logger.info("🤖 Nuvi Jobs Bot ishga tushmoqda...")
+    logger.info("🤖 Hirely Jobs Bot ishga tushmoqda...")
     
     # DB initialization
     loop = asyncio.get_event_loop()

@@ -85,7 +85,7 @@ class VacancyScraper:
                     keywords = ['job', 'vacancy', 'vakansiya', 'ish', 'work', 'toshkent', 'uzbekistan']
                     if any(kw in title or kw in username for kw in keywords):
                         # Avoid scraping our own target channel
-                        target_channel = os.environ.get("VACANCY_TARGET_CHANNEL", "@nuvi_jobs").lower().replace("@", "")
+                        target_channel = os.environ.get("VACANCY_TARGET_CHANNEL", "@HirelyUz").lower().replace("@", "")
                         if username != target_channel:
                             auto_channels.append(dialog.entity.id)
             logger.info(f"Auto-discovered {len(auto_channels)} vacancy source channels.")
