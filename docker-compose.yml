@@ -68,7 +68,7 @@ services:
     environment:
       - HIRELY_DATABASE_URL=postgresql+asyncpg://postgres:HDBBjGYipNExuTMaKqCwvMOropQTEAqW@db:5432/railway
       - HIRELY_REDIS_URL=redis://default:asnqiUUVoYbzCgQJBcXcpirycTLvavOH@redis:6379/1
-      - HIRELY_PUBLIC_BASE_URL=${HIRELY_PUBLIC_BASE_URL:-https://hirely.uz}
+      - HIRELY_PUBLIC_BASE_URL=${HIRELY_PUBLIC_BASE_URL:-https://yashaai.uz}
       # Secrets come from GitHub Actions secrets at deploy time (see .github/workflows/deploy.yml)
       - HIRELY_SECRET_KEY=${HIRELY_SECRET_KEY}
       - HIRELY_BOT_API_TOKENS=${HIRELY_BOT_API_TOKENS}

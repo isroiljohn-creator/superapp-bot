@@ -46,3 +46,16 @@ jobs:
             HIRELY_BOOTSTRAP_ADMIN_PASSWORD='${{ secrets.HIRELY_ADMIN_PASSWORD }}' \\
             docker-compose up -d
           "
+
+      - name: Service status and recent logs
+        if: always()
+        run: |
+          ssh -i ~/.ssh/id_rsa ubuntu@${{ secrets.EC2_HOST }} 'bash -s' <<'EOS' || true
+          sleep 20
+          docker ps
+          echo "--- hirely-links health"; curl -fsS http://127.0.0.1:8081/healthz || echo "health check failed"
+          for c in hirely-links nuvi-jobs-bot; do
+            echo "--- logs: $c"
+            docker logs --tail 60 "$c" 2>&1 | sed -E 's#bot[0-9]+:[A-Za-z0-9_-]+#bot[TOKEN]#g'
+          done
+          EOS

@@ -1,7 +1,7 @@
 # Hirely Links
 
 Contact landing, click tracking, analytics and ads admin for Hirely job posts.
-A Telegram post's **"Bog'lanish"** button opens `https://hirely.uz/j/<slug>`; the visitor already saw the vacancy
+A Telegram post's **"Bog'lanish"** button opens `https://<domain>/j/<slug>` (currently `yashaai.uz`); the visitor already saw the vacancy
 in the post, so the page only offers the employer's contact methods and one ad. Every meaningful action is
 recorded server-side, then the visitor is redirected.
 
@@ -45,7 +45,7 @@ curl -X POST http://hirely-links:8081/api/jobs \
   -H "Content-Type: application/json" \
   -d '{"title":"Backend developer","phone":"+998901234567","telegram":"@hr_person",
        "external_url":"https://example.com/apply","channel":"hirely_uz","category":"it","source":"bot"}'
-# 201 {"job_id":"JOB-…","distribution_id":"UZ-…","public_url":"https://hirely.uz/j/K7X92P","idempotent_replay":false}
+# 201 {"job_id":"JOB-…","distribution_id":"UZ-…","public_url":"https://yashaai.uz/j/K7X92P","idempotent_replay":false}
 ```
 
 * `title` **or** `internal_reference` is required; at least one of `phone`, `telegram`, `external_url`.
@@ -111,10 +111,10 @@ that `deploy.yml` passes to `docker-compose up`.
 ## Deploy
 
 `docker-compose.yml` service `hirely-links` (port `127.0.0.1:8081`, volume `hirely_media` for banners). Alembic runs on container start.
-Route `hirely.uz` to it with the `server` block in the repo's `nginx.conf`:
+Route the domain (currently `yashaai.uz`) to it with the `server` block in the repo's `nginx.conf`:
 `/j /r /a /t /admin /static /media /healthz` are proxied; `/api` is internal-only by design.
 nginx **must set** `X-Real-IP` (the app trusts it for rate limits). Behind Cloudflare set `HIRELY_CLIENT_IP_HEADER=cf-connecting-ip`
-and only accept traffic from Cloudflare. Serve over HTTPS (cookies are `Secure`). DNS for `hirely.uz` and TLS are outside this repo.
+and only accept traffic from Cloudflare. Serve over HTTPS (cookies are `Secure`). DNS and TLS for the domain are outside this repo (A record → the EC2 IP, certificate via certbot).
 
 ## Security summary
 
