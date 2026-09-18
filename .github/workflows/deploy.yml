@@ -37,5 +37,7 @@ jobs:
           ssh -i ~/.ssh/id_rsa ubuntu@${{ secrets.EC2_HOST }} "
             docker system prune -af && \
             cd /home/ubuntu/nuvi-academy-bot && \
-            docker-compose up -d --build
+            docker-compose build && \
+            docker-compose rm -fsv web && \
+            docker-compose up -d
           "
