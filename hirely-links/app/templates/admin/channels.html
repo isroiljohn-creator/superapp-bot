@@ -1,0 +1,29 @@
+{% extends "admin/base.html" %}
+{% from "admin/_m.html" import csrf_field %}
+{% block title %}Kanallar{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>Kanallar</h1><p class="sub">Vakansiyalar tarqatiladigan joylar. Yangi kanal yoki bozor (masalan, Hirely Freelance) shu yerda qo'shiladi.</p></div></div>
+<section class="card panel"><h2>Mavjud kanallar</h2><div class="form-grid">
+{% for c in channels %}
+<form method="post" action="/admin/channels" class="creative">
+  {{ csrf_field(csrf) }}<input type="hidden" name="id" value="{{ c.id }}"><input type="hidden" name="code" value="{{ c.code }}"><input type="hidden" name="prefix" value="{{ c.prefix }}">
+  <div><span class="badge">{{ c.code }}</span> <span class="badge">{{ c.prefix }}</span></div>
+  <div class="form-grid two">
+    <div class="field"><label>Nomi</label><input name="name" required maxlength="80" value="{{ c.name }}"></div>
+    <div class="field"><label>Bozor</label><input name="market" required maxlength="40" value="{{ c.market }}"></div>
+    <div class="field"><label>Havola / izoh</label><input name="external_ref" maxlength="120" value="{{ c.external_ref or '' }}"></div>
+    <div class="checks"><label><input type="checkbox" name="is_active" {{ 'checked' if c.is_active }}>Faol</label></div>
+  </div>
+  <div class="actions-row"><button class="btn btn--dark btn--sm" type="submit">Saqlash</button></div>
+</form>{% endfor %}</div></section>
+<section class="card panel"><h2>Yangi kanal</h2>
+<form method="post" action="/admin/channels" class="form-grid two">
+  {{ csrf_field(csrf) }}
+  <div class="field"><label for="c_code">Kod</label><input id="c_code" name="code" required maxlength="40" placeholder="hirely_freelance"><small>API'da `channel` maydoni shu kod. O'zgartirib bo'lmaydi.</small></div>
+  <div class="field"><label for="c_prefix">Prefiks</label><input id="c_prefix" name="prefix" required maxlength="8" placeholder="FL"><small>distribution_id boshlanishi. O'zgartirib bo'lmaydi.</small></div>
+  <div class="field"><label for="c_name">Nomi</label><input id="c_name" name="name" required maxlength="80"></div>
+  <div class="field"><label for="c_market">Bozor</label><input id="c_market" name="market" required maxlength="40" value="uz"><small>Reklama targetingi uchun: uz, global, …</small></div>
+  <div class="field"><label for="c_ref">Havola / izoh</label><input id="c_ref" name="external_ref" maxlength="120" placeholder="@hirelyuz"></div>
+  <div class="actions-row"><button class="btn btn--primary" type="submit">Qo'shish</button></div>
+</form></section>
+{% endblock %}

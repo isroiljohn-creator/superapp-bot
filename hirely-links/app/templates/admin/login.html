@@ -1,0 +1,24 @@
+{% from "_brand.html" import symbol %}
+<!doctype html>
+<html lang="uz">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<title>Kirish · Hirely</title>
+<link rel="icon" href="{{ asset('favicon.svg') }}" type="image/svg+xml">
+<link rel="stylesheet" href="{{ asset('hirely.css') }}">
+<link rel="stylesheet" href="{{ asset('admin.css') }}">
+</head>
+<body class="adm">
+<div class="login"><form class="card" method="post" action="/admin/login" autocomplete="on">
+  <div class="brand">{{ symbol(40) }}<span class="wordmark">Hirely</span><span class="pill">JOBS</span></div>
+  <div><h1 class="h-md">Boshqaruv paneli</h1></div>
+  {% if error %}<div class="notice notice--err" role="alert">{{ error }}</div>{% endif %}
+  <input type="hidden" name="next" value="{{ next }}">
+  <div class="field"><label for="email">Email</label><input id="email" name="email" type="email" autocomplete="username" required maxlength="254" autofocus></div>
+  <div class="field"><label for="password">Parol</label><input id="password" name="password" type="password" autocomplete="current-password" required maxlength="200"></div>
+  <button class="btn btn--primary btn--block" type="submit">Kirish</button>
+</form></div>
+</body>
+</html>

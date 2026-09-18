@@ -1,0 +1,22 @@
+{% extends "admin/base.html" %}
+{% from "admin/_m.html" import rangebar, status %}
+{% block title %}Reklamalar{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>Reklamalar</h1><p class="sub">Kampaniyalar, ko'rsatishlar va kliklar</p></div><a class="btn btn--primary btn--sm" href="/admin/ads/new">+ Yangi kampaniya</a></div>
+{{ rangebar(rng, f) }}
+<nav class="tabs" aria-label="Holat">
+  <a href="?{{ qs(request, status=None) }}" aria-current="{{ 'true' if not status else 'false' }}">Arxivdan tashqari</a>
+  {% for k, t in labels.items() %}<a href="?{{ qs(request, status=k) }}" aria-current="{{ 'true' if status == k else 'false' }}">{{ t }}</a>{% endfor %}</nav>
+<section class="card panel">
+{% if not camps %}<div class="empty">Kampaniya yo'q. Birinchisini yarating.</div>{% else %}
+<div class="tbl-wrap"><table class="tbl"><thead><tr><th class="l">Kampaniya</th><th>Holat</th><th>Davr</th><th>Ko'rsatish</th><th>Noyob ko'rsatish</th><th>Klik</th><th>Noyob klik</th><th>CTR</th><th>Limit</th></tr></thead><tbody>
+{% for c in camps %}{% set s = stats.get(c.id, {}) %}<tr>
+<td class="l"><a href="/admin/ads/{{ c.id }}">{{ c.name }}</a><span class="sub">{{ c.advertiser.name }} · {{ c.creatives|selectattr('is_active')|list|length }} ta reklama</span></td>
+<td data-label="Holat">{{ status(c.status, labels) }}</td>
+<td data-label="Davr">{{ c.start_at|local_dt('%d.%m.%y') if c.start_at else 'darhol' }} — {{ c.end_at|local_dt('%d.%m.%y') if c.end_at else 'cheksiz' }}</td>
+<td data-label="Ko'rsatish">{{ (s.impressions or 0)|num }}</td><td data-label="Noyob ko'rsatish">{{ (s.unique_impressions or 0)|num }}</td>
+<td data-label="Klik">{{ (s.clicks or 0)|num }}</td><td data-label="Noyob klik">{{ (s.unique_clicks or 0)|num }}</td><td data-label="CTR">{{ (s.ctr or 0)|pct(2) }}</td>
+<td data-label="Limit">{{ c.impressions_count|num }}{% if c.impression_limit %} / {{ c.impression_limit|num }}{% endif %}</td>
+</tr>{% endfor %}</tbody></table></div>{% endif %}
+</section>
+{% endblock %}

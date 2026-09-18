@@ -1,0 +1,25 @@
+{% extends "admin/base.html" %}
+{% from "admin/_m.html" import kpi, rangebar, breakdown_table %}
+{% block title %}Bosh sahifa{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>Bosh sahifa</h1><p class="sub">Vakansiya sahifalari va reklama statistikasi</p></div></div>
+{{ rangebar(rng, f, ['dim'], channels, true) }}
+<section class="kpis" aria-label="Asosiy ko'rsatkichlar">
+  {{ kpi("Sahifa ko'rishlar", cur.page_views|num, deltas.page_views) }}
+  {{ kpi("Noyob tashrifchilar", cur.unique_visitors|num, deltas.unique_visitors) }}
+  {{ kpi("Aloqa kliklari (jami)", cur.contact_clicks|num, deltas.contact_clicks) }}
+  {{ kpi("Telegram kliklari", cur.telegram_clicks|num, deltas.telegram_clicks) }}
+  {{ kpi("Telefon kliklari", cur.phone_clicks|num, deltas.phone_clicks) }}
+  {{ kpi("Tashqi ariza kliklari", cur.external_clicks|num, deltas.external_clicks) }}
+  {{ kpi("Reklama ko'rsatilishi", cur.ad_impressions|num, deltas.ad_impressions) }}
+  {{ kpi("Reklama kliklari", cur.ad_clicks|num, deltas.ad_clicks) }}
+  {{ kpi("Reklama CTR", cur.ad_ctr|pct(2), deltas.ad_ctr) }}
+</section>
+<section class="card panel"><div class="panel-head"><h2>Dinamika</h2></div>
+  <div class="chart" data-chart="/admin/api/timeseries?{{ qs(request, dim=None) }}"><div class="empty">Yuklanmoqda…</div></div></section>
+<section class="card panel">
+  <div class="panel-head"><h2>Taqsimot</h2>
+    <nav class="tabs" aria-label="Guruhlash">{% for k, t in dims.items() %}<a href="?{{ qs(request, dim=k) }}" aria-current="{{ 'true' if dim == k else 'false' }}">{{ t }}</a>{% endfor %}</nav></div>
+  {{ breakdown_table(rows, dims[dim], '/admin/jobs/' if dim == 'job' else ('/admin/ads/' if dim == 'campaign' else none)) }}
+</section>
+{% endblock %}

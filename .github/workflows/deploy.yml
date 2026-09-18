@@ -39,5 +39,10 @@ jobs:
             cd /home/ubuntu/nuvi-academy-bot && \
             docker-compose build && \
             docker-compose down --remove-orphans && \
-            VACANCY_TG_SESSION_STRING='${{ secrets.VACANCY_TG_SESSION_STRING }}' docker-compose up -d
+            VACANCY_TG_SESSION_STRING='${{ secrets.VACANCY_TG_SESSION_STRING }}' \\
+            HIRELY_SECRET_KEY='${{ secrets.HIRELY_SECRET_KEY }}' \\
+            HIRELY_BOT_API_TOKENS='${{ secrets.HIRELY_BOT_API_TOKENS }}' \\
+            HIRELY_BOOTSTRAP_ADMIN_EMAIL='${{ secrets.HIRELY_ADMIN_EMAIL }}' \\
+            HIRELY_BOOTSTRAP_ADMIN_PASSWORD='${{ secrets.HIRELY_ADMIN_PASSWORD }}' \\
+            docker-compose up -d
           "

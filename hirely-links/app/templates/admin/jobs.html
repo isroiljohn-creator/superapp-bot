@@ -1,0 +1,22 @@
+{% extends "admin/base.html" %}
+{% from "admin/_m.html" import rangebar %}
+{% block title %}Vakansiyalar{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>Vakansiyalar</h1><p class="sub">Jami: {{ total|num }}</p></div></div>
+{{ rangebar(rng, f, [], channels, true, true) }}
+<section class="card panel">
+{% if not rows %}<div class="empty">Vakansiya topilmadi</div>{% else %}
+<div class="tbl-wrap"><table class="tbl"><thead><tr><th class="l">Vakansiya</th><th>Yaratilgan</th><th>Kanal</th><th>Manba</th><th>Ko'rishlar</th><th>Noyob</th><th>Qo'ng'iroq</th><th>Telegram</th><th>Tashqi</th><th>Reklama ko'rsatish</th><th>Reklama klik</th><th>Konversiya</th></tr></thead><tbody>
+{% for j in rows %}<tr>
+<td class="l"><a href="/admin/jobs/{{ j.public_id }}">{{ j.title or j.internal_ref or j.public_id }}</a><span class="sub">{{ j.public_id }}{% if j.category %} · {{ j.category }}{% endif %}</span></td>
+<td data-label="Yaratilgan">{{ j.created_at|local_dt }}</td><td data-label="Kanal">{{ j.channels or '—' }}</td><td data-label="Manba">{{ j.source or '—' }}</td>
+<td data-label="Ko'rishlar">{{ j.page_views|num }}</td><td data-label="Noyob">{{ j.unique_visitors|num }}</td><td data-label="Qo'ng'iroq">{{ j.phone_clicks|num }}</td><td data-label="Telegram">{{ j.telegram_clicks|num }}</td><td data-label="Tashqi">{{ j.external_clicks|num }}</td>
+<td data-label="Reklama ko'rsatish">{{ j.ad_impressions|num }}</td><td data-label="Reklama klik">{{ j.ad_clicks|num }}</td><td data-label="Konversiya">{{ j.conversion|pct }}</td>
+</tr>{% endfor %}</tbody></table></div>
+{% if pages > 1 %}<nav class="pager" aria-label="Sahifalar">
+  {% if page > 1 %}<a class="btn btn--line btn--sm" href="?{{ qs(request) }}&page={{ page - 1 }}">← Oldingi</a>{% endif %}
+  <span class="muted">{{ page }} / {{ pages }}</span>
+  {% if page < pages %}<a class="btn btn--line btn--sm" href="?{{ qs(request) }}&page={{ page + 1 }}">Keyingi →</a>{% endif %}</nav>{% endif %}
+{% endif %}
+</section>
+{% endblock %}

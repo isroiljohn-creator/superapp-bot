@@ -1,0 +1,24 @@
+{% extends "admin/base.html" %}
+{% from "admin/_m.html" import csrf_field %}
+{% block title %}Adminlar{% endblock %}
+{% block content %}
+<div class="page-head"><h1>Adminlar</h1></div>
+<section class="card panel"><div class="tbl-wrap"><table class="tbl"><thead><tr><th class="l">Email</th><th>Oxirgi kirish</th><th>Holat</th><th></th></tr></thead><tbody>
+{% for a in admins %}<tr><td class="l">{{ a.email }}{% if a.display_name %}<span class="sub">{{ a.display_name }}</span>{% endif %}</td>
+<td data-label="Oxirgi kirish">{{ a.last_login_at|local_dt }}</td><td data-label="Holat"><span class="badge {{ 'badge--on' if a.is_active else 'badge--off' }}">{{ 'Faol' if a.is_active else 'Nofaol' }}</span></td>
+<td>{% if a.id != sess.admin.id %}<form method="post" action="/admin/admins/{{ a.id }}/toggle">{{ csrf_field(csrf) }}<button class="btn btn--line btn--sm" type="submit">{{ "Nofaol qilish" if a.is_active else "Faollashtirish" }}</button></form>{% endif %}</td></tr>{% endfor %}
+</tbody></table></div></section>
+<div class="grid2">
+<section class="card panel"><h2>Yangi admin</h2><form method="post" action="/admin/admins" class="form-grid">
+  {{ csrf_field(csrf) }}
+  <div class="field"><label for="a_email">Email</label><input id="a_email" name="email" type="email" required maxlength="254"></div>
+  <div class="field"><label for="a_name">Ism</label><input id="a_name" name="display_name" maxlength="80"></div>
+  <div class="field"><label for="a_pw">Parol (kamida 10 belgi)</label><input id="a_pw" name="password" type="password" minlength="10" required autocomplete="new-password"></div>
+  <div class="actions-row"><button class="btn btn--primary" type="submit">Qo'shish</button></div></form></section>
+<section class="card panel"><h2>Parolni almashtirish</h2><form method="post" action="/admin/password" class="form-grid">
+  {{ csrf_field(csrf) }}
+  <div class="field"><label for="p_cur">Joriy parol</label><input id="p_cur" name="current_password" type="password" required autocomplete="current-password"></div>
+  <div class="field"><label for="p_new">Yangi parol (kamida 10 belgi)</label><input id="p_new" name="new_password" type="password" minlength="10" required autocomplete="new-password"></div>
+  <div class="actions-row"><button class="btn btn--dark" type="submit">Almashtirish</button></div></form></section>
+</div>
+{% endblock %}

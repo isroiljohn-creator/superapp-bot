@@ -1,0 +1,50 @@
+{% macro csrf_field(c) %}<input type="hidden" name="csrf" value="{{ c }}">{% endmacro %}
+
+{% macro delta(d) -%}
+{%- if d is none %}<span class="dl"><b>—</b>oldingi davr bilan</span>
+{%- else %}<span class="dl"><b class="{{ 'up' if d >= 0 else '' }}">{{ '▲' if d >= 0 else '▼' }} {{ '%.1f'|format(d|abs) }}%</b>oldingi davr bilan</span>{% endif -%}
+{%- endmacro %}
+
+{% macro kpi(label, value, d=none, suffix='', compare=true) %}
+<div class="card kpi"><span class="lbl">{{ label }}</span><span class="val">{{ value }}{{ suffix }}</span>{% if compare %}{{ delta(d) }}{% endif %}</div>
+{% endmacro %}
+
+{# Time-range + filter bar. `keep` = extra query params to preserve as hidden inputs. #}
+{% macro rangebar(rng, f, keep=[], channels=none, show_filters=false, search=false) %}
+<div class="bar">
+<form method="get" data-range>
+  <div class="field"><label for="r">Davr</label>
+    <select id="r" name="r">
+      {% for k, t in [('today','Bugun'),('yesterday','Kecha'),('7d','7 kun'),('30d','30 kun'),('custom','Oraliq'),('all','Butun davr')] %}
+      <option value="{{ k }}" {{ 'selected' if rng.preset == k }}>{{ t }}</option>{% endfor %}
+    </select></div>
+  <div class="field" data-custom><label for="from">Dan</label><input id="from" type="date" name="from" value="{{ f.get('from','') }}"></div>
+  <div class="field" data-custom><label for="to">Gacha</label><input id="to" type="date" name="to" value="{{ f.get('to','') }}"></div>
+  {% if search %}<div class="field"><label for="q">Qidiruv</label><input id="q" name="q" value="{{ f.get('q','') }}" maxlength="80" placeholder="ID yoki nom"></div>{% endif %}
+  {% if show_filters %}
+  <div class="field"><label for="channel">Kanal</label>
+    <select id="channel" name="channel"><option value="">Barchasi</option>{% for c in channels %}<option value="{{ c.id }}" {{ 'selected' if f.get('channel') == c.id|string }}>{{ c.name }}</option>{% endfor %}</select></div>
+  <div class="field"><label for="device">Qurilma</label>
+    <select id="device" name="device"><option value="">Barchasi</option>{% for k, t in [('mobile','Telefon'),('tablet','Planshet'),('desktop','Kompyuter')] %}<option value="{{ k }}" {{ 'selected' if f.get('device') == k }}>{{ t }}</option>{% endfor %}</select></div>
+  <div class="field"><label for="category">Kategoriya</label><input id="category" name="category" value="{{ f.get('category','') }}" maxlength="40" placeholder="masalan: it"></div>
+  <div class="field"><label for="job_source">Manba</label><input id="job_source" name="job_source" value="{{ f.get('job_source','') }}" maxlength="40" placeholder="masalan: bot"></div>
+  {% endif %}
+  {% for k in keep %}{% if f.get(k) %}<input type="hidden" name="{{ k }}" value="{{ f.get(k) }}">{% endif %}{% endfor %}
+  <button class="btn btn--dark btn--sm" type="submit">Qo'llash</button>
+</form>
+</div>
+{% endmacro %}
+
+{% macro status(camp_status, labels) %}<span class="badge {{ 'badge--on' if camp_status == 'active' else ('badge--off' if camp_status == 'archived' else '') }}">{{ labels[camp_status] }}</span>{% endmacro %}
+
+{% macro breakdown_table(rows, dim_label, prefix=none) %}
+{% if not rows %}<div class="empty">Tanlangan davr uchun ma'lumot yo'q</div>{% else %}
+<div class="tbl-wrap"><table class="tbl"><thead><tr>
+<th class="l">{{ dim_label }}</th><th>Ko'rishlar</th><th>Noyob</th><th>Qo'ng'iroq</th><th>Telegram</th><th>Tashqi</th><th>Konversiya</th><th>Reklama ko'rsatish</th><th>Reklama klik</th><th>CTR</th></tr></thead><tbody>
+{% for r in rows %}<tr>
+<td class="l">{% if prefix and r.key %}<a href="{{ prefix }}{{ r.key }}">{{ r.label }}</a>{% else %}{{ r.label }}{% endif %}</td>
+<td data-label="Ko'rishlar">{{ r.page_views|num }}</td><td data-label="Noyob">{{ r.unique_visitors|num }}</td>
+<td data-label="Qo'ng'iroq">{{ r.phone_clicks|num }}</td><td data-label="Telegram">{{ r.telegram_clicks|num }}</td><td data-label="Tashqi">{{ r.external_clicks|num }}</td>
+<td data-label="Konversiya">{{ r.conversion|pct }}</td><td data-label="Reklama ko'rsatish">{{ r.ad_impressions|num }}</td><td data-label="Reklama klik">{{ r.ad_clicks|num }}</td><td data-label="CTR">{{ r.ad_ctr|pct(2) }}</td>
+</tr>{% endfor %}</tbody></table></div>{% endif %}
+{% endmacro %}

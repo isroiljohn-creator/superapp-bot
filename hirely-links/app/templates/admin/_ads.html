@@ -1,0 +1,24 @@
+{% from "admin/_m.html" import csrf_field %}
+{% macro campaign_fields(camp, advertisers, channels, targets, categories, form) %}
+<div class="form-grid two">
+  <div class="field"><label for="name">Kampaniya nomi</label><input id="name" name="name" required maxlength="120" value="{{ camp.name if camp else (form.get('name','') if form else '') }}"></div>
+  <div class="field"><label for="advertiser_id">Reklama beruvchi</label>
+    <select id="advertiser_id" name="advertiser_id"><option value="">— tanlang —</option>
+    {% for a in advertisers %}<option value="{{ a.id }}" {{ 'selected' if camp and camp.advertiser_id == a.id }}>{{ a.name }}</option>{% endfor %}</select></div>
+  <div class="field"><label for="advertiser_new">Yoki yangi reklama beruvchi</label><input id="advertiser_new" name="advertiser_new" maxlength="120" placeholder="Kompaniya nomi"></div>
+  <div></div>
+  <div class="field"><label for="start_at">Boshlanish vaqti</label><input id="start_at" type="datetime-local" name="start_at" value="{{ camp.start_at|local_input if camp else '' }}"><small>Bo'sh = darhol</small></div>
+  <div class="field"><label for="end_at">Tugash vaqti</label><input id="end_at" type="datetime-local" name="end_at" value="{{ camp.end_at|local_input if camp else '' }}"><small>Bo'sh = cheksiz</small></div>
+  <div class="field"><label for="impression_limit">Ko'rsatish limiti</label><input id="impression_limit" name="impression_limit" inputmode="numeric" value="{{ camp.impression_limit or '' if camp else '' }}"><small>Bo'sh = cheksiz</small></div>
+  <div class="field"><label for="click_limit">Klik limiti</label><input id="click_limit" name="click_limit" inputmode="numeric" value="{{ camp.click_limit or '' if camp else '' }}"><small>Bo'sh = cheksiz</small></div>
+</div>
+<fieldset class="field fs0">
+  <span class="lbl">Targeting</span><small>Hech narsa tanlanmasa — barcha trafik. Bir nechtasi tanlansa, ulardan biriga mos kelgan sahifada ko'rsatiladi.</small>
+  <div class="checks">
+    {% for c in channels %}<label><input type="checkbox" name="t_channel" value="{{ c.code }}" {{ 'checked' if ('channel', c.code) in targets }}>Kanal: {{ c.name }}</label>{% endfor %}
+    <label><input type="checkbox" name="t_market" value="uz" {{ 'checked' if ('market', 'uz') in targets }}>UZ vakansiyalar</label>
+    <label><input type="checkbox" name="t_market" value="global" {{ 'checked' if ('market', 'global') in targets }}>Global / frilans</label>
+  </div>
+</fieldset>
+<div class="field"><label for="t_category">Kategoriyalar</label><input id="t_category" name="t_category" value="{{ categories or '' }}" maxlength="200" placeholder="it, marketing (vergul bilan)"></div>
+{% endmacro %}

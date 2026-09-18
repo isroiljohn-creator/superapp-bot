@@ -1,0 +1,48 @@
+{% from "_brand.html" import symbol, icon %}
+<!doctype html>
+<html lang="uz">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta name="theme-color" content="#F7FAF6">
+<title>Hirely — Ish beruvchi bilan bog'lanish</title>
+<link rel="icon" href="{{ asset('favicon.svg') }}" type="image/svg+xml">
+<link rel="preload" href="/static/fonts/sora-var.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/static/fonts/manrope-var.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="{{ asset('hirely.css') }}">
+<link rel="stylesheet" href="{{ asset('landing.css') }}">
+</head>
+<body>
+<div class="lp">
+<main class="lp-wrap">
+  <header class="lp-brand">{{ symbol(38) }}<span class="wordmark">Hirely</span><span class="pill">JOBS</span></header>
+
+  <section class="card lp-card" aria-labelledby="h">
+    <p class="eyebrow">Hirely Jobs</p>
+    <h1 id="h">Ish beruvchi bilan bog'lanish</h1>
+    <p class="lead">O'zingizga qulay usulni tanlang.</p>
+    <div class="actions">
+      {% set first = namespace(v=true) %}
+      {% if has_phone %}<a class="btn {{ 'btn--primary' if first.v else 'btn--dark' }}" href="/r/{{ slug }}/phone" rel="nofollow">{{ icon('phone') }}Qo'ng'iroq qilish</a>{% set first.v = false %}{% endif %}
+      {% if has_tg %}<a class="btn {{ 'btn--primary' if first.v else 'btn--dark' }}" href="/r/{{ slug }}/telegram" rel="nofollow noopener">{{ icon('telegram') }}Telegram orqali yozish</a>{% set first.v = false %}{% endif %}
+      {% if has_url %}<a class="btn {{ 'btn--primary' if first.v else 'btn--dark' }}" href="/r/{{ slug }}/external" rel="nofollow noopener">{{ icon('link') }}Ishga topshirish</a>{% set first.v = false %}{% endif %}
+    </div>
+  </section>
+
+  {% if ad %}
+  <aside class="card ad" data-tk="{{ ad.token }}" aria-label="Reklama">
+    <p class="ad-label">Reklama</p>
+    {% if ad.image %}<a href="/a/{{ ad.token }}" rel="sponsored noopener" tabindex="-1" aria-hidden="true"><img class="ad-img" src="/media/{{ ad.image }}.webp" srcset="/media/{{ ad.image }}-s.webp 600w, /media/{{ ad.image }}.webp 1200w" sizes="(min-width:600px) 480px, calc(100vw - 60px)" width="{{ ad.w }}" height="{{ ad.h }}" loading="lazy" decoding="async" alt=""></a>{% endif %}
+    <div class="ad-body"><h2>{{ ad.title }}</h2>{% if ad.description %}<p>{{ ad.description }}</p>{% endif %}</div>
+    <a class="btn btn--primary btn--sm" href="/a/{{ ad.token }}" rel="sponsored noopener">{{ ad.cta }}</a>
+  </aside>
+  {% endif %}
+
+  <footer class="lp-foot">{{ symbol(20) }}<span>Odamlar imkoniyat yaratadi</span></footer>
+</main>
+</div>
+{% if ad %}<script src="{{ asset('landing.js') }}" defer></script>{% endif %}
+</body>
+</html>

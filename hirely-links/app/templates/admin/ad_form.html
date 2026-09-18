@@ -1,0 +1,13 @@
+{% extends "admin/base.html" %}
+{% from "admin/_ads.html" import campaign_fields %}
+{% from "admin/_m.html" import csrf_field %}
+{% block title %}Yangi kampaniya{% endblock %}
+{% block content %}
+<div class="page-head"><h1>Yangi kampaniya</h1><a class="btn btn--line btn--sm" href="/admin/ads">← Reklamalar</a></div>
+{% if form_err %}<div class="notice notice--err" role="alert">{{ form_err }}</div>{% endif %}
+<form class="card panel" method="post" action="/admin/ads/new">
+  {{ csrf_field(csrf) }}
+  {{ campaign_fields(none, advertisers, channels, targets, '', form) }}
+  <div class="actions-row"><button class="btn btn--primary" type="submit">Yaratish</button></div>
+</form>
+{% endblock %}

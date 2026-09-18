@@ -1,0 +1,69 @@
+{% extends "admin/base.html" %}
+{% from "admin/_ads.html" import campaign_fields %}
+{% from "admin/_m.html" import csrf_field, kpi, rangebar, status %}
+{% block title %}{{ camp.name }}{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>{{ camp.name }}</h1>
+  <p class="sub">{{ camp.advertiser.name }} · {{ status(camp.status, labels) }} · {{ camp.start_at|local_dt if camp.start_at else 'darhol' }} — {{ camp.end_at|local_dt if camp.end_at else 'cheksiz' }}</p></div>
+  <div class="actions-row">
+    {% for st, t, cls in [('active','Faollashtirish','btn--primary'),('paused',"To'xtatish",'btn--dark'),('archived','Arxivlash','btn--line')] %}{% if camp.status != st %}
+    <form method="post" action="/admin/ads/{{ camp.id }}/status">{{ csrf_field(csrf) }}<input type="hidden" name="status" value="{{ st }}"><button class="btn {{ cls }} btn--sm" type="submit">{{ t }}</button></form>{% endif %}{% endfor %}
+    <form method="post" action="/admin/ads/{{ camp.id }}/delete" data-confirm="Kampaniyani o'chirasizmi? Statistikasi bor bo'lsa arxivlanadi.">{{ csrf_field(csrf) }}<button class="btn btn--line btn--sm" type="submit">O'chirish</button></form>
+  </div></div>
+{{ rangebar(rng, f) }}
+<section class="kpis">
+  {{ kpi("Ko'rsatilgan", stats.impressions|num, compare=false) }}
+  {{ kpi("Noyob ko'rsatilgan", stats.unique_impressions|num, compare=false) }}
+  {{ kpi("Kliklar", stats.clicks|num, compare=false) }}
+  {{ kpi("Noyob kliklar", stats.unique_clicks|num, compare=false) }}
+  {{ kpi("CTR", stats.ctr|pct(2), compare=false) }}
+  {{ kpi("Limit sarfi", camp.impressions_count|num ~ (' / ' ~ (camp.impression_limit|num) if camp.impression_limit else ''), compare=false) }}
+</section>
+
+<section class="card panel"><h2>Reklamalar (creative)</h2>
+  <p class="muted">Bir nechta faol reklama bo'lsa, ular og'irligiga qarab navbatma-navbat ko'rsatiladi.</p>
+  <div class="form-grid">
+  {% for cr in camp.creatives %}{% set s = crstats.get(cr.id, {}) %}
+  <div class="creative">
+    {% if cr.image_name %}<img src="/media/{{ cr.image_name }}-s.webp" width="{{ [cr.image_w, 600]|min }}" height="{{ (cr.image_h * ([cr.image_w, 600]|min) / cr.image_w)|int }}" alt="" loading="lazy">{% else %}<div class="ph">Rasm yo'q</div>{% endif %}
+    <div class="form-grid">
+      <div class="actions-row"><span class="badge {{ 'badge--on' if cr.is_active else 'badge--off' }}">{{ 'Faol' if cr.is_active else 'Nofaol' }}</span>
+        <span class="badge">{{ (s.impressions or 0)|num }} ko'rsatish</span><span class="badge">{{ (s.unique_impressions or 0)|num }} noyob</span><span class="badge">{{ (s.clicks or 0)|num }} klik</span><span class="badge">{{ (s.unique_clicks or 0)|num }} noyob klik</span><span class="badge">CTR {{ (s.ctr or 0)|pct(2) }}</span></div>
+      <form method="post" action="/admin/creatives/{{ cr.id }}" enctype="multipart/form-data" class="form-grid two">
+        {{ csrf_field(csrf) }}
+        <div class="field"><label>Sarlavha</label><input name="title" required maxlength="120" value="{{ cr.title }}"></div>
+        <div class="field"><label>CTA matni</label><input name="cta_text" required maxlength="40" value="{{ cr.cta_text }}"></div>
+        <div class="field"><label>Qisqa matn</label><textarea name="description" maxlength="300">{{ cr.description or '' }}</textarea></div>
+        <div class="field"><label>Manzil (URL)</label><input name="destination_url" type="url" required maxlength="2048" value="{{ cr.destination_url }}"></div>
+        <div class="field"><label>Og'irlik (1–100)</label><input name="weight" type="number" min="1" max="100" value="{{ cr.weight }}"></div>
+        <div class="field"><label>Banner (JPEG/PNG/WebP)</label><input name="image" type="file" accept="image/jpeg,image/png,image/webp"></div>
+        <div class="actions-row"><button class="btn btn--dark btn--sm" type="submit">Saqlash</button></div>
+      </form>
+      <div class="actions-row">
+        <form method="post" action="/admin/creatives/{{ cr.id }}/toggle">{{ csrf_field(csrf) }}<button class="btn btn--line btn--sm" type="submit">{{ "Nofaol qilish" if cr.is_active else "Faollashtirish" }}</button></form>
+        <form method="post" action="/admin/creatives/{{ cr.id }}/delete" data-confirm="Reklamani o'chirasizmi?">{{ csrf_field(csrf) }}<button class="btn btn--line btn--sm" type="submit">O'chirish</button></form>
+      </div>
+    </div>
+  </div>{% endfor %}
+  </div>
+</section>
+
+<section class="card panel"><h2>Yangi reklama qo'shish</h2>
+  <form method="post" action="/admin/ads/{{ camp.id }}/creatives" enctype="multipart/form-data" class="form-grid two">
+    {{ csrf_field(csrf) }}
+    <div class="field"><label for="n_title">Sarlavha</label><input id="n_title" name="title" required maxlength="120"></div>
+    <div class="field"><label for="n_cta">CTA matni</label><input id="n_cta" name="cta_text" required maxlength="40" placeholder="Batafsil"></div>
+    <div class="field"><label for="n_desc">Qisqa matn</label><textarea id="n_desc" name="description" maxlength="300"></textarea></div>
+    <div class="field"><label for="n_url">Manzil (URL)</label><input id="n_url" name="destination_url" type="url" required maxlength="2048" placeholder="https://"></div>
+    <div class="field"><label for="n_w">Og'irlik (1–100)</label><input id="n_w" name="weight" type="number" min="1" max="100" value="1"></div>
+    <div class="field"><label for="n_img">Banner (JPEG/PNG/WebP, 6 MB gacha)</label><input id="n_img" name="image" type="file" accept="image/jpeg,image/png,image/webp"></div>
+    <div class="actions-row"><button class="btn btn--primary" type="submit">Qo'shish</button></div>
+  </form></section>
+
+<form class="card panel" method="post" action="/admin/ads/{{ camp.id }}">
+  <h2>Kampaniya sozlamalari</h2>
+  {{ csrf_field(csrf) }}
+  {{ campaign_fields(camp, advertisers, channels, targets, categories, none) }}
+  <div class="actions-row"><button class="btn btn--dark" type="submit">Saqlash</button></div>
+</form>
+{% endblock %}
