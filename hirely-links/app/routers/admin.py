@@ -6,7 +6,7 @@ from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends, File, Form, Request, UploadFile
 from fastapi.responses import JSONResponse, RedirectResponse
-from sqlalchemy import func, select
+from sqlalchemy import func, select, text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -19,12 +19,13 @@ from ..media import MediaError, process_banner
 from ..models import (
     Admin, AdCampaign, AdCreative, AdTarget, Advertiser, Channel, Distribution, Job,
 )
-from ..security import csrf_ok, hash_password, new_csrf, sign, unsign, verify_password
+from ..security import csrf_ok, hash_password, new_csrf, new_totp_secret, otpauth_uri, sign, unsign, verify_password, verify_totp
 from ..tracking import client_ip
 from ..web import templates
 
 router = APIRouter(prefix="/admin")
 COOKIE = "hl_admin"
+COOKIE_2FA = "hl_2fa"
 STATUS_LABELS = {"draft": "Qoralama", "active": "Faol", "paused": "To'xtatilgan", "archived": "Arxiv"}
 
 
@@ -104,10 +105,50 @@ async def login(request: Request, email: str = Form(...), password: str = Form(.
         return render(request, "admin/login.html", None, {"next": _safe_next(next), "error": "Email yoki parol noto'g'ri."}, 401)
     admin.last_login_at = dt.datetime.now(dt.timezone.utc)
     await db.commit()
+    if admin.totp_enabled:  # password was right; the session only starts after the authenticator code
+        resp = redirect("/admin/login/2fa")
+        resp.set_cookie(COOKIE_2FA, sign("2fa", {"a": admin.id, "n": _safe_next(next)}, 300), max_age=300, httponly=True, samesite="lax", secure=settings.cookie_secure, path="/admin")
+        return resp
+    return _session_response(admin, _safe_next(next))
+
+
+def _session_response(admin: Admin, nxt: str) -> RedirectResponse:
+    settings = get_settings()
     ttl = settings.admin_session_hours * 3600
-    resp = redirect(_safe_next(next))
+    resp = redirect(nxt)
     resp.set_cookie(COOKIE, sign("admin", {"a": admin.id, "csrf": new_csrf()}, ttl), max_age=ttl, httponly=True, samesite="lax", secure=settings.cookie_secure, path="/admin")
+    resp.delete_cookie(COOKIE_2FA, path="/admin")
     return resp
+
+
+def _pending(request: Request) -> Optional[dict]:
+    data = unsign("2fa", request.cookies.get(COOKIE_2FA, ""))
+    return data if data and isinstance(data.get("a"), int) else None
+
+
+@router.get("/login/2fa")
+async def login_2fa_page(request: Request):
+    if not _pending(request):
+        return redirect("/admin/login")
+    return render(request, "admin/login_2fa.html", None, {"error": None})
+
+
+@router.post("/login/2fa")
+async def login_2fa(request: Request, code: str = Form(...), db: AsyncSession = Depends(get_db)):
+    pend = _pending(request)
+    if not pend:
+        return redirect("/admin/login")
+    lim = request.app.state.limiter
+    ip = client_ip(request, get_settings())
+    if not await lim.allow(f"2fa:ip:{ip}", 20, 600) or not await lim.allow(f"2fa:a:{pend['a']}", 6, 600):
+        return render(request, "admin/login_2fa.html", None, {"error": "Juda ko'p urinish. 10 daqiqadan keyin qayta urinib ko'ring."}, 429)
+    admin = await db.get(Admin, pend["a"])
+    step = verify_totp(admin.totp_secret, code, admin.totp_last_step) if (admin and admin.is_active and admin.totp_enabled and admin.totp_secret) else None
+    if step is None:
+        return render(request, "admin/login_2fa.html", None, {"error": "Kod noto'g'ri yoki eskirgan."}, 401)
+    admin.totp_last_step = step  # a code works once
+    await db.commit()
+    return _session_response(admin, _safe_next(pend.get("n")))
 
 
 @router.post("/logout")
@@ -214,7 +255,37 @@ async def job_detail(public_id: str, request: Request, sess: Session = Depends(c
     return render(request, "admin/job_detail.html", sess, {
         "job": job, "rng": rng, "cur": cur, "deltas": {k: an.delta(cur, prev, k) for k in cur}, "dim": dim,
         "dims": an.DIM_LABELS, "rows": rows, "per_dist": per_dist, "base": base, "f": q, "qs": _qs, "request": request,
+        "deletable": job.source in ("manual", "test") or job.category == "test",
     })
+
+
+@router.post("/jobs/{public_id}/delete")
+async def job_delete(public_id: str, request: Request, csrf: str = Form(""), sess: Session = Depends(guarded), db: AsyncSession = Depends(get_db)):
+    """Only test/manual links can be deleted; real bot links are referenced by live Telegram posts."""
+    await check_csrf(sess, csrf)
+    job = (await db.execute(select(Job).where(Job.public_id == public_id.strip().upper()).options(selectinload(Job.distributions)))).scalar_one_or_none()
+    if job is None:
+        return redirect("/admin/jobs", err="Vakansiya topilmadi")
+    if not (job.source in ("manual", "test") or job.category == "test"):
+        return redirect(f"/admin/jobs/{job.public_id}", err="Faqat test/qo'lda yaratilgan havolalarni o'chirish mumkin")
+    dist_ids = [d.id for d in job.distributions]
+    if dist_ids:
+        for table, col in (("ad_impressions", "impressions_count"), ("ad_clicks", "clicks_count")):
+            rows = (await db.execute(text(f"DELETE FROM hirely.{table} WHERE distribution_id = ANY(:ids) RETURNING campaign_id"), {"ids": dist_ids})).all()
+            per: Dict[int, int] = {}
+            for (cid,) in rows:
+                per[cid] = per.get(cid, 0) + 1
+            for cid, n in per.items():
+                await db.execute(text(f"UPDATE hirely.ad_campaigns SET {col} = GREATEST({col} - :n, 0) WHERE id = :c"), {"n": n, "c": cid})
+    await db.execute(text("DELETE FROM hirely.events WHERE job_id = :j"), {"j": job.id})
+    for d in job.distributions:
+        await db.delete(d)
+    await db.flush()
+    await db.delete(job)
+    await db.commit()
+    from .public import _CACHE
+    _CACHE.clear()
+    return redirect("/admin/jobs", ok=f"{public_id.upper()} o'chirildi")
 
 
 # ---------------------------------------------------------------- ads
@@ -483,6 +554,55 @@ async def creative_delete(crid: int, request: Request, csrf: str = Form(""), ses
 def text_count(crid: int):
     from sqlalchemy import text
     return text("SELECT (SELECT count(*) FROM hirely.ad_impressions WHERE creative_id=:c) + (SELECT count(*) FROM hirely.ad_clicks WHERE creative_id=:c)").bindparams(c=crid)
+
+
+# ---------------------------------------------------------------- two-factor authentication
+
+def _group(secret: str) -> str:
+    return " ".join(secret[i:i + 4] for i in range(0, len(secret), 4))
+
+
+@router.get("/security")
+async def security_page(request: Request, sess: Session = Depends(current)):
+    a = sess.admin
+    pending = a.totp_secret if (a.totp_secret and not a.totp_enabled) else None
+    return render(request, "admin/security.html", sess, {
+        "enabled": a.totp_enabled, "secret": _group(pending) if pending else None,
+        "uri": otpauth_uri(a.email, pending) if pending else None,
+    })
+
+
+@router.post("/security/setup")
+async def security_setup(csrf: str = Form(""), sess: Session = Depends(guarded), db: AsyncSession = Depends(get_db)):
+    await check_csrf(sess, csrf)
+    if sess.admin.totp_enabled:
+        return redirect("/admin/security", err="2FA allaqachon yoqilgan")
+    sess.admin.totp_secret = new_totp_secret()
+    await db.commit()
+    return redirect("/admin/security")
+
+
+@router.post("/security/enable")
+async def security_enable(code: str = Form(""), csrf: str = Form(""), sess: Session = Depends(guarded), db: AsyncSession = Depends(get_db)):
+    await check_csrf(sess, csrf)
+    a = sess.admin
+    step = verify_totp(a.totp_secret, code) if a.totp_secret else None
+    if step is None:
+        return redirect("/admin/security", err="Kod noto'g'ri. Ilovadagi joriy 6 xonali kodni kiriting.")
+    a.totp_enabled, a.totp_last_step = True, step
+    await db.commit()
+    return redirect("/admin/security", ok="2 bosqichli himoya yoqildi")
+
+
+@router.post("/security/disable")
+async def security_disable(password: str = Form(""), code: str = Form(""), csrf: str = Form(""), sess: Session = Depends(guarded), db: AsyncSession = Depends(get_db)):
+    await check_csrf(sess, csrf)
+    a = sess.admin
+    if not (a.totp_enabled and a.totp_secret and verify_password(password, a.password_hash) and verify_totp(a.totp_secret, code, a.totp_last_step) is not None):
+        return redirect("/admin/security", err="Parol yoki kod noto'g'ri")
+    a.totp_enabled, a.totp_secret, a.totp_last_step = False, None, None
+    await db.commit()
+    return redirect("/admin/security", ok="2 bosqichli himoya o'chirildi")
 
 
 # ---------------------------------------------------------------- channels & admins

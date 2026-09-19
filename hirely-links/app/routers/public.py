@@ -1,3 +1,4 @@
+import asyncio
 import json
 import time
 from dataclasses import dataclass
@@ -11,7 +12,7 @@ from sqlalchemy.orm import joinedload
 
 from ..ads import make_ad_token
 from ..config import get_settings
-from ..db import get_db
+from ..db import get_db, sessionmaker
 from ..ids import is_valid_slug, normalize_slug
 from ..models import AdCreative, Distribution
 from ..security import unsign
@@ -47,29 +48,57 @@ _CACHE: Dict[str, Tuple[float, Optional[Target]]] = {}
 _CACHE_TTL = 60.0
 
 
-async def _load(db: AsyncSession, raw_slug: str) -> Optional[Target]:
-    """Landing/redirect hot path. Jobs are immutable once created, so a short in-process cache
-    keeps the database out of the request path for repeat hits."""
+_LOCKS: Dict[str, asyncio.Lock] = {}
+
+
+async def _load(raw_slug: str) -> Optional[Target]:
+    """Landing/redirect hot path. Jobs are immutable once created, so a short in-process cache keeps the
+    database out of the request path. A cache miss opens a short-lived session (released before the
+    response is built) and concurrent misses for one slug share a single query."""
     slug = normalize_slug(raw_slug)
     if not is_valid_slug(slug):
         return None
     hit = _CACHE.get(slug)
     if hit and hit[0] > time.monotonic():
         return hit[1]
-    res = await db.execute(
-        select(Distribution)
-        .options(joinedload(Distribution.job), joinedload(Distribution.channel))
-        .where(Distribution.slug == slug)
-    )
-    d = res.scalar_one_or_none()
-    target = None if d is None else Target(
-        d.slug, d.id, d.job_id, d.channel_id, d.channel.code, d.channel.market, d.channel.is_active,
-        d.job.phone, d.job.telegram, d.job.external_url, d.job.category, d.job.source,
-    )
-    if len(_CACHE) > 20000:
-        _CACHE.clear()
-    _CACHE[slug] = (time.monotonic() + (_CACHE_TTL if target else 10.0), target)
-    return target
+    if len(_LOCKS) > 5000:
+        _LOCKS.clear()
+    async with _LOCKS.setdefault(slug, asyncio.Lock()):
+        hit = _CACHE.get(slug)
+        if hit and hit[0] > time.monotonic():
+            return hit[1]
+        async with sessionmaker()() as db:
+            res = await db.execute(
+                select(Distribution)
+                .options(joinedload(Distribution.job), joinedload(Distribution.channel))
+                .where(Distribution.slug == slug)
+            )
+            d = res.scalar_one_or_none()
+            target = None if d is None else Target(
+                d.slug, d.id, d.job_id, d.channel_id, d.channel.code, d.channel.market, d.channel.is_active,
+                d.job.phone, d.job.telegram, d.job.external_url, d.job.category, d.job.source,
+            )
+        if len(_CACHE) > 20000:
+            _CACHE.clear()
+        _CACHE[slug] = (time.monotonic() + (_CACHE_TTL if target else 10.0), target)
+        return target
+
+
+_CREATIVES: Dict[int, Tuple[float, Optional[Tuple[int, str]]]] = {}
+
+
+async def _creative(creative_id: int) -> Optional[Tuple[int, str]]:
+    """(campaign_id, destination_url) for an ad click, cached for a minute."""
+    hit = _CREATIVES.get(creative_id)
+    if hit and hit[0] > time.monotonic():
+        return hit[1]
+    async with sessionmaker()() as db:
+        cr = await db.get(AdCreative, creative_id)
+        val = (cr.campaign_id, cr.destination_url) if cr else None
+    if len(_CREATIVES) > 5000:
+        _CREATIVES.clear()
+    _CREATIVES[creative_id] = (time.monotonic() + (60.0 if val else 10.0), val)
+    return val
 
 
 def _dims(t: Target) -> dict:
@@ -77,8 +106,8 @@ def _dims(t: Target) -> dict:
 
 
 @router.api_route("/j/{slug}", methods=["GET", "HEAD"], response_class=HTMLResponse)
-async def landing(slug: str, request: Request, db: AsyncSession = Depends(get_db)):
-    t = await _load(db, slug)
+async def landing(slug: str, request: Request):
+    t = await _load(slug)
     if t is None or not t.channel_active:
         return not_found(request)
     st = request.app.state
@@ -113,10 +142,10 @@ _KINDS = {
 
 
 @router.get("/r/{slug}/{kind}")
-async def contact_redirect(slug: str, kind: str, request: Request, db: AsyncSession = Depends(get_db)):
+async def contact_redirect(slug: str, kind: str, request: Request):
     """Record, then redirect. Recording is a queue put, so the redirect never waits on the database."""
     spec = _KINDS.get(kind)
-    t = await _load(db, slug) if spec else None
+    t = await _load(slug) if spec else None
     target = spec[1](t) if (spec and t and t.channel_active) else None
     if not target:
         return not_found(request)
@@ -132,22 +161,23 @@ async def contact_redirect(slug: str, kind: str, request: Request, db: AsyncSess
 
 
 @router.get("/a/{token}")
-async def ad_click(token: str, request: Request, db: AsyncSession = Depends(get_db)):
+async def ad_click(token: str, request: Request):
     data = unsign("ad", token, allow_expired=True)
-    creative = await db.get(AdCreative, data["c"]) if data and isinstance(data.get("c"), int) else None
+    creative = await _creative(data["c"]) if data and isinstance(data.get("c"), int) else None
     if creative is None:
         return not_found(request)
+    campaign_id, destination = creative
     st = request.app.state
     settings = get_settings()
     ctx = identify(request, settings)
     fresh = data.get("exp", 0) >= time.time()
     if fresh and not ctx.client.is_bot and await st.limiter.allow(f"c:{data['n']}", 5, 60) and await st.limiter.allow(f"c:{ctx.ip}", 60, 60):
         st.writer.record(
-            ctx, "ad_click", ad_id=creative.id, campaign_id=creative.campaign_id, nonce=data["n"],
+            ctx, "ad_click", ad_id=data["c"], campaign_id=campaign_id, nonce=data["n"],
             distribution_id=data.get("d"), job_id=data.get("j"), channel_id=data.get("h"),
             category=data.get("cat"), job_source=data.get("js"),
         )
-    resp = RedirectResponse(creative.destination_url, status_code=302, headers=NO_STORE)
+    resp = RedirectResponse(destination, status_code=302, headers=NO_STORE)
     if not ctx.client.is_bot:
         apply_cookies(resp, ctx, settings)
     return resp

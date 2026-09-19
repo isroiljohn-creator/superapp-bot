@@ -12,7 +12,7 @@ def engine() -> AsyncEngine:
     global _engine, _maker
     if _engine is None:
         _engine = create_async_engine(
-            get_settings().database_url, pool_size=5, max_overflow=5, pool_pre_ping=True, pool_recycle=1800
+            get_settings().database_url, pool_size=8, max_overflow=8, pool_timeout=10, pool_pre_ping=True, pool_recycle=1800
         )
         _maker = async_sessionmaker(_engine, expire_on_commit=False)
     return _engine

@@ -7,7 +7,11 @@ on:
   workflow_dispatch:
 
 jobs:
+  test:
+    uses: ./.github/workflows/ci.yml
+
   deploy:
+    needs: test
     runs-on: ubuntu-latest
 
     steps:
@@ -43,6 +47,8 @@ jobs:
             VACANCY_TG_SESSION_STRING='${{ secrets.VACANCY_TG_SESSION_STRING }}' \\
             HIRELY_PUBLIC_BASE_URL='${{ vars.HIRELY_PUBLIC_BASE_URL }}' \\
             HIRELY_LINKS_TOKEN='${{ secrets.HIRELY_LINKS_TOKEN }}' \\
+            ALERT_BOT_TOKEN='${{ secrets.ALERT_BOT_TOKEN }}' \\
+            ALERT_CHAT_ID='${{ secrets.ALERT_CHAT_ID }}' \\
             HIRELY_SECRET_KEY='${{ secrets.HIRELY_SECRET_KEY }}' \\
             HIRELY_BOT_API_TOKENS='${{ secrets.HIRELY_BOT_API_TOKENS }}' \\
             HIRELY_BOOTSTRAP_ADMIN_EMAIL='${{ secrets.HIRELY_ADMIN_EMAIL }}' \\

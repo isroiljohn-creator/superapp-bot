@@ -148,3 +148,116 @@ async def test_jobs_pages_render_for_a_job_with_no_events(admin_client, make_job
     r = await admin_client.get(f"/admin/jobs/{d['job_id']}?r=all")
     assert r.status_code == 200 and d["public_url"] in r.text
     assert (await admin_client.get("/admin?r=all&dim=job")).status_code == 200
+
+
+# ------------------------------------------------------------------ 2FA and job deletion
+
+@pytest.mark.asyncio(loop_scope="session")
+async def test_totp_matches_rfc6238_vector_and_rejects_replay():
+    from app.security import _hotp, verify_totp
+    secret = "GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ"  # RFC 6238 test key "12345678901234567890"
+    assert _hotp(secret, 59 // 30) == "287082"          # RFC vector t=59 (last 6 of 94287082)
+    assert _hotp(secret, 1111111109 // 30) == "081804"   # RFC vector t=1111111109
+    step = verify_totp(secret, "287082", None, at=59)
+    assert step == 1
+    assert verify_totp(secret, "287082", step, at=59) is None       # same code twice
+    assert verify_totp(secret, "287082", None, at=59 + 30) == 1      # +-1 step drift is tolerated
+    assert verify_totp(secret, "287082", None, at=59 + 120) is None  # but not more
+    assert verify_totp(secret, "12345", None, at=59) is None and verify_totp(secret, "abcdef", None, at=59) is None
+
+
+@pytest.mark.asyncio(loop_scope="session")
+async def test_two_factor_setup_login_replay_and_disable(app, client, admin_client):
+    import re
+    from app.security import totp_now, unsign
+    # enable
+    await admin_client.post("/admin/security/setup", data={"csrf": admin_client.csrf})
+    page = (await admin_client.get("/admin/security")).text
+    secret = re.search(r"<code>([A-Z2-7 ]+)</code>", page).group(1).replace(" ", "")
+    bad = await admin_client.post("/admin/security/enable", data={"csrf": admin_client.csrf, "code": "000000"})
+    assert "err=" in bad.headers["location"]
+    ok = await admin_client.post("/admin/security/enable", data={"csrf": admin_client.csrf, "code": totp_now(secret)})
+    assert "ok=" in ok.headers["location"]
+    # password alone no longer opens a session
+    import httpx
+    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://hirely.test") as c:
+        r = await c.post("/admin/login", data={"email": "boss@hirely.test", "password": "correct-horse-battery"})
+        assert r.status_code == 303 and r.headers["location"].startswith("/admin/login/2fa")
+        assert "hl_admin" not in c.cookies
+        assert (await c.get("/admin", follow_redirects=False)).status_code == 303
+        wrong = await c.post("/admin/login/2fa", data={"code": "123456"})
+        assert wrong.status_code == 401
+        # the code that just enabled 2FA was consumed: replaying it must fail
+        replay = await c.post("/admin/login/2fa", data={"code": totp_now(secret)})
+        assert replay.status_code == 401
+    # a fresh step code works (move the stored step back one so the current code is new)
+    from sqlalchemy import text
+    from app.db import sessionmaker
+    async with sessionmaker()() as db:
+        await db.execute(text("UPDATE hirely.admins SET totp_last_step = totp_last_step - 5"))
+        await db.commit()
+    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://hirely.test") as c:
+        await c.post("/admin/login", data={"email": "boss@hirely.test", "password": "correct-horse-battery"})
+        good = await c.post("/admin/login/2fa", data={"code": totp_now(secret)})
+        assert good.status_code == 303 and good.headers["location"] == "/admin"
+        assert (await c.get("/admin")).status_code == 200
+    # disabling needs password + a code that hasn't been used yet
+    async with sessionmaker()() as db:
+        await db.execute(text("UPDATE hirely.admins SET totp_last_step = totp_last_step - 5"))
+        await db.commit()
+    no = await admin_client.post("/admin/security/disable", data={"csrf": admin_client.csrf, "password": "wrong", "code": totp_now(secret)})
+    assert "err=" in no.headers["location"]
+    yes = await admin_client.post("/admin/security/disable", data={"csrf": admin_client.csrf, "password": "correct-horse-battery", "code": totp_now(secret)})
+    assert "ok=" in yes.headers["location"]
+    r = await client.post("/admin/login", data={"email": "boss@hirely.test", "password": "correct-horse-battery"})
+    assert r.headers["location"] == "/admin"
+
+
+@pytest.mark.asyncio(loop_scope="session")
+async def test_2fa_login_is_rate_limited(app, admin_client):
+    import httpx
+    from app.security import totp_now
+    await admin_client.post("/admin/security/setup", data={"csrf": admin_client.csrf})
+    import re
+    secret = re.search(r"<code>([A-Z2-7 ]+)</code>", (await admin_client.get("/admin/security")).text).group(1).replace(" ", "")
+    await admin_client.post("/admin/security/enable", data={"csrf": admin_client.csrf, "code": totp_now(secret)})
+    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://hirely.test") as c:
+        await c.post("/admin/login", data={"email": "boss@hirely.test", "password": "correct-horse-battery"})
+        codes = [(await c.post("/admin/login/2fa", data={"code": "000000"})).status_code for _ in range(9)]
+    assert 429 in codes and 200 not in codes
+
+
+@pytest.mark.asyncio(loop_scope="session")
+async def test_only_test_links_can_be_deleted_and_stats_are_cleaned(app, admin_client, client, make_job):
+    from tests.conftest import flush
+    test_job = await make_job(source="manual", category="test")
+    real_job = await make_job(title="Real vacancy")
+    await client.get(f"/j/{test_job['slug']}")
+    await flush(app)
+    assert (await admin_client.get(f"/admin/jobs/{test_job['job_id']}")).text.count("Test havolani o'chirish") >= 1
+    assert "Test havolani o'chirish" not in (await admin_client.get(f"/admin/jobs/{real_job['job_id']}")).text
+    refuse = await admin_client.post(f"/admin/jobs/{real_job['job_id']}/delete", data={"csrf": admin_client.csrf})
+    assert "err=" in refuse.headers["location"] and (await client.get(f"/j/{real_job['slug']}")).status_code == 200
+    ok = await admin_client.post(f"/admin/jobs/{test_job['job_id']}/delete", data={"csrf": admin_client.csrf})
+    assert "ok=" in ok.headers["location"]
+    assert (await client.get(f"/j/{test_job['slug']}")).status_code == 404
+    from app.db import sessionmaker
+    from sqlalchemy import text
+    async with sessionmaker()() as db:
+        assert (await db.execute(text("SELECT count(*) FROM hirely.events WHERE job_id IS NOT NULL AND job_id NOT IN (SELECT id FROM hirely.jobs)"))).scalar_one() == 0
+        assert (await db.execute(text("SELECT count(*) FROM hirely.jobs"))).scalar_one() == 1
+
+
+@pytest.mark.asyncio(loop_scope="session")
+async def test_cold_cache_burst_does_not_exhaust_the_db_pool(app, client, make_job):
+    """Regression: a burst of requests right after the slug cache expired used to hold every DB connection
+    while the ad selector waited for one, stalling the pool for 30 s."""
+    import asyncio, time
+    from app.routers import public
+    d = await make_job()
+    public._CACHE.clear()
+    app.state.ads.invalidate()
+    t = time.perf_counter()
+    rs = await asyncio.gather(*[client.get(f"/j/{d['slug']}") for _ in range(200)])
+    assert all(r.status_code == 200 for r in rs)
+    assert time.perf_counter() - t < 10

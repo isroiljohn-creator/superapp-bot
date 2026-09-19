@@ -3,6 +3,7 @@ import hashlib
 import hmac
 import json
 import secrets
+import struct
 import time
 from typing import Any, Dict, Optional
 
@@ -77,3 +78,40 @@ def token_ok(supplied: Optional[str]) -> bool:
     for t in get_settings().api_tokens:
         ok |= hmac.compare_digest(t.encode(), supplied.encode())
     return ok
+
+
+# ---------------------------------------------------------------- TOTP (RFC 6238, SHA-1, 6 digits, 30 s)
+
+def new_totp_secret() -> str:
+    return base64.b32encode(secrets.token_bytes(20)).decode().rstrip("=")
+
+
+def _hotp(secret: str, counter: int) -> str:
+    key = base64.b32decode(secret + "=" * (-len(secret) % 8), casefold=True)
+    digest = hmac.new(key, struct.pack(">Q", counter), hashlib.sha1).digest()
+    o = digest[-1] & 0x0F
+    return f"{(struct.unpack('>I', digest[o:o + 4])[0] & 0x7FFFFFFF) % 1_000_000:06d}"
+
+
+def totp_now(secret: str, at: Optional[float] = None) -> str:
+    return _hotp(secret, int((time.time() if at is None else at) // 30))
+
+
+def verify_totp(secret: str, code: str, last_step: Optional[int] = None, at: Optional[float] = None) -> Optional[int]:
+    """Returns the matched 30 s step (store it, so a code can't be replayed) or None. Allows +-1 step of clock drift."""
+    code = (code or "").strip().replace(" ", "")
+    if not (code.isdigit() and len(code) == 6):
+        return None
+    now = int((time.time() if at is None else at) // 30)
+    match = None
+    for step in (now - 1, now, now + 1):
+        if hmac.compare_digest(_hotp(secret, step), code) and match is None:
+            match = step
+    if match is None or (last_step is not None and match <= last_step):
+        return None
+    return match
+
+
+def otpauth_uri(email: str, secret: str) -> str:
+    from urllib.parse import quote
+    return f"otpauth://totp/Hirely:{quote(email)}?secret={secret}&issuer=Hirely&digits=6&period=30"

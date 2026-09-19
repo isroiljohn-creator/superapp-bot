@@ -1,0 +1,35 @@
+{% extends "admin/base.html" %}
+{% from "admin/_m.html" import csrf_field %}
+{% block title %}Xavfsizlik{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>Xavfsizlik</h1><p class="sub">Kirishni parol + authenticator ilova kodi bilan himoyalang (Google Authenticator, 1Password, Authy va boshqalar).</p></div></div>
+
+{% if enabled %}
+<section class="card panel"><h2>2 bosqichli himoya <span class="badge badge--on">Yoqilgan</span></h2>
+  <p class="muted">Har safar kirishda parol va ilovadagi 6 xonali kod so'raladi. O'chirish uchun parol va joriy kod kerak.</p>
+  <form method="post" action="/admin/security/disable" class="form-grid two">
+    {{ csrf_field(csrf) }}
+    <div class="field"><label for="pw">Parol</label><input id="pw" name="password" type="password" required autocomplete="current-password"></div>
+    <div class="field"><label for="cd">Joriy kod</label><input id="cd" name="code" inputmode="numeric" maxlength="7" required></div>
+    <div class="actions-row"><button class="btn btn--line" type="submit">O'chirish</button></div>
+  </form></section>
+{% elif secret %}
+<section class="card panel"><h2>Ilovani ulang</h2>
+  <ol class="muted">
+    <li>Authenticator ilovasida "Yangi hisob qo'shish" → "Kalit kiritish" ni tanlang.</li>
+    <li>Quyidagi kalitni kiriting (yoki telefoningizda havolani bosing).</li>
+    <li>Ilovada paydo bo'lgan 6 xonali kodni pastga yozib tasdiqlang.</li>
+  </ol>
+  <p class="url"><code>{{ secret }}</code><button type="button" class="btn btn--line btn--sm" data-copy="{{ secret|replace(' ', '') }}">Nusxalash</button></p>
+  <p><a class="btn btn--dark btn--sm" href="{{ uri }}">Ilovada ochish (telefonda)</a></p>
+  <form method="post" action="/admin/security/enable" class="form-grid two">
+    {{ csrf_field(csrf) }}
+    <div class="field"><label for="code">6 xonali kod</label><input id="code" name="code" inputmode="numeric" maxlength="7" required autocomplete="one-time-code"></div>
+    <div class="actions-row"><button class="btn btn--primary" type="submit">Tasdiqlash va yoqish</button></div>
+  </form></section>
+{% else %}
+<section class="card panel"><h2>2 bosqichli himoya <span class="badge badge--off">O'chiq</span></h2>
+  <p class="muted">Parol o'g'irlansa ham, kod telefoningizsiz kirish imkonini bermaydi. Kod yo'qolsa, server orqali <code>python -m app.cli reset-2fa email</code> bilan tiklanadi.</p>
+  <form method="post" action="/admin/security/setup">{{ csrf_field(csrf) }}<button class="btn btn--primary" type="submit">Yoqishni boshlash</button></form></section>
+{% endif %}
+{% endblock %}

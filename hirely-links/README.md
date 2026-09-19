@@ -116,9 +116,30 @@ Route the domain (currently `hrly.uz`) to it with the `server` block in the repo
 nginx **must set** `X-Real-IP` (the app trusts it for rate limits). Behind Cloudflare set `HIRELY_CLIENT_IP_HEADER=cf-connecting-ip`
 and only accept traffic from Cloudflare. Serve over HTTPS (cookies are `Secure`). DNS and TLS for the domain are outside this repo (A record → the EC2 IP, certificate via certbot).
 
+## Operations
+
+* **Two-factor login (TOTP):** Admin → *Xavfsizlik* → enable, scan/enter the key in any authenticator app, confirm a code.
+  After that every login needs password + code (each code works once; 6 wrong codes / 10 min lock the step).
+  Lost phone: `docker exec -it hirely-links python -m app.cli reset-2fa admin@hirely.uz`.
+* **Backups:** the `nuvi-db-backup` container dumps the whole Postgres every 6 h (custom format, verified with `pg_restore -l`),
+  keeps 14 days in the `db_backups` volume and sends a Telegram alert if a dump fails. Restore:
+  `docker exec -i nuvi-academy-db pg_restore -U postgres -d railway --clean --if-exists < dump` (copy the file out of the volume first:
+  `docker cp nuvi-db-backup:/backups/<file>.dump .`). The volume lives on the same disk as the database — copy dumps off the
+  server (S3/rclone) if you need disaster recovery; that needs credentials this repo does not hold.
+* **CI:** `.github/workflows/ci.yml` runs the Hirely Links suite (real Postgres, migrations from scratch) and the bot-client tests on every
+  pull request and **before every deploy** — a red suite blocks the deploy.
+* **Monitoring:** `.github/workflows/monitor.yml` checks every 10 min: `hrly.uz/healthz` (and that no events are being dropped), the admin page,
+  `nuvi.uz`, and that @HirelyUz got a post in the last 6 h (09:00-22:00 Tashkent). It messages the owner on Telegram only when the state changes
+  (down / recovered). Secrets: `ALERT_BOT_TOKEN`, `ALERT_CHAT_ID`.
+* **Deleting test links:** links whose source is `manual`/`test` (or category `test`) have a delete button on the job page; it also removes
+  their events and rolls the ad counters back. Real (bot) links cannot be deleted because live Telegram posts point at them.
+* **Load test** (laptop, 2 workers, embedded Postgres, single client on the same machine): ~530 req/s, p95 166 ms at concurrency 30,
+  0 errors, every event persisted, writer queue drained 0.2 s after the last response. It caught (and fixed) a DB-pool stall when the
+  slug cache expired under a burst — see `test_cold_cache_burst_does_not_exhaust_the_db_pool`.
+
 ## Security summary
 
-Admin: bcrypt, signed cookies scoped to `/admin`, CSRF + Origin check, rate-limited login, open-redirect-safe `next`.
+Admin: bcrypt, optional TOTP 2FA, signed cookies scoped to `/admin`, CSRF + Origin check, rate-limited login, open-redirect-safe `next`.
 API: constant-time bearer compare, per-token rate limit, strict pydantic (unknown fields rejected), URL/phone/username validation
 (no `javascript:`, credentials, private IPs), idempotency. Public IDs are random (`JOB-…`, `UZ-…`, slugs), never sequential DB ids.
 All SQL is parameterised (dimension names come from a whitelist). Jinja autoescaping + a strict CSP (`default-src 'self'`, no inline script/style),

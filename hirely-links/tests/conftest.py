@@ -7,19 +7,33 @@ import pytest
 import pytest_asyncio
 
 # Environment must be set before the app package is imported.
-_PG_DIR = tempfile.mkdtemp(prefix="hl-test-pg-")
 _MEDIA = tempfile.mkdtemp(prefix="hl-test-media-")
-import pgserver  # noqa: E402
+_EXTERNAL = os.environ.get("HIRELY_TEST_DATABASE_URL")  # CI provides a Postgres service
+if _EXTERNAL:
+    _DB_URL = _EXTERNAL
+else:
+    import pgserver  # noqa: E402
 
-_srv = pgserver.get_server(_PG_DIR, cleanup_mode="stop")
+    _PG_DIR = tempfile.mkdtemp(prefix="hl-test-pg-")
+    _srv = pgserver.get_server(_PG_DIR, cleanup_mode="stop")
+    _DB_URL = f"postgresql+asyncpg://postgres@/postgres?host={_PG_DIR}"
 os.environ.update(
-    HIRELY_DATABASE_URL=f"postgresql+asyncpg://postgres@/postgres?host={_PG_DIR}",
+    HIRELY_DATABASE_URL=_DB_URL,
     HIRELY_SECRET_KEY="test-secret-key-test-secret-key-test-secret",
     HIRELY_BOT_API_TOKENS="test-bot-token-aaaaaaaaaaaaaaaa,rotated-bot-token-bbbbbbbbbbbbbb",
     HIRELY_PUBLIC_BASE_URL="https://hirely.test",
     HIRELY_MEDIA_DIR=_MEDIA,
     HIRELY_COOKIE_SECURE="false",
 )
+if _EXTERNAL:  # start from a clean schema so migrations are exercised from scratch
+    import asyncio as _asyncio
+    import asyncpg as _asyncpg
+
+    async def _reset():
+        c = await _asyncpg.connect(_EXTERNAL.replace("postgresql+asyncpg://", "postgresql://"))
+        await c.execute("DROP SCHEMA IF EXISTS hirely CASCADE")
+        await c.close()
+    _asyncio.run(_reset())
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 subprocess.run([sys.executable, "-m", "alembic", "upgrade", "head"], cwd=ROOT, check=True, env=os.environ)
 
@@ -53,6 +67,9 @@ async def clean(app):
         await db.execute(text("DELETE FROM hirely.channels WHERE code <> 'hirely_uz'"))
         await db.commit()
     app.state.limiter._local.clear()
+    from app.routers import public
+    public._CACHE.clear()
+    public._CREATIVES.clear()
     app.state.ads.invalidate()
     app.state.ads._served.clear()
     yield

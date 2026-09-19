@@ -17,7 +17,7 @@
 <aside class="side">
   <div class="brand">{{ symbol(36, 'dark') }}<span class="wordmark">Hirely</span><span class="pill">JOBS</span></div>
   <nav class="nav" aria-label="Asosiy">
-    {% for href, t in [('/admin','Bosh sahifa'),('/admin/jobs','Vakansiyalar'),('/admin/ads','Reklamalar'),('/admin/channels','Kanallar'),('/admin/admins','Adminlar')] %}
+    {% for href, t in [('/admin','Bosh sahifa'),('/admin/jobs','Vakansiyalar'),('/admin/ads','Reklamalar'),('/admin/channels','Kanallar'),('/admin/admins','Adminlar'),('/admin/security','Xavfsizlik')] %}
     <a href="{{ href }}" {% if (path == href) or (href != '/admin' and path.startswith(href)) %}aria-current="page"{% endif %}>{{ t }}</a>{% endfor %}
   </nav>
   <div class="side-foot"><span>{{ sess.admin.email }}</span>

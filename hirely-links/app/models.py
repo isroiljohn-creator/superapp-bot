@@ -62,6 +62,9 @@ class Admin(Base):
     is_active: Mapped[bool] = mapped_column(Boolean, server_default=text("true"))
     created_at: Mapped[dt.datetime] = mapped_column(TS, server_default=func.now())
     last_login_at: Mapped[Optional[dt.datetime]] = mapped_column(TS)
+    totp_secret: Mapped[Optional[str]] = mapped_column(String(64))
+    totp_enabled: Mapped[bool] = mapped_column(Boolean, server_default=text("false"))
+    totp_last_step: Mapped[Optional[int]] = mapped_column(BigInteger)
 
 
 class Channel(Base):

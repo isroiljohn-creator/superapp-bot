@@ -82,7 +82,26 @@ services:
     ports:
       - "127.0.0.1:8081:8081"
 
+  db-backup:
+    image: postgres:16-alpine
+    container_name: nuvi-db-backup
+    restart: unless-stopped
+    depends_on:
+      - db
+    environment:
+      - PGHOST=db
+      - PGUSER=postgres
+      - PGDATABASE=railway
+      - PGPASSWORD=HDBBjGYipNExuTMaKqCwvMOropQTEAqW
+      - ALERT_BOT_TOKEN=${ALERT_BOT_TOKEN}
+      - ALERT_CHAT_ID=${ALERT_CHAT_ID}
+    entrypoint: ["sh", "/backup.sh"]
+    volumes:
+      - db_backups:/backups
+      - ./backup/backup.sh:/backup.sh:ro
+
 volumes:
+  db_backups:
   hirely_media:
   postgres_data:
   redis_data:

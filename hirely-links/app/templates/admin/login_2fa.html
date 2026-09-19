@@ -1,0 +1,24 @@
+{% from "_brand.html" import symbol %}
+<!doctype html>
+<html lang="uz">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<title>Tasdiqlash kodi · Hirely</title>
+<link rel="icon" href="{{ asset('favicon.svg') }}" type="image/svg+xml">
+<link rel="stylesheet" href="{{ asset('hirely.css') }}">
+<link rel="stylesheet" href="{{ asset('admin.css') }}">
+</head>
+<body class="adm">
+<div class="login"><form class="card" method="post" action="/admin/login/2fa" autocomplete="off">
+  <div class="brand">{{ symbol(40) }}<span class="wordmark">Hirely</span><span class="pill">JOBS</span></div>
+  <div><h1 class="h-md">Tasdiqlash kodi</h1><p class="muted">Authenticator ilovasidagi 6 xonali kodni kiriting.</p></div>
+  {% if error %}<div class="notice notice--err" role="alert">{{ error }}</div>{% endif %}
+  <div class="field"><label for="code">Kod</label><input id="code" name="code" inputmode="numeric" pattern="[0-9 ]{6,7}" maxlength="7" autocomplete="one-time-code" required autofocus></div>
+  <button class="btn btn--primary btn--block" type="submit">Tasdiqlash</button>
+  <a class="btn btn--line btn--block" href="/admin/login">Bekor qilish</a>
+</form></div>
+<script src="{{ asset('ui.js') }}" defer></script>
+</body>
+</html>

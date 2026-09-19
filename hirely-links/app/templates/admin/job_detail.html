@@ -1,6 +1,11 @@
 {% extends "admin/base.html" %}
-{% from "admin/_m.html" import kpi, rangebar, breakdown_table %}
-{% block title %}{{ job.label }}{% endblock %}
+{% from "admin/_m.html" import kpi, rangebar, breakdown_table, csrf_field %}
+{% block title %}{{ job.label }}{% if deletable %}
+<section class="card panel"><h2>Test havolani o'chirish</h2>
+  <p class="muted">Bu havola qo'lda/test sifatida yaratilgan. O'chirilsa, sahifasi 404 beradi va statistikasi (ko'rishlar, kliklar) butunlay tozalanadi.</p>
+  <form method="post" action="/admin/jobs/{{ job.public_id }}/delete" data-confirm="{{ job.public_id }} va uning butun statistikasi o'chiriladi. Davom etasizmi?">{{ csrf_field(csrf) }}<button class="btn btn--line" type="submit">Vakansiyani o'chirish</button></form></section>
+{% endif %}
+{% endblock %}
 {% block content %}
 <div class="page-head"><div><h1>{{ job.label }}</h1>
   <p class="sub">{{ job.public_id }} · {{ job.created_at|local_dt }}{% if job.category %} · kategoriya: {{ job.category }}{% endif %}{% if job.source %} · manba: {{ job.source }}{% endif %}</p></div>
@@ -31,4 +36,9 @@
   {{ breakdown_table(rows, dims[dim]) }}</section>
 <section class="card panel"><h2>Aloqa ma'lumotlari</h2>
   <p class="muted">{% if job.phone %}Telefon: {{ job.phone }}<br>{% endif %}{% if job.telegram %}Telegram: @{{ job.telegram }}<br>{% endif %}{% if job.external_url %}Tashqi havola: {{ job.external_url }}{% endif %}</p></section>
+{% if deletable %}
+<section class="card panel"><h2>Test havolani o'chirish</h2>
+  <p class="muted">Bu havola qo'lda/test sifatida yaratilgan. O'chirilsa, sahifasi 404 beradi va statistikasi (ko'rishlar, kliklar) butunlay tozalanadi.</p>
+  <form method="post" action="/admin/jobs/{{ job.public_id }}/delete" data-confirm="{{ job.public_id }} va uning butun statistikasi o'chiriladi. Davom etasizmi?">{{ csrf_field(csrf) }}<button class="btn btn--line" type="submit">Vakansiyani o'chirish</button></form></section>
+{% endif %}
 {% endblock %}

@@ -1,0 +1,68 @@
+name: Monitor
+
+# Every 10 minutes: is the site up, is Hirely Links healthy, is the channel still getting posts?
+# Sends a Telegram message only when the state CHANGES (down / recovered), so it never spams.
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+permissions:
+  actions: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run checks
+        id: chk
+        run: |
+          problems=""
+          add() { problems="${problems}- $1"$'\n'; }
+
+          h=$(curl -fsS --max-time 20 https://hrly.uz/healthz 2>/dev/null) || h=""
+          echo "$h" | grep -q '"ok":true' || add "hrly.uz (Hirely Links) javob bermayapti"
+          echo "$h" | grep -Eq '"dropped":0[,}]' || { [ -z "$h" ] || add "Hirely Links hodisalarni yo'qotmoqda: $h"; }
+          code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 20 https://hrly.uz/admin/login) || code=000
+          [ "$code" = 200 ] || add "hrly.uz/admin/login: HTTP $code"
+          code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 20 https://www.nuvi.uz/) || code=000
+          [ "$code" = 200 ] || add "nuvi.uz: HTTP $code"
+
+          # Channel freshness (only 09:00-22:00 Tashkent; an unreadable preview is not treated as an outage)
+          page=$(curl -fsS --max-time 20 https://t.me/s/hirelyuz 2>/dev/null) || page=""
+          if [ -n "$page" ]; then
+            age_h=$(echo "$page" | python3 -c '
+          import re,sys,datetime as d
+          t=re.findall(r"datetime=\"([^\"]+)\"",sys.stdin.read())
+          if not t: print(-1)
+          else:
+              last=d.datetime.fromisoformat(t[-1]); now=d.datetime.now(d.timezone.utc)
+              print(int((now-last).total_seconds()//3600))')
+            hour=$(TZ=Asia/Tashkent date +%H)
+            if [ "$age_h" -ge 6 ] && [ "$hour" -ge 9 ] && [ "$hour" -lt 22 ]; then
+              add "@HirelyUz kanaliga $age_h soatdan beri yangi post chiqmadi"
+            fi
+          fi
+
+          echo "problems<<EOF" >> "$GITHUB_OUTPUT"; printf '%s' "$problems" >> "$GITHUB_OUTPUT"; echo "EOF" >> "$GITHUB_OUTPUT"
+          [ -z "$problems" ] && echo "all good" || { echo "PROBLEMS:"; printf '%s' "$problems"; }
+
+      - name: Notify on state change
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PROBLEMS: ${{ steps.chk.outputs.problems }}
+          TOKEN: ${{ secrets.ALERT_BOT_TOKEN }}
+          CHAT: ${{ secrets.ALERT_CHAT_ID }}
+        run: |
+          prev=$(gh run list --workflow=monitor.yml --repo "$GITHUB_REPOSITORY" --limit 10 --json status,conclusion -q '[.[] | select(.status=="completed")][0].conclusion // "success"')
+          send() { curl -s --max-time 20 --data-urlencode "text=$1" -d "chat_id=$CHAT" "https://api.telegram.org/bot$TOKEN/sendMessage" >/dev/null; }
+          if [ -n "$PROBLEMS" ] && [ "$prev" != "failure" ]; then
+            send "🔴 Muammo aniqlandi:
+          $PROBLEMS"
+          elif [ -z "$PROBLEMS" ] && [ "$prev" = "failure" ]; then
+            send "🟢 Hammasi qayta joyida."
+          fi
+
+      - name: Fail the run while there are problems
+        if: steps.chk.outputs.problems != ''
+        run: exit 1

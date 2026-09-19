@@ -1,4 +1,5 @@
-"""python -m app.cli create-admin EMAIL   (password is prompted, or read from HIRELY_NEW_ADMIN_PASSWORD)"""
+"""python -m app.cli create-admin EMAIL   (password is prompted, or read from HIRELY_NEW_ADMIN_PASSWORD)
+   python -m app.cli reset-2fa EMAIL        (turns two-factor off for an admin who lost their phone)"""
 import asyncio
 import getpass
 import os
@@ -26,9 +27,23 @@ async def create_admin(email: str, password: str) -> None:
     await dispose()
 
 
+async def reset_2fa(email: str) -> None:
+    async with sessionmaker()() as db:
+        admin = (await db.execute(select(Admin).where(Admin.email == email.lower()))).scalar_one_or_none()
+        if admin is None:
+            raise SystemExit("no such admin")
+        admin.totp_enabled, admin.totp_secret, admin.totp_last_step = False, None, None
+        await db.commit()
+        print(f"2FA disabled for {email}")
+    await dispose()
+
+
 def main() -> None:
-    if len(sys.argv) != 3 or sys.argv[1] != "create-admin":
+    if len(sys.argv) != 3 or sys.argv[1] not in ("create-admin", "reset-2fa"):
         raise SystemExit(__doc__)
+    if sys.argv[1] == "reset-2fa":
+        asyncio.run(reset_2fa(sys.argv[2]))
+        return
     pw = os.environ.get("HIRELY_NEW_ADMIN_PASSWORD") or getpass.getpass("Password: ")
     asyncio.run(create_admin(sys.argv[2], pw))
 
