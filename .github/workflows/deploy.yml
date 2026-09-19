@@ -42,6 +42,7 @@ jobs:
             docker-compose down --remove-orphans && \
             VACANCY_TG_SESSION_STRING='${{ secrets.VACANCY_TG_SESSION_STRING }}' \\
             HIRELY_PUBLIC_BASE_URL='${{ vars.HIRELY_PUBLIC_BASE_URL }}' \\
+            HIRELY_LINKS_TOKEN='${{ secrets.HIRELY_LINKS_TOKEN }}' \\
             HIRELY_SECRET_KEY='${{ secrets.HIRELY_SECRET_KEY }}' \\
             HIRELY_BOT_API_TOKENS='${{ secrets.HIRELY_BOT_API_TOKENS }}' \\
             HIRELY_BOOTSTRAP_ADMIN_EMAIL='${{ secrets.HIRELY_ADMIN_EMAIL }}' \\

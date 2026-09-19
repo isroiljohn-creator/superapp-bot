@@ -205,6 +205,7 @@ async def init_db():
                 logger.error(f"Error altering nuvi_users: {e}")
             try:
                 await conn.execute("ALTER TABLE nuvi_vacancies ADD COLUMN IF NOT EXISTS tariff TEXT DEFAULT 'pro'")
+                await conn.execute("ALTER TABLE nuvi_vacancies ADD COLUMN IF NOT EXISTS tracking_url TEXT")
                 await conn.execute("ALTER TABLE nuvi_vacancies ADD COLUMN IF NOT EXISTS skills TEXT")
                 await conn.execute("ALTER TABLE nuvi_vacancies ADD COLUMN IF NOT EXISTS telegram_message_id INT")
                 await conn.execute("ALTER TABLE nuvi_vacancies ADD COLUMN IF NOT EXISTS pinned BOOLEAN DEFAULT FALSE")

@@ -39,6 +39,7 @@ from telegram.constants import ParseMode
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 import database
 from image_generator import generate_vacancy_cover
+import hirely_links
 from vacancy_scraper import VacancyScraper
 from ai import GeminiAI
 
@@ -448,7 +449,27 @@ def get_contact_url(contact_text: str) -> Optional[str]:
     # "Ariza topshirish" (apply via bot) button instead.
     return None
 
+async def ensure_tracking_url(vac: dict):
+    """Tracked Hirely Links URL for this vacancy (created once, then stored). None -> old behaviour."""
+    if vac.get("tracking_url"):
+        return vac["tracking_url"]
+    url = await hirely_links.request_tracking_url(vac)
+    if url:
+        vac["tracking_url"] = url
+        await database.db_update_nuvi_vacancy(vac["id"], tracking_url=url)
+    return url
+
+
+def post_caption(vac: dict, text: str) -> str:
+    """Post text as sent to the channel: with a tracked button the contact line is dropped from the text."""
+    if vac.get("tracking_url"):
+        text = hirely_links.strip_contact_line(text)
+    return escape_telegram_markdown(text)
+
+
 def get_vacancy_reply_markup(bot_username: str, vac: dict) -> InlineKeyboardMarkup:
+    if vac.get("tracking_url"):
+        return InlineKeyboardMarkup([[InlineKeyboardButton("📩 Bog'lanish", url=vac["tracking_url"])]])
     keyboard = []
     contact_url = get_contact_url(vac.get("contact", ""))
     if contact_url:
@@ -1746,7 +1767,8 @@ async def nuvi_auto_post_job(context: ContextTypes.DEFAULT_TYPE) -> None:
             design="A" if vac_id % 2 == 0 else "B"
         )
         
-        caption_text = escape_telegram_markdown(vac["formatted_text"])
+        await ensure_tracking_url(vac)
+        caption_text = post_caption(vac, vac["formatted_text"])
         
         post_success = False
         message_id = None
@@ -3429,7 +3451,7 @@ async def update_employer_vacancies_in_channel(context: ContextTypes.DEFAULT_TYP
             if vac.get("status") == "posted" and vac.get("telegram_message_id"):
                 vac["user_id"] = employer_id
                 new_text = await format_vacancy_text(vac)
-                caption_text = escape_telegram_markdown(new_text)
+                caption_text = post_caption(vac, new_text)
                 
                 try:
                     await context.bot.edit_message_caption(
@@ -4011,7 +4033,7 @@ async def update_telegram_post(bot, vac: dict) -> None:
     msg_id = vac.get("telegram_message_id")
     if not msg_id:
         return
-    caption_text = escape_telegram_markdown(vac["formatted_text"])
+    caption_text = post_caption(vac, vac["formatted_text"])
     
     try:
         bot_info = await bot.get_me()
