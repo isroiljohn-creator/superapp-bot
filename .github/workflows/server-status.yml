@@ -1,0 +1,28 @@
+name: Server status
+
+# Manual read-only report: containers, disk, latest database backups and recent logs (tokens masked).
+on: workflow_dispatch
+
+jobs:
+  status:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Report
+        run: |
+          ssh -i ~/.ssh/id_rsa ubuntu@${{ secrets.EC2_HOST }} 'bash -s' <<'EOS' || true
+          echo "=== containers"; docker ps --format 'table {{.Names}}\t{{.Status}}'
+          echo "=== disk"; df -h / | tail -1
+          echo "=== backups (nuvi-db-backup)"; docker exec nuvi-db-backup sh -c 'ls -lh /backups | tail -5' 2>&1
+          echo "=== hirely-links health"; curl -fsS http://127.0.0.1:8081/healthz || echo "health check failed"
+          for c in nuvi-db-backup hirely-links nuvi-jobs-bot; do
+            echo "=== logs: $c"
+            docker logs --tail 25 "$c" 2>&1 | sed -E 's#bot[0-9]+:[A-Za-z0-9_-]+#bot[TOKEN]#g'
+          done
+          EOS

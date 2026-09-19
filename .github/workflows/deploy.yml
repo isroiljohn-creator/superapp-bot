@@ -6,6 +6,10 @@ on:
       - main
   workflow_dispatch:
 
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
 jobs:
   test:
     uses: ./.github/workflows/ci.yml
@@ -63,7 +67,7 @@ jobs:
           sleep 20
           docker ps
           echo "--- hirely-links health"; curl -fsS http://127.0.0.1:8081/healthz || echo "health check failed"
-          for c in hirely-links nuvi-jobs-bot; do
+          for c in hirely-links nuvi-jobs-bot nuvi-db-backup; do
             echo "--- logs: $c"
             docker logs --tail 60 "$c" 2>&1 | sed -E 's#bot[0-9]+:[A-Za-z0-9_-]+#bot[TOKEN]#g'
           done
