@@ -1,0 +1,43 @@
+name: Remove a Hirely Links domain (nginx + certificate)
+
+# Manual. Deletes the nginx server block created by "Setup domain" and its Let's Encrypt certificate.
+# Refuses the production domains.
+on:
+  workflow_dispatch:
+    inputs:
+      domain:
+        description: "Exact host name to remove, e.g. hirely.13-60-170-72.sslip.io"
+        required: true
+
+env:
+  DOMAIN: ${{ inputs.domain }}
+
+jobs:
+  remove:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate
+        run: |
+          [[ "$DOMAIN" =~ ^[a-z0-9.-]+$ ]] || { echo "::error::invalid domain"; exit 1; }
+          case "$DOMAIN" in hrly.uz|www.hrly.uz|nuvi.uz|www.nuvi.uz) echo "::error::refusing to remove a production domain"; exit 1;; esac
+
+      - name: Install SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Remove nginx block and certificate
+        run: |
+          ssh -i ~/.ssh/id_rsa ubuntu@${{ secrets.EC2_HOST }} "sudo DOMAIN='$DOMAIN' bash -s" <<'EOS'
+          set -euo pipefail
+          rm -f "/etc/nginx/sites-enabled/hirely-$DOMAIN" "/etc/nginx/sites-available/hirely-$DOMAIN" "/etc/nginx/conf.d/hirely-$DOMAIN.conf"
+          nginx -t
+          systemctl reload nginx
+          if certbot certificates 2>/dev/null | grep -q "Certificate Name: $DOMAIN"; then
+            certbot delete --cert-name "$DOMAIN" --non-interactive
+          fi
+          echo "--- remaining hirely server blocks:"
+          ls /etc/nginx/sites-enabled | grep -i hirely || true
+          EOS
