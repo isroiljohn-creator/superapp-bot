@@ -138,3 +138,13 @@ async def test_pages_have_no_inline_styles_or_scripts_and_load_ui_kit(admin_clie
     assert "ui.js" in login and not re.search(r'\sstyle="', login)
     landing = (await client.get(f"/j/{d['slug']}")).text
     assert not re.search(r'\sstyle="', landing)
+
+
+@pytest.mark.asyncio(loop_scope="session")
+async def test_jobs_pages_render_for_a_job_with_no_events(admin_client, make_job):
+    d = await make_job()
+    r = await admin_client.get("/admin/jobs?r=all")
+    assert r.status_code == 200 and d["job_id"] in r.text
+    r = await admin_client.get(f"/admin/jobs/{d['job_id']}?r=all")
+    assert r.status_code == 200 and d["public_url"] in r.text
+    assert (await admin_client.get("/admin?r=all&dim=job")).status_code == 200

@@ -96,8 +96,13 @@ _AGG = f"""
 """
 
 
+_ZERO = dict.fromkeys(
+    ("page_views", "unique_visitors", "phone_clicks", "telegram_clicks", "external_clicks", "contact_clicks",
+     "contact_visitors", "ad_impressions", "ad_clicks"), 0)
+
+
 def _derive(row: Dict[str, Any]) -> Dict[str, Any]:
-    r = dict(row)
+    r = dict(_ZERO, **row)  # a job with no events yet must still have every metric (as zero)
     imp, clk = r.get("ad_impressions") or 0, r.get("ad_clicks") or 0
     r["ad_ctr"] = (clk / imp * 100) if imp else 0.0
     uv = r.get("unique_visitors") or 0
