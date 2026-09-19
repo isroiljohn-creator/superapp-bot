@@ -15,9 +15,6 @@
       });
     });
   });
-  document.querySelectorAll('[data-confirm]').forEach(function (f) {
-    f.addEventListener('submit', function (e) { if (!confirm(f.getAttribute('data-confirm'))) e.preventDefault(); });
-  });
 
   // time-series chart (plain SVG, no library)
   var NS = 'http://www.w3.org/2000/svg';

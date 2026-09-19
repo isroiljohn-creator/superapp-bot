@@ -121,3 +121,20 @@ async def test_redis_rate_limiter_shared_counters_and_fail_open(monkeypatch):
             raise ConnectionError("redis down")
     a._redis = Down()
     assert await a.allow("k2", 1, 60) is True  # fails open: never blocks users because the limiter is down
+
+
+@pytest.mark.asyncio(loop_scope="session")
+async def test_pages_have_no_inline_styles_or_scripts_and_load_ui_kit(admin_client, client, make_job):
+    """The strict CSP forbids inline style/script, and the brand UI kit must load on every admin page."""
+    import re
+    d = await make_job()
+    pages = ["/admin", "/admin/jobs", "/admin/ads", "/admin/ads/new", "/admin/channels", "/admin/admins"]
+    for p in pages:
+        html = (await admin_client.get(p)).text
+        assert not re.search(r'\sstyle="', html), p
+        assert not re.search(r"<script(?![^>]*\ssrc=)", html), p
+        assert "ui.js" in html, p
+    login = (await client.get("/admin/login")).text
+    assert "ui.js" in login and not re.search(r'\sstyle="', login)
+    landing = (await client.get(f"/j/{d['slug']}")).text
+    assert not re.search(r'\sstyle="', landing)

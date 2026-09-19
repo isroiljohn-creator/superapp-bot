@@ -98,3 +98,83 @@ fieldset.fs0{border:0;padding:0;margin:0;min-width:0}
 .tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;max-width:100%}
 .tbl-wrap .tbl{min-width:0}
 @media (min-width:1101px){.tbl td{padding:10px 8px;font-size:13px}.tbl th{padding:0 8px 10px}}
+
+/* ===== Brand UI kit (see ui.js): dropdowns, date pickers, dialogs, validation, checkboxes, files ===== */
+*{scrollbar-width:thin;scrollbar-color:var(--sage) transparent}
+::-webkit-scrollbar{width:10px;height:10px}::-webkit-scrollbar-thumb{background:var(--sage);border-radius:999px;border:3px solid transparent;background-clip:content-box}
+::selection{background:var(--green);color:var(--forest)}
+
+.dd{position:relative;min-width:0}
+.dd>.dd-native{position:absolute;left:0;top:0;width:1px;height:1px;opacity:0;pointer-events:none}
+.dd-btn{width:100%;min-height:46px;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 14px;border:1.5px solid var(--line);border-radius:14px;background:var(--mist);color:var(--forest);font:600 15px/1.3 var(--manrope);text-align:left;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.dd-btn:hover{border-color:var(--sage)}
+.dd.is-open .dd-btn,.dd-btn:focus-visible{border-color:var(--forest);background:var(--white)}
+.dd-btn:disabled{opacity:.5;cursor:not-allowed}
+.dd-text{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dd-text.ph{color:var(--sage)}
+.dd-btn .ico{display:inline-flex;flex:none;color:var(--ink2)}
+.dd-btn .ico svg{transition:transform .15s}
+.dd.is-open>.dd-btn .ico svg{transform:rotate(180deg)}
+.dd.dp .dd-btn .ico svg{transform:none}
+.dd-list{position:absolute;z-index:80;top:calc(100% + 6px);left:0;min-width:100%;max-height:320px;overflow:auto;margin:0;padding:6px;list-style:none;background:var(--white);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);outline:0}
+.dd-list[hidden],.dp-panel[hidden]{display:none}
+.dd-list.up,.dp-panel.up{top:auto;bottom:calc(100% + 6px)}
+.dd-list.right,.dp-panel.right{left:auto;right:0}
+.dd-list li{display:flex;align-items:center;justify-content:space-between;gap:14px;min-height:44px;padding:0 12px;border-radius:12px;font:600 15px/1.2 var(--manrope);color:var(--forest);cursor:pointer;white-space:nowrap}
+.dd-list li.is-active{background:var(--tint)}
+.dd-list li[aria-selected=true]{background:var(--green)}
+.dd-list li[aria-selected=true]::after{content:"";flex:none;width:13px;height:7px;border:solid var(--forest);border-width:0 0 3px 3px;transform:rotate(-45deg) translate(1px,-1px)}
+.dd-list li[aria-disabled=true]{opacity:.45;cursor:not-allowed}
+
+.dp-panel{position:absolute;z-index:80;top:calc(100% + 6px);left:0;width:min(320px,calc(100vw - 24px));padding:16px;background:var(--white);border:1px solid var(--line);border-radius:22px;box-shadow:var(--shadow)}
+.dp-head{display:flex;align-items:center;justify-content:space-between;gap:4px;margin-bottom:10px}
+.dp-title{flex:1;text-align:center;font:700 15px/1.2 var(--sora);color:var(--forest)}
+.dp-nav{width:36px;height:36px;border:0;border-radius:12px;background:transparent;color:var(--forest);font:700 18px/1 var(--manrope);cursor:pointer}
+.dp-nav:hover{background:var(--tint)}
+.dp-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.dp-wd{padding:6px 0;text-align:center;font:700 11px/1 var(--manrope);letter-spacing:.06em;color:var(--sage);text-transform:uppercase}
+.dp-day{height:40px;border:0;border-radius:12px;background:transparent;color:var(--forest);font:600 14px/1 var(--manrope);cursor:pointer;-webkit-tap-highlight-color:transparent}
+.dp-day:hover{background:var(--tint)}
+.dp-day.out{color:var(--sage)}
+.dp-day.today{box-shadow:inset 0 0 0 1.5px var(--sage)}
+.dp-day.sel{background:var(--forest);color:var(--white);box-shadow:none}
+.dp-time{display:flex;align-items:center;gap:10px;margin-top:12px}
+.dp-time .lbl{margin-right:auto}
+.dp-time-pick{width:84px}
+.dp-time-pick .dd-btn{min-height:42px;padding:8px 12px}
+.dp-colon{font-weight:800}
+.dp-foot{display:flex;gap:8px;justify-content:space-between;margin-top:12px}
+.dp-foot .btn{flex:1}
+
+.dd-scrim{position:fixed;inset:0;z-index:85;background:rgba(22,58,38,.5);display:none}
+.modal-scrim{position:fixed;inset:0;z-index:100;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(22,58,38,.5)}
+.modal{width:100%;max-width:420px;padding:24px;background:var(--white);border-radius:var(--r24);box-shadow:var(--shadow);display:flex;flex-direction:column;gap:10px}
+.modal h2{font-size:20px;font-weight:800}
+.modal-actions{display:flex;flex-wrap:wrap;gap:10px;justify-content:flex-end;margin-top:8px}
+
+.field-err{margin:0;font:700 12px/1.4 var(--manrope);color:var(--forest)}
+.field-err::before{content:"! ";font-family:var(--sora);font-weight:800}
+.field.is-invalid input,.field.is-invalid textarea,.field.is-invalid .dd-btn{border-color:var(--forest);box-shadow:0 0 0 3px var(--green)}
+
+.adm input[type=checkbox]{-webkit-appearance:none;appearance:none;flex:none;width:22px;height:22px;margin:0;display:inline-grid;place-content:center;border:2px solid var(--sage);border-radius:7px;background:var(--white);cursor:pointer}
+.adm input[type=checkbox]:checked{background:var(--forest);border-color:var(--forest)}
+.adm input[type=checkbox]::after{content:"";width:11px;height:6px;border:solid var(--white);border-width:0 0 3px 3px;transform:rotate(-45deg) translate(1px,-1px);opacity:0}
+.adm input[type=checkbox]:checked::after{opacity:1}
+.checks label:has(input:checked){background:var(--green);border-color:var(--forest)}
+.checks input{width:22px;height:22px}
+
+.adm input[type=file]{color:var(--ink2);font:600 14px/1.3 var(--manrope);cursor:pointer}
+.adm input[type=file]::file-selector-button{margin-right:12px;min-height:38px;padding:0 16px;border:0;border-radius:12px;background:var(--forest);color:var(--white);font:700 14px/1 var(--manrope);cursor:pointer}
+.adm input[type=file]::file-selector-button:hover{background:var(--forest2)}
+.adm input[type=number]{-moz-appearance:textfield;appearance:textfield}
+.adm input[type=number]::-webkit-inner-spin-button,.adm input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+
+/* phones: popovers become bottom sheets (16px text avoids iOS focus-zoom) */
+@media (max-width:600px){
+  body.has-sheet .dd-scrim{display:block}
+  .dd-list,.dp-panel{position:fixed;left:12px;right:12px;top:auto;bottom:max(12px,env(safe-area-inset-bottom));width:auto;min-width:0;max-height:72vh;overflow:auto;z-index:90;border-radius:22px}
+  .dd-list.up,.dp-panel.up,.dd-list.right,.dp-panel.right{left:12px;right:12px;top:auto;bottom:max(12px,env(safe-area-inset-bottom))}
+  .dp-panel .dd-list{z-index:95}
+  .dd-btn,.field input,.field textarea{font-size:16px}
+  .dp-day{height:44px}.dp-nav{width:44px;height:44px}
+}
